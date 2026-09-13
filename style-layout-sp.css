@@ -11,6 +11,17 @@
 }
 
 @media screen and (max-width: 768px) {
+
+  
+
+div#playbackTripleBtn {
+    display: contents;
+}
+
+div#markerNavBtn {
+    display: contents;
+}
+
   /* ページ全体のスクロールを止め、ヘッダー〜シークバー〜TIME/VOL/EQ〜再生コントロールまでを
      常に画面内に固定表示し、サイドバー(タブ+中身)だけを独立してスクロールさせる。
      以前は「タブの中身だけを#mobileTabSlotへ移動してそこだけスクロール」という設計だったが、
@@ -349,3 +360,5 @@
     max-width: none;
   }
 }
+
+

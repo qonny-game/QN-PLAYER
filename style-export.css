@@ -1,0 +1,330 @@
+/* ============================================================
+   style-export.css
+   エクスポート機能のUI：モーダル開閉アニメーション、範囲/フォーマット/
+   エフェクト選択、ファイル名入力、実行/キャンセルボタン。
+   .eq-modalも、EQモーダルがこのExportモーダルの共通デザイン
+   (.export-modal-overlay等)を土台にしているためここに含まれる。
+   ============================================================ */
+
+.export-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(5, 5, 7, 0);
+  backdrop-filter: blur(0px);
+  pointer-events: none;
+  transition: background 0.25s cubic-bezier(0.4, 0, 1, 1), backdrop-filter 0.25s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.export-modal-overlay.open {
+  background: rgba(5, 5, 7, 0.72);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+  transition: background 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), backdrop-filter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.export-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #16161b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  transform: translateY(24px) scale(0.94);
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 1, 1), opacity 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.export-modal-overlay.open .export-modal {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* EQは10バンドのスライダーが横に並ぶため、通常のモーダルより広めの幅を取る */
+.eq-modal {
+  max-width: 560px;
+}
+
+.export-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #f0f0f3;
+}
+
+.export-modal-close {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1c1c24;
+  color: #8b8b9e;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
+}
+
+.export-modal-close:hover {
+  background: #252530;
+  color: #f0f0f3;
+  border-color: var(--accent-primary);
+}
+
+.export-modal-close:active {
+  transform: scale(0.9);
+}
+
+.export-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px;
+}
+
+.export-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-section-label {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6b6b7b;
+}
+
+.export-range-options,
+.export-format-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Format(WAV/MP3)選択に応じて表示する詳細設定（サンプルレート/ビットレート）欄 */
+.export-format-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.export-effect-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.export-radio-row,
+.export-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #1c1c24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #c8c8d0;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+
+.export-radio-row:hover,
+.export-checkbox-row:hover {
+  background: #22222c;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.export-radio-row:has(input:checked),
+.export-checkbox-row:has(input:checked) {
+  background: var(--accent-glow);
+  border-color: var(--accent-primary);
+  color: #fff;
+}
+
+.export-radio-row input,
+.export-checkbox-row input {
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.export-marker-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: #1c1c24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #f0f0f3;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.export-marker-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.export-marker-select:not(:disabled):hover {
+  border-color: var(--accent-primary);
+}
+
+/* Marker Rangeの開始・終了プルダウンを横並びに配置する */
+.export-marker-range-selects {
+  display: flex;
+  gap: 12px;
+}
+
+.export-marker-select-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-marker-select-label {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #8b8b9e;
+  text-transform: uppercase;
+}
+
+.export-filename-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #1c1c24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #f0f0f3;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  box-sizing: border-box;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.export-filename-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  background: #22222c;
+}
+
+.export-filename-input::placeholder {
+  color: #5a5a68;
+}
+
+.export-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.export-status {
+  flex: 1;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  color: #8b8b9e;
+  min-height: 16px;
+  transition: color 0.2s ease;
+}
+
+.export-status.error {
+  color: #ef4444;
+}
+
+.export-status.success {
+  color: #10b981;
+}
+
+.export-run-btn {
+  flex-shrink: 0;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 20px var(--accent-glow);
+  transition: background var(--dur-hover) var(--ease-snap), box-shadow var(--dur-press) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
+}
+
+.export-run-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent-hover-1), var(--accent-hover-2));
+  box-shadow: 0 8px 24px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+.export-run-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+.export-run-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Cancel：EXPORTボタンの左に置く、控えめなキャンセルボタン。×ボタンと全く同じ機能
+   （閉じるだけ）だが、フッター内にも同等の操作があった方が分かりやすいというご要望のため追加。
+   実行ボタン(EXPORT)とは対照的に、目立たない枠線のみのデザインにする。 */
+.export-cancel-btn {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  background: transparent;
+  color: #8b8b9e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
+}
+
+.export-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f0f0f3;
+}
+
+.export-cancel-btn:active {
+  transform: scale(0.97);
+}
+
+

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QNPLAYER 1.8.7</title>
+<title>QNPLAYER 1.9.0</title>
 <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
@@ -12,6 +12,12 @@
 <link rel="icon" type="image/png" sizes="512x512" href="favicon/android-chrome-512x512.png">
 
 <link rel="stylesheet" href="style-core.css">
+<link rel="stylesheet" href="style-playlist.css">
+<link rel="stylesheet" href="style-markers.css">
+<link rel="stylesheet" href="style-eq.css">
+<link rel="stylesheet" href="style-controls.css">
+<link rel="stylesheet" href="style-export.css">
+<link rel="stylesheet" href="style-text.css">
 <link rel="stylesheet" href="style-core-pc.css">
 <link rel="stylesheet" href="style-layout-sp.css">
 <script>
@@ -49,7 +55,7 @@
 
 <div id="appHeader">
   <div id="qnMenuMount"></div>
-  <h1 id="appLogo"><span id="appLogoQN">QN</span>PLAYER <span id="appVersion">v1.8.7</span></h1>
+  <h1 id="appLogo"><span id="appLogoQN">QN</span>PLAYER <span id="appVersion">v1.9.0</span></h1>
 </div>
 
 <div class="app-container">
@@ -114,12 +120,11 @@
       </div>
     </div>
 
-    <!-- 常時表示のメインコントロール：TIME、VOL/SPEED/KEY（1行）、EQ/Export/Add File（1行）。
-         旧「Basicタブ」の中身をタブ化せず常時表示に変更したもの。
-         TIME表示は外枠なしの単独行。VOL/SPEED/KEY行とEQ/Export/AddFile行だけを
-         1つの角丸ボックス(basic-panel-box)にまとめ、行間の境界線は無くして１枚に見せる。
-         VOLはiOS Safariの仕様上機能しないため、SP幅ではCSS側で非表示にする
-         （#volToggleBtn自体はPC/SP共通のDOM構造としてここに置いたまま、表示だけ出し分ける）。 -->
+    <!-- 常時表示のメインコントロール：TIME、Export（1行）。
+         旧「Basicタブ」の中身をタブ化せず常時表示にしていたVOL/SPEED/KEY/EQ/Add Fileの
+         見た目ボタンは撤去済み。これらの機能自体はサイドバーのCONTROLタブ（Vol/Speed/Key）、
+         EQ機能（サイドバー等別経路）、Playlistタブ内のAdd Fileインラインボタン等、
+         他の場所から引き続き利用できる。 -->
     <div class="time-controls-row">
       <div id="timeDisplay">
         <span id="currentTimeVal" class="time-val">00:00.0</span>
@@ -129,118 +134,12 @@
     </div>
 
     <div class="basic-panel-box">
-      <!-- 1行目：Vol(PC幅のみ表示) / Speed / Key -->
+      <!-- 1行目：Export（EQ・Add Fileの見た目ボタンは撤去済み。
+           #fileInput自体は他の場所(Playlistタブ内のAdd Fileインラインボタン、
+           サイドバー吸着タブのAdd File)から引き続き参照されるトリガーのため、
+           display: noneのまま残す。） -->
       <div class="time-controls-row adjust-controls-row">
         <div class="time-controls-buttons">
-        <div class="header-btn-wrapper">
-          <button id="volToggleBtn" class="av-toggle-btn" title="Volume">
-            <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-            <span class="av-toggle-btn-text">
-              <span class="av-toggle-btn-value" id="volToggleValue">80%</span>
-              <span class="av-toggle-btn-label">Vol</span>
-            </span>
-          </button>
-          <div class="av-popup" id="volPopup">
-            <div class="control-card">
-              <label>Volume <span id="volumeDisplay" style="color:#fff;">0.80</span></label>
-              <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8">
-            </div>
-          </div>
-        </div>
-
-        <div class="header-btn-wrapper">
-          <button id="speedToggleBtn" class="av-toggle-btn" title="Speed">
-            <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
-            <span class="av-toggle-btn-text">
-              <span class="av-toggle-btn-value" id="speedToggleValue">1.0x</span>
-              <span class="av-toggle-btn-label">Speed</span>
-            </span>
-          </button>
-          <div class="av-popup" id="speedPopup">
-            <div class="control-card">
-              <label>
-                Speed <span id="speedDisplay" style="color:#fff;">1.00</span>x
-                <button class="mini-reset-btn" id="speedResetBtn" title="Reset speed to 1.00x">↺</button>
-              </label>
-              <input type="range" id="speedRange" min="0.5" max="1.5" step="0.01" value="1.0">
-            </div>
-
-            <!-- アドバンス機能：マーカー区間ループ(LOOP ON時)をx回通過するたびに、
-                 Speedをy%だけ自動で増減する。ギター等の練習で「弾けるようになったら少しずつ
-                 テンポを上げる」操作を自動化するためのもの。 -->
-            <div class="control-card auto-speed-card">
-              <label class="auto-speed-header">
-                <span>Auto Speed</span>
-                <button class="glow-switch" id="autoSpeedToggleBtn" role="switch" aria-checked="false" title="Automatically adjust speed every N loops">
-                  <span class="glow-switch-knob"></span>
-                </button>
-              </label>
-              <div class="auto-speed-settings" id="autoSpeedSettings">
-                <div class="auto-speed-row">
-                  <span class="auto-speed-row-label">Every</span>
-                  <input type="number" id="autoSpeedEveryN" class="auto-speed-number" min="1" max="99" step="1" value="5">
-                  <span class="auto-speed-row-label">loops</span>
-                </div>
-                <div class="auto-speed-row">
-                  <div class="auto-speed-direction" id="autoSpeedDirection">
-                    <button type="button" class="auto-speed-dir-btn active" data-dir="up">Speed Up</button>
-                    <button type="button" class="auto-speed-dir-btn" data-dir="down">Speed Down</button>
-                  </div>
-                </div>
-                <div class="auto-speed-row">
-                  <span class="auto-speed-row-label">by</span>
-                  <input type="number" id="autoSpeedStepPercent" class="auto-speed-number" min="1" max="50" step="1" value="5">
-                  <span class="auto-speed-row-label">%</span>
-                </div>
-                <div class="auto-speed-row">
-                  <span class="auto-speed-row-label">Limit</span>
-                  <input type="number" id="autoSpeedLimit" class="auto-speed-number" min="50" max="150" step="1" value="150">
-                  <span class="auto-speed-row-label">%</span>
-                </div>
-                <div class="auto-speed-status" id="autoSpeedStatus">Loop progress: 0 / 5</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="header-btn-wrapper">
-          <button id="keyToggleBtn" class="av-toggle-btn" title="Key">
-            <svg viewBox="0 0 24 24"><path d="M7 14c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm0-4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm14.71-2.37l-1.34-1.34c-.2-.2-.51-.2-.71 0L9 16.96V19h2.04l10.66-10.66c.2-.2.2-.51.01-.71z"/></svg>
-            <span class="av-toggle-btn-text">
-              <span class="av-toggle-btn-value" id="keyToggleValue">0</span>
-              <span class="av-toggle-btn-label">Key</span>
-            </span>
-            <span class="key-disabled-badge">SOON</span>
-          </button>
-          <div class="av-popup" id="keyPopup">
-            <div class="control-card key-control-card">
-              <label>
-                Key <span id="keyDisplay" style="color:#fff;">0</span> st
-                <button class="mini-reset-btn" id="keyResetBtn" title="Reset key to 0">↺</button>
-              </label>
-              <div class="key-stepper">
-                <button id="keyDownBtn" class="key-step-btn" title="Key down 1 semitone">−</button>
-                <div class="key-stepper-bar">
-                  <div class="key-stepper-fill" id="keyStepperFill"></div>
-                </div>
-                <button id="keyUpBtn" class="key-step-btn" title="Key up 1 semitone">+</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-
-      <!-- 2行目：EQ / Export / Add File（全て同じav-toggle-btnデザインで統一） -->
-      <div class="time-controls-row adjust-controls-row">
-        <div class="time-controls-buttons">
-          <button id="eqToggleBtn" class="av-toggle-btn" title="Equalizer">
-            <svg viewBox="0 0 24 24"><path d="M3 17h4v4H3v-4zm7-8h4v12h-4V9zm7-6h4v18h-4V3z"/></svg>
-            <span class="av-toggle-btn-text">
-              <span class="av-toggle-btn-label">EQ</span>
-            </span>
-          </button>
-
           <button id="exportToggleBtn" class="av-toggle-btn" title="Export Audio">
             <svg viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
             <span class="av-toggle-btn-text">
@@ -248,15 +147,7 @@
             </span>
           </button>
 
-          <div class="header-btn-wrapper" id="fileUploadWrapper">
-            <label for="fileInput" class="av-toggle-btn" title="Add File" style="cursor: pointer;">
-              <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-              <span class="av-toggle-btn-text">
-                <span class="av-toggle-btn-label">Add File</span>
-              </span>
-            </label>
-            <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.webm,.opus" multiple style="display:none;">
-          </div>
+          <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.webm,.opus" multiple style="display:none;">
         </div>
       </div>
     </div>
@@ -618,9 +509,15 @@
 <div class="top-controls-spacer" id="topControlsSpacer"></div>
 
 
-<script src="lame.min.js"></script>
+<script src="lame_min.js"></script>
 <script src="player-core.js"></script>
 <script src="player-ui-shared.js"></script>
+<script src="player-playlist.js"></script>
+<script src="player-markers.js"></script>
+<script src="player-eq.js"></script>
+<script src="player-controls.js"></script>
+<script src="player-export.js"></script>
+<script src="player-text.js"></script>
 <script src="player-ui-sp.js"></script>
 <script src="player-ui-pc.js"></script>
 <script src="qn-menu.js"></script>

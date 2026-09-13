@@ -1,0 +1,169 @@
+/* ============================================================
+   style-playlist.css
+   プレイリスト機能のUI：一覧(#playlistBox/.playlistItem)、ドラッグ
+   並び替えハンドル、ファイル追加ボタン(.file-upload-btn)、
+   ドラッグ&ドロップ時の全画面オーバーレイ(#dropOverlay)。
+   ============================================================ */
+
+#playlistBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.playlistItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: #1c1c24;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  font-size: 13px;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s ease-out;
+  position: relative;
+}
+
+.playlistItem.disabled {
+  opacity: 0.4;
+}
+.playlistItem.disabled .playlist-name {
+  text-decoration: line-through;
+}
+
+.playlistItem:hover {
+  background: #252530;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.playlistItem.playing {
+  border-color: var(--accent-primary);
+  background: var(--accent-glow);
+}
+
+/* ドラッグ中のアイテムは他より手前に表示し、少し浮いた見た目にする */
+.playlistItem.dragging {
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  cursor: grabbing;
+  transition: none;
+}
+
+.playlist-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #6b6b7b;
+  cursor: grab;
+  touch-action: none;
+}
+
+.playlist-drag-handle:hover {
+  color: #f0f0f3;
+}
+
+.playlist-drag-handle svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.playlistItem .playlist-name {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #f0f0f3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.playlistItem.playing .playlist-name {
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.playlistItem button {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  background: #2a2a35;
+  color: #ef4444;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 5px 9px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.playlistItem button:hover {
+  background: #3a3a48;
+}
+
+.file-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px 16px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: #fff;
+  text-align: center;
+  border-radius: 14px;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-sizing: border-box;
+  box-shadow: 0 6px 20px var(--accent-glow);
+  transition: background var(--dur-hover) var(--ease-snap), box-shadow var(--dur-press) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
+}
+
+.file-upload-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.file-upload-btn:hover {
+  background: linear-gradient(135deg, var(--accent-hover-1), var(--accent-hover-2));
+  box-shadow: 0 8px 25px var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+#dropOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--accent-glow);
+  border: 3px dashed var(--accent-primary);
+  box-sizing: border-box;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 24px;
+  letter-spacing: 1px;
+  font-weight: bold;
+  color: #fff;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+body.dragover #dropOverlay {
+  opacity: 1;
+}

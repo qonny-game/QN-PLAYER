@@ -1,0 +1,267 @@
+/* ============================================================
+   style-markers.css
+   マーカー機能のUI：波形上のピン(.vbar-line/.vbar-label)は共通土台側にあるが、
+   マーカー一覧(#pinList/.pinItem)・編集ボタン・カラーピッカー
+   (.marker-color-popup等)・削除確認アニメーションはこちら。
+   ============================================================ */
+
+#pinList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: visible;
+  max-height: none;
+  padding-right: 0;
+  flex: none;
+}
+
+.pinItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #1c1c24;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.pinItem:hover {
+  background: #252530;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pinItem.disabled {
+  opacity: 0.4;
+}
+.pinItem.disabled .pin-info {
+  text-decoration: line-through;
+}
+
+.pinItem .pin-info {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #f0f0f3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.pin-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0;
+  background: #2a2a35;
+  color: #8b8b9e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
+}
+
+.pin-edit-btn:hover {
+  background: #3a3a48;
+  color: var(--accent-primary);
+}
+
+.pin-edit-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+/* マーカーリスト左端の色の目印。クリックするとカラーパレットが開く（選択色または未設定時はグレー）。
+   ボタン要素だが枠線・パディングをリセットして丸いドットだけの見た目にする。 */
+.pin-color-mark {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: transform var(--dur-hover) var(--ease-snap), box-shadow var(--dur-hover) var(--ease-snap);
+}
+
+.pin-color-mark:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+/* マーカー色選択のポップアップ。カラースウォッチをグリッドで並べる。 */
+.marker-color-popup {
+  z-index: 500;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 12px;
+  background: #16161b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.marker-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap);
+}
+
+.marker-color-swatch:hover {
+  transform: scale(1.12);
+}
+
+.marker-color-swatch.active {
+  border-color: #fff;
+}
+
+.marker-color-swatch.marker-color-none {
+  background: #2a2a35;
+  position: relative;
+}
+
+.marker-color-swatch.marker-color-none::before,
+.marker-color-swatch.marker-color-none::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 2px;
+  background: #8b8b9e;
+  transform-origin: center;
+}
+
+.marker-color-swatch.marker-color-none::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.marker-color-swatch.marker-color-none::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.pin-memo-input {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #f0f0f3;
+  background: #14141a;
+  border: 1px solid var(--accent-primary);
+  border-radius: 6px;
+  padding: 5px 8px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.pinItem button {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  background: #2a2a35;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background 0.2s;
+  text-align: center;
+}
+
+.pinItem .toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.pinItem .toggle-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* ON(表示中)は目立たせ、OFF(非表示)はグレーアウトする */
+.pinItem:not(.disabled) .toggle-btn {
+  color: var(--accent-primary);
+}
+
+.pinItem.disabled .toggle-btn {
+  color: #8b8b9e;
+}
+
+.pinItem button:hover {
+  background: #3a3a48;
+}
+
+/* プレイリストのON/OFFボタン（マーカーのtoggle-btnと同じデザイン） */
+.playlistItem .toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0;
+  background: #2a2a35;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.playlistItem .toggle-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.playlistItem .toggle-btn:hover {
+  background: #3a3a48;
+}
+
+.playlistItem:not(.disabled) .toggle-btn {
+  color: var(--accent-primary);
+}
+
+.playlistItem.disabled .toggle-btn {
+  color: #8b8b9e;
+}
+
+.del-btn {
+  transition: background var(--dur-press) var(--ease-snap), color var(--dur-press) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
+}
+
+.del-btn.confirm {
+  background: #ef4444 !important;
+  color: #fff !important;
+  border-color: #ef4444 !important;
+  animation: delConfirmPulse 0.9s var(--ease-snap) infinite;
+}
+
+@keyframes delConfirmPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+

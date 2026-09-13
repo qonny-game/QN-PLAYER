@@ -42,6 +42,15 @@ function startDragPin(index) {
     const { s1, s2, s3, s4, s5 } = getSegments(dur);
     const bounds = [0, s1, s2, s3, s4, s5, dur];
 
+    // touchstartでpreventDefault()するとブラウザは以降の合成click/mousedown
+    // イベントを発火しなくなる。そのため「タップ（動かさない）＝そのマーカーへ
+    // シーク＆再生」「ドラッグ（動かす）＝マーカー移動」を、ここで実際の移動量から
+    // 判定して両立させる。DRAG_THRESHOLD_PXより動いたらドラッグとみなす。
+    const DRAG_THRESHOLD_PX = 6;
+    const startClientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+    const startClientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+    let hasDragged = false;
+
     const bars = [
       document.getElementById("bar1"),
       document.getElementById("bar2"),
@@ -85,25 +94,46 @@ function startDragPin(index) {
     }
 
     function move(ev) {
+      if (Math.abs(ev.clientX - startClientX) > DRAG_THRESHOLD_PX || Math.abs(ev.clientY - startClientY) > DRAG_THRESHOLD_PX) {
+        hasDragged = true;
+      }
       moveAt(ev.clientX, ev.clientY);
     }
 
     function moveTouch(ev) {
       if (ev.touches.length === 0) return;
       ev.preventDefault();
-      moveAt(ev.touches[0].clientX, ev.touches[0].clientY);
+      const t = ev.touches[0];
+      if (Math.abs(t.clientX - startClientX) > DRAG_THRESHOLD_PX || Math.abs(t.clientY - startClientY) > DRAG_THRESHOLD_PX) {
+        hasDragged = true;
+      }
+      moveAt(t.clientX, t.clientY);
     }
 
     function stop() {
       pins.sort((a, b) => a.t - b.t);
-      
-      prevTime = audio.currentTime;
-      setTimeout(() => { isSeeking = false; }, 150);
+
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseup", stop);
       document.removeEventListener("touchmove", moveTouch);
       document.removeEventListener("touchend", stop);
       document.removeEventListener("touchcancel", stop);
+
+      if (!hasDragged && e.type === "touchstart") {
+        // 実質的にタップだった（touchstartのpreventDefaultでclickが発火しないため、
+        // ここでタップ時と同じ処理＝そのマーカーへシーク＆再生を行う）。
+        const pinObj = pins[index];
+        if (pinObj) {
+          audio.currentTime = pinObj.t;
+          prevTime = pinObj.t;
+          audio.play();
+          updatePlayButtonState();
+          renderSegments(getActiveSegment(pinObj.t));
+        }
+      } else {
+        prevTime = audio.currentTime;
+      }
+      setTimeout(() => { isSeeking = false; }, 150);
 
       renderPins();
       renderSegments();
@@ -122,3 +152,72 @@ function startDragPin(index) {
   };
 }
 
+// ============================================================
+// #topControlsのPC幅レイアウト：Track/Play/Track・Repeat・Marker×3・Loopを
+// 完全にフラットな1行として並べる。
+//
+// 当初はCSSの display: contents で.top-controls-row（行の箱）を透明化する
+// 方式を試みたが、ブラウザ間の挙動差により確実に機能しなかったため、
+// ここでJSが実際にDOM構造を組み替える方式にしている。
+// PC幅(901px以上)になった瞬間、4つの要素(#playbackTripleBtn,
+// #allRepeatToggleBtn, #markerNavBtn, #loopToggleBtn)を#topControls直下へ
+// 移動し、空になった.top-controls-rowは非表示にする。
+// SP幅(900px以下)に戻った時は、元々あった.top-controls-rowへ戻す。
+// ============================================================
+(function () {
+  const topControls = document.getElementById("topControls");
+  const topControlsRows = topControls ? topControls.querySelectorAll(".top-controls-row") : [];
+  const row1 = topControlsRows[0] || null;
+  const row2 = topControlsRows[1] || null;
+  const playbackTripleBtn = document.getElementById("playbackTripleBtn");
+  const allRepeatToggleBtn = document.getElementById("allRepeatToggleBtn");
+  const markerNavBtn = document.getElementById("markerNavBtn");
+  const loopToggleBtn = document.getElementById("loopToggleBtn");
+
+  if (!topControls || !row1 || !row2 || !playbackTripleBtn || !allRepeatToggleBtn || !markerNavBtn || !loopToggleBtn) {
+    return;
+  }
+
+  const PC_BREAKPOINT = "(min-width: 901px)";
+  const mql = window.matchMedia(PC_BREAKPOINT);
+  let isFlattened = false;
+
+  function flattenForPc() {
+    if (isFlattened) return;
+    isFlattened = true;
+    // 元の順序(Track/Play/Track → Repeat → Marker×3 → Loop)を保ったまま
+    // #topControls直下へ移動する。appendChildは既存の親からその要素を
+    // 自動的に取り除いてから新しい親に追加するため、明示的なremoveは不要。
+    topControls.appendChild(playbackTripleBtn);
+    topControls.appendChild(allRepeatToggleBtn);
+    topControls.appendChild(markerNavBtn);
+    topControls.appendChild(loopToggleBtn);
+    row1.style.display = "none";
+    row2.style.display = "none";
+  }
+
+  function restoreForSp() {
+    if (!isFlattened) return;
+    isFlattened = false;
+    row1.style.display = "";
+    row2.style.display = "";
+    // 元の行構造に戻す（1段目：Track/Play/Track + Repeat、2段目：Marker×3 + Loop）。
+    row1.appendChild(playbackTripleBtn);
+    row1.appendChild(allRepeatToggleBtn);
+    row2.appendChild(markerNavBtn);
+    row2.appendChild(loopToggleBtn);
+  }
+
+  function syncTopControlsLayout() {
+    if (mql.matches) {
+      flattenForPc();
+    } else {
+      restoreForSp();
+    }
+  }
+
+  syncTopControlsLayout();
+  // addEventListenerでの登録はSafari等の古いバージョンでも安定して動く
+  // (addListenerは非推奨のため使わない)。
+  mql.addEventListener("change", syncTopControlsLayout);
+})();

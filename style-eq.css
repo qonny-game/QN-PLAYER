@@ -1,0 +1,138 @@
+/* ============================================================
+   style-eq.css
+   10バンド・グラフィックイコライザーのUI（EQヒント文言、プリセットボタン、
+   バンドスライダー、周波数ラベル）。
+   注：EQモーダル自体の外枠(.eq-modal)は、Exportモーダルの共通デザイン
+   (.export-modal-overlay等)を土台にしているため style-export.css 側にある。
+   ============================================================ */
+
+.eq-hint {
+  margin: 0 0 14px;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  color: #6b6b7b;
+}
+
+/* SP幅でBasicタブ内に移動した時だけ表示する区切り線とタイトル（PC幅のモーダルでは不要） */
+.eq-inline-divider,
+.eq-inline-title {
+  display: none;
+}
+
+.eq-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.eq-preset-buttons {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eq-preset-btn {
+  flex: 1 1 auto;
+  padding: 8px 10px;
+  background: #22222c;
+  color: #c8c8d0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
+}
+
+.eq-preset-btn:hover {
+  border-color: var(--accent-primary);
+  color: #fff;
+}
+
+.eq-preset-btn.active {
+  background: var(--accent-glow);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.eq-bands {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 4px;
+  height: 160px;
+  touch-action: none;
+}
+
+.eq-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.eq-band-gain {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  white-space: nowrap;
+}
+
+.eq-slider-track {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eq-vslider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 110px;
+  height: 4px;
+  background: #2a2a35;
+  border-radius: 2px;
+  outline: none;
+  transform: rotate(-90deg);
+  cursor: pointer;
+  pointer-events: none;
+}
+
+.eq-vslider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 6px var(--accent-glow);
+  cursor: pointer;
+}
+
+.eq-vslider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 6px var(--accent-glow);
+  cursor: pointer;
+}
+
+.eq-band-freq {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: #6b6b7b;
+  white-space: nowrap;
+}
+

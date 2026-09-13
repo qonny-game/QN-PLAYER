@@ -39,8 +39,19 @@ html {
    このファイル自体は@mediaで囲まれておらずSP幅でも常時読み込まれるため、
    この指定だけは明示的にmin-width(900px境界の1つ上、901px)で囲み、
    SP幅（style-layout-sp.cssのmax-width: 900px側）に影響しないようにする。
-   HTML構造(.top-controls > .top-controls-row が2段)はSP版と完全に共通のまま、
-   flex-directionをrowにして2段を横に並べるだけで1行化する。 */
+   display: contentsでの実装はブラウザ間の挙動差により確実に機能しなかったため、
+   player-ui-pc.js側でPC幅の時だけ実際にDOM構造を並べ替える方式に変更した
+   （#topControls直下にTrack/Play/Track・Repeat・Marker×3・Loopの4要素を
+   フラットに並べる）。ここではその並べ替え後の要素サイズだけを指定する。
+
+   【重要】.tripleNavBtn(Track/Play/Track・Marker×3)と.loopbtn(Repeat・Loop)は
+   SP幅ではどちらも「アイコン+ラベルを縦積み」する縦長デザインだが、実際の
+   高さが大きく異なっていた(.tripleNavBtnは約171px、.loopbtnは約61px)。
+   align-items: centerで縦中央揃えにしていたため、高さの違う要素同士が
+   異なる縦位置に配置され、「TRACK/PLAY/TRACKが崩れて見える」現象の
+   直接の原因になっていた。PC幅では両方とも同じ高さ(60px)に揃え、
+   かつ.tripleNavBtn内の各ボタンはアイコン+ラベルを横並びにして
+   高さを圧縮する。 */
 @media screen and (min-width: 901px) {
   .top-controls {
     flex-direction: row;
@@ -50,20 +61,34 @@ html {
     flex-wrap: nowrap;
   }
 
-  .top-controls-row {
-    flex: 0 1 auto;
-    width: auto;
-  }
-
   /* SP幅では横幅いっぱいに伸ばすためflex:3等の比率指定だったボタン群を、
-     PC幅の横1行では内容量に応じた幅に収める。 */
+     PC幅の横1行では内容量に応じた幅に収める。高さも.loopbtnと揃える。
+     display: flexも明示しておく（style-core.css側の.tripleNavBtn定義で
+     指定済みのはずだが、明示した方が確実に効いたため念のため残す）。 */
   .tripleNavBtn {
     flex: 0 0 auto;
     width: 260px;
+    height: 60px;
+    display: flex;
+  }
+
+  /* PC幅でも「アイコンの下にラベル」という縦積みレイアウトはそのまま維持し
+     （flex-directionはSP幅のcolumnのまま変更しない）、gapとpaddingだけを
+     ボタンサイズに合わせて詰める。 */
+  .tripleNavBtn-third {
+    gap: 8px;
+    padding: 0;
   }
 
   .loopbtn {
     flex: 0 0 auto;
     width: 52px;
+    height: 60px;
+    /* flex-direction: row; */
+    gap: 8px;
+    padding: 0;
   }
+}
+
+  
 }

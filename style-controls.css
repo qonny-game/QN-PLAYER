@@ -1,0 +1,333 @@
+/* ============================================================
+   style-controls.css
+   つまみ系操作のUI：Loop（単一区間ループ）・Repeat（Off/One/All）・
+   再生ボタン(#playToggle)、Speed/AutoSpeed（自動加速）・Key（音程調整）。
+   VOL/SPEED/KEYポップアップの共通枠(.av-popup)や.tripleNavBtn等、
+   複数機能で共有される土台デザインは style-core.css 側に残っている。
+   ============================================================ */
+
+.loopbtn {
+  flex: 1;
+  padding: 12px 0 10px;
+  font-size: 20px;
+  text-align: center;
+  background: #1c1c24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: background var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap), transform var(--dur-press) var(--ease-snap), box-shadow var(--dur-press) var(--ease-snap);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.loopbtn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.top-controls-btn-label {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.loopbtn:hover {
+  background: #252530;
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.loopbtn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+#playToggle {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  border: none;
+  box-shadow: 0 6px 20px var(--accent-glow);
+  color: #fff;
+}
+
+#playToggle:hover {
+  background: linear-gradient(135deg, var(--accent-hover-1), var(--accent-hover-2));
+  box-shadow: 0 8px 25px var(--accent-glow);
+  color: #fff;
+}
+
+.loopbtn { 
+  background: #16161b;
+}
+
+#allRepeatToggleBtn {
+  position: relative;
+}
+
+.repeat-one-badge {
+  position: absolute;
+  top: 6px;
+  right: 50%;
+  transform: translateX(14px);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-primary);
+  background: #0d0d0f;
+  border-radius: 50%;
+  width: 13px;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1.5px var(--accent-primary);
+}
+
+/* 三分割ボタン（前へ/中央操作/次へ）。前後の曲送り、前後のマーカー移動の両方で使う汎用デザイン。
+
+.auto-speed-card {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 10px;
+}
+
+.auto-speed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.auto-speed-header span {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #c8c8d0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* CONTROLタブのAuto Speedカードは、Basic欄と違って常時展開表示にする
+   （ポップアップに隠れた設定を開閉するのではなく、タブを開けば全部見えている設計のため）。
+   ONにするまでは操作対象でないことが伝わるよう、全体を暗く(低opacity)しておく。 */
+#controlAutoSpeedCard {
+  opacity: 0.45;
+  transition: opacity var(--dur-hover, 180ms) var(--ease-snap, ease-out);
+}
+
+#controlAutoSpeedCard.auto-speed-active {
+  opacity: 1;
+}
+
+/* ON/OFFがOFFの間は、下の詳細設定は触れる必要がないため折りたたんで隠す */
+.auto-speed-settings {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auto-speed-settings.open {
+  display: flex;
+}
+
+.auto-speed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-speed-row-label {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  color: #8b8b9e;
+  white-space: nowrap;
+}
+
+.auto-speed-number {
+  width: 56px;
+  padding: 6px 8px;
+  background: #1c1c24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #f0f0f3;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  box-sizing: border-box;
+  /* number inputのスピナー(上下矢印)は狭いポップアップ内でタップしづらく誤操作の元になるため、
+     ブラウザ標準のものは非表示にし、フリック入力/キーボード入力に任せる。 */
+  -moz-appearance: textfield;
+}
+
+.auto-speed-number::-webkit-outer-spin-button,
+.auto-speed-number::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.auto-speed-direction {
+  display: flex;
+  width: 100%;
+  gap: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.auto-speed-dir-btn {
+  flex: 1;
+  padding: 8px 6px;
+  background: #1c1c24;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  color: #8b8b9e;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
+}
+
+.auto-speed-dir-btn:first-child {
+  border-left: none;
+}
+
+.auto-speed-dir-btn.active {
+  /* PLAYボタン・タブ選択色と同じグラデーションに統一。 */
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: #fff;
+}
+
+.auto-speed-status {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  color: #6b6b7b;
+  text-align: center;
+}
+
+.mini-reset-btn {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  background: #22222c;
+  color: #8b8b9e;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mini-reset-btn:hover {
+  background: #2e2e3a;
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.key-control-card {
+  min-width: 220px;
+}
+
+.key-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.key-disabled-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+
+.key-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.key-step-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #22222c;
+  color: #f0f0f3;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.key-step-btn:hover {
+  background: var(--accent-glow);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.key-step-btn:active {
+  transform: scale(0.92);
+}
+
+.key-step-btn:disabled,
+.mini-reset-btn:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.key-step-btn:disabled:hover {
+  background: #22222c;
+  color: #f0f0f3;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.key-stepper-bar {
+  flex: 1;
+  height: 4px;
+  background: #2a2a35;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.key-stepper-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0%;
+  background: var(--accent-primary);
+  transition: all 0.15s ease;
+}
+
