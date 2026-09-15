@@ -95,7 +95,7 @@
   box-shadow: 0 0 0 1.5px var(--accent-primary);
 }
 
-/* 三分割ボタン（前へ/中央操作/次へ）。前後の曲送り、前後のマーカー移動の両方で使う汎用デザイン。
+/* 三分割ボタン（前へ/中央操作/次へ）。前後の曲送り、前後のマーカー移動の両方で使う汎用デザイン。 */
 
 .auto-speed-card {
   margin-top: 20px;
@@ -109,8 +109,9 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
-  /* トグル行自体の上下が詰まって窮屈に見えていたため、ゆとりを追加。 */
-  padding: 6px 0;
+  /* トグル行自体の上下が詰まって窮屈に見えていたため、ゆとりを追加。
+     6px 0では改善が不十分だったため14px 0に拡大（ユーザー実機確認済み）。 */
+  padding: 14px 0;
 }
 
 .auto-speed-header span {

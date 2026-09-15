@@ -157,7 +157,7 @@
     // 同じ大きさで他のQNシリーズアプリ名が縦一列に並び（ページの
     // ロゴと展開後のロゴが縦に揃うように）、アプリ名の右に機能説明を
     // 表示する（QN Seriesへの遷移をこのドロップダウンに一本化する
-    // イメージ）。appVersion(v2.0.2等)は▼ボタンの右に表示する。
+    // イメージ）。appVersion(v2.0.3等)は▼ボタンの右に表示する。
     const appHeader = document.getElementById("appHeader");
     const appVersion = document.getElementById("appVersion");
     if (appHeader && !document.getElementById("pcV2HeaderNav")) {
