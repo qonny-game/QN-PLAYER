@@ -1359,20 +1359,22 @@ body.pc-v2-active #qnMenuMount {
 
   /* アイコンバー：画面最下部に固定、縦並び→横並びに変更。
      はみ出る分は横スクロールする。
+     タップしやすさを優先し、アイコン・ラベル・paddingをPC幅時より
+     大きくする（.pcv2-icon-item側で上書き、下記参照）。
      padding-bottomは、iOSのホームインジケーター操作エリア
-     （env(safe-area-inset-bottom)）に加えて、さらに8px余分に確保する。
+     （env(safe-area-inset-bottom)）に加えて、さらに16px余分に確保する。
      画面の一番下ギリギリまでタップ領域があると、iPhoneでは横スワイプが
      アプリ切り替えジェスチャーとして奪われ、このバーの横スクロールが
-     誤操作扱いされてしまうため、実際に指が触れる領域を少し上げて
-     誤スワイプを防ぐ。 */
+     誤操作扱いされてしまうため、実際に指が触れる領域をはっきり分かる
+     程度に上げて誤スワイプを防ぐ。 */
   #pcV2IconBar {
     order: 3;
     flex-direction: row;
     flex-shrink: 0;
     align-items: stretch;
     border-right: none;
-    padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px));
-    gap: 0;
+    padding: 10px 8px calc(16px + env(safe-area-inset-bottom, 0px));
+    gap: 4px;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
@@ -1383,9 +1385,22 @@ body.pc-v2-active #qnMenuMount {
     display: none;
   }
 
+  /* タップ領域を優先して、PC幅時（padding: 12px 4px、SVG20px、
+     ラベル10px、gap6px）よりしっかり大きくする。
+     左右paddingも広げ、指が隣のボタンに誤って触れにくくする。 */
   .pcv2-icon-item {
     flex-shrink: 0;
-    padding: 8px 14px;
+    gap: 8px;
+    padding: 12px 18px;
+  }
+
+  .pcv2-icon-item svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .pcv2-icon-item span {
+    font-size: 12px;
   }
 
   .pcv2-icon-item.active::before {
@@ -1409,8 +1424,8 @@ body.pc-v2-active #qnMenuMount {
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     padding-top: 0;
     padding-left: 8px;
-    margin-left: 8px;
-    gap: 0;
+    margin-left: 4px;
+    gap: 4px;
   }
 
   /* パネル：通常は非表示。#pcV2Layoutに.pcv2-panel-openが付いている間だけ、
