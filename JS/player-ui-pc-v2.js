@@ -150,14 +150,16 @@
     layout.appendChild(panel);
     layout.appendChild(waveArea);
 
-    // --- ヘッダーにQN Seriesドロップダウンを追加（モック準拠）。
-    // 既存のqn-menu.js（ハンバーガーメニュー）のナビゲーションリンクと
-    // 同じ行き先を独自に持つ簡易ドロップダウンで、qn-menu.js自体には
-    // 手を入れない。ロゴの右に▼のみ配置し、押すとロゴの真下にロゴと
-    // 同じ大きさで他のQNシリーズアプリ名が縦一列に並び（ページの
-    // ロゴと展開後のロゴが縦に揃うように）、アプリ名の右に機能説明を
-    // 表示する（QN Seriesへの遷移をこのドロップダウンに一本化する
-    // イメージ）。appVersion(v2.0.12等)は▼ボタンの右に表示する。
+    // --- ヘッダーのQN Seriesドロップダウン ---
+    // 【QNPLAYER単体リリースのため一時無効化】他のQNシリーズアプリへの
+    // 遷移リンクは、今回QNPLAYERのみを先行リリースする方針のため
+    // コメントアウトしている。他アプリ（QNPITCH/QNPHRASE/QNTEMPO/
+    // QNTUNER）を後日公開する際、このブロックのコメントを外せば
+    // 復活できる。
+    // 無効化に伴い、appVersion(バージョン表記)をこのドロップダウンの
+    // トリガーボタン右に移動する処理も行っていない。appVersionは
+    // index.html側の初期位置（#appLogoの中）にそのまま表示される。
+    /*
     const appHeader = document.getElementById("appHeader");
     const appVersion = document.getElementById("appVersion");
     if (appHeader && !document.getElementById("pcV2HeaderNav")) {
@@ -214,6 +216,7 @@
       });
       document.addEventListener("click", () => nav.classList.remove("open"));
     }
+    */
 
     // --- 下段固定コントロールバー(モック準拠)を構築 ---
     // モックは「Start・Prev・Play・Next・Repeat」の5ボタンが1グループ、
