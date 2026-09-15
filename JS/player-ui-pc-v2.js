@@ -157,7 +157,7 @@
     // 同じ大きさで他のQNシリーズアプリ名が縦一列に並び（ページの
     // ロゴと展開後のロゴが縦に揃うように）、アプリ名の右に機能説明を
     // 表示する（QN Seriesへの遷移をこのドロップダウンに一本化する
-    // イメージ）。appVersion(v2.0.0等)は▼ボタンの右に表示する。
+    // イメージ）。appVersion(v2.0.1等)は▼ボタンの右に表示する。
     const appHeader = document.getElementById("appHeader");
     const appVersion = document.getElementById("appVersion");
     if (appHeader && !document.getElementById("pcV2HeaderNav")) {
@@ -411,6 +411,18 @@
     // 既存の.app-container(#appHeaderの後)の直後にPC v2骨組みを挿入
     appContainer.parentNode.insertBefore(root, appContainer.nextSibling);
 
+    // 【SP幅レイアウト】#pcV2BottomBar(再生コントロール)と#pcV2IconBar
+    // (Control/Markers等のタブ)は、PC幅では#pcV2Root直下に「layout→
+    // bottomBar」の順で兄弟として並んでいるが、SP幅では「アイコンバーが
+    // 一番下、その上にコントロールバー」という順序にしたい。
+    // #pcV2BottomBarは#pcV2Layoutの外（#pcV2Rootの子）、#pcV2IconBarは
+    // #pcV2Layoutの中（波形エリアの下）という別々の階層にあるため、
+    // CSSのorderだけでは実現できず、ここでJSが実際にDOM上の位置を
+    // 動かす。PC幅に戻った時は元の位置（#pcV2Root直下、layoutの後）へ
+    // 戻す。
+    syncBottomBarPosition();
+    window.addEventListener("resize", syncBottomBarPosition);
+
     // --- 波形エリア(#vbarContainer)をplayer-sectionから右カラムへ移動 ---
     // 時刻表示(.time-controls-row)は波形の下ではなく、下段バーの
     // Repeatボタンの右に移設するため、ここでは含めない
@@ -543,6 +555,30 @@
       document.body.appendChild(holder);
     }
     if (fullscreenBtn) holder.appendChild(fullscreenBtn);
+  }
+
+  // 【SP幅レイアウト】#pcV2BottomBar（再生コントロール）を、SP幅では
+  // #pcV2Layout内・#pcV2IconBarの直前（つまり画面上はアイコンバーの
+  // すぐ上）へ移動し、PC幅では元の位置（#pcV2Root直下、#pcV2Layoutの後）
+  // へ戻す。build()の初回実行時、およびresizeでブレークポイントを
+  // またいだ時に呼ばれる。
+  function syncBottomBarPosition() {
+    const bottomBar = document.getElementById("pcV2BottomBar");
+    const layoutEl = document.getElementById("pcV2Layout");
+    const iconBar = document.getElementById("pcV2IconBar");
+    const rootEl = document.getElementById("pcV2Root");
+    if (!bottomBar || !layoutEl || !iconBar || !rootEl) return;
+
+    const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
+    if (isSpWidth) {
+      if (bottomBar.nextSibling !== iconBar || bottomBar.parentElement !== layoutEl) {
+        layoutEl.insertBefore(bottomBar, iconBar);
+      }
+    } else {
+      if (bottomBar.parentElement !== rootEl) {
+        rootEl.appendChild(bottomBar);
+      }
+    }
   }
 
   function handleIconClick(item) {

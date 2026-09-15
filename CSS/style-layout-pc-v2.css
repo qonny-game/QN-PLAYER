@@ -1308,6 +1308,16 @@ body.pc-v2-active #qnMenuMount {
     font-size: 22px;
   }
 
+  /* 【重要】#pcV2BottomBarと#pcV2IconBar（#pcV2Layout内）の順序は、
+     このCSSファイルのorderプロパティではなく、player-ui-pc-v2.js側で
+     JSが実際にDOM要素を並べ替えることで実現している
+     （#pcV2BottomBarを#pcV2IconBarの直後へ移動する）。
+     理由：#pcV2BottomBarは#pcV2Layoutの子ではなく#pcV2Rootの直下に
+     並ぶ兄弟要素のため、#pcV2Layout内部の要素（波形エリア・アイコンバー）
+     とは別の階層にあり、CSSのorderだけでは「波形エリアはそのまま中段、
+     その下のコントロールバーとアイコンバーだけ入れ替える」という
+     3層構造の入れ替えを実現できなかった（詳細はplayer-ui-pc-v2.js側の
+     該当コメント参照）。 */
   #pcV2Layout {
     display: flex;
     flex-direction: column;
@@ -1325,10 +1335,10 @@ body.pc-v2-active #qnMenuMount {
     padding: 12px 16px;
   }
 
-  /* 下段コントロールバー：アイコンバーの上に配置。中身が幅に収まらない
-     場合は横スクロールできるようにする（個々のボタンは折り返さない）。 */
+  /* 下段コントロールバー：JS側でDOM上、アイコンバーの直前（つまり画面では
+     アイコンバーのすぐ上）へ移動される。 */
   #pcV2BottomBar {
-    order: 3;
+    order: 2;
     flex-shrink: 0;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1352,11 +1362,11 @@ body.pc-v2-active #qnMenuMount {
      padding-bottomは、iOSのホームインジケーター操作エリア
      （env(safe-area-inset-bottom)）に加えて、さらに8px余分に確保する。
      画面の一番下ギリギリまでタップ領域があると、iPhoneでは横スワイプが
-     アプリ切り替えジェスチャーとして奪われ、アイコンバーの横スクロールが
+     アプリ切り替えジェスチャーとして奪われ、このバーの横スクロールが
      誤操作扱いされてしまうため、実際に指が触れる領域を少し上げて
      誤スワイプを防ぐ。 */
   #pcV2IconBar {
-    order: 2;
+    order: 3;
     flex-direction: row;
     flex-shrink: 0;
     align-items: stretch;
