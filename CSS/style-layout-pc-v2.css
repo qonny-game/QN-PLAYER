@@ -514,23 +514,34 @@ body.pc-v2-active > .app-container {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 14px;
 }
 
+/* flex:1でタイトルを伸ばし、RESET・トグルをSPEED/KEYと同じ右端位置に
+   押し出す（元はgapだけで左詰めになっており、SPEED/KEY行より左寄りに
+   見えるズレがあった）。
+   縦位置はmargin-bottomではなく.pcv2-eq-heading-rowのalign-items:center
+   だけに任せる（各要素にmargin-bottomを揃えて付ける方式は、要素ごとの
+   本体高さの違いでかえって中心がずれて見える問題があった）。 */
 .pcv2-eq-heading-title {
+  flex: 1;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: #8b8b9e;
-  margin: 0 0 14px;
+  margin: 0;
 }
 
 .pcv2-eq-heading-row .control-effect-toggle {
   width: 30px;
   height: 17px;
   flex-shrink: 0;
-  margin-bottom: 14px;
+}
+
+.pcv2-eq-heading-row .mini-reset-btn {
+  margin: 0;
 }
 
 .pcv2-eq-heading-row .control-effect-toggle .glow-switch-knob {

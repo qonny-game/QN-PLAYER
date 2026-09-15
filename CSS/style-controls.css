@@ -104,7 +104,11 @@
   gap: 12px;
 }
 
-.auto-speed-header {
+/* .control-card label { justify-content: flex-start; } (style-core.css)より
+   詳細度を上げるため、.control-cardを付けて.auto-speed-header単体より
+   確実に優先されるようにする。これが無いとjustify-content: space-between
+   が効かず、トグルがラベルのすぐ右に張り付いて見える（右端まで届かない）。 */
+.control-card .auto-speed-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
