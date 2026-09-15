@@ -25,6 +25,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* eq-bands(縦スライダー)の直後に移設したため、上にも余白を持たせる。 */
+  margin-top: 14px;
   margin-bottom: 10px;
 }
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QNPLAYER 2.0.7</title>
+<title>QNPLAYER 2.0.10</title>
 <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
@@ -56,7 +56,7 @@
 
 <div id="appHeader">
   <div id="qnMenuMount"></div>
-  <h1 id="appLogo"><span id="appLogoQN">QN</span>PLAYER <span id="appVersion">v2.0.7</span></h1>
+  <h1 id="appLogo"><span id="appLogoQN">QN</span>PLAYER <span id="appVersion">v2.0.10</span></h1>
 </div>
 
 <div class="app-container">
@@ -195,7 +195,7 @@
                 <span class="glow-switch-knob"></span>
               </button>
             </label>
-            <div class="auto-speed-settings open" id="controlAutoSpeedSettings">
+            <div class="auto-speed-settings" id="controlAutoSpeedSettings">
               <div class="auto-speed-row">
                 <div class="auto-speed-direction" id="controlAutoSpeedDirection">
                   <button type="button" class="auto-speed-dir-btn" data-dir="down">Speed Down</button>
@@ -312,22 +312,7 @@
             <span class="glow-switch-knob"></span>
           </button>
         </div>
-        <div class="eq-preset-row">
-          <div class="eq-preset-buttons" id="eqPresetButtons">
-            <button type="button" class="eq-preset-btn" data-preset="bass">Bass</button>
-            <button type="button" class="eq-preset-btn" data-preset="vocal">Vocal</button>
-            <button type="button" class="eq-preset-btn" data-preset="treble">Treble</button>
-            <button type="button" class="eq-preset-btn" data-preset="vshape">V-Shape</button>
-          </div>
-          <!-- カスタムプリセット一覧。player-control-eq.js側でlocalStorageから
-               読み込んで動的にボタンを生成する。 -->
-          <div class="eq-preset-buttons eq-preset-custom-row" id="eqCustomPresetButtons"></div>
-          <button type="button" class="eq-preset-save-btn" id="eqSavePresetBtn" title="Save current EQ as a custom preset">
-            <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-            <span>Save as Preset</span>
-          </button>
-        </div>
-        <p class="eq-hint">Drag across the bands to draw a curve</p>
+        <p class=\"eq-hint\">Drag across the bands to draw a curve</p>
         <div class="eq-bands" id="eqBands">
           <div class="eq-band" data-freq="31">
             <span class="eq-band-gain" id="eqGain0">0</span>
@@ -379,6 +364,21 @@
             <div class="eq-slider-track"><input type="range" class="eq-vslider" id="eqBand9" min="-15" max="15" step="1" value="0" orient="vertical"></div>
             <span class="eq-band-freq">16k</span>
           </div>
+        </div>
+        <div class="eq-preset-row">
+          <div class="eq-preset-buttons" id="eqPresetButtons">
+            <button type="button" class="eq-preset-btn" data-preset="bass">Bass</button>
+            <button type="button" class="eq-preset-btn" data-preset="vocal">Vocal</button>
+            <button type="button" class="eq-preset-btn" data-preset="treble">Treble</button>
+            <button type="button" class="eq-preset-btn" data-preset="vshape">V-Shape</button>
+          </div>
+          <!-- カスタムプリセット一覧。player-control-eq.js側でlocalStorageから
+               読み込んで動的にボタンを生成する。 -->
+          <div class="eq-preset-buttons eq-preset-custom-row" id="eqCustomPresetButtons"></div>
+          <button type="button" class="eq-preset-save-btn" id="eqSavePresetBtn" title="Save current EQ as a custom preset">
+            <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+            <span>Save as Preset</span>
+          </button>
         </div>
       </div>
     </div>

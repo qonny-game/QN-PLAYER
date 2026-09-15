@@ -127,17 +127,10 @@
   letter-spacing: normal;
 }
 
-/* CONTROLタブのAuto Speedカードは、Basic欄と違って常時展開表示にする
-   （ポップアップに隠れた設定を開閉するのではなく、タブを開けば全部見えている設計のため）。
-   ONにするまでは操作対象でないことが伝わるよう、全体を暗く(低opacity)しておく。 */
-#controlAutoSpeedCard {
-  opacity: 0.45;
-  transition: opacity var(--dur-hover, 180ms) var(--ease-snap, ease-out);
-}
-
-#controlAutoSpeedCard.auto-speed-active {
-  opacity: 1;
-}
+/* 【変更済み】以前はAuto Speed詳細設定を常時展開表示し、OFF時は
+   カード全体を薄く(opacity: 0.45)して操作対象でないことを示していたが、
+   詳細設定(.auto-speed-settings)自体をOFF時に非表示にする設計に変更した
+   ため、この薄暗さ演出は不要になった（非表示なのでそもそも見えない）。 */
 
 /* ON/OFFがOFFの間は、下の詳細設定は触れる必要がないため折りたたんで隠す */
 .auto-speed-settings {
