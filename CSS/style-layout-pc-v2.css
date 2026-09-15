@@ -719,6 +719,7 @@ body.pc-v2-active > .app-container {
   font-weight: 500;
   color: #b0b0b8;
   opacity: 1;
+  top: 4px;
 }
 
 #pcV2WaveArea .vbar-label.pcv2-label-flip .vbar-label-memo {
