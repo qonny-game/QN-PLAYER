@@ -1,0 +1,59 @@
+/* ============================================================
+   style-layout-sp.css
+   スマホ幅（max-width: 768px、および900px境界の軽微な調整）向けの
+   レイアウト上書き。style-core.css の後に読み込むこと。
+
+   【大手術後の状態】PC v2（player-ui-pc-v2.js）が画面幅を問わず常時
+   有効化されるようになったため、.app-container自体が常にdisplay:noneに
+   なる（style-layout-pc-v2.css側）。そのため、.app-container配下に
+   留まったままの要素（.player-section, .sidebar-section, .mobile-tabs,
+   .control-card等）を対象にしたスタイルは、もう画面に一切影響しない
+   ため削除した。
+   残っているのは、PC v2のbuild()がmarkAnchor/restoreAnchorで
+   .app-containerの外（PC v2側）へ実際に移動させる要素
+   （#appHeader, #appLogo, #appTitle, #vbarContainer,
+   .mobile-tab-panel, .export-modal）向けのスタイルのみ。これらは
+   移動先でも実際に見た目に影響するため残している。
+   ============================================================ */
+
+@media screen and (max-width: 768px) {
+
+  /* ページ全体のスクロールを止める指定。PC v2有効時はhtml.pc-v2-active-html /
+     body.pc-v2-active側（style-layout-pc-v2.css）が別途同様の指定を
+     持つため実質的に重複するが、参照実装として残す。 */
+  html, body {
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  /* ヘッダー：ロゴ＋バージョンのみの1行にする（PC版と同じくロゴを左上単独配置）。
+     ファイル名(#appTitle)は.player-section側、シークバーの上に単独表示するため
+     ここでは扱わない。Color/Analyzer/EQはハンバーガーメニューに格納。 */
+  #appHeader {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  #appLogo {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #vbarContainer {
+    flex-shrink: 0;
+  }
+
+  /* ハンバーガーメニュー（QN Series/Color Theme/Keyboard Shortcuts）は
+     qn-menu.html/css/js が #qnMenuMount に注入する共通コンポーネント。
+     SP幅での見た目調整もqn-menu.css側が担うため、このアプリ側では上書きしない。 */
+}
+
+@media screen and (max-width: 768px) {
+  .export-modal {
+    max-width: none;
+  }
+}
+
+

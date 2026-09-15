@@ -1,0 +1,339 @@
+/* ============================================================
+   style-playlist.css
+   プレイリスト機能のUI：一覧(#playlistBox/.playlistItem)、ドラッグ
+   並び替えハンドル、ファイル追加ボタン(.file-upload-btn)、
+   ドラッグ&ドロップ時の全画面オーバーレイ(#dropOverlay)。
+   ============================================================ */
+
+#playlistBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.playlistItem {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  min-height: 58px;
+  box-sizing: border-box;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  font-size: 13px;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s ease-out;
+  position: relative;
+}
+
+.playlistItem:last-child {
+  border-bottom: none;
+}
+
+.playlistItem.disabled {
+  opacity: 0.4;
+}
+.playlistItem.disabled .playlist-title {
+  text-decoration: line-through;
+}
+
+.playlistItem:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.playlistItem.playing {
+  background: none;
+}
+
+/* ドラッグ中のアイテムは他より手前に表示し、少し浮いた見た目にする */
+.playlistItem.dragging {
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  cursor: grabbing;
+  transition: none;
+}
+
+.playlist-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #6b6b7b;
+  cursor: grab;
+  touch-action: none;
+}
+
+.playlist-drag-handle:hover {
+  color: #f0f0f3;
+}
+
+.playlist-drag-handle svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* タイトル/アーティストの2行ブロック。クリックで再生、各行のinput
+   (.playlist-editable-field)をクリックすれば直接編集できる。 */
+.playlist-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.playlist-editable-field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.playlist-editable-display,
+.playlist-editable-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-editable-display {
+  cursor: pointer;
+}
+
+.playlist-editable-placeholder {
+  color: #55555f;
+}
+
+.playlist-editable-input {
+  cursor: text;
+  outline: none;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin: -1px -4px;
+}
+
+.playlist-editable-input::placeholder {
+  color: #55555f;
+}
+
+.playlist-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #f0f0f3;
+}
+
+.playlistItem.playing .playlist-title .playlist-editable-display,
+.playlistItem.playing .playlist-title .playlist-editable-input {
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.playlist-artist {
+  font-size: 11px;
+  font-weight: 400;
+  color: #8b8b9e;
+}
+
+.playlist-duration {
+  font-size: 11px;
+  color: #8b8b9e;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.playlistItem button {
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  background: none;
+  color: #ef4444;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 5px 9px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.playlistItem button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* .playlistItem button { color: #ef4444; }（削除ボタン用の赤色）が
+   汎用セレクタのため、鉛筆アイコン(.pin-edit-btn、Markersと共通のグレー色
+   デザイン)にも及んでしまうのを防ぐ。 */
+.playlistItem .pin-edit-btn {
+  color: #8b8b9e;
+}
+
+.playlistItem .pin-edit-btn:hover {
+  color: var(--accent-primary);
+}
+
+.file-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px 16px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: #fff;
+  text-align: center;
+  border-radius: 14px;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-sizing: border-box;
+  box-shadow: 0 6px 20px var(--accent-glow);
+  transition: background var(--dur-hover) var(--ease-snap), box-shadow var(--dur-press) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
+}
+
+.file-upload-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.file-upload-btn:hover {
+  background: linear-gradient(135deg, var(--accent-hover-1), var(--accent-hover-2));
+  box-shadow: 0 8px 25px var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+#dropOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--accent-glow);
+  border: 3px dashed var(--accent-primary);
+  box-sizing: border-box;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 24px;
+  letter-spacing: 1px;
+  font-weight: bold;
+  color: #fff;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+body.dragover #dropOverlay {
+  opacity: 1;
+}
+
+/* サムネイル画像（ID3のAPICフレームから取得できていれば表示、無ければ
+   音符アイコンのプレースホルダー）。 */
+.playlist-thumb {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background-color: #1c1c24;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #55555f;
+  overflow: hidden;
+}
+
+.playlist-thumb svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* タイトル/アーティストにマウスを乗せた時だけ浮かぶ鉛筆アイコン
+   （通常モードのみ。編集モード中はそもそも生成されない）。 */
+.playlist-hover-edit-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #8b8b9e;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.playlist-hover-edit-btn svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+
+.playlist-hover-edit-btn:hover {
+  color: var(--accent-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.playlist-title-row:hover .playlist-hover-edit-btn,
+.playlist-artist-row:hover .playlist-hover-edit-btn {
+  display: flex;
+}
+
+.playlist-title-row,
+.playlist-artist-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  /* ホバー時に鉛筆アイコン(.playlist-hover-edit-btn、18px)が出現/消失
+     しても行の高さが変わらないよう、あらかじめボタンと同じ高さを
+     確保しておく。これが無いとtitle行にホバーした瞬間、その下の
+     artist行がわずかに押し下げられてしまっていた（逆も同様）。 */
+  min-height: 18px;
+}
+
+/* 編集モード時の「曲送り時スルーON/OFF」トグル。PLAY=順送りに含める、
+   SKIP=順送りで飛ばす、を文字で明示する。 */
+.playlist-skip-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: none;
+  color: #8b8b9e;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.playlist-skip-toggle.skip-off {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}

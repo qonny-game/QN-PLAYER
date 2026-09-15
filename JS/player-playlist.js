@@ -22,10 +22,33 @@ function addFilesToPlaylist(files) {
 
   const wasEmpty = playlist.length === 0;
   audioFiles.forEach(file => {
-    playlist.push({ file, name: file.name, enabled: true });
+    const track = { file, name: file.name, title: null, artist: null, duration: null, enabled: true };
+    playlist.push(track);
     // 実体ごとIndexedDBに自動保存する（次回起動時に自動復元するため）。
     // 保存自体は非同期・失敗しても再生には影響しないため、結果を待たずに進める。
     savePlaylistTrack(file);
+
+    // ID3タグ(Title/Artist)・長さ(duration)を非同期で読み取り、取得できたら
+    // 反映して再描画する。読み取り自体に失敗・タグが無い場合はファイル名の
+    //ままにする。
+    if (typeof readId3Tags === "function") {
+      readId3Tags(file).then(tags => {
+        if (tags.title) track.title = tags.title;
+        if (tags.artist) track.artist = tags.artist;
+        if (tags.title || tags.artist) {
+          renderPlaylist();
+          savePlaylistMetadataFor(track);
+        }
+      });
+    }
+    if (typeof readAudioDuration === "function") {
+      readAudioDuration(file).then(dur => {
+        if (dur) {
+          track.duration = dur;
+          renderPlaylist();
+        }
+      });
+    }
   });
   renderPlaylist();
 
@@ -34,11 +57,75 @@ function addFilesToPlaylist(files) {
   }
 }
 
+// Playlist内のタイム表示用、m:ss形式（プレイリストのタイム表示は
+// シークバーの時刻表示(formatTime、00:00.0形式)とは別に、曲の長さの
+// 目安として分:秒のシンプルな表記にする）。
+function formatTrackDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// クリックでテキスト編集可能になるinput要素を作る（Playlistのタイトル/
+// アーティスト編集用）。通常時はテキスト表示、クリックで選択状態にして
+// 直接書き換えられるようにし、blur/Enterで確定してonCommitを呼ぶ。
+// 通常は<span>としてテキストを表示し、外部から起動されたときだけ<input>に
+// 切り替わる編集可能フィールドを作る（Playlistのタイトル/アーティスト用）。
+// 戻り値のwrapper要素をDOMに追加して使い、wrapper.startEdit()で
+// 編集モードへの切り替えを外部（鉛筆アイコンのクリック等）から呼び出す。
+function makeEditableText(value, className, placeholder, onCommit) {
+  const wrapper = document.createElement("span");
+  wrapper.className = "playlist-editable-field " + className;
+
+  const display = document.createElement("span");
+  display.className = "playlist-editable-display";
+  display.textContent = value || placeholder || "";
+  if (!value && placeholder) display.classList.add("playlist-editable-placeholder");
+
+  wrapper.appendChild(display);
+
+  wrapper.startEdit = () => {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "playlist-editable-input";
+    input.value = value;
+    input.placeholder = placeholder || "";
+    input.addEventListener("click", (e) => e.stopPropagation());
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        input.blur();
+      } else if (e.key === "Escape") {
+        input.value = value;
+        input.blur();
+      }
+    });
+    input.addEventListener("blur", () => {
+      const newVal = input.value.trim();
+      wrapper.replaceChild(display, input);
+      if (newVal !== value) {
+        value = newVal;
+        display.textContent = value || placeholder || "";
+        display.classList.toggle("playlist-editable-placeholder", !value && !!placeholder);
+        onCommit(newVal);
+      }
+    });
+    wrapper.replaceChild(input, display);
+    input.focus();
+    input.select();
+  };
+
+  return wrapper;
+}
+
 function renderPlaylist() {
   const box = document.getElementById("playlistBox");
   const info = document.getElementById("playlistInfo");
   if (info) info.textContent = `${playlist.length} track${playlist.length === 1 ? "" : "s"}`;
   if (!box) return;
+
+  const editMode = typeof isPlaylistEditMode === "function" && isPlaylistEditMode();
 
   box.innerHTML = "";
   playlist.forEach((track, i) => {
@@ -46,6 +133,7 @@ function renderPlaylist() {
     item.className = "playlistItem";
     item.dataset.index = i;
     if (i === currentPlaylistIndex) item.classList.add("playing");
+    if (!track.enabled) item.classList.add("disabled");
 
     // ドラッグ並び替え用のハンドル（この部分を掴んでドラッグする）
     const dragHandle = document.createElement("span");
@@ -53,52 +141,132 @@ function renderPlaylist() {
     dragHandle.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
     item.appendChild(dragHandle);
 
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "playlist-name";
-    nameSpan.textContent = track.name;
-    nameSpan.title = track.name;
-    nameSpan.onclick = () => playTrackAt(parseInt(item.dataset.index, 10));
-    item.appendChild(nameSpan);
+    // サムネイル画像（ID3のAPICフレームから取得できていればそれを表示、
+    // 無ければ音符アイコンのプレースホルダー）。
+    const thumb = document.createElement("div");
+    thumb.className = "playlist-thumb";
+    if (track.thumbnailUrl) {
+      thumb.style.backgroundImage = `url("${track.thumbnailUrl}")`;
+    } else {
+      thumb.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+    }
+    item.appendChild(thumb);
 
-    if (!track.enabled) {
-      item.classList.add("disabled");
+    // タイトル/アーティストの2行表示。ID3タグ(title/artist)が取得できて
+    // いればそれを使い、無ければタイトル行にファイル名をそのまま出す
+    // （アーティスト行は空のまま）。
+    // 通常モード：クリックで再生。テキストにマウスを乗せた時だけ鉛筆
+    // アイコンが浮かび上がり、それを押すと編集できる。
+    // 編集モード（ヘッダーのEDITで切り替え）：常に入力可能な状態にする。
+    const infoBlock = document.createElement("div");
+    infoBlock.className = "playlist-info-block";
+    infoBlock.onclick = (e) => {
+      // 編集中(input化されている間)のクリックだけ再生をスキップする。
+      // .playlist-editable-fieldは表示中も含めて常に存在するラッパー
+      // クラスのため、これで判定すると通常時のクリックも常に無効化
+      // されてしまっていた（再生されないバグの直接原因）。
+      if (e.target.closest(".playlist-editable-input")) return;
+      if (e.target.closest(".playlist-hover-edit-btn")) return;
+      playTrackAt(parseInt(item.dataset.index, 10));
+    };
+
+    const titleRow = document.createElement("div");
+    titleRow.className = "playlist-title-row";
+    const titleField = makeEditableText(
+      track.title || track.name,
+      "playlist-title",
+      "",
+      (newVal) => { track.title = newVal; savePlaylistMetadataFor(track); }
+    );
+    titleRow.appendChild(titleField);
+    if (!editMode) {
+      const titleHoverBtn = document.createElement("button");
+      titleHoverBtn.className = "playlist-hover-edit-btn";
+      titleHoverBtn.title = "Edit title";
+      titleHoverBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+      titleHoverBtn.onclick = (e) => { e.stopPropagation(); titleField.startEdit(); };
+      titleRow.appendChild(titleHoverBtn);
+    }
+    infoBlock.appendChild(titleRow);
+
+    const artistRow = document.createElement("div");
+    artistRow.className = "playlist-artist-row";
+    const artistField = makeEditableText(
+      track.artist || "",
+      "playlist-artist",
+      "Artist",
+      (newVal) => { track.artist = newVal; savePlaylistMetadataFor(track); }
+    );
+    artistRow.appendChild(artistField);
+    if (!editMode) {
+      const artistHoverBtn = document.createElement("button");
+      artistHoverBtn.className = "playlist-hover-edit-btn";
+      artistHoverBtn.title = "Edit artist";
+      artistHoverBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+      artistHoverBtn.onclick = (e) => { e.stopPropagation(); artistField.startEdit(); };
+      artistRow.appendChild(artistHoverBtn);
+    }
+    infoBlock.appendChild(artistRow);
+
+    item.appendChild(infoBlock);
+
+    // 編集モード中は、常にタイトル/アーティストが入力可能な状態にする
+    // （通常モードのホバー鉛筆の代わりに、最初からinputを出しておく）。
+    if (editMode) {
+      titleField.startEdit();
+      artistField.startEdit();
     }
 
-    const toggleBtn = document.createElement("button");
-    toggleBtn.className = "toggle-btn";
-    toggleBtn.title = track.enabled ? "Track enabled (click to disable)" : "Track disabled (click to enable, skipped during playback)";
-    // ON: 目が開いたアイコン、OFF: 目に斜線が入ったアイコン（マーカーのON/OFFアイコンと同じデザイン）
-    toggleBtn.innerHTML = track.enabled
-      ? '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>'
-      : '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
-    toggleBtn.onclick = (e) => {
-      e.stopPropagation();
-      track.enabled = !track.enabled;
-      renderPlaylist();
-      persistPlaylistOrder();
-    };
-    item.appendChild(toggleBtn);
+    // 編集モード時はタイム表記を出さない（PLAY/SKIPトグルと削除チェックの
+    // 分だけスペースが必要なため、durationは通常モードのみ表示する）。
+    if (!editMode) {
+      const durationSpan = document.createElement("span");
+      durationSpan.className = "playlist-duration";
+      durationSpan.textContent = formatTrackDuration(track.duration);
+      item.appendChild(durationSpan);
+    }
 
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "✕";
-    delBtn.className = "del-btn";
-    delBtn.onclick = (e) => {
-      e.stopPropagation();
-      if (delBtn.classList.contains("confirm")) {
-        hapticWarning();
-        removeTrackAt(parseInt(item.dataset.index, 10));
-      } else {
-        hapticTap();
-        delBtn.classList.add("confirm");
-        delBtn.textContent = "✓";
-        clearTimeout(delBtn._confirmTimer);
-        delBtn._confirmTimer = setTimeout(() => {
-          delBtn.classList.remove("confirm");
-          delBtn.textContent = "✕";
-        }, 3000);
-      }
-    };
-    item.appendChild(delBtn);
+    if (editMode) {
+      // 編集モード時：曲送り時スルーする/しないを一目で分かるトグルで表示する
+      // （通常モードの「表示/非表示」アイコンに代わるもの。意味合いは
+      // 「この曲を自動再生の順送りに含めるかどうか」）。
+      const skipToggle = document.createElement("button");
+      skipToggle.className = "playlist-skip-toggle";
+      skipToggle.classList.toggle("skip-off", track.enabled);
+      skipToggle.title = track.enabled ? "Included in auto-advance (click to skip)" : "Skipped during auto-advance (click to include)";
+      skipToggle.innerHTML = '<span class="playlist-skip-toggle-label">' + (track.enabled ? "PLAY" : "SKIP") + '</span>';
+      skipToggle.onclick = (e) => {
+        e.stopPropagation();
+        track.enabled = !track.enabled;
+        renderPlaylist();
+        persistPlaylistOrder();
+      };
+      item.appendChild(skipToggle);
+
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "✕";
+      delBtn.className = "del-btn";
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (delBtn.classList.contains("confirm")) {
+          hapticWarning();
+          removeTrackAt(parseInt(item.dataset.index, 10));
+        } else {
+          hapticTap();
+          delBtn.classList.add("confirm");
+          delBtn.textContent = "✓";
+          clearTimeout(delBtn._confirmTimer);
+          delBtn._confirmTimer = setTimeout(() => {
+            delBtn.classList.remove("confirm");
+            delBtn.textContent = "✕";
+          }, 3000);
+        }
+      };
+      item.appendChild(delBtn);
+    }
+    // 通常モードでは⋮メニューを廃止。ファイル名変更は曲名/アーティスト
+    // 欄のホバー鉛筆編集に統合済み、曲送り時スルーON/OFFはEDITモードの
+    // PLAY/SKIPトグルから行う。
 
     box.appendChild(item);
   });
@@ -172,6 +340,17 @@ function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
 
 // プレイリストの前/次の曲へ手動で移動する（コントロール部分の三分割ボタンから使う）。
 // OFFの曲は自動でスキップする。全体リピート(all)の時だけ端まで来たら反対側からループする。
+// 現在再生中の曲の先頭(0秒)に戻す。モック準拠のPC v2下段バー「Start」ボタン用の新機能。
+function seekToTrackStart() {
+  if (!audio.duration) return;
+  hapticTap();
+  isSeeking = true;
+  audio.currentTime = 0;
+  prevTime = 0;
+  renderSegments(getActiveSegment(0));
+  setTimeout(() => { isSeeking = false; }, 150);
+}
+
 function playPrevTrack() {
   if (currentPlaylistIndex < 0) return;
   hapticTap();
@@ -342,3 +521,6 @@ function setupPlaylistDragReorder(box) {
     }, { passive: true });
   });
 }
+
+// （⋮メニューは廃止。ファイル名変更はホバー鉛筆編集、スルーON/OFFは
+// EDITモードのPLAY/SKIPトグルに統合済み。）

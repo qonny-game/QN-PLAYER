@@ -340,7 +340,7 @@ function updateKeyControlAvailability() {
 }
 
 
-// player-eq.js に分割移動済み（EQバンド制御・プリセット・モーダル開閉）
+// player-control-eq.js（旧player-eq.js）に分割移動済み（EQバンド制御・プリセット・モーダル開閉）
 
 // VOL / SPEED / KEY ポップアップの開閉（同じ開閉パターンを共通化）
 const avPopupInstances = [];
@@ -519,3 +519,28 @@ if (allRepeatToggleBtn) {
   applyRepeatModeUI();
 }
 
+
+// ============================================================
+// Speed/KeyのON/OFFトグルスイッチ。player-core.js側のspeedEffectEnabled/
+// keyEffectEnabledフラグを切り替え、updatePlaybackRate()で実際の音声へ
+// 反映する（UIのスライダー値・表示自体は変更しない）。
+// ============================================================
+const controlSpeedEnableToggle = document.getElementById("controlSpeedEnableToggle");
+if (controlSpeedEnableToggle) {
+  controlSpeedEnableToggle.onclick = () => {
+    hapticTap();
+    speedEffectEnabled = !speedEffectEnabled;
+    controlSpeedEnableToggle.setAttribute("aria-checked", String(speedEffectEnabled));
+    updatePlaybackRate();
+  };
+}
+
+const controlKeyEnableToggle = document.getElementById("controlKeyEnableToggle");
+if (controlKeyEnableToggle) {
+  controlKeyEnableToggle.onclick = () => {
+    hapticTap();
+    keyEffectEnabled = !keyEffectEnabled;
+    controlKeyEnableToggle.setAttribute("aria-checked", String(keyEffectEnabled));
+    updatePlaybackRate();
+  };
+}

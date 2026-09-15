@@ -8,7 +8,7 @@
 #pinList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   overflow-y: visible;
   max-height: none;
   padding-right: 0;
@@ -17,20 +17,26 @@
 
 .pinItem {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 10px 12px;
-  background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
+  min-height: 50px;
+  box-sizing: border-box;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
   font-size: 13px;
-  transition: all 0.2s;
+  transition: background 0.2s;
+}
+
+.pinItem:last-child {
+  border-bottom: none;
 }
 
 .pinItem:hover {
-  background: #252530;
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .pinItem.disabled {
@@ -53,24 +59,47 @@
   min-width: 0;
 }
 
-.pin-edit-btn {
+/* ラベル行：pin-info(テキスト)とpin-edit-btn(鉛筆)をまとめる。行に
+   マウスを乗せた時だけ鉛筆を出す（Libraryパネルの.playlist-title-row
+   等と同じパターン）。min-widthを0にしてgridの1frセル内でちゃんと
+   縮められるようにし、pin-infoのellipsisも機能させる。 */
+.pin-label-row {
   display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  /* 鉛筆ボタン(30px)の出現/消失で行の高さが変わらないよう固定
+     （Libraryパネルの.playlist-title-row等と同じ対策）。 */
+  min-height: 30px;
+}
+
+.pin-label-row .pin-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pin-edit-btn {
+  display: none;
   align-items: center;
   justify-content: center;
   width: 30px;
   height: 30px;
   flex-shrink: 0;
   padding: 0;
-  background: #2a2a35;
+  background: none;
   color: #8b8b9e;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
 }
 
+.pin-label-row:hover .pin-edit-btn {
+  display: flex;
+}
+
 .pin-edit-btn:hover {
-  background: #3a3a48;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--accent-primary);
 }
 
@@ -171,15 +200,43 @@
   outline: none;
 }
 
+/* メモ編集中に出すクイック選択プリセット。.pinItemはgrid構造のため、
+   grid-column: 1 / -1で全列にまたがる形にし、既存のgrid配置(色マーク・
+   本文・編集・トグル・削除の5列)を崩さない新しい行として追加する。 */
+.pin-memo-presets {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pin-memo-preset-chip {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #8b8b9e;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+
+.pin-memo-preset-chip:hover {
+  color: #f0f0f3;
+  border-color: var(--accent-primary);
+}
+
 .pinItem button {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 12px;
   letter-spacing: 0.5px;
   padding: 5px 10px;
   cursor: pointer;
-  background: #2a2a35;
+  background: none;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: none;
   border-radius: 6px;
   font-weight: 600;
   transition: background 0.2s;
@@ -202,17 +259,27 @@
   fill: currentColor;
 }
 
-/* ON(表示中)は目立たせ、OFF(非表示)はグレーアウトする */
+/* 表示/非表示の状態はテーマカラーで目立たせず、ほんのりグレーで
+   統一する。ON/OFFの区別はアイコン形状(目が開いている/閉じている)自体で
+   伝わるため、色分けは不要。 */
 .pinItem:not(.disabled) .toggle-btn {
-  color: var(--accent-primary);
-}
-
-.pinItem.disabled .toggle-btn {
   color: #8b8b9e;
 }
 
+.pinItem.disabled .toggle-btn {
+  color: #55555f;
+}
+
 .pinItem button:hover {
-  background: #3a3a48;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* .pinItem button { padding: 5px 10px; border-radius: 6px; }（汎用ボタン
+   スタイル、CSS記述順で.pin-color-markより後にあるため上書きしてしまう）
+   が、色ドット(.pin-color-mark)を角丸長方形に潰していたのを正円に戻す。 */
+.pinItem .pin-color-mark {
+  padding: 0;
+  border-radius: 50%;
 }
 
 /* プレイリストのON/OFFボタン（マーカーのtoggle-btnと同じデザイン） */
@@ -224,8 +291,8 @@
   height: 30px;
   flex-shrink: 0;
   padding: 0;
-  background: #2a2a35;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: none;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
@@ -238,15 +305,15 @@
 }
 
 .playlistItem .toggle-btn:hover {
-  background: #3a3a48;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .playlistItem:not(.disabled) .toggle-btn {
-  color: var(--accent-primary);
+  color: #8b8b9e;
 }
 
 .playlistItem.disabled .toggle-btn {
-  color: #8b8b9e;
+  color: #55555f;
 }
 
 .del-btn {

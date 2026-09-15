@@ -5,7 +5,10 @@
 //
 // 依存: player-core.js（pins配列, savePins, getSegments, hexToRgba,
 // MARKER_COLOR_PALETTE等）、player-ui-shared.js（hapticTap等の共通UI関数,
-// isMobileLayout）、player-ui-pc.js（startDragPin）。
+// isMobileLayout）。
+// ドラッグ移動(startDragPin)はPC/SP共通機能のため、このファイル内に
+// 定義を持つ（以前はplayer-ui-pc.js側にあったが、PC専用ではなかった
+// 実態に合わせてこちらへ統合した）。
 // このファイル自体はトップレベルのconst/letとしてDOM要素を取得している箇所が
 // あるため、DOM構築後（bodyの終わり際）に読み込むこと。
 // ============================================================
@@ -104,14 +107,34 @@ function renderPins() {
     // インラインスタイルで上書きしないようにする（詳細度でCSS側の状態表現が負けてしまうため）。
     // 番号バッジ(.vbar-label)側は視認性のため、マーカー個別色やテーマカラーに関わらず
     // 常にCSS側の黒背景固定にする（ここでインラインstyleを上書きしない）。
+    // CSS変数--marker-colorは、PC v2側の::before疑似要素(直接styleで色を
+    // 変更できない)から参照するために設定する。SP版/旧PC版は
+    // line.style.background(直接の背景色)を見るため、両方set しておく。
     const applyMarkerColor = pinObj.color && MARKER_COLOR_PALETTE[pinObj.color] && pinObj.enabled;
     if (applyMarkerColor) {
       line.style.background = MARKER_COLOR_PALETTE[pinObj.color];
+      line.style.setProperty("--marker-color", MARKER_COLOR_PALETTE[pinObj.color]);
     }
 
     const label = document.createElement("span");
     label.className = "vbar-label";
-    label.textContent = `${i + 1}`;
+    // 行内での相対位置(x, 0〜100%)が右端に近い場合、PC v2ではメモ
+    // (.vbar-label-memo)が波形エリアの外にはみ出してしまうのを避けるため
+    // 左側に表示する。この閾値・見た目の切り替えはPC v2限定のCSS
+    // (.pcv2-label-flip)でのみ意味を持ち、SP版の見た目には影響しない。
+    if (x >= 80) {
+      label.classList.add("pcv2-label-flip");
+    }
+    const numSpan = document.createElement("span");
+    numSpan.className = "vbar-label-num";
+    numSpan.textContent = `${i + 1}`;
+    label.appendChild(numSpan);
+    if (pinObj.memo) {
+      const memoSpan = document.createElement("span");
+      memoSpan.className = "vbar-label-memo";
+      memoSpan.textContent = pinObj.memo;
+      label.appendChild(memoSpan);
+    }
 
     function handleMarkerTapOrDrag(e) {
       e.stopPropagation();
@@ -132,8 +155,8 @@ function renderPins() {
     line.onclick = handleMarkerTapOrDrag;
 
     // ドラッグでマーカーを直接動かせる。PC(mousedown)・スマホ(touchstart)共通で
-    // startDragPin（player-ui-pc.js）を使う。startDragPin自体はe.typeを見て
-    // マウス/タッチ両方のイベントに対応済み。
+    // startDragPin（このファイル内で定義、下記参照）を使う。startDragPin自体は
+    // e.typeを見てマウス/タッチ両方のイベントに対応済み。
     label.onmousedown = startDragPin(i);
     line.onmousedown = startDragPin(i);
     label.ontouchstart = startDragPin(i);
@@ -216,7 +239,128 @@ function renderSegments(overrideSegment) {
   });
 }
 
-// startDragPin関数の定義は player-ui-pc.js に移動済み（renderPins内から呼ばれる）
+// ドラッグでマーカーを直接動かせる。PC(mousedown)・スマホ(touchstart)共通で
+// e.typeを見てマウス/タッチ両方のイベントに対応する。
+// 以前はplayer-ui-pc.js側に置いていたが、PC/SP問わず使う共通機能のため、
+// 呼び出し元のrenderPins()と同じこのファイルへ移動した。
+function startDragPin(index) {
+  return function(e) {
+    e.stopPropagation();
+    if (e.type === "touchstart") e.preventDefault();
+    isSeeking = true;
+    const dur = audio.duration;
+    const { s1, s2, s3, s4, s5 } = getSegments(dur);
+    const bounds = [0, s1, s2, s3, s4, s5, dur];
+
+    // touchstartでpreventDefault()するとブラウザは以降の合成click/mousedown
+    // イベントを発火しなくなる。そのため「タップ（動かさない）＝そのマーカーへ
+    // シーク＆再生」「ドラッグ（動かす）＝マーカー移動」を、ここで実際の移動量から
+    // 判定して両立させる。DRAG_THRESHOLD_PXより動いたらドラッグとみなす。
+    const DRAG_THRESHOLD_PX = 6;
+    const startClientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+    const startClientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+    let hasDragged = false;
+
+    const bars = [
+      document.getElementById("bar1"),
+      document.getElementById("bar2"),
+      document.getElementById("bar3"),
+      document.getElementById("bar4"),
+      document.getElementById("bar5"),
+      document.getElementById("bar6")
+    ];
+
+    function moveAt(clientX, clientY) {
+      let targetBarIndex = 0;
+      let rects = bars.map(b => b.getBoundingClientRect());
+
+      if (clientY <= rects[0].bottom) {
+        targetBarIndex = 0;
+      } else if (clientY >= rects[rects.length - 1].top) {
+        targetBarIndex = rects.length - 1;
+      } else {
+        for (let i = 0; i < rects.length - 1; i++) {
+          const mid = (rects[i].bottom + rects[i+1].top) / 2;
+          if (clientY <= mid) {
+            targetBarIndex = i;
+            break;
+          }
+          targetBarIndex = i + 1;
+        }
+      }
+
+      const rect = rects[targetBarIndex];
+      const rowStart = bounds[targetBarIndex];
+      const rowEnd = bounds[targetBarIndex + 1];
+
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const t = rowStart + ratio * (rowEnd - rowStart);
+
+      pins[index].t = Math.max(0, Math.min(dur, t));
+
+      renderPins();
+      renderSegments();
+      renderPinList();
+    }
+
+    function move(ev) {
+      if (Math.abs(ev.clientX - startClientX) > DRAG_THRESHOLD_PX || Math.abs(ev.clientY - startClientY) > DRAG_THRESHOLD_PX) {
+        hasDragged = true;
+      }
+      moveAt(ev.clientX, ev.clientY);
+    }
+
+    function moveTouch(ev) {
+      if (ev.touches.length === 0) return;
+      ev.preventDefault();
+      const t = ev.touches[0];
+      if (Math.abs(t.clientX - startClientX) > DRAG_THRESHOLD_PX || Math.abs(t.clientY - startClientY) > DRAG_THRESHOLD_PX) {
+        hasDragged = true;
+      }
+      moveAt(t.clientX, t.clientY);
+    }
+
+    function stop() {
+      pins.sort((a, b) => a.t - b.t);
+
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", stop);
+      document.removeEventListener("touchmove", moveTouch);
+      document.removeEventListener("touchend", stop);
+      document.removeEventListener("touchcancel", stop);
+
+      if (!hasDragged && e.type === "touchstart") {
+        // 実質的にタップだった（touchstartのpreventDefaultでclickが発火しないため、
+        // ここでタップ時と同じ処理＝そのマーカーへシーク＆再生を行う）。
+        const pinObj = pins[index];
+        if (pinObj) {
+          audio.currentTime = pinObj.t;
+          prevTime = pinObj.t;
+          audio.play();
+          updatePlayButtonState();
+          renderSegments(getActiveSegment(pinObj.t));
+        }
+      } else {
+        prevTime = audio.currentTime;
+      }
+      setTimeout(() => { isSeeking = false; }, 150);
+
+      renderPins();
+      renderSegments();
+      renderPinList();
+      savePins();
+    }
+
+    if (e.type === "touchstart") {
+      document.addEventListener("touchmove", moveTouch, { passive: false });
+      document.addEventListener("touchend", stop);
+      document.addEventListener("touchcancel", stop);
+    } else {
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", stop);
+    }
+  };
+}
 
 function renderPinList() {
   const list = document.getElementById("pinList");
@@ -240,6 +384,13 @@ function renderPinList() {
     };
     div.appendChild(colorMark);
 
+    // ラベル行：テキスト(infoSpan)と鉛筆ボタン(editBtn)をまとめて包む。
+    // Libraryパネルの曲名/アーティスト行(.playlist-title-row等)と同じ
+    // パターンで、この行にマウスを乗せた時だけ鉛筆を表示する
+    // （常時表示だとリストがうるさく見えるため、ホバー時限定に変更）。
+    const labelRow = document.createElement("div");
+    labelRow.className = "pin-label-row";
+
     const infoSpan = document.createElement("span");
     infoSpan.className = "pin-info";
     // メモが入っていれば時間の代わりにメモを表示し、メモがなければ従来通り時間を表示する。
@@ -258,7 +409,7 @@ function renderPinList() {
       renderSegments(getActiveSegment(pinObj.t));
       setTimeout(() => { isSeeking = false; }, 150);
     };
-    div.appendChild(infoSpan);
+    labelRow.appendChild(infoSpan);
 
     // メモ編集用の鉛筆ボタン。押すとinfoSpanの表示をテキスト入力に一時的に切り替える。
     const editBtn = document.createElement("button");
@@ -269,7 +420,9 @@ function renderPinList() {
       e.stopPropagation();
       startPinMemoEdit(div, infoSpan, pinObj, i);
     };
-    div.appendChild(editBtn);
+    labelRow.appendChild(editBtn);
+
+    div.appendChild(labelRow);
 
     const toggleBtn = document.createElement("button");
     toggleBtn.className = "toggle-btn";
@@ -406,6 +559,14 @@ function openMarkerColorPicker(anchorBtn, pinObj, index) {
 
 // マーカーのメモ編集：infoSpanをその場でテキスト入力に差し替える。
 // Enterまたはフォーカスアウトで確定し、Escでキャンセルする。
+// マーカーメモでよく使われる曲構成のラベル。クイック選択チップとして
+// 編集欄の下に並べ、クリックで即座にその内容を入力する（自由入力も
+// 引き続き可能）。
+const MARKER_LABEL_PRESETS = [
+  "Intro", "Verse", "Pre-chorus", "Chorus", "Last Chorus",
+  "Bridge", "Solo", "Outro"
+];
+
 function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   if (itemDiv.querySelector(".pin-memo-input")) return; // 既に編集中なら何もしない
 
@@ -417,9 +578,29 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   input.maxLength = 60;
 
   infoSpan.style.display = "none";
-  itemDiv.insertBefore(input, infoSpan);
+  // infoSpanは.pin-label-row(ホバーで鉛筆を出す行ラッパー)の子なので、
+  // itemDiv(.pinItem本体)ではなくinfoSpan.parentNode基準で挿入する。
+  infoSpan.parentNode.insertBefore(input, infoSpan);
   input.focus();
   input.select();
+
+  const presetRow = document.createElement("div");
+  presetRow.className = "pin-memo-presets";
+  MARKER_LABEL_PRESETS.forEach(label => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "pin-memo-preset-chip";
+    chip.textContent = label;
+    chip.onmousedown = (e) => {
+      // input側のblur(=commit)より先にpresetクリックが処理されるよう、
+      // mousedown時点でpreventDefaultしてinputのフォーカスを維持する。
+      e.preventDefault();
+      input.value = label;
+      input.focus();
+    };
+    presetRow.appendChild(chip);
+  });
+  itemDiv.appendChild(presetRow);
 
   let finished = false;
   function commit() {
@@ -444,6 +625,12 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
       cancel();
     }
   });
-  input.addEventListener("blur", commit);
+  input.addEventListener("blur", () => {
+    // プリセットチップのクリック(mousedown)によるフォーカス外れではなく、
+    // 実際に編集領域の外に出た場合だけ確定する。mousedownでpreventDefault
+    // しているため、チップクリックではblurが発火しない前提だが、念のため
+    // 少し遅延させてから確定する。
+    setTimeout(commit, 0);
+  });
   input.addEventListener("click", e => e.stopPropagation());
 }

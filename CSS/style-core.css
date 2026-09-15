@@ -240,6 +240,11 @@ body {
   overflow: hidden;
   white-space: nowrap;
   max-width: 100%;
+  /* Webフォント(Instrument Sans)の読み込み前後でline-heightの計算結果が
+     ばらつき、フォールバックフォントでは行の高さが文字の実描画より
+     小さくなって上端が overflow:hidden で切れることがあるため、
+     font-sizeに対して十分な比率を明示しておく。 */
+  line-height: 1.4;
 }
 
 #appTitleInner {
@@ -268,8 +273,25 @@ body {
 }
 
 
-/* EQ関連スタイルは style-eq.css に分割移動済み */
+/* EQ関連スタイルは style-control-eq.css（旧style-eq.css）に分割移動済み */
 
+/* ============================================================
+   【大手術後の状態】.app-container / .player-section / .sidebar-section /
+   .mobile-tabs / .sidebar-section h3（このセクション末尾まで）は、
+   PC v2が画面幅を問わず常時有効化されたことで .app-container自体が
+   常にdisplay: noneになるため、実質的に画面には一切表示されない。
+
+   削除しなかった理由：PC v2のbuild()は現在アクティブなパネル
+   （.mobile-tab-panel）だけを.app-containerの外へ移動し、それ以外
+   （非アクティブなパネル）はこの.app-container/.sidebar-section
+   構造の中に留まったままになる。またLibrary(playlist)のように移動済み
+   でも、.markers-heading-row(h3見出し含む)自体はPC v2側で
+   display: none !importantにされ、PC v2独自の見出し(.pcv2-panel-
+   header-title)に置き換わる。つまりこれらの要素・スタイルは
+   「今は使われていない」だけで、PC v2のJS（markAnchor/restoreAnchor）
+   がDOM構造を組み立てる際の前提として今も必要なため、CSSごと
+   削除すると壊れる。
+   ============================================================ */
 .app-container {
   display: grid;
   grid-template-columns: 1fr 360px;
@@ -394,59 +416,33 @@ body {
   display: none;
 }
 
-/* MARKERS/PLAYLISTタブ内リスト最上部のアクションボタン（+MARKER, ADD FILE）。
-   コントロールバーの中央ボタン(tripleNavBtn-center)と同系のアクセントカラーで、横幅いっぱいに表示する。 */
-.tab-inline-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 12px 16px;
-  margin-bottom: 10px;
-  background: var(--accent-glow);
-  border: 1px solid var(--accent-primary);
-  border-radius: 12px;
-  color: var(--accent-primary);
-  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background var(--dur-hover) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
-}
-
-.tab-inline-action-btn:active {
-  transform: scale(0.98);
-}
-
-.tab-inline-action-btn svg {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-  flex-shrink: 0;
-}
-
 /* CONTROLタブ：VOL/SPEED(+Auto Speed)/KEYの操作UI自体（スライダー・ステッパー等）を、
    ポップアップに隠さず上から順に展開表示する。中身はBasic欄と同じ.control-cardを使い、
    IDだけ別にして値を双方向に同期させている（player-ui-shared.js側）。 */
 .control-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
 }
 
-/* CONTROLタブの中の各.control-cardは、MARKERS/PLAYLISTのリスト項目と統一感を持たせるため、
-   1枚ずつ独立した背景・枠を持たせて区切る（Basic欄のav-popup内では背景なしの素の表示だったが、
-   CONTROLタブでは並べて見せる都合上、区切りが必要）。 */
+/* CONTROLタブの中の各.control-cardは、Markers/Playlistのリスト同様、
+   罫線区切りのフラットなデザインに統一する（カード背景・枠は廃止）。 */
 .control-list .control-card {
-  background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  padding: 14px 0;
   min-width: 0;
+}
+
+.control-list .control-card:first-child {
+  padding-top: 0;
+}
+
+.control-list .control-card:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .markers-heading-row {
@@ -607,12 +603,6 @@ body {
 .basic-panel-box {
   background: transparent;
   border: none;
-}
-
-/* SP幅専用のSPEED/KEY/AUTO SPEED表示パネル。PC幅ではBasic欄(.basic-panel-box)側の
-   VOL/SPEED/KEY/EQ/Export/AddFileをそのまま使うため、こちらはデフォルトで非表示にする。 */
-#spStatusPanel {
-  display: none;
 }
 
 /* VOL/SPEED/KEY行とEQ/Export/AddFile行の間で、上下のボーダーが重なって太い線に
@@ -874,13 +864,13 @@ body {
 .vfill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--accent-glow), var(--accent-primary));
-  border-radius: 9px 0 0 9px;
+  background: var(--accent-primary);
+  border-radius: 0;
   pointer-events: none;
   position: relative;
   z-index: 2;
   mix-blend-mode: normal;
-  opacity: 0.55;
+  opacity: 0.9;
 }
 
 .vwave {
@@ -947,6 +937,13 @@ body {
   text-decoration: line-through;
 }
 
+.vbar-label-memo {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+
 .segmentHighlight {
   position: absolute;
   top: 0;
@@ -976,8 +973,31 @@ body {
   text-transform: uppercase;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 6px;
+}
+
+/* labelの直接の子要素はテキスト表示・トグル・リセットボタンの3つに
+   なるため、justify-content: space-betweenのままだとトグルが中央に
+   飛んでしまう。flex-startにし、リセットボタン側をmargin-left: autoで
+   右端に固定する（トグルはテキストのすぐ右という自然な位置に残る）。 */
+.control-card label .mini-reset-btn {
+  margin-left: auto;
+}
+
+.control-card .control-effect-toggle {
+  width: 30px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.control-card .control-effect-toggle .glow-switch-knob {
+  width: 11px;
+  height: 11px;
+}
+
+.control-card .control-effect-toggle[aria-checked="true"] .glow-switch-knob {
+  transform: translateX(13px);
 }
 
 .control-card input[type="range"] {
@@ -985,7 +1005,63 @@ body {
   width: 100%;
   box-sizing: border-box;
   margin: 0;
-  accent-color: var(--accent-primary);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+/* ネイティブのaccent-colorだと、トラックの未到達部分がブラウザ既定の
+   白っぽい色で描画され、KEYスライダー(.key-stepper-bar、カスタム実装で
+   枠線なしのシンプルなグレートラック)と印象が揃わない。
+   トラック自体を明示的にスタイリングし、進捗(再生位置)より左側だけ
+   accent-primary色になるようCSS変数(--range-progress、0〜100の数値。
+   player-ui-shared.js側で入力のたびに更新する)を使ったグラデーションで
+   表現する。 */
+.control-card input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent-primary) 0%,
+    var(--accent-primary) calc(var(--range-progress, 50) * 1%),
+    #2a2a35 calc(var(--range-progress, 50) * 1%),
+    #2a2a35 100%
+  );
+  border: none;
+}
+
+.control-card input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #2a2a35;
+  border: none;
+}
+
+.control-card input[type="range"]::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent-primary);
+}
+
+.control-card input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: none;
+  cursor: pointer;
+}
+
+.control-card input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: none;
   cursor: pointer;
 }
 

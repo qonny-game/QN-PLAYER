@@ -115,7 +115,7 @@ function drawWaveform() {
     const barGap = 1 * dpr;
     const barWidth = Math.max(1, canvas.width / sliceCount - barGap);
 
-    ctx2d.fillStyle = "rgba(255, 255, 255, 0.28)";
+    ctx2d.fillStyle = "rgba(255, 255, 255, 0.16)";
 
     for (let i = 0; i < sliceCount; i++) {
       const peak = waveformPeaks[startIdx + i] || 0;
@@ -177,7 +177,8 @@ function applyVolumeChange(val) {
 
 document.getElementById("fileInput").onchange = e => addFilesToPlaylist(Array.from(e.target.files));
 
-// ドラッグ&ドロップでのファイル追加処理は player-ui-pc.js に移動済み
+// ドラッグ&ドロップでのファイル追加処理は player-ui-pc-v2.js に移動済み
+// （旧player-ui-pc.js。ファイル整理により統合）
 
 
 // player-playlist.js に分割移動済み（Playlist機能：追加・描画・削除・並び替え・再生切り替え）
@@ -429,6 +430,10 @@ document.addEventListener("keydown", e => {
     e.preventDefault();
     togglePlay();
   }
+  else if (e.key === "Enter") {
+    e.preventDefault();
+    if (typeof seekToTrackStart === "function") seekToTrackStart();
+  }
   else if (e.key === "l" || e.key === "L") {
     e.preventDefault();
     const loopBtn = document.getElementById("loopToggleBtn");
@@ -528,7 +533,8 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// volumeInputのイベントハンドラは player-ui-pc.js に移動済み
+// #controlVolume(旧volumeInput)のPC v2向けイベントハンドラは
+// player-ui-pc-v2.js（Volumeポップアップ部分）にある
 
 
 
@@ -599,7 +605,8 @@ function updateBars() {
   // 独立して毎フレーム行う。ループがOFFの間はこの配列生成自体が無駄になるため、
   // loopEnabledの判定を先に行う。
   if (loopEnabled && !isSeeking && !isJumping && !audio.paused) {
-    const activePins = pins.filter(p => p.enabled).map(p => p.t);
+    const activePinObjs = pins.filter(p => p.enabled);
+    const activePins = activePinObjs.map(p => p.t);
     if (activePins.length >= 2) {
       for (let i = 0; i < activePins.length - 1; i++) {
         const start = activePins[i];
@@ -608,7 +615,11 @@ function updateBars() {
         if (prevTime < end && ct >= end) {
           audio.currentTime = start;
           isJumping = true;
-          renderSegments({ start, end });
+          // このマーカー(区間の開始側)に設定された色をそのまま引き継ぐ。
+          // {start, end}だけを渡すとcolorがundefinedになり、renderSegments
+          // 内のif (active.color && ...)判定が外れてデフォルトカラーに
+          // フォールバックしてしまう（2周目以降で色が消えるバグの原因）。
+          renderSegments({ start, end, color: activePinObjs[i].color || null });
           notifyLoopCompleted();
           setTimeout(() => {
             isJumping = false;
@@ -660,9 +671,6 @@ document.querySelectorAll(".vbar").forEach((bar, index) => {
 
 // addPinBtnのonclick登録は player-markers.js に分割移動済み
 
-// タブ内の+MARKER/ADD FILEインラインボタン（addPinBtnInline, selectFileBtnInline）は
-// player-ui-sp.js で処理している
-
 
 
 const isMobileLayout = () => window.matchMedia("(max-width: 768px)").matches;
@@ -705,81 +713,14 @@ function setMobileTab(tabName) {
 
 // player-text.js に分割移動済み（Textタブ自動保存登録）
 
-// SP幅限定：サイドバー(Markers/Playlist)の開閉。画面右端の吸着ボタン(sidebarToggleTabs)を押すと、
-// 対応するタブに切り替えつつサイドバーをスライドインさせる。オーバーレイタップやCloseで閉じる。
-// PC幅ではサイドバーは常時表示のため、これらの要素自体がCSS側で非表示になり実質何もしない。
+// #sidebarSection自体はPC v2が土台として使い続けるため要素参照は残す
+// （player-text.js側でも高さ調整等に使われている）。
+// SP幅限定の右端サイドバー開閉ナビ(sidebarToggleTabs/sidebarOverlay/
+// sp-status-panel、およびそれを開閉していたopenSidebar/closeSidebar/
+// updateSidebarToggleActiveState関数)は撤去。旧SP版専用の仕組みで、
+// PC v2では使っておらず、SP版自体もゼロから作り直す前提のため、
+// 居座っていた古い実装として削除した。
 const sidebarSection = document.getElementById("sidebarSection");
-const sidebarOverlay = document.getElementById("sidebarOverlay");
-const sidebarToggleBtns = document.querySelectorAll(".sidebar-toggle-btn");
-
-
-// player-text.js に分割移動済み（updateSidebarHeightForTextTab）
-
-
-function openSidebar(tabName) {
-  if (tabName) setMobileTab(tabName);
-  if (sidebarSection) sidebarSection.classList.add("open");
-  if (sidebarOverlay) sidebarOverlay.classList.add("open");
-  updateSidebarToggleActiveState();
-  hapticTap();
-}
-
-function closeSidebar() {
-  if (sidebarSection) sidebarSection.classList.remove("open");
-  if (sidebarOverlay) sidebarOverlay.classList.remove("open");
-  updateSidebarToggleActiveState();
-}
-
-function updateSidebarToggleActiveState() {
-  const isOpen = sidebarSection && sidebarSection.classList.contains("open");
-  sidebarToggleBtns.forEach(btn => {
-    btn.classList.toggle("active", isOpen && btn.getAttribute("data-tab") === currentMobileTab);
-  });
-}
-
-sidebarToggleBtns.forEach(btn => {
-  btn.onclick = () => {
-    const action = btn.getAttribute("data-action");
-    // EQ/Export/Add Fileは、サイドバーを開くのではなく、それぞれ本来のモーダル/
-    // ファイル選択ダイアログをそのまま開く（Basic欄の対応ボタンをクリックしたことにする）。
-    if (action === "eq") {
-      hapticTap();
-      const eqBtn = document.getElementById("eqToggleBtn");
-      if (eqBtn) eqBtn.click();
-      return;
-    }
-    if (action === "export") {
-      hapticTap();
-      const exportBtn = document.getElementById("exportToggleBtn");
-      if (exportBtn) exportBtn.click();
-      return;
-    }
-    if (action === "addfile") {
-      hapticTap();
-      const fileInputEl = document.getElementById("fileInput");
-      if (fileInputEl) fileInputEl.click();
-      return;
-    }
-
-    const tabName = btn.getAttribute("data-tab");
-    // 既に同じタブでサイドバーが開いている状態でもう一度押した場合は閉じる（トグル動作）
-    if (sidebarSection && sidebarSection.classList.contains("open") && currentMobileTab === tabName) {
-      closeSidebar();
-    } else {
-      openSidebar(tabName);
-    }
-  };
-});
-
-if (sidebarOverlay) sidebarOverlay.onclick = closeSidebar;
-
-// SP専用ステータス表示（Speed/Auto Speed/Key）は、どれをタップしてもCONTROLタブを開く。
-document.querySelectorAll(".sp-status-item").forEach(item => {
-  item.onclick = () => {
-    hapticTap();
-    openSidebar("control");
-  };
-});
 
 // Play/Repeat/前後曲送りの三分割ボタンは、PC/SP完全に同じレイアウト（topControls内に常時表示）に
 // 統一されたため、以前あった「PC幅⇔SP幅で#playbackButtonsGroupを移動する」ロジックは不要になり、
@@ -810,7 +751,6 @@ mobileTabBtns.forEach(btn => {
   btn.onclick = () => {
     hapticTap();
     setMobileTab(btn.getAttribute("data-tab"));
-    updateSidebarToggleActiveState();
   };
 });
 
@@ -837,26 +777,41 @@ function syncTopControlsSpacerHeight() {
   // ページ全体がスクロールした際、一番下の項目がtopControlsの裏に隠れてしまう。
   spacer.style.height = h + "px";
 
-  if (isMobileLayout()) {
-    // SP幅ではbody自体はスクロールしない(overflow: hidden)ため、bodyへのpadding-bottomは意味を持たない。
-    // 実際にスクロールするのは.sidebar-section内側の.mobile-tab-panel（タブの中身）なので、
-    // そちら自身にtopControlsの高さ分の余白を確保し、スクロール最下部のコンテンツが
-    // topControls(画面下部固定)の裏に隠れないようにする。
-    // （.sidebar-section自体はoverflow: hiddenでスクロールしない外枠のため、
-    //   そちらにpadding-bottomを入れても実際のスクロール領域には反映されない）
-    mobileTabPanels.forEach(panel => {
+  // 【大手術後の対応】この関数は本来、.app-container内でtopControlsが
+  // position:fixedで浮くこと前提の「隠れてしまう分の余白」補正。
+  // PC v2のbuild()はmobile-tab-panel等をmarkAnchor/restoreAnchorで
+  // .app-containerの外（#pcV2PanelBody内）へ実際に移動させるため、
+  // 移動済みの要素にここでpadding-bottomを付けてしまうと、PC v2の
+  // パネル下部に不要な余白ができるバグになる。
+  // body.pc-v2-activeクラスでの判定はスクリプト読み込み順（この関数の
+  // 初回実行がPC v2のbuild()より先に走る）に左右され取りこぼすため、
+  // 各要素ごとに実際に.app-containerの中に留まっているかで判定する。
+  mobileTabPanels.forEach(panel => {
+    const stillInAppContainer = !!panel.closest(".app-container");
+    if (!stillInAppContainer) {
+      panel.style.paddingBottom = "";
+      return;
+    }
+    if (isMobileLayout()) {
+      // SP幅ではbody自体はスクロールしない(overflow: hidden)ため、bodyへのpadding-bottomは意味を持たない。
+      // 実際にスクロールするのは.sidebar-section内側の.mobile-tab-panel（タブの中身）なので、
+      // そちら自身にtopControlsの高さ分の余白を確保し、スクロール最下部のコンテンツが
+      // topControls(画面下部固定)の裏に隠れないようにする。
+      // （.sidebar-section自体はoverflow: hiddenでスクロールしない外枠のため、
+      //   そちらにpadding-bottomを入れても実際のスクロール領域には反映されない）
       panel.style.paddingBottom = (h + 8) + "px";
-    });
+    } else {
+      panel.style.paddingBottom = "";
+    }
+  });
+
+  if (isMobileLayout()) {
     if (sidebarSection) sidebarSection.style.paddingBottom = "";
     document.body.style.paddingBottom = "";
   } else {
     // PC幅ではページ本体(body)自体がスクロールするため、上のspacer(bodyの最後尾の余白)だけで十分。
-    // mobile-tab-panel側には余白を入れない（入れるとタブ内に不要な空白ができてしまう）。
     document.body.style.paddingBottom = "";
     if (sidebarSection) sidebarSection.style.paddingBottom = "";
-    mobileTabPanels.forEach(panel => {
-      panel.style.paddingBottom = "";
-    });
   }
 }
 syncTopControlsSpacerHeight();
@@ -875,10 +830,22 @@ async function restorePlaylistFromStorage() {
   const savedTracks = await loadAllPlaylistTracks();
   if (savedTracks.length === 0) return;
 
-  savedTracks.forEach(({ file, enabled }) => {
-    playlist.push({ file, name: file.name, enabled });
+  savedTracks.forEach(({ file, enabled, title, artist }) => {
+    playlist.push({ file, name: file.name, enabled, title: title || null, artist: artist || null, duration: null });
   });
   renderPlaylist();
+
+  // 長さ(duration)はIndexedDBに保存していないため、復元時に読み直す。
+  playlist.forEach(track => {
+    if (typeof readAudioDuration === "function") {
+      readAudioDuration(track.file).then(dur => {
+        if (dur) {
+          track.duration = dur;
+          renderPlaylist();
+        }
+      });
+    }
+  });
 
   // 1曲目を選曲済み状態にする（タイトル表示・波形読み込みまで行うが、
   // autoplay: falseにより自動再生はしない。ページを開いた直後に
@@ -912,3 +879,32 @@ function hapticWarning() {
 
 
 // player-text.js に分割移動済み（Textタブ：フルスクリーン表示＋文字サイズ調整）
+
+// ============================================================
+// Speed/Volume/EQバンドスライダーのCSS変数(--range-progress)更新。
+// style-core.css側で.control-card input[type="range"]::-webkit-slider-
+// runnable-trackが、style-control-eq.css側で.eq-vsliderのbackgroundが、
+// この変数を見て進捗より左側だけaccent-primary色に塗り分ける仕組みに
+// なっている。
+// resetSpeedAndKey()等、JS側で.valueを直接書き換える箇所があり、その
+// 全てにイベント発火の手当てをするのは漏れやすいため、軽量な
+// requestAnimationFrameループで継続的に同期する（値が変わった時だけ
+// スタイル更新するので負荷は小さい）。
+(function syncRangeProgressLoop() {
+  const targets = Array.from(document.querySelectorAll(".control-card input[type=\"range\"], .eq-vslider"));
+  const lastValues = new Map();
+  function tick() {
+    targets.forEach(input => {
+      if (lastValues.get(input) !== input.value) {
+        lastValues.set(input, input.value);
+        const min = parseFloat(input.min) || 0;
+        const max = parseFloat(input.max) || 100;
+        const val = parseFloat(input.value);
+        const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+        input.style.setProperty("--range-progress", String(pct));
+      }
+    });
+    requestAnimationFrame(tick);
+  }
+  if (targets.length > 0) tick();
+})();

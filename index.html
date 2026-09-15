@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QNPLAYER 1.9.0</title>
+<title>QNPLAYER 2.0.0</title>
 <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
@@ -11,26 +11,27 @@
 <link rel="icon" type="image/png" sizes="192x192" href="favicon/android-chrome-192x192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="favicon/android-chrome-512x512.png">
 
-<link rel="stylesheet" href="style-core.css">
-<link rel="stylesheet" href="style-playlist.css">
-<link rel="stylesheet" href="style-markers.css">
-<link rel="stylesheet" href="style-eq.css">
-<link rel="stylesheet" href="style-controls.css">
-<link rel="stylesheet" href="style-export.css">
-<link rel="stylesheet" href="style-text.css">
-<link rel="stylesheet" href="style-core-pc.css">
-<link rel="stylesheet" href="style-layout-sp.css">
+<link rel="stylesheet" href="CSS/style-core.css">
+<link rel="stylesheet" href="CSS/style-playlist.css">
+<link rel="stylesheet" href="CSS/style-markers.css">
+<link rel="stylesheet" href="CSS/style-control-eq.css">
+<link rel="stylesheet" href="CSS/style-controls.css">
+<link rel="stylesheet" href="CSS/style-export.css">
+<link rel="stylesheet" href="CSS/style-text.css">
+<link rel="stylesheet" href="CSS/style-layout-sp.css">
+<link rel="stylesheet" href="CSS/style-layout-pc-v2.css">
 <script>
   window.QN_CURRENT_APP = "player";
   window.QN_SHORTCUTS = [
     { key: "Space", action: "Play / Pause" },
+    { key: "Enter", action: "Seek to Start" },
     { key: "P / M", action: "Add Marker" },
-    { key: "L", action: "Toggle Loop" },
-    { key: "R", action: "Toggle All Repeat" },
+    { key: "L", action: "Loop ON/OFF" },
+    { key: "R", action: "Repeat" },
     { key: "1 - 9", action: "Jump to Marker" },
-    { key: "Ctrl + 1 - 9", action: "Toggle Marker ON/OFF" },
+    { key: "Ctrl + 1 - 9", action: "Marker ON/OFF" },
     { key: "→", action: "Next Marker" },
-    { key: "←", action: "Prev Marker (0.5s rule)" },
+    { key: "←", action: "Prev Marker" },
     { key: "↑", action: "First Marker" },
     { key: "↓", action: "Last Marker" },
     { key: "Ctrl + → / ←", action: "Speed +1% / -1%" },
@@ -55,7 +56,7 @@
 
 <div id="appHeader">
   <div id="qnMenuMount"></div>
-  <h1 id="appLogo"><span id="appLogoQN">QN</span>PLAYER <span id="appVersion">v1.9.0</span></h1>
+  <h1 id="appLogo"><span id="appLogoQN">QN</span>PLAYER <span id="appVersion">v2.0.0</span></h1>
 </div>
 
 <div class="app-container">
@@ -152,42 +153,7 @@
       </div>
     </div>
 
-    <!-- SP幅専用：Basic欄はVOL/EQ/Export/AddFileを持たず、SPEED・AUTO SPEED・KEYの
-         現在値を「表示」するだけの行にする（ボタンではなく情報表示の見た目にする）。
-         CONTROLタブ内の並び順(Speed→Auto Speed→Key)と揃えている。
-         どれをタップしてもCONTROLタブが開く。PC幅ではCSS側で非表示にする。 -->
-    <div class="sp-status-panel" id="spStatusPanel">
-      <button class="sp-status-item" id="spStatusSpeed" title="Speed">
-        <span class="sp-status-item-label">Speed</span>
-        <span class="sp-status-item-value" id="spStatusSpeedValue">1.00x</span>
-      </button>
-      <button class="sp-status-item" id="spStatusAutoSpeed" title="Auto Speed">
-        <span class="sp-status-item-label">Auto Speed</span>
-        <span class="sp-status-item-value" id="spStatusAutoSpeedValue">5/5 +5%</span>
-        <span class="sp-status-item-sub" id="spStatusAutoSpeedLimit">limit 1.00x</span>
-      </button>
-      <button class="sp-status-item" id="spStatusKey" title="Key">
-        <span class="sp-status-item-label">Key</span>
-        <span class="sp-status-item-value" id="spStatusKeyValue">0</span>
-      </button>
-    </div>
   </div>
-
-  <!-- SP幅限定：サイドバー(Control/Markers/Playlist)を開閉する、または
-       モーダル・ファイル選択を直接開く（EQ/Export/Add File）画面右端の縦長吸着ボタン一覧。
-       PC幅では常時表示のBasic欄・サイドバーがあるため不要（CSS側で非表示にする）。 -->
-  <div class="sidebar-toggle-tabs" id="sidebarToggleTabs">
-    <button class="sidebar-toggle-btn" id="sidebarToggleControl" data-tab="control">Control</button>
-    <button class="sidebar-toggle-btn" id="sidebarToggleMarkers" data-tab="markers">Markers</button>
-    <button class="sidebar-toggle-btn" id="sidebarTogglePlaylist" data-tab="playlist">Playlist</button>
-    <button class="sidebar-toggle-btn" id="sidebarToggleText" data-tab="text">Text</button>
-    <button class="sidebar-toggle-btn" id="sidebarToggleEq" data-action="eq">EQ</button>
-    <button class="sidebar-toggle-btn" id="sidebarToggleExport" data-action="export">Export</button>
-    <button class="sidebar-toggle-btn" id="sidebarToggleAddFile" data-action="addfile">Add File</button>
-  </div>
-
-  <!-- SP幅でサイドバーを開いている間、背後をタップして閉じるためのオーバーレイ -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <div class="sidebar-section" id="sidebarSection">
     <!-- Control / Markers / Playlist の切り替えタブ（旧Basicタブは撤去、Controlは新設） -->
@@ -213,7 +179,10 @@
         <div class="control-card">
           <label>
             Speed <span id="controlSpeedDisplay" style="color:#fff;">1.00</span>x
-            <button class="mini-reset-btn" id="controlSpeedResetBtn" title="Reset speed to 1.00x">↺</button>
+            <button class="mini-reset-btn" id="controlSpeedResetBtn" title="Reset speed to 1.00x">RESET</button>
+            <button class="glow-switch control-effect-toggle" id="controlSpeedEnableToggle" role="switch" aria-checked="true" title="Toggle Speed effect on/off">
+              <span class="glow-switch-knob"></span>
+            </button>
           </label>
           <input type="range" id="controlSpeedRange" min="0.5" max="1.5" step="0.01" value="1.0">
 
@@ -228,25 +197,33 @@
             </label>
             <div class="auto-speed-settings open" id="controlAutoSpeedSettings">
               <div class="auto-speed-row">
-                <span class="auto-speed-row-label">Every</span>
-                <input type="number" id="controlAutoSpeedEveryN" class="auto-speed-number" min="1" max="99" step="1" value="5">
-                <span class="auto-speed-row-label">loops</span>
-              </div>
-              <div class="auto-speed-row">
                 <div class="auto-speed-direction" id="controlAutoSpeedDirection">
-                  <button type="button" class="auto-speed-dir-btn active" data-dir="up">Speed Up</button>
                   <button type="button" class="auto-speed-dir-btn" data-dir="down">Speed Down</button>
+                  <button type="button" class="auto-speed-dir-btn active" data-dir="up">Speed Up</button>
                 </div>
               </div>
-              <div class="auto-speed-row">
-                <span class="auto-speed-row-label">by</span>
-                <input type="number" id="controlAutoSpeedStepPercent" class="auto-speed-number" min="1" max="50" step="1" value="5">
-                <span class="auto-speed-row-label">%</span>
-              </div>
-              <div class="auto-speed-row">
-                <span class="auto-speed-row-label">Limit</span>
-                <input type="number" id="controlAutoSpeedLimit" class="auto-speed-number" min="50" max="150" step="1" value="150">
-                <span class="auto-speed-row-label">%</span>
+              <div class="auto-speed-row auto-speed-row-triple">
+                <div class="auto-speed-field">
+                  <span class="auto-speed-row-label">Every</span>
+                  <div class="auto-speed-field-input">
+                    <input type="number" id="controlAutoSpeedEveryN" class="auto-speed-number" min="1" max="99" step="1" value="5">
+                    <span class="auto-speed-unit">loops</span>
+                  </div>
+                </div>
+                <div class="auto-speed-field">
+                  <span class="auto-speed-row-label">By</span>
+                  <div class="auto-speed-field-input">
+                    <input type="number" id="controlAutoSpeedStepPercent" class="auto-speed-number" min="1" max="50" step="1" value="5">
+                    <span class="auto-speed-unit">%</span>
+                  </div>
+                </div>
+                <div class="auto-speed-field">
+                  <span class="auto-speed-row-label">Limit</span>
+                  <div class="auto-speed-field-input">
+                    <input type="number" id="controlAutoSpeedLimit" class="auto-speed-number" min="50" max="150" step="1" value="150">
+                    <span class="auto-speed-unit">%</span>
+                  </div>
+                </div>
               </div>
               <div class="auto-speed-status" id="controlAutoSpeedStatus">Loop progress: 0 / 5</div>
             </div>
@@ -256,7 +233,10 @@
         <div class="control-card key-control-card">
           <label>
             Key <span id="controlKeyDisplay" style="color:#fff;">0</span> st
-            <button class="mini-reset-btn" id="controlKeyResetBtn" title="Reset key to 0">↺</button>
+            <button class="mini-reset-btn" id="controlKeyResetBtn" title="Reset key to 0">RESET</button>
+            <button class="glow-switch control-effect-toggle" id="controlKeyEnableToggle" role="switch" aria-checked="true" title="Toggle Key effect on/off">
+              <span class="glow-switch-knob"></span>
+            </button>
           </label>
           <div class="key-stepper">
             <button id="controlKeyDownBtn" class="key-step-btn" title="Key down 1 semitone">−</button>
@@ -274,24 +254,14 @@
         <h3>Markers</h3>
         <span id="loopInfo">ACTIVE 0/0</span>
       </div>
-      <!-- リストを見ながら追加できるよう、コントロールバーのaddPinBtnと同じ機能のボタンをここにも置く。 -->
-      <button id="addPinBtnInline" class="tab-inline-action-btn" title="Add Marker">
-        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        <span>Add Marker</span>
-      </button>
       <div id="pinList"></div>
     </div>
 
     <div class="mobile-tab-panel" data-tab-panel="playlist">
       <div class="markers-heading-row">
-        <h3>Playlist</h3>
+        <h3>Library</h3>
         <span id="playlistInfo">0 tracks</span>
       </div>
-      <!-- リストを見ながら追加できるよう、既存のfileInputを発火させるボタンをここにも置く。 -->
-      <button id="selectFileBtnInline" class="tab-inline-action-btn" title="Add File">
-        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-        <span>Add File</span>
-      </button>
       <div id="playlistBox"></div>
     </div>
 
@@ -335,15 +305,27 @@
       <div class="export-section" id="eqInlineSection">
         <!-- SP幅限定：KEYとEQの間の区切り線とタイトル（PC幅ではモーダルヘッダーにタイトルがあるため非表示） -->
         <div class="basic-panel-divider eq-inline-divider"></div>
-        <div class="eq-inline-title">Equalizer</div>
+        <div class="eq-inline-title">
+          Equalizer
+          <button class="mini-reset-btn" id="controlEqResetBtn" title="Reset EQ to flat" data-preset="flat">RESET</button>
+          <button class="glow-switch control-effect-toggle" id="controlEqEnableToggle" role="switch" aria-checked="true" title="Toggle EQ effect on/off">
+            <span class="glow-switch-knob"></span>
+          </button>
+        </div>
         <div class="eq-preset-row">
           <div class="eq-preset-buttons" id="eqPresetButtons">
-            <button type="button" class="eq-preset-btn" data-preset="flat">Flat</button>
-            <button type="button" class="eq-preset-btn" data-preset="bass">Bass Boost</button>
+            <button type="button" class="eq-preset-btn" data-preset="bass">Bass</button>
             <button type="button" class="eq-preset-btn" data-preset="vocal">Vocal</button>
-            <button type="button" class="eq-preset-btn" data-preset="treble">Treble Boost</button>
+            <button type="button" class="eq-preset-btn" data-preset="treble">Treble</button>
             <button type="button" class="eq-preset-btn" data-preset="vshape">V-Shape</button>
           </div>
+          <!-- カスタムプリセット一覧。player-control-eq.js側でlocalStorageから
+               読み込んで動的にボタンを生成する。 -->
+          <div class="eq-preset-buttons eq-preset-custom-row" id="eqCustomPresetButtons"></div>
+          <button type="button" class="eq-preset-save-btn" id="eqSavePresetBtn" title="Save current EQ as a custom preset">
+            <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+            <span>Save as Preset</span>
+          </button>
         </div>
         <p class="eq-hint">Drag across the bands to draw a curve</p>
         <div class="eq-bands" id="eqBands">
@@ -509,17 +491,17 @@
 <div class="top-controls-spacer" id="topControlsSpacer"></div>
 
 
-<script src="lame_min.js"></script>
-<script src="player-core.js"></script>
-<script src="player-ui-shared.js"></script>
-<script src="player-playlist.js"></script>
-<script src="player-markers.js"></script>
-<script src="player-eq.js"></script>
-<script src="player-controls.js"></script>
-<script src="player-export.js"></script>
-<script src="player-text.js"></script>
-<script src="player-ui-sp.js"></script>
-<script src="player-ui-pc.js"></script>
+<script src="JS/lame_min.js"></script>
+<script src="JS/player-core.js"></script>
+<script src="JS/player-ui-shared.js"></script>
+<script src="JS/player-id3.js"></script>
+<script src="JS/player-playlist.js"></script>
+<script src="JS/player-markers.js"></script>
+<script src="JS/player-control-eq.js"></script>
+<script src="JS/player-controls.js"></script>
+<script src="JS/player-export.js"></script>
+<script src="JS/player-text.js"></script>
+<script src="JS/player-ui-pc-v2.js"></script>
 <script src="qn-menu.js"></script>
 </body>
 </html>

@@ -23,6 +23,9 @@
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 14px;
   line-height: 1.6;
+  /* 上下方向のみ手動リサイズ可能にする。左右方向にはみ出す/縮む伸縮は
+     レイアウトが崩れるため不可にする。 */
+  resize: vertical;
 }
 .note-textarea::placeholder {
   color: #6b6b7b;

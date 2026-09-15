@@ -193,6 +193,20 @@
   border-color: var(--accent-primary);
 }
 
+/* ネイティブ<select>のドロップダウンを開いた時の<option>は、
+   デフォルトだとブラウザ既定(白背景)になり暗いテーマと合わず視認性が
+   悪いため、明示的にダークな配色を指定する。選択中の項目は
+   accent-primaryの背景で分かりやすく示す。 */
+.export-marker-select option {
+  background: #1c1c24;
+  color: #f0f0f3;
+}
+
+.export-marker-select option:checked {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
 /* Marker Rangeの開始・終了プルダウンを横並びに配置する */
 .export-marker-range-selects {
   display: flex;

@@ -78,18 +78,29 @@ function openPlaylistDB() {
 
 // 曲を1件、実体(Blob)ごと保存する。同名ファイルは上書きする。
 // savedAtを明示的に指定しない場合は現在時刻（＝新規追加として最後尾）になる。
-async function savePlaylistTrack(file, savedAt, enabled) {
+// title/artistは手動編集されたID3タグ相当の情報で、指定しなければ
+// 既存の保存値を変えない（undefinedの場合はputで上書きしないよう
+// 事前に既存レコードを読み、マージしてから保存する）。
+async function savePlaylistTrack(file, savedAt, enabled, title, artist) {
   try {
     const db = await openPlaylistDB();
     await new Promise((resolve, reject) => {
       const tx = db.transaction(PLAYLIST_STORE_NAME, "readwrite");
-      tx.objectStore(PLAYLIST_STORE_NAME).put({
-        name: file.name,
-        type: file.type,
-        blob: file,
-        savedAt: typeof savedAt === "number" ? savedAt : Date.now(),
-        enabled: enabled !== false
-      });
+      const store = tx.objectStore(PLAYLIST_STORE_NAME);
+      const getReq = store.get(file.name);
+      getReq.onsuccess = () => {
+        const existing = getReq.result || {};
+        store.put({
+          name: file.name,
+          type: file.type,
+          blob: file,
+          savedAt: typeof savedAt === "number" ? savedAt : Date.now(),
+          enabled: enabled !== false,
+          title: title !== undefined ? title : existing.title,
+          artist: artist !== undefined ? artist : existing.artist
+        });
+      };
+      getReq.onerror = () => reject(getReq.error);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -127,7 +138,9 @@ async function loadAllPlaylistTracks() {
     records.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
     return records.map(r => ({
       file: new File([r.blob], r.name, { type: r.type || r.blob.type }),
-      enabled: r.enabled !== false
+      enabled: r.enabled !== false,
+      title: r.title || null,
+      artist: r.artist || null
     }));
   } catch (err) {
     console.warn("loadAllPlaylistTracks failed:", err);
@@ -138,10 +151,33 @@ async function loadAllPlaylistTracks() {
 // 現在のplaylist配列の並び順を、IndexedDB側のsavedAtにも反映する
 // （ドラッグ並び替え後、次回起動時にも並び替えた順序が復元されるようにするため）。
 // savedAtに単純増加の連番を振り直すことで、既存のsavedAt昇順ソートと矛盾なく順序を保てる。
-// 各トラックのON/OFF状態(enabled)も同時に保存する。
+// 各トラックのON/OFF状態(enabled)・タイトル/アーティストも同時に保存する。
 async function persistPlaylistOrder() {
   const base = Date.now();
-  await Promise.all(playlist.map((track, i) => savePlaylistTrack(track.file, base + i, track.enabled)));
+  await Promise.all(playlist.map((track, i) =>
+    savePlaylistTrack(track.file, base + i, track.enabled, track.title, track.artist)
+  ));
+}
+
+// タイトル/アーティストを編集した直後など、並び順を変えずに1曲分だけ
+// メタデータを保存したい場合に使う軽量版。savedAtは指定しないため
+// 既存のIndexedDB上の値（＝現在の並び順）がそのまま保たれる。
+async function savePlaylistMetadataFor(track) {
+  const db = await openPlaylistDB().catch(() => null);
+  if (!db) return;
+  const existing = await new Promise((resolve) => {
+    const tx = db.transaction(PLAYLIST_STORE_NAME, "readonly");
+    const req = tx.objectStore(PLAYLIST_STORE_NAME).get(track.file.name);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  });
+  await savePlaylistTrack(
+    track.file,
+    existing ? existing.savedAt : undefined,
+    track.enabled,
+    track.title,
+    track.artist
+  );
 }
 
 // 波形解析用
@@ -311,20 +347,27 @@ async function setupAudioGraph() {
 // 提供しない（等速・音程そのままの通常再生に留める）。
 let currentSpeed = 1.0;
 let currentKeySemitones = 0;
+// Speed/KeyのON/OFF：トグルOFF中は、UI上のスライダー値(currentSpeed/
+// currentKeySemitones)自体は変更せず、実際に音声へ適用する値だけを
+// 無効化相当(Speed=1.0, Key=0)にする。ONに戻すと元の値がそのまま復元される。
+let speedEffectEnabled = true;
+let keyEffectEnabled = true;
 
 function updatePlaybackRate() {
+  const effectiveSpeed = speedEffectEnabled ? currentSpeed : 1.0;
+  const effectiveKeySemitones = keyEffectEnabled ? currentKeySemitones : 0;
   if (pitchShiftAvailable && soundTouchNode) {
-    audio.playbackRate = currentSpeed;
+    audio.playbackRate = effectiveSpeed;
     try {
-      soundTouchNode.playbackRate.value = currentSpeed;
+      soundTouchNode.playbackRate.value = effectiveSpeed;
       // プロセッサ内部では「実際に適用されるピッチ倍率 = pitch値 ÷ playbackRate」
       // という計算になっている。そのためpitchを1.0のまま放置すると、
       // playbackRateだけがそのまま反比例でピッチに効いてしまう
       // （Speedを上げるとピッチが下がる、下げると上がる、という逆転現象が発生していた）。
       // pitchをplaybackRateと同じ値にすることで、この割り算を打ち消して
       // 「Speedを変えてもピッチは変えない」を実現する。
-      soundTouchNode.pitch.value = currentSpeed;
-      const clampedSemitones = Math.max(-24, Math.min(24, currentKeySemitones));
+      soundTouchNode.pitch.value = effectiveSpeed;
+      const clampedSemitones = Math.max(-24, Math.min(24, effectiveKeySemitones));
       soundTouchNode.pitchSemitones.value = clampedSemitones;
     } catch (e) {
       // 何らかの理由でノードが壊れていたら以降はSpeed/Key機能を無効化する（フォールバックはしない）

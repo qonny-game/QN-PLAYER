@@ -45,16 +45,12 @@
     <!-- SECTION 2: Color Theme Selector & Glow Switch -->
     <div class="qn-menu-section" data-qn-section="theme">
       <span class="qn-menu-section-label">Color Theme</span>
-      <!-- スウォッチはqn-menu.js側のQN_THEMES配列から動的生成される。
+      <!-- スウォッチはqn-menu.js側のQN_THEMES配列(単色14色)から動的生成される。
+           全件を常時展開表示するため、Moreボタン・追加コンテナ・rainbow
+           (アニメーションする特殊テーマ)は廃止した。
            テーマを追加・編集する時はqn-menu.js内のQN_THEMESだけを直せばよく、
-           このHTMLやqn-menu.css側の個別記述を編集する必要はない。
-           rainbowだけはCSSカスタムプロパティを持たない特殊テーマ（JSでアニメーション
-           制御）のため、動的生成の対象外にして固定でここに置いている。 -->
+           このHTMLやqn-menu.css側の個別記述を編集する必要はない。 -->
       <div class="qn-theme-swatches" id="qnThemeSwatches"></div>
-      <div class="qn-theme-swatches qn-theme-swatches-extra" id="qnThemeSwatchesExtra">
-        <div class="qn-theme-swatch qn-swatch-rainbow" data-qn-theme="rainbow" title="Rainbow (Animated)" id="qnRainbowSwatch"></div>
-      </div>
-      <button type="button" class="qn-theme-more-btn" id="qnThemeMoreBtn">More colors</button>
       <div class="qn-glow-toggle-row">
         <span class="qn-glow-toggle-label">Glow current color</span>
         <button id="qnGlowToggleBtn" class="qn-glow-switch" role="switch" aria-checked="false" title="Fade the current color in and out">
@@ -68,7 +64,7 @@
       <span class="qn-menu-section-label">Keyboard Shortcuts</span>
       <table class="qn-shortcut-table" id="qnShortcutsTable">
         <thead>
-          <tr><th>Key</th><th>Action</th></tr>
+          <tr><th>Action</th><th>Key</th></tr>
         </thead>
         <tbody id="qnShortcutsTbody">
           <!-- qn-menu.js が window.QN_SHORTCUTS の内容でここを組み立てる -->

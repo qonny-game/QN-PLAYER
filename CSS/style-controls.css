@@ -98,16 +98,19 @@
 /* 三分割ボタン（前へ/中央操作/次へ）。前後の曲送り、前後のマーカー移動の両方で使う汎用デザイン。
 
 .auto-speed-card {
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 20px;
+  padding-top: 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  gap: 10px;
+  gap: 12px;
 }
 
 .auto-speed-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 10px;
+  /* トグル行自体の上下が詰まって窮屈に見えていたため、ゆとりを追加。 */
+  padding: 6px 0;
 }
 
 .auto-speed-header span {
@@ -146,6 +149,33 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Every/By/Limitの3項目を横並びで、各項目はタイトル→入力欄の縦積みにする */
+.auto-speed-row-triple {
+  align-items: stretch;
+  gap: 12px;
+}
+
+.auto-speed-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.auto-speed-field-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auto-speed-unit {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  color: #8b8b9e;
+  white-space: nowrap;
 }
 
 .auto-speed-row-label {
@@ -208,8 +238,7 @@
 }
 
 .auto-speed-dir-btn.active {
-  /* PLAYボタン・タブ選択色と同じグラデーションに統一。 */
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--accent-primary);
   color: #fff;
 }
 
@@ -222,14 +251,19 @@
 
 .mini-reset-btn {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  background: #22222c;
+  /* 元は↺記号1文字だけの26x26正方形だったが、"RESET"という文言に変更した
+     ため、幅を可変にしてテキストに合わせて広げる。高さは既存の26pxを維持。 */
+  width: auto;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: none;
   color: #8b8b9e;
-  font-size: 11px;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -239,7 +273,7 @@
 }
 
 .mini-reset-btn:hover {
-  background: #2e2e3a;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--accent-primary);
   border-color: var(--accent-primary);
 }
@@ -277,10 +311,10 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #22222c;
-  color: #f0f0f3;
-  font-size: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: none;
+  color: #8b8b9e;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -291,7 +325,6 @@
 }
 
 .key-step-btn:hover {
-  background: var(--accent-glow);
   color: var(--accent-primary);
   border-color: var(--accent-primary);
 }
@@ -307,9 +340,9 @@
 }
 
 .key-step-btn:disabled:hover {
-  background: #22222c;
-  color: #f0f0f3;
-  border-color: rgba(255, 255, 255, 0.1);
+  background: none;
+  color: #8b8b9e;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .key-stepper-bar {
@@ -331,3 +364,45 @@
   transition: all 0.15s ease;
 }
 
+
+/* Auto SpeedのON/OFFトグルスイッチ(.glow-switch)。qn-menu.cssの
+   .qn-glow-switchと同じデザインを、Controlタブ内で使うため
+   プレフィックス無しのクラス名で定義する（元々CSS定義自体が
+   存在せず、素のbutton要素として表示されてしまっていた）。 */
+.glow-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: #2a2a35;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.glow-switch[aria-checked="true"] {
+  background: var(--accent-primary, #3b82f6);
+  animation: glow-switch-pulse 3s ease-in-out infinite;
+}
+
+@keyframes glow-switch-pulse {
+  0%, 100% { box-shadow: 0 0 4px var(--accent-glow, rgba(59, 130, 246, 0.35)); }
+  50% { box-shadow: 0 0 12px var(--accent-glow, rgba(59, 130, 246, 0.35)); }
+}
+
+.glow-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f0f0f3;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-switch[aria-checked="true"] .glow-switch-knob {
+  transform: translateX(18px);
+}
