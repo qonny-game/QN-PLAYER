@@ -966,8 +966,8 @@ body {
 
 .control-card label {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   letter-spacing: 0.5px;
   color: #8b8b9e;
   text-transform: uppercase;

@@ -120,8 +120,8 @@
 
 .auto-speed-header span {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #c8c8d0;
   text-transform: none;
   letter-spacing: normal;

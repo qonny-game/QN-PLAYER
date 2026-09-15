@@ -69,6 +69,13 @@ body.pc-v2-active #pcV2Root {
   flex: 1;
 }
 
+/* #pcV2TimeRow（時刻表示専用行）はSP幅限定。PC幅では時刻表示は
+   group1(#topControls内、Repeatボタンの右)に表示されるため、
+   この行自体は非表示にする（syncTimeRowPosition()が中身を移動する）。 */
+#pcV2TimeRow {
+  display: none;
+}
+
 /* 移植元の.app-containerはPC v2有効時は非表示にする */
 body.pc-v2-active > .app-container {
   display: none;
@@ -526,7 +533,7 @@ body.pc-v2-active > .app-container {
 .pcv2-eq-heading-title {
   flex: 1;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -589,34 +596,44 @@ body.pc-v2-active > .app-container {
   justify-content: center;
 }
 
-/* 時刻表示：シークバー下から下段バーのRepeatボタン右へ移設。
-   モック同様、小さく控えめな表示にする（分割していた現在時刻/総時間を
-   1箇所にまとめて表示）。 */
-#pcV2BottomBar .time-controls-row {
-  padding: 0;
-  margin-left: 8px;
+/* 時刻表示：シークバー下から専用行(#pcV2TimeRow、波形エリアの直後・
+   下部バーの直前)へ移設。右寄せで表示する。SP幅限定
+   （display:flexへの切り替えはSP幅の@media側で行う。PC幅では
+   #pcV2TimeRow自体がdisplay:noneのため、この詳細スタイルは
+   影響しない）。
+   以前は下段バーのRepeatボタン右に同居させていたが、SP幅で再生ボタン等の
+   タップ領域を圧迫しないよう、独立した行に切り出した。 */
+#pcV2TimeRow {
+  justify-content: flex-end;
+  padding: 4px 24px;
   flex-shrink: 0;
 }
 
-#pcV2BottomBar #timeDisplay {
+#pcV2TimeRow .time-controls-row {
+  padding: 0;
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+#pcV2TimeRow #timeDisplay {
   justify-content: flex-start;
   align-items: baseline;
   gap: 3px;
   font-weight: 400;
 }
 
-#pcV2BottomBar #timeDisplay .time-val {
+#pcV2TimeRow #timeDisplay .time-val {
   font-size: 12px;
   font-weight: 500;
   color: #f0f0f3;
 }
 
-#pcV2BottomBar #timeDisplay .time-sep {
+#pcV2TimeRow #timeDisplay .time-sep {
   font-size: 11px;
   color: #55555f;
 }
 
-#pcV2BottomBar #timeDisplay .time-dur {
+#pcV2TimeRow #timeDisplay .time-dur {
   font-size: 12px;
   font-weight: 400;
   color: #8b8b9e;
@@ -1365,7 +1382,7 @@ body.pc-v2-active #qnMenuMount {
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding: 10px 12px;
+    padding: 14px 12px;
     scrollbar-width: none;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
@@ -1374,29 +1391,39 @@ body.pc-v2-active #qnMenuMount {
     display: none;
   }
 
-  #pcV2BottomBar .pcv2-ctrl-group,
-  #pcV2BottomBar .time-controls-row {
+  #pcV2BottomBar .pcv2-ctrl-group {
     flex-shrink: 0;
   }
 
+  /* #pcV2TimeRow：波形エリア(order:1)の直後、下部バー(order:2)の直前に
+     来るようにする。PC幅共通側ではdisplay:noneのため、SP幅ではここで
+     display:flexに戻して実際に表示する。 */
+  #pcV2TimeRow {
+    display: flex;
+    order: 1.5;
+    padding: 2px 16px 6px;
+  }
+
   /* SP幅では再生・スキップ・マーカー追加等のアイコンをPC幅時より
-     しっかり大きくし、タップしやすくする（アイコンバーと同様の方針）。 */
+     しっかり大きくし、タップしやすくする（アイコンバーと同様の方針）。
+     エリア自体をさらに高くしたいというユーザー要望を受け、
+     padding/svg/フォントサイズをもう一段階拡大した。 */
   #pcV2BottomBar .pcv2-ctrl-btn {
-    padding: 10px 10px;
+    padding: 14px 12px;
   }
 
   #pcV2BottomBar .pcv2-ctrl-btn svg {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
   }
 
   #pcV2BottomBar .pcv2-ctrl-btn.primary svg {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
   }
 
   #pcV2BottomBar .pcv2-ctrl-btn span {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   /* アイコンバー：画面最下部に固定、縦並び→横並びに変更。

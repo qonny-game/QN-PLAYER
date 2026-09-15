@@ -157,7 +157,7 @@
     // 同じ大きさで他のQNシリーズアプリ名が縦一列に並び（ページの
     // ロゴと展開後のロゴが縦に揃うように）、アプリ名の右に機能説明を
     // 表示する（QN Seriesへの遷移をこのドロップダウンに一本化する
-    // イメージ）。appVersion(v2.0.11等)は▼ボタンの右に表示する。
+    // イメージ）。appVersion(v2.0.12等)は▼ボタンの右に表示する。
     const appHeader = document.getElementById("appHeader");
     const appVersion = document.getElementById("appVersion");
     if (appHeader && !document.getElementById("pcV2HeaderNav")) {
@@ -325,9 +325,10 @@
       const group1 = el('<div class="pcv2-ctrl-group"></div>');
       if (playbackTripleBtn) group1.appendChild(playbackTripleBtn);
 
-      // 時刻表示(.time-controls-row、シークバー下から移設)をRepeatの
-      // 右に配置する。要素自体(#timeDisplay等)はそのまま使い、
-      // 見た目だけPC v2限定でコンパクトな表示に上書きする。
+      // 時刻表示(.time-controls-row)：PC幅ではここ(Repeatの右)に
+      // 配置する。SP幅では専用の行(#pcV2TimeRow、波形エリアの下・
+      // 下部バーの上)へ移す（syncTimeRowPosition()、resize時にも
+      // 再判定）。ここではまずPC幅と同じ「group1内」に置いておく。
       const timeControlsRow = document.querySelector(".player-section > .time-controls-row");
       if (timeControlsRow) {
         markAnchor("timeControlsRow0", timeControlsRow);
@@ -353,6 +354,12 @@
 
       bottomBar.appendChild(topControls);
     }
+
+    // 時刻表示専用の行(#pcV2TimeRow)：SP幅では波形エリアの下、下部
+    // コントロールバーの直上に、時刻表示(.time-controls-row)だけを
+    // 移してここに表示する（syncTimeRowPosition()が実際の移動を行う）。
+    // PC幅ではこの行自体を使わず、時刻表示はgroup1(Repeatの右)に留まる。
+    const timeRow = el('<div id="pcV2TimeRow"></div>');
 
     const rightGroup = el('<div class="pcv2-ctrl-group"></div>');
     // Volume（新規：ポップアップ式の縦スライダー。既存にPC向けVolume UIが
@@ -407,6 +414,11 @@
     bottomBar.appendChild(el('<div class="pcv2-ctrl-spacer"></div>'));
     bottomBar.appendChild(rightGroup);
 
+    // #pcV2TimeRow(空の入れ物)をlayout内、波形エリアの直後（アイコン
+    // バーの手前）に差し込んでおく。実際に中身(.time-controls-row)を
+    // ここへ移すかどうかはsyncTimeRowPosition()がPC/SP幅に応じて判断する。
+    layout.appendChild(timeRow);
+
     // --- pcV2Root：3カラム部分(layout)と下段バー(bottomBar)を縦に積む ---
     const root = el('<div id="pcV2Root"></div>');
     root.appendChild(layout);
@@ -426,6 +438,11 @@
     // 戻す。
     syncBottomBarPosition();
     window.addEventListener("resize", syncBottomBarPosition);
+
+    // 時刻表示(.time-controls-row)：PC幅ではgroup1(Repeatの右)、SP幅では
+    // #pcV2TimeRow(専用行)へ実際にDOM移動する。
+    syncTimeRowPosition();
+    window.addEventListener("resize", syncTimeRowPosition);
 
     // --- 波形エリア(#vbarContainer)をplayer-sectionから右カラムへ移動 ---
     // 時刻表示(.time-controls-row)は波形の下ではなく、下段バーの
@@ -581,6 +598,36 @@
     } else {
       if (bottomBar.parentElement !== rootEl) {
         rootEl.appendChild(bottomBar);
+      }
+    }
+  }
+
+  // 【SP幅レイアウト】時刻表示(.time-controls-row)を、SP幅では
+  // #pcV2TimeRow(波形エリアの下・下部バーの上、専用行)へ、PC幅では
+  // group1(#topControls内、Repeatボタンの右)へ実際にDOM移動する。
+  // SP幅で下部バー内に相乗りさせず専用の行に切り出すことで、再生ボタン等
+  // のタップ領域を圧迫しない（ユーザー要望）。
+  function syncTimeRowPosition() {
+    // querySelector(".time-controls-row")だけだと、build()実行後は
+    // 本来の時刻表示行(#timeDisplayを含む方)が既にgroup1へ移動済みで
+    // DOM順が変わっているため、別の.time-controls-row(adjust-
+    // controls-row、Exportボタン等を含む行)を誤って掴んでしまう
+    // バグがあった。#timeDisplayを起点にclosestで確実に本来の
+    // 時刻表示行を取得する。
+    const timeDisplay = document.getElementById("timeDisplay");
+    const timeControlsRow = timeDisplay ? timeDisplay.closest(".time-controls-row") : null;
+    const timeRow = document.getElementById("pcV2TimeRow");
+    const group1 = document.querySelector("#topControls .pcv2-ctrl-group");
+    if (!timeControlsRow || !timeRow || !group1) return;
+
+    const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
+    if (isSpWidth) {
+      if (timeControlsRow.parentElement !== timeRow) {
+        timeRow.appendChild(timeControlsRow);
+      }
+    } else {
+      if (timeControlsRow.parentElement !== group1) {
+        group1.appendChild(timeControlsRow);
       }
     }
   }
