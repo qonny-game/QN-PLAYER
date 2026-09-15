@@ -559,7 +559,6 @@ body {
 
 #timeDisplay {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-weight: 700;
   letter-spacing: 0.5px;
   color: #ffffff;
   display: inline-flex;
@@ -571,7 +570,7 @@ body {
 
 
 #timeDisplay .time-val {
-  font-size: 38px;
+  font-size: 12px;
   text-align: left;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
@@ -579,16 +578,14 @@ body {
 }
 
 #timeDisplay .time-sep {
-  font-size: 20px;
+  font-size: 12px;
   text-align: center;
   color: #8b8b9e;
   padding: 0 6px;
-  font-weight: 500;
 }
 
 #timeDisplay .time-dur {
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 12px;
   text-align: left;
   color: #8b8b9e;
   font-variant-numeric: tabular-nums;
