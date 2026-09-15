@@ -1118,8 +1118,11 @@ body.pc-v2-active #qnMenuMount {
   transform: rotate(180deg);
 }
 
-/* ドロップダウン：ロゴと同じ大きさ(30px)でアプリ名を縦に並べ、
-   アプリ名の右に機能説明を添える。 */
+/* ドロップダウン：ロゴと同じ大きさでアプリ名を縦に並べ、
+   アプリ名の右に機能説明を添える。
+   【縮小】全体的に表示が大きすぎたため、幅・フォントサイズ・paddingを
+   縮小した。説明文は折り返し禁止(white-space指定なし=デフォルトのnormal)
+   のままだと横に伸びきってしまうため、明示的に改行を許可する。 */
 .pcv2-header-nav-dropdown {
   position: absolute;
   top: calc(100% + 10px);
@@ -1127,8 +1130,9 @@ body.pc-v2-active #qnMenuMount {
   background: #101013;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 10px;
-  min-width: 420px;
+  padding: 8px;
+  min-width: 320px;
+  max-width: 360px;
   display: none;
   flex-direction: column;
   z-index: 300;
@@ -1142,8 +1146,8 @@ body.pc-v2-active #qnMenuMount {
 .pcv2-header-nav-link {
   display: flex;
   align-items: baseline;
-  gap: 16px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 8px 10px;
   border-radius: 8px;
   text-decoration: none;
 }
@@ -1154,23 +1158,30 @@ body.pc-v2-active #qnMenuMount {
 
 .pcv2-header-nav-link-name {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 30px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.3px;
   color: #f0f0f3;
   flex-shrink: 0;
 }
 
-.pcv2-header-nav-link.current .pcv2-header-nav-link-name {
+/* 先頭の"QN"だけヘッダーロゴ(#appLogoQN)と同じアクセントカラーにする。
+   残り(PLAYER/PITCH等)は常に白のまま——currentクラス(選択中のアプリ)が
+   付いても、この白は変えない。以前はアプリ名全体をcurrent時に
+   アクセントカラーにしていたため、ヘッダーロゴの配色(QNのみ色付け)と
+   ズレていた。 */
+.pcv2-header-nav-link-name-qn {
   color: var(--accent-primary);
 }
 
 .pcv2-header-nav-link-desc {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   color: #8b8b9e;
   text-align: right;
   flex: 1;
+  white-space: normal;
+  word-break: break-word;
 }
 
 /* トップコントロール(Track/Play/Track・Repeat・Marker×3・Loop)は
@@ -1354,7 +1365,7 @@ body.pc-v2-active #qnMenuMount {
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding: 8px 12px;
+    padding: 10px 12px;
     scrollbar-width: none;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
@@ -1366,6 +1377,26 @@ body.pc-v2-active #qnMenuMount {
   #pcV2BottomBar .pcv2-ctrl-group,
   #pcV2BottomBar .time-controls-row {
     flex-shrink: 0;
+  }
+
+  /* SP幅では再生・スキップ・マーカー追加等のアイコンをPC幅時より
+     しっかり大きくし、タップしやすくする（アイコンバーと同様の方針）。 */
+  #pcV2BottomBar .pcv2-ctrl-btn {
+    padding: 10px 10px;
+  }
+
+  #pcV2BottomBar .pcv2-ctrl-btn svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  #pcV2BottomBar .pcv2-ctrl-btn.primary svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  #pcV2BottomBar .pcv2-ctrl-btn span {
+    font-size: 10px;
   }
 
   /* アイコンバー：画面最下部に固定、縦並び→横並びに変更。
@@ -1384,7 +1415,7 @@ body.pc-v2-active #qnMenuMount {
     flex-shrink: 0;
     align-items: stretch;
     border-right: none;
-    padding: 10px 8px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 8px calc(24px + env(safe-area-inset-bottom, 0px));
     gap: 4px;
     overflow-x: auto;
     overflow-y: hidden;

@@ -157,7 +157,7 @@
     // 同じ大きさで他のQNシリーズアプリ名が縦一列に並び（ページの
     // ロゴと展開後のロゴが縦に揃うように）、アプリ名の右に機能説明を
     // 表示する（QN Seriesへの遷移をこのドロップダウンに一本化する
-    // イメージ）。appVersion(v2.0.7等)は▼ボタンの右に表示する。
+    // イメージ）。appVersion(v2.0.11等)は▼ボタンの右に表示する。
     const appHeader = document.getElementById("appHeader");
     const appVersion = document.getElementById("appVersion");
     if (appHeader && !document.getElementById("pcV2HeaderNav")) {
@@ -183,9 +183,13 @@
       }
       const dropdown = nav.querySelector(".pcv2-header-nav-dropdown");
       apps.forEach(app => {
+        // ヘッダーロゴ(#appLogoQN)と同じ配色にするため、アプリ名の
+        // 先頭"QN"だけ別spanにしてアクセントカラー、残りは白にする。
+        const qnPrefix = app.name.slice(0, 2);
+        const rest = app.name.slice(2);
         const link = el(
           '<a class="pcv2-header-nav-link' + (app.current ? ' current' : '') + '" href="' + app.url + '" target="_blank" rel="noopener">' +
-            '<span class="pcv2-header-nav-link-name">' + app.name + '</span>' +
+            '<span class="pcv2-header-nav-link-name"><span class="pcv2-header-nav-link-name-qn">' + qnPrefix + '</span>' + rest + '</span>' +
             '<span class="pcv2-header-nav-link-desc">' + app.desc + '</span>' +
           '</a>'
         );
