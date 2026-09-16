@@ -139,6 +139,13 @@
       -webkit-text-fill-color: transparent;
     }
 
+    /* QNPLAYER の「QN」部分だけグラデにする汎用クラス（見出し等で使用） */
+    .qn-accent {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
     .hero h1, .hero-title {
       font-size: 2.6rem;
       line-height: 1.25;
@@ -545,8 +552,8 @@
   <section class="hero">
     <div class="container">
       <a href="https://player.qnaudio.stream/" class="back-link fade-up">← QNPLAYERに戻る</a>
-      <div class="hero-logo fade-up">QN<span>PLAYER</span></div>
-      <h1 class="hero-title fade-up">アップグレードして<br class="pc-only">QNPLAYERの全機能を解放</h1>
+      <div class="hero-logo fade-up"><span>QN</span>PLAYER</div>
+      <h1 class="hero-title fade-up">アップグレードして<br class="pc-only"><span class="qn-accent">QN</span>PLAYERの全機能を解放</h1>
       <p class="hero-description fade-up">
         あなたの練習スタイルに合わせて最適なプランをお選びいただけます。
       </p>
