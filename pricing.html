@@ -609,10 +609,16 @@
           <div class="pricing-subheading" data-plan-sub>マンスリー</div>
           <div class="pricing-caption">広告なしで常に快適。手軽に始めたい方に最適なプラン。</div>
           <div class="pricing-price-container">
-            <div class="pricing-price" data-price-monthly>$4.99<br>¥150</div>
-            <div class="pricing-price" data-price-yearly style="display:none;">$49.90<br>¥1,500</div>
-            <div class="pricing-period" data-period-monthly>/ 月（自動更新）</div>
-            <div class="pricing-period" data-period-yearly style="display:none;">/ 年（自動更新・2ヶ月分お得）</div>
+            <div data-price-monthly>
+              <div class="pricing-price-original">$4.99</div>
+              <div class="pricing-price">¥150</div>
+              <div class="pricing-period">/ 月（自動更新）</div>
+            </div>
+            <div data-price-yearly style="display:none;">
+              <div class="pricing-price-original">$49.90</div>
+              <div class="pricing-price">¥1,500</div>
+              <div class="pricing-period">/ 年（自動更新・2ヶ月分お得）</div>
+            </div>
           </div>
           <ul class="pricing-features">
             <li><strong>広告表示・視聴 一切なし</strong></li>
@@ -630,7 +636,7 @@
           <div class="pricing-caption">一度の支払いでずっと使い放題。サブスクの管理が不要な方に。</div>
           <div class="pricing-price-container">
             <div class="pricing-price-original">$80</div>
-            <div class="pricing-price">$80<br>¥2,500</div>
+            <div class="pricing-price">¥2,500</div>
             <div class="pricing-period">買い切り（追加料金なし）</div>
           </div>
           <ul class="pricing-features">
@@ -765,8 +771,6 @@
       const buttons = toggle.querySelectorAll('button');
       const priceMonthly = document.querySelector('[data-price-monthly]');
       const priceYearly = document.querySelector('[data-price-yearly]');
-      const periodMonthly = document.querySelector('[data-period-monthly]');
-      const periodYearly = document.querySelector('[data-period-yearly]');
       const planLabel = document.querySelector('[data-plan-label]');
       const planSub = document.querySelector('[data-plan-sub]');
 
@@ -778,8 +782,6 @@
 
           priceMonthly.style.display = isYearly ? 'none' : 'block';
           priceYearly.style.display = isYearly ? 'block' : 'none';
-          periodMonthly.style.display = isYearly ? 'none' : 'block';
-          periodYearly.style.display = isYearly ? 'block' : 'none';
           planLabel.textContent = isYearly ? '(Yearly)' : '(Monthly)';
           planSub.textContent = isYearly ? 'イヤーリー' : 'マンスリー';
         });
