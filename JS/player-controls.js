@@ -564,6 +564,11 @@ if (allRepeatToggleBtn) {
 const controlSpeedEnableToggle = document.getElementById("controlSpeedEnableToggle");
 if (controlSpeedEnableToggle) {
   controlSpeedEnableToggle.onclick = () => {
+    // シェアウェア制限：無料版はSpeed効果のON/OFF切り替え自体も不可。
+    if (typeof isUnlocked === "function" && !isUnlocked()) {
+      swShowUnlockToast("無料版ではSpeed変更を利用できません。");
+      return;
+    }
     hapticTap();
     speedEffectEnabled = !speedEffectEnabled;
     controlSpeedEnableToggle.setAttribute("aria-checked", String(speedEffectEnabled));
@@ -574,6 +579,11 @@ if (controlSpeedEnableToggle) {
 const controlKeyEnableToggle = document.getElementById("controlKeyEnableToggle");
 if (controlKeyEnableToggle) {
   controlKeyEnableToggle.onclick = () => {
+    // シェアウェア制限：無料版はKey効果のON/OFF切り替え自体も不可。
+    if (typeof isUnlocked === "function" && !isUnlocked()) {
+      swShowUnlockToast("無料版ではKey変更を利用できません。");
+      return;
+    }
     hapticTap();
     keyEffectEnabled = !keyEffectEnabled;
     controlKeyEnableToggle.setAttribute("aria-checked", String(keyEffectEnabled));

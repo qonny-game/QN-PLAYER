@@ -23,7 +23,7 @@ function addFilesToPlaylist(files) {
   // シェアウェア制限：無料版はライブラリ3曲まで。既に3曲以上ある状態での
   // 追加操作はアンロックモーダルを表示してブロックする（既存データの削除はしない）。
   if (typeof isUnlocked === "function" && !isUnlocked() && playlist.length >= SW_LIMITS.LIBRARY_MAX_TRACKS) {
-    swOpenUnlockModal(`無料版はライブラリに${SW_LIMITS.LIBRARY_MAX_TRACKS}曲までしか保存できません。`);
+    swShowUnlockToast(`無料版はライブラリに${SW_LIMITS.LIBRARY_MAX_TRACKS}曲までしか保存できません。`);
     return;
   }
 

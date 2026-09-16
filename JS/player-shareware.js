@@ -249,6 +249,21 @@ function swCloseUnlockModal() {
 }
 
 // ============================================================
+// UPGRADEボタン（ヘッダー右端）。押すと直接フルモーダルを開く。
+// Premium中でも表示したままにしておき（プラン変更・確認用の導線として）、
+// 文言だけ状況に応じて変える。
+// ============================================================
+const swUpgradeBtn = document.getElementById("swUpgradeBtn");
+if (swUpgradeBtn) {
+  swUpgradeBtn.onclick = () => {
+    const message = (typeof isUnlocked === "function" && isUnlocked())
+      ? "現在のプランや他のプランはこちらから確認できます。"
+      : "無料版の機能制限を解除するプランをお選びください。";
+    swOpenUnlockModal(message);
+  };
+}
+
+// ============================================================
 // ミニポップアップ（トースト）
 // 「もう分かっていて試しに触ってみた」系の操作（ロック済みの鍵アイコン
 // クリック、無効化済みのSpeed/Keyスライダー操作など）向けの軽い通知。
@@ -270,7 +285,7 @@ function swBuildToast() {
   el.className = "sw-unlock-toast";
   el.innerHTML = `
     <span id="swUnlockToastText"></span>
-    <a href="#" id="swUnlockToastAdLink" class="sw-unlock-toast-link">広告を視聴</a>
+    <a href="#" id="swUnlockToastAdLink" class="sw-unlock-toast-link">広告視聴で1時間機能解放</a>
     <a href="#" id="swUnlockToastUpgradeLink" class="sw-unlock-toast-link">アップグレード</a>
   `;
   document.body.appendChild(el);

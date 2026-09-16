@@ -622,7 +622,7 @@ function updateBars() {
               swAbLoopCount = 0;
               if (typeof applyLoopButtonUI === "function") applyLoopButtonUI();
               swUpdateLoopCounterUI();
-              swOpenUnlockModal(`無料版のAB間ループは${SW_LIMITS.AB_LOOP_MAX_COUNT}回で自動停止します。`);
+              swShowUnlockToast(`無料版のAB間ループは${SW_LIMITS.AB_LOOP_MAX_COUNT}回で自動停止します。`);
               break;
             }
           }

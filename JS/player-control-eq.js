@@ -304,6 +304,11 @@ document.addEventListener("keydown", e => {
 const controlEqEnableToggle = document.getElementById("controlEqEnableToggle");
 if (controlEqEnableToggle) {
   controlEqEnableToggle.onclick = () => {
+    // シェアウェア制限：無料版はEQ効果のON/OFF切り替え自体も不可。
+    if (typeof isUnlocked === "function" && !isUnlocked()) {
+      swShowUnlockToast("無料版ではEQを利用できません。");
+      return;
+    }
     hapticTap();
     setEqEffectEnabled(!eqEffectEnabled);
     controlEqEnableToggle.setAttribute("aria-checked", String(eqEffectEnabled));
