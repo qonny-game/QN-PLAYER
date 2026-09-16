@@ -334,7 +334,7 @@ if (swDebugUnlock24hBtn) {
 const swDebugUnlock1hBtn = document.getElementById("swDebugUnlock1hBtn");
 if (swDebugUnlock1hBtn) {
   swDebugUnlock1hBtn.onclick = () => {
-    swUnlockForHours(1);
+    swUnlockForHours(0.01);
     swRefreshAllLockedUI();
     swDebugUpdateStatusLabel();
   };
