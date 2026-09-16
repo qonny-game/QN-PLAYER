@@ -44,6 +44,25 @@
 </head>
 <body>
 
+<!-- 起動時スプラッシュ。初期化中（IndexedDBからのプレイリスト復元等）の
+     一瞬だけ見えてしまうNo file/ドラッグ案内画面を隠す目的も兼ねる。
+     JS側(player-ui-shared.js内)でinitフローの完了を待ってフェードアウトさせる。 -->
+<div id="splashOverlay">
+  <div id="splashLogo"><span id="splashLogoQN">QN</span>PLAYER</div>
+</div>
+<script>
+  // セーフティタイマー：何らかの理由でwindow.onload側の
+  // hideSplashOverlay()が呼ばれなかった場合でも、5秒後には
+  // 必ずスプラッシュを消す（アプリ本体が操作不能になるのを防ぐ）。
+  setTimeout(() => {
+    const splash = document.getElementById("splashOverlay");
+    if (splash && splash.style.display !== "none") {
+      splash.classList.add("splash-fade-out");
+      setTimeout(() => { splash.style.display = "none"; }, 550);
+    }
+  }, 5000);
+</script>
+
 <div id="dropOverlay">DROP AUDIO FILE HERE</div>
 
 <div id="welcomeOverlay">
