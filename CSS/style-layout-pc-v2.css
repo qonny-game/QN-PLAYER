@@ -803,7 +803,7 @@ body.pc-v2-active > .app-container {
   gap: 0;
   padding: 8px 7px;
   cursor: pointer;
-  color: #f0f0f3;
+  color: var(--accent-primary);
   background: none;
   border: none;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
@@ -811,17 +811,17 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn:hover {
+  color: var(--accent-primary);
+}
+
+/* Speed/Key/EQのON/OFFトグルボタン：OFF時は白、ONの間はアクセントカラーにして
+   「効果が今かかっている」ことを一目でわかるようにする（LOOP/REPEATと統一）。 */
+#pcV2BottomBar .pcv2-ctrl-btn.effect-off {
   color: #f0f0f3;
 }
 
-/* Speed/Key/EQのON/OFFトグルボタン：ONの間は白く濃く(デフォルト状態)、
-   OFFにすると薄いグレーにして「効果が今かかっていない」ことを示す。 */
-#pcV2BottomBar .pcv2-ctrl-btn.effect-off {
-  color: #55555f;
-}
-
 #pcV2BottomBar .pcv2-ctrl-btn.effect-off:hover {
-  color: #8b8b9e;
+  color: #f0f0f3;
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn.primary {
@@ -1029,7 +1029,7 @@ body.pc-v2-active #topControlsSpacer {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  color: #8b8b9e;
+  /* color: #8b8b9e; */
   gap: 0;
 }
 
@@ -1043,6 +1043,17 @@ body.pc-v2-active #topControlsSpacer {
 #pcV2BottomBar .loopbtn:active {
   transform: scale(0.94);
   box-shadow: none;
+}
+
+/* ON状態（Repeat All/One、Loop有効時）：PC版レイアウトのIDセレクタが
+   通常の .loopbtn.is-active より詳細度が高く上書きしてしまうため、
+   #pcV2BottomBar を付けた専用ルールで確実にアクセントカラーを適用する。 */
+#pcV2BottomBar .loopbtn.is-active {
+  color: var(--accent-primary, #3b82f6);
+}
+
+#pcV2BottomBar .loopbtn.is-active:hover {
+  color: var(--accent-primary, #3b82f6);
 }
 
 /* ボタン内ラベルはモックのctrl-btn同様、デフォルト非表示
