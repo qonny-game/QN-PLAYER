@@ -36,9 +36,11 @@ function syncSpeedDisplays() {
 syncSpeedDisplays();
 
 function setSpeed(value) {
-  // シェアウェア制限：無料版はSpeed変更不可。値を変えずにモーダルだけ表示する。
+  // シェアウェア制限：無料版はSpeed変更不可。値を変えずにミニポップアップだけ表示する
+  // （実行しようとして初めてぶつかった制限ではなく、既にロック中の操作を
+  // 試したケースなので、画面を止めるフルモーダルではなくトーストにする）。
   if (typeof isUnlocked === "function" && !isUnlocked() && value !== 1.0) {
-    swOpenUnlockModal("無料版ではSpeed変更を利用できません。");
+    swShowUnlockToast("無料版ではSpeed変更を利用できません。");
     syncSpeedDisplays();
     return;
   }
@@ -54,11 +56,11 @@ let lastSpeedTickValue = currentSpeed;
 // 操作が一段落してから(最後のinputイベントから90ms後)にまとめて1回だけ行う。
 let speedApplyDebounceTimer = null;
 function handleSpeedRangeInput(e) {
-  // シェアウェア制限：無料版はSpeed変更不可。スライダーを1.0に戻し、モーダルを表示する。
+  // シェアウェア制限：無料版はSpeed変更不可。スライダーを1.0に戻し、ミニポップアップを表示する。
   if (typeof isUnlocked === "function" && !isUnlocked()) {
     e.target.value = 1.0;
     syncSpeedDisplays();
-    swOpenUnlockModal("無料版ではSpeed変更を利用できません。");
+    swShowUnlockToast("無料版ではSpeed変更を利用できません。");
     return;
   }
 
@@ -271,9 +273,9 @@ function renderKeyDisplay() {
 }
 
 function setKeySemitones(value) {
-  // シェアウェア制限：無料版はKey変更不可。値を変えずにモーダルだけ表示する。
+  // シェアウェア制限：無料版はKey変更不可。値を変えずにミニポップアップだけ表示する。
   if (typeof isUnlocked === "function" && !isUnlocked() && value !== 0) {
-    swOpenUnlockModal("無料版ではKey変更を利用できません。");
+    swShowUnlockToast("無料版ではKey変更を利用できません。");
     return;
   }
 
@@ -540,9 +542,9 @@ if (allRepeatToggleBtn) {
 
   allRepeatToggleBtn.onclick = () => {
     // シェアウェア制限：無料版はリピートOFF固定。トグル動作自体をブロックし、
-    // アンロックモーダルを表示する（repeatModeはoffのまま変化させない）。
+    // ミニポップアップを表示する（repeatModeはoffのまま変化させない）。
     if (typeof isUnlocked === "function" && !isUnlocked()) {
-      swOpenUnlockModal("無料版ではトラックリピートを利用できません。");
+      swShowUnlockToast("無料版ではトラックリピートを利用できません。");
       return;
     }
     hapticTap();

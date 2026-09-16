@@ -166,20 +166,34 @@ function swBuildModal() {
       </div>
       <div class="sw-unlock-modal-body">
         <p id="swUnlockModalDesc" class="sw-unlock-modal-desc"></p>
-        <div class="sw-unlock-options">
-          <button class="sw-unlock-option" id="swUnlockAd1h">
-            <span class="sw-unlock-option-title">広告を観て1時間解除</span>
-            <span class="sw-unlock-option-sub">動画広告1本</span>
-          </button>
-          <button class="sw-unlock-option" id="swUnlockAd24h">
-            <span class="sw-unlock-option-title">広告を観て24時間解除</span>
-            <span class="sw-unlock-option-sub">動画広告2〜3本</span>
-          </button>
-          <button class="sw-unlock-option sw-unlock-option-premium" id="swUnlockSubscribe">
-            <span class="sw-unlock-option-title">サブスクリプションで永久解除</span>
-            <span class="sw-unlock-option-sub">月額/年額</span>
-          </button>
+        <div class="sw-pricing-cards">
+          <div class="sw-pricing-card" id="swUnlockAd1h">
+            <div class="sw-pricing-card-title">広告（1時間）</div>
+            <div class="sw-pricing-card-price">無料</div>
+            <div class="sw-pricing-card-sub">動画広告 1本視聴</div>
+            <div class="sw-pricing-card-cta sw-pricing-cta-secondary">1時間解放</div>
+          </div>
+          <div class="sw-pricing-card" id="swUnlockAd24h">
+            <div class="sw-pricing-card-title">広告（24時間）</div>
+            <div class="sw-pricing-card-price">無料</div>
+            <div class="sw-pricing-card-sub">動画広告 2〜3本視聴</div>
+            <div class="sw-pricing-card-cta sw-pricing-cta-secondary">24時間解放</div>
+          </div>
+          <div class="sw-pricing-card sw-pricing-card-highlight" id="swUnlockSubscribe">
+            <div class="sw-pricing-badge">おすすめ</div>
+            <div class="sw-pricing-card-title">サブスク</div>
+            <div class="sw-pricing-card-price">¥150<span class="sw-pricing-card-price-unit">/ 月</span></div>
+            <div class="sw-pricing-card-sub">広告なしで常時解放</div>
+            <div class="sw-pricing-card-cta">サブスクに登録</div>
+          </div>
+          <div class="sw-pricing-card" id="swUnlockLifetime">
+            <div class="sw-pricing-card-title">永久ライセンス</div>
+            <div class="sw-pricing-card-price">¥2,500</div>
+            <div class="sw-pricing-card-sub">買い切り・追加料金なし</div>
+            <div class="sw-pricing-card-cta sw-pricing-cta-secondary">永久ライセンス購入</div>
+          </div>
         </div>
+        <a href="/pricing.html" target="_blank" rel="noopener" class="sw-pricing-compare-link">詳しく比較する →</a>
       </div>
     </div>
   `;
@@ -206,10 +220,17 @@ function swBuildModal() {
     swCloseUnlockModal();
     swRefreshAllLockedUI();
   };
-  // サブスクは決済連携が未実装のため、現時点では案内のみ（後工程でStripe Checkout等に接続）。
+  // サブスク・永久ライセンスは決済連携が未実装のため、現時点では案内のみ
+  // （後工程でStripe Checkout等に接続。永久ライセンスはswUnlockPremiumと
+  // 同じ「-1（永久解除）」状態になる想定だが、購入確定ロジックが無いため
+  // ボタン自体はまだ何も解除しない）。
   overlay.querySelector("#swUnlockSubscribe").onclick = () => {
     hapticTap();
     alert("サブスクリプション機能は準備中です。");
+  };
+  overlay.querySelector("#swUnlockLifetime").onclick = () => {
+    hapticTap();
+    alert("永久ライセンスの購入機能は準備中です。");
   };
 
   return overlay;
@@ -225,6 +246,69 @@ function swOpenUnlockModal(message) {
 
 function swCloseUnlockModal() {
   if (swModalOverlay) swModalOverlay.classList.remove("active");
+}
+
+// ============================================================
+// ミニポップアップ（トースト）
+// 「もう分かっていて試しに触ってみた」系の操作（ロック済みの鍵アイコン
+// クリック、無効化済みのSpeed/Keyスライダー操作など）向けの軽い通知。
+// 画面を止めるフルモーダル(swOpenUnlockModal)とは違い、操作の流れを
+// 妨げず、数秒で自動的に消える。
+//
+// 「実際に何かを実行しようとして制限に初めてぶつかった瞬間」
+// （例：3曲目以降の新規追加ブロック、AB間ループ5回到達）は、
+// 引き続きフルモーダル(swOpenUnlockModal)を使う。
+// ============================================================
+let swToastEl = null;
+let swToastHideTimer = null;
+
+function swBuildToast() {
+  if (swToastEl) return swToastEl;
+
+  const el = document.createElement("div");
+  el.id = "swUnlockToast";
+  el.className = "sw-unlock-toast";
+  el.innerHTML = `
+    <span id="swUnlockToastText"></span>
+    <a href="#" id="swUnlockToastAdLink" class="sw-unlock-toast-link">広告を視聴</a>
+    <a href="#" id="swUnlockToastUpgradeLink" class="sw-unlock-toast-link">アップグレード</a>
+  `;
+  document.body.appendChild(el);
+  swToastEl = el;
+
+  el.querySelector("#swUnlockToastAdLink").onclick = (e) => {
+    e.preventDefault();
+    hapticSuccess();
+    // ダミー広告視聴（実際の広告SDK連携は後工程。タップ即1時間解除）。
+    swUnlockForHours(1);
+    swRefreshAllLockedUI();
+    swHideToast();
+  };
+  el.querySelector("#swUnlockToastUpgradeLink").onclick = (e) => {
+    e.preventDefault();
+    hapticTap();
+    swHideToast();
+    // アップグレードの選択肢はフルモーダルの方で詳しく提示する
+    // （広告1h/24h/サブスクの3択）。
+    swOpenUnlockModal();
+  };
+
+  return el;
+}
+
+function swShowUnlockToast(message) {
+  hapticWarning();
+  const el = swBuildToast();
+  el.querySelector("#swUnlockToastText").textContent = message || "この機能は無料版では利用できません。";
+  el.classList.add("active");
+
+  clearTimeout(swToastHideTimer);
+  swToastHideTimer = setTimeout(swHideToast, 4000);
+}
+
+function swHideToast() {
+  clearTimeout(swToastHideTimer);
+  if (swToastEl) swToastEl.classList.remove("active");
 }
 
 // 制限機能を解除するたびに、画面上の各ロックUI（プレイリスト鍵アイコン、
@@ -334,7 +418,7 @@ if (swDebugUnlock24hBtn) {
 const swDebugUnlock1hBtn = document.getElementById("swDebugUnlock1hBtn");
 if (swDebugUnlock1hBtn) {
   swDebugUnlock1hBtn.onclick = () => {
-    swUnlockForHours(0.003);
+    swUnlockForHours(1);
     swRefreshAllLockedUI();
     swDebugUpdateStatusLabel();
   };

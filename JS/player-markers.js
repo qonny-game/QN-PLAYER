@@ -150,7 +150,7 @@ function renderPins() {
     function handleMarkerTapOrDrag(e) {
       e.stopPropagation();
       if (isLockedMarker) {
-        swOpenUnlockModal(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
+        swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
         return;
       }
       // タップ（クリック）は常にそのマーカーへシーク＆再生する。
@@ -405,7 +405,7 @@ function renderPinList() {
       e.stopPropagation();
       // シェアウェア制限：無料版はマーカーの色変更不可。
       if (typeof isUnlocked === "function" && !isUnlocked()) {
-        swOpenUnlockModal("無料版ではマーカーの色変更はできません。");
+        swShowUnlockToast("無料版ではマーカーの色変更はできません。");
         return;
       }
       openMarkerColorPicker(colorMark, pinObj, i);
@@ -437,7 +437,7 @@ function renderPinList() {
 
     infoSpan.onclick = () => { 
       if (isLockedMarker) {
-        swOpenUnlockModal(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
+        swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
         return;
       }
       isSeeking = true;
@@ -458,7 +458,7 @@ function renderPinList() {
     editBtn.onclick = (e) => {
       e.stopPropagation();
       if (typeof isUnlocked === "function" && !isUnlocked()) {
-        swOpenUnlockModal("無料版ではマーカーメモを利用できません。");
+        swShowUnlockToast("無料版ではマーカーメモを利用できません。");
         return;
       }
       startPinMemoEdit(div, infoSpan, pinObj, i);

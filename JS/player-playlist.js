@@ -167,7 +167,7 @@ function renderPlaylist() {
       lockIcon.className = "sw-lock-icon";
       lockIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2h1M12 3a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg>';
       thumb.appendChild(lockIcon);
-      thumb.onclick = () => swOpenUnlockModal(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
+      thumb.onclick = () => swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
     }
     item.appendChild(thumb);
 
@@ -187,7 +187,7 @@ function renderPlaylist() {
       if (e.target.closest(".playlist-editable-input")) return;
       if (e.target.closest(".playlist-hover-edit-btn")) return;
       if (isLockedTrack) {
-        swOpenUnlockModal(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
+        swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
         return;
       }
       playTrackAt(parseInt(item.dataset.index, 10));
@@ -500,9 +500,9 @@ function setupPlaylistDragReorder(box) {
 
     function startDrag(clientY) {
       // シェアウェア制限：無料版は並び替え不可。ドラッグ自体を開始させず、
-      // 通知だけ表示する。
+      // ミニポップアップだけ表示する。
       if (typeof isUnlocked === "function" && !isUnlocked()) {
-        swOpenUnlockModal("無料版ではライブラリの並び替えはできません。");
+        swShowUnlockToast("無料版ではライブラリの並び替えはできません。");
         return;
       }
 
