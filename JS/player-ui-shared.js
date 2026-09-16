@@ -833,8 +833,36 @@ window.addEventListener("resize", syncTopControlsSpacerHeight);
 window.onload = async () => {
   updatePlayButtonState();
   syncTopControlsSpacerHeight();
-  await restorePlaylistFromStorage();
+
+  // スプラッシュ表示中に初期化（IndexedDBからのプレイリスト復元）を進める。
+  // 初期化がどれだけ速く終わっても、ロゴがふわっと出て消える演出として
+  // 最低限視認できるよう、最短表示時間(splashMinDurationMs)を設ける。
+  const splashStart = Date.now();
+  const splashMinDurationMs = 900;
+
+  try {
+    await restorePlaylistFromStorage();
+  } catch (e) {
+    // 復元に失敗した場合もスプラッシュだけは必ず消す（エラー自体はconsoleに残す）。
+    console.error("restorePlaylistFromStorage failed:", e);
+  }
+
+  const elapsed = Date.now() - splashStart;
+  const remaining = Math.max(0, splashMinDurationMs - elapsed);
+  setTimeout(hideSplashOverlay, remaining);
 };
+
+// 起動時スプラッシュをフェードアウトさせる。CSS側のtransitionで実際の
+// 見た目のフェードを行い、完了後にdisplay:noneへ切り替えてクリックや
+// レイアウトへの影響を完全に無くす。
+function hideSplashOverlay() {
+  const splash = document.getElementById("splashOverlay");
+  if (!splash) return;
+  splash.classList.add("splash-fade-out");
+  setTimeout(() => {
+    splash.style.display = "none";
+  }, 550); // CSS側のtransition(0.5s)より少し長めに待ってから完全に消す
+}
 
 // 起動時、IndexedDBに保存されている曲を全てプレイリストへ復元する。
 // addFilesToPlaylistと違い、復元時は自動再生しない（ユーザー操作なしのplay()はブラウザにブロックされ得るうえ、

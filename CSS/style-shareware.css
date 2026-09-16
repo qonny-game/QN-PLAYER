@@ -156,6 +156,7 @@
 }
 
 .sw-pricing-card-cta {
+  box-sizing: border-box;
   width: 100%;
   padding: 11px 8px;
   border-radius: 999px;
@@ -228,6 +229,7 @@
 .sw-pricing-feature-list {
   list-style: none;
   padding-top: 14px;
+  padding-left: 0;
   margin-top: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
@@ -401,9 +403,12 @@
   transform: translateX(-50%) translateY(12px);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  max-width: min(480px, calc(100vw - 32px));
-  padding: 10px 16px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  padding: 10px 18px;
   border-radius: 999px;
   background: rgba(20, 20, 24, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.12);
