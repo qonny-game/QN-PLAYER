@@ -16,6 +16,12 @@
   --font-display: 'Instrument Sans';
   --font-body: 'Instrument Sans';
 
+  /* アイコン・補助テキストの既定色（落ち着いたグレー）。OFF状態の
+     トグル、目/鉛筆/削除等の各種アイコン、ラベルなど、アプリ全体で
+     繰り返し使う「主張しすぎないグレー」をここに一元化する。
+     色を変えたい時は、ここを直すだけで全箇所に反映される。 */
+  --icon-muted: #8b8b9e;
+
   /* ============================================================
      モーション設計トークン（docs/ui-motion-haptics-design.md 参照）
      4種のイージングを動作の意味ごとに使い分ける。
@@ -343,7 +349,7 @@ body {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 15px;
   margin: 0;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   letter-spacing: 1px;
   text-transform: uppercase;
 }
@@ -367,7 +373,7 @@ body {
   background: transparent;
   border: none;
   border-radius: 10px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -580,14 +586,14 @@ body {
 #timeDisplay .time-sep {
   font-size: 12px;
   text-align: center;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   padding: 0 6px;
 }
 
 #timeDisplay .time-dur {
   font-size: 12px;
   text-align: left;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   white-space: nowrap;
@@ -930,7 +936,7 @@ body {
 }
 
 .vbar-line.disabled .vbar-label {
-  color: #8b8b9e;
+  color: var(--icon-muted);
   text-decoration: line-through;
 }
 
@@ -966,7 +972,7 @@ body {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   text-transform: uppercase;
   display: flex;
   align-items: center;
@@ -1168,7 +1174,7 @@ body, .vbar-line, .pinItem, .vbar, button {
   margin: 16px 0 0;
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 13px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
 }
 
 
@@ -1218,14 +1224,21 @@ body, .vbar-line, .pinItem, .vbar, button {
 
 #splashLogo {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 48px;
+  font-size: 60px;
   font-weight: 700;
   letter-spacing: 1.5px;
   color: #f0f0f3;
   text-transform: uppercase;
   opacity: 0;
   transform: scale(0.92);
-  animation: splashLogoIn 0.6s ease forwards;
+  animation: splashLogoIn 1.1s ease forwards;
+}
+
+/* フェードアウト開始時：ロゴ自体も、もう一度ふわっと拡大しながら
+   消えていく演出を重ねる（#splashOverlay側のopacity transitionとは
+   別に、ロゴだけ一回り大きくズームしながらフェードアウトする）。 */
+#splashOverlay.splash-fade-out #splashLogo {
+  animation: splashLogoOut 0.5s ease forwards;
 }
 
 #splashLogoQN {
@@ -1247,9 +1260,20 @@ body, .vbar-line, .pinItem, .vbar, button {
   }
 }
 
+@keyframes splashLogoOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
 @media (max-width: 360px) {
   #splashLogo {
-    font-size: 36px;
+    font-size: 44px;
   }
 }
 

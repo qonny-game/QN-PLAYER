@@ -137,7 +137,7 @@
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 15px;
   font-weight: 600;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   text-transform: none;
   letter-spacing: normal;
 }
@@ -187,14 +187,14 @@
 .auto-speed-unit {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 11px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   white-space: nowrap;
 }
 
 .auto-speed-row-label {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 12px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   white-space: nowrap;
 }
 
@@ -236,7 +236,7 @@
   background: #1c1c24;
   border: none;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -272,7 +272,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   background: none;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 10px;
   font-weight: 600;
@@ -326,7 +326,7 @@
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: none;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-size: 15px;
   font-weight: 700;
   line-height: 1;
@@ -354,7 +354,7 @@
 
 .key-step-btn:disabled:hover {
   background: none;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   border-color: rgba(255, 255, 255, 0.08);
 }
 

@@ -82,12 +82,12 @@
   display: none;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   padding: 0;
   background: none;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -173,7 +173,7 @@
   left: 50%;
   width: 16px;
   height: 2px;
-  background: #8b8b9e;
+  background: var(--icon-muted);
   transform-origin: center;
 }
 
@@ -215,7 +215,7 @@
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 11px;
   font-weight: 500;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;
@@ -232,7 +232,7 @@
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 12px;
   letter-spacing: 0.5px;
-  padding: 5px 10px;
+  padding: 7px;
   cursor: pointer;
   background: none;
   color: #fff;
@@ -262,9 +262,9 @@
 /* 表示/非表示の状態はテーマカラーで目立たせず、ほんのりグレーで
    統一する。ON/OFFの区別はアイコン形状(目が開いている/閉じている)自体で
    伝わるため、色分けは不要。ホバー時は下部コントロール(LOOP/REPEAT等)と
-   同じ挙動(#8b8b9e→#f0f0f3の白)に揃える。 */
+   同じ挙動(var(--icon-muted)→#f0f0f3の白)に揃える。 */
 .pinItem:not(.disabled) .toggle-btn {
-  color: #8b8b9e;
+  color: var(--icon-muted);
   transition: color var(--dur-hover) var(--ease-snap);
 }
 
@@ -315,7 +315,7 @@
 }
 
 .playlistItem:not(.disabled) .toggle-btn {
-  color: #8b8b9e;
+  color: var(--icon-muted);
 }
 
 .playlistItem.disabled .toggle-btn {

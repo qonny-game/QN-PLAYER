@@ -99,7 +99,7 @@ body.pc-v2-active > .app-container {
   gap: 6px;
   padding: 12px 4px;
   cursor: pointer;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   background: none;
   border: none;
   position: relative;
@@ -167,7 +167,7 @@ body.pc-v2-active > .app-container {
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -186,7 +186,7 @@ body.pc-v2-active > .app-container {
   justify-content: center;
   padding: 5px 10px;
   border-radius: 6px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   cursor: pointer;
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -216,7 +216,7 @@ body.pc-v2-active > .app-container {
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   cursor: pointer;
   background: none;
   border: none;
@@ -255,7 +255,6 @@ body.pc-v2-active > .app-container {
 #pcV2PanelBody #pinList .pin-edit-btn,
 #pcV2PanelBody #playlistBox .toggle-btn,
 #pcV2PanelBody #playlistBox .pin-edit-btn {
-  opacity: 0.35;
   cursor: default;
 }
 
@@ -448,7 +447,7 @@ body.pc-v2-active > .app-container {
   border: none;
   border-radius: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-size: 12px;
 }
 
@@ -543,7 +542,7 @@ body.pc-v2-active > .app-container {
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   margin: 0;
 }
 
@@ -642,7 +641,7 @@ body.pc-v2-active > .app-container {
 #pcV2TimeRow #timeDisplay .time-dur {
   font-size: 12px;
   font-weight: 400;
-  color: #8b8b9e;
+  color: var(--icon-muted);
 }
 
 #pcV2WaveArea .vbar {
@@ -737,7 +736,7 @@ body.pc-v2-active > .app-container {
 
 #pcV2WaveArea .vbar-line.disabled .vbar-label-num,
 #pcV2WaveArea .vbar-line.disabled .vbar-label-memo {
-  color: #8b8b9e;
+  color: var(--icon-muted);
 }
 
 /* PC v2では再生位置の表現をcanvas自体の色分け(player-ui-pc-v2.js側の
@@ -830,7 +829,7 @@ body.pc-v2-active > .app-container {
 /* Speed/Key/EQのON/OFFトグルボタン：OFF時は白、ONの間はアクセントカラーにして
    「効果が今かかっている」ことを一目でわかるようにする（LOOP/REPEATと統一）。 */
 #pcV2BottomBar .pcv2-ctrl-btn.effect-off {
-  color: #f0f0f3;
+  color: var(--icon-muted);
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn.effect-off:hover {
@@ -848,7 +847,7 @@ body.pc-v2-active > .app-container {
 #pcV2BottomBar .pcv2-ctrl-btn svg {
   width: 20px;
   height: 20px;
-  fill: currentColor;
+  fill: var(--icon-muted);
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn.primary svg {
@@ -922,7 +921,7 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2VolumePopup .pcv2-volume-popup-icon {
-  color: #8b8b9e;
+  color: var(--icon-muted);
   display: flex;
 }
 
@@ -972,7 +971,7 @@ body.pc-v2-active #topControlsSpacer {
 
 #pcV2BottomBar .tripleNavBtn-third {
   padding: 8px 7px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   gap: 0;
   flex: 0 0 auto;
 }
@@ -1042,7 +1041,7 @@ body.pc-v2-active #topControlsSpacer {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   gap: 0;
 }
 
@@ -1134,7 +1133,7 @@ body.pc-v2-active #qnMenuMount {
   justify-content: center;
   width: 24px;
   height: 24px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   cursor: pointer;
   padding: 0;
   background: none;
@@ -1219,7 +1218,7 @@ body.pc-v2-active #qnMenuMount {
 .pcv2-header-nav-link-desc {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 11px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   text-align: right;
   flex: 1;
   white-space: normal;
@@ -1323,7 +1322,7 @@ body.pc-v2-active #qnMenuMount {
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   cursor: pointer;
   background: none;
   border: none;

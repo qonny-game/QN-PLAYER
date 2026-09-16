@@ -62,7 +62,7 @@
   width: 22px;
   height: 22px;
   flex-shrink: 0;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   cursor: grab;
   touch-action: none;
 }
@@ -145,12 +145,12 @@
 .playlist-artist {
   font-size: 11px;
   font-weight: 400;
-  color: #8b8b9e;
+  color: var(--icon-muted);
 }
 
 .playlist-duration {
   font-size: 11px;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
   white-space: nowrap;
@@ -178,7 +178,7 @@
    汎用セレクタのため、鉛筆アイコン(.pin-edit-btn、Markersと共通のグレー色
    デザイン)にも及んでしまうのを防ぐ。 */
 .playlistItem .pin-edit-btn {
-  color: #8b8b9e;
+  color: var(--icon-muted);
 }
 
 .playlistItem .pin-edit-btn:hover {
@@ -281,7 +281,7 @@ body.dragover #dropOverlay {
   padding: 0;
   background: none;
   border: none;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   cursor: pointer;
   border-radius: 4px;
 }
@@ -324,7 +324,7 @@ body.dragover #dropOverlay {
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: none;
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 10px;
   font-weight: 700;

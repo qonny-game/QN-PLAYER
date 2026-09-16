@@ -224,7 +224,7 @@
 .qn-glow-toggle-label {
   font-size: 15px;
   font-weight: 600;
-  color: #8b8b9e;
+  color: var(--icon-muted);
 }
 
 .qn-glow-switch {
@@ -275,7 +275,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 .qn-shortcut-table th {
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;

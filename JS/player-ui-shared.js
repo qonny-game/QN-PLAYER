@@ -837,8 +837,10 @@ window.onload = async () => {
   // スプラッシュ表示中に初期化（IndexedDBからのプレイリスト復元）を進める。
   // 初期化がどれだけ速く終わっても、ロゴがふわっと出て消える演出として
   // 最低限視認できるよう、最短表示時間(splashMinDurationMs)を設ける。
+  // ロゴのフェードイン演出自体が1.1s(CSS側 splashLogoIn)のため、それより
+  // 短いとアニメーション完了前にフェードアウトが始まってしまう。
   const splashStart = Date.now();
-  const splashMinDurationMs = 900;
+  const splashMinDurationMs = 1400;
 
   try {
     await restorePlaylistFromStorage();
@@ -861,7 +863,7 @@ function hideSplashOverlay() {
   splash.classList.add("splash-fade-out");
   setTimeout(() => {
     splash.style.display = "none";
-  }, 550); // CSS側のtransition(0.5s)より少し長めに待ってから完全に消す
+  }, 550); // CSS側のtransition/ロゴのsplashLogoOut(共に0.5s)より少し長めに待ってから完全に消す
 }
 
 // 起動時、IndexedDBに保存されている曲を全てプレイリストへ復元する。
