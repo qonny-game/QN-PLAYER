@@ -1,0 +1,116 @@
+/* ============================================================
+   style-auth.css
+   Firebase Authentication（Googleログイン）用UI。
+   #appHeader右端に配置し、既存のダークテーマ配色トークン
+   （--accent-primary / --accent-secondary）に追従させる。
+   ============================================================ */
+
+#authContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* 未ログイン時：Googleログインボタン */
+#btnLoginGoogle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f0f0f3;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+#btnLoginGoogle:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: color-mix(in srgb, var(--accent-primary) 55%, transparent);
+}
+
+#btnLoginGoogle:active {
+  transform: scale(0.97);
+}
+
+#btnLoginGoogle svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ログイン時：ユーザー情報表示エリア */
+#userInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#userPhoto {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid color-mix(in srgb, var(--accent-primary) 65%, transparent);
+  background: #1a1a1e;
+}
+
+#userName {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #d8d8de;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#btnLogout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #9a9aa5;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+#btnLogout:hover {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #f43f5e;
+}
+
+#btnLogout svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* SP幅：ユーザー名は隠して省スペース化（アイコンとログアウトのみ表示） */
+@media (max-width: 640px) {
+  #userName {
+    display: none;
+  }
+
+  #btnLoginGoogle span {
+    display: none;
+  }
+
+  #btnLoginGoogle {
+    padding: 8px 10px;
+  }
+}
