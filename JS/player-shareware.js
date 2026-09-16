@@ -15,6 +15,10 @@
 // ============================================================
 
 const SW_UNLOCK_STORAGE_KEY = "qnplayer_unlock_until"; // 数値(epoch ms)。0または未設定=無料版、-1=永久(Premium)。
+const SW_UNLOCK_UPDATED_AT_KEY = "qnplayer_unlock_updated_at"; // このブラウザで最後に解除状態を変更した時刻(epoch ms)。
+                                                                 // Firestoreとのマージ時、「どちらの操作が新しいか」の判定に使う
+                                                                 // （単純にunlockUntilの値が大きい方を採用すると、無料版へ
+                                                                 //   「戻す」操作が古い時限解除の値に上書きされてしまうため）。
 
 // 無料版の各種上限値。仕様書(QNPLAYER_Shareware_Spec.md)の数値をそのまま定数化。
 const SW_LIMITS = {
@@ -35,9 +39,24 @@ function swGetUnlockUntil() {
   }
 }
 
-function swSetUnlockUntil(value) {
+function swGetLocalUpdatedAt() {
+  try {
+    const raw = localStorage.getItem(SW_UNLOCK_UPDATED_AT_KEY);
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+// value: 新しい解除状態。updatedAtMsを省略した場合は「今、この端末で操作した」
+// ものとして現在時刻を記録する。Firestoreからのマージ結果を書き戻す時だけ、
+// 呼び出し側からリモート側のupdatedAtMsをそのまま渡す（時刻の二重更新を防ぐため）。
+function swSetUnlockUntil(value, updatedAtMs) {
+  const ts = typeof updatedAtMs === "number" ? updatedAtMs : Date.now();
   try {
     localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(value));
+    localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(ts));
   } catch (e) {}
 
   // ログイン中はFirestoreにも書き込み、他の端末/ブラウザからも同じ解除状態が
@@ -81,36 +100,42 @@ function swUnlockForHours(hours) {
 // FirestoreとlocalStorageの解除状態マージ（ログイン成功直後にplayer-auth.js
 // から呼ばれる）。
 //
-// 優先ルール：
-//   1. どちらかがPremium(-1)なら、Premiumを採用（永久解除は最優先）。
-//   2. それ以外は、残り時間が長い方（＝unlockUntilの値が大きい方）を採用。
-//      これにより「別の端末で広告を見て時限解除した」場合も、
-//      今のブラウザの解除状態を誤って短縮しない。
-//   3. マージ後の値を両方（localStorage・Firestore）に反映して揃える。
+// 優先ルール（Last-Write-Wins）：
+//   「どちらの操作が時刻的に新しいか」で決める。以前は「値が大きい方
+//   （＝残り時間が長い方）」を優先していたが、これだと「無料版に戻す」
+//   という明示的な操作が、他端末の古い時限解除の値に上書きされてしまう
+//   不具合があったため、updatedAtのタイムスタンプ比較に変更した。
+//   Firestore未登録（このアカウントで初めての同期）の場合は、
+//   ローカル側をそのままFirestoreに書き込む。
 // ============================================================
 async function swSyncUnlockWithFirestore(uid) {
   if (!window.QN_AUTH || typeof window.QN_AUTH.fetchUnlockUntilFromFirestore !== "function") return;
 
-  const remoteUntil = await window.QN_AUTH.fetchUnlockUntilFromFirestore(uid);
+  const remote = await window.QN_AUTH.fetchUnlockUntilFromFirestore(uid);
   const localUntil = swGetUnlockUntil();
+  const localUpdatedAt = swGetLocalUpdatedAt();
 
-  let merged;
-  if (remoteUntil === -1 || localUntil === -1) {
-    merged = -1;
-  } else {
-    // remoteUntilがnull（Firestore未登録）の場合は0として扱う。
-    merged = Math.max(remoteUntil || 0, localUntil || 0);
+  if (!remote) {
+    // Firestore未登録：ローカルの状態をそのまま書き込んで初期化する。
+    if (window.QN_AUTH.saveUnlockUntilToFirestore) {
+      window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil);
+    }
+    swRefreshAllLockedUI();
+    return;
   }
 
-  if (merged !== localUntil) {
+  // リモートの方が新しければリモートを採用してローカルに反映。
+  // ローカルの方が新しい、または同時刻なら何もしない（ローカルを正とする）。
+  if (remote.updatedAtMs > localUpdatedAt) {
     try {
-      localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(merged));
+      localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
+      localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
     } catch (e) {}
-  }
-  // マージ結果をFirestore側にも書き戻し、両者を揃える
-  // （例：ローカルの方が新しかった場合、Firestore側が古いまま残らないようにする）。
-  if (merged !== remoteUntil) {
-    window.QN_AUTH.saveUnlockUntilToFirestore(uid, merged);
+  } else if (localUpdatedAt > remote.updatedAtMs) {
+    // ローカルの方が新しい場合、Firestore側が古いまま残らないよう書き戻す。
+    if (window.QN_AUTH.saveUnlockUntilToFirestore) {
+      window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil);
+    }
   }
 
   swRefreshAllLockedUI();

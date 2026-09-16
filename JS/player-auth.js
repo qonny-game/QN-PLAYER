@@ -43,11 +43,15 @@ const db = getFirestore(firebaseApp);
 // コレクション: users/{uid}  フィールド: unlockUntil (number), updatedAt (serverTimestamp)
 // unlockUntilの意味はplayer-shareware.js側のlocalStorageキーと同じ
 // （-1=Premium永久解除、それ以外=epoch msまでの時限解除、0/未設定=無料版）。
+// マージ時に「どちらの操作が新しいか」を判定するため、updatedAtも一緒に返す
+// （epoch msに変換。ドキュメント未作成、またはサーバー側の反映待ちでnullの場合は0扱い）。
 async function fetchUnlockUntilFromFirestore(uid) {
   try {
     const snap = await getDoc(doc(db, "users", uid));
     if (snap.exists() && typeof snap.data().unlockUntil === "number") {
-      return snap.data().unlockUntil;
+      const data = snap.data();
+      const updatedAtMs = data.updatedAt && typeof data.updatedAt.toMillis === "function" ? data.updatedAt.toMillis() : 0;
+      return { unlockUntil: data.unlockUntil, updatedAtMs };
     }
     return null;
   } catch (err) {
