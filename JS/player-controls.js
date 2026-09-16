@@ -478,7 +478,6 @@ const LOOP_ENABLED_STORAGE_KEY = "mp3player_loop_enabled";
 function applyLoopButtonUI() {
   if (!loopToggleBtn) return;
   loopToggleBtn.classList.toggle("is-active", loopEnabled);
-  loopToggleBtn.style.opacity = loopEnabled ? "1" : "0.4";
 }
 
 if (loopToggleBtn) {
@@ -523,7 +522,6 @@ function applyRepeatModeUI() {
 
   const isActive = repeatMode !== "off";
   allRepeatToggleBtn.classList.toggle("is-active", isActive);
-  allRepeatToggleBtn.style.opacity = isActive ? "1" : "0.4";
   allRepeatToggleBtn.title = repeatMode === "one" ? "Repeat One (click to cycle)" : repeatMode === "all" ? "Repeat All (click to cycle)" : "Repeat Off (click to cycle)";
 }
 
