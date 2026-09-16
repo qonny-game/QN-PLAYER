@@ -62,7 +62,7 @@
   width: 22px;
   height: 22px;
   flex-shrink: 0;
-  color: #6b6b7b;
+  color: #8b8b9e;
   cursor: grab;
   touch-action: none;
 }
@@ -293,7 +293,7 @@ body.dragover #dropOverlay {
 }
 
 .playlist-hover-edit-btn:hover {
-  color: var(--accent-primary);
+  color: #f0f0f3;
   background: rgba(255, 255, 255, 0.06);
 }
 

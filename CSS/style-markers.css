@@ -87,7 +87,7 @@
   flex-shrink: 0;
   padding: 0;
   background: none;
-  color: #c7c7d6;
+  color: #8b8b9e;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -100,7 +100,7 @@
 
 .pin-edit-btn:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: var(--accent-primary);
+  color: #f0f0f3;
 }
 
 .pin-edit-btn svg {
@@ -261,9 +261,15 @@
 
 /* 表示/非表示の状態はテーマカラーで目立たせず、ほんのりグレーで
    統一する。ON/OFFの区別はアイコン形状(目が開いている/閉じている)自体で
-   伝わるため、色分けは不要。 */
+   伝わるため、色分けは不要。ホバー時は下部コントロール(LOOP/REPEAT等)と
+   同じ挙動(#8b8b9e→#f0f0f3の白)に揃える。 */
 .pinItem:not(.disabled) .toggle-btn {
   color: #8b8b9e;
+  transition: color var(--dur-hover) var(--ease-snap);
+}
+
+.pinItem:not(.disabled) .toggle-btn:hover {
+  color: #f0f0f3;
 }
 
 .pinItem.disabled .toggle-btn {

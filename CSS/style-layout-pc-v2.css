@@ -224,7 +224,7 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2PanelHeader .panel-addfile-btn:hover {
-  color: var(--accent-primary);
+  color: #f0f0f3;
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -520,6 +520,7 @@ body.pc-v2-active > .app-container {
 .pcv2-eq-heading-row {
   display: flex;
   align-items: center;
+  min-height: 26px;
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -527,11 +528,16 @@ body.pc-v2-active > .app-container {
 /* flex:1でタイトルを伸ばし、RESET・トグルをSPEED/KEYと同じ右端位置に
    押し出す（元はgapだけで左詰めになっており、SPEED/KEY行より左寄りに
    見えるズレがあった）。
-   縦位置はmargin-bottomではなく.pcv2-eq-heading-rowのalign-items:center
-   だけに任せる（各要素にmargin-bottomを揃えて付ける方式は、要素ごとの
-   本体高さの違いでかえって中心がずれて見える問題があった）。 */
+   縦位置は.pcv2-eq-heading-rowのalign-items:centerに加えて、タイトル
+   自身にもSPEED/KEYの.control-card labelと同じ26px相当の高さを持たせる
+   （<h3>は<label>と違いdisplay:blockでテキストの自然な高さ(19px)のまま
+   になり、親のalign-items:centerだけでは上端が右のRESETボタン・トグルの
+   上端と揃わずズレて見えていたため）。 */
 .pcv2-eq-heading-title {
   flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: 26px;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 15px;
   font-weight: 600;

@@ -1,8 +1,6 @@
 // ============================================================
 // qn-menu.js
-// QNシリーズ共通ハンバーガーメニュー（QN-PLAYER配布・fetch方式）
-//
-// 置き場所: https://qonny-game.github.io/QN-PLAYER/qn-menu.js
+// QNシリーズ共通ハンバーガーメニュー
 //
 // 【ホスト側（各アプリ）が用意するもの】
 // 1. <div id="qnMenuMount"></div> をヘッダーの、ハンバーガーボタンを
@@ -22,15 +20,25 @@
 //      // 定義しない（undefinedのままにする）。その場合Section 3は
 //      // 丸ごと非表示になる。
 //
-// 3. <script src="https://qonny-game.github.io/QN-PLAYER/qn-menu.js"></script>
-//    を body の終わり際で読み込む。
+// 3a. QN-PLAYER以外のQNシリーズアプリ（QNTEMPO/QNTUNER等）：
+//     <script src="https://qonny-game.github.io/QN-PLAYER/qn-menu.js"></script>
+//     を body の終わり際で読み込む。<div id="qnMenuMount"></div> は空のまま
+//     でよく、qn-menu.html/qn-menu.cssをこのスクリプトがfetchして注入する。
+// 3b. QN-PLAYER自身：<div id="qnMenuMount">...</div> の中に、
+//     qn-menu.htmlの中身（.qn-menu-wrapper以下）をあらかじめ直接埋め込み、
+//     CSSも<link rel="stylesheet" href="CSS/qn-menu.css">で直接読み込む
+//     （PC v2完成までの暫定措置。QN-PLAYER自身のカスタムドメイン化に伴う
+//     GitHub PagesのクロスオリジンhttpリダイレクトがMixed Content扱いで
+//     ブロックされ、fetchによる注入がLoadingのまま固まる不具合があった
+//     ため、外部読み込みをやめてビルド時に埋め込む方式にした）。この場合
+//     このスクリプトはfetchせず、既に存在するDOMに対して初期化だけ行う。
 //
 // 【テーマ・グロー設定の保存方針】
 // テーマ・グロー設定は localStorage に保存するが、保存先は各アプリ自身
 // （オリジンが別なので、そもそも共有できない）。見た目のルール・UIは
 // 共通だが、実体としての設定値はアプリごとに独立している。
 //
-// 【fetch失敗時の挙動】
+// 【fetch失敗時の挙動】（3aのfetch方式の場合のみ）
 // qn-menu.html / qn-menu.css の取得に失敗した場合（オフライン、
 // GitHub Pages側の問題等）、ハンバーガーメニュー自体を表示しない
 // （#qnMenuMount を空のままにする。ボタンも出さない）。
@@ -38,23 +46,7 @@
 (() => {
   'use strict';
 
-  // QN-PLAYER自身（このスクリプトの発信元リポジトリ）のカスタムドメインで
-  // 動いている場合、GitHub Pages経由(https://qonny-game.github.io/QN-PLAYER/)
-  // へfetchすると、GitHub Pages側がカスタムドメインへの301リダイレクトを
-  // 返し、かつそのリダイレクト先がhttp（非TLS）であるため、httpsページから
-  // 見るとMixed Content扱いでブラウザにブロックされてしまう
-  // （fetchが失敗し続け、呼び出し元でLoading表示のまま止まる不具合の原因）。
-  // QN-PLAYER自身は同一オリジンにqn-menu.html/qn-menu.cssを持っているため、
-  // このスクリプト自身が相対パス（同一オリジン）で読み込まれている場合は
-  // 自分自身=QN-PLAYERと判断してそちらを優先し、他のQNシリーズアプリ
-  // (QNTEMPO/QNTUNER等、絶対URLで読み込む=別オリジン)は従来通り
-  // GitHub Pages経由で取得する。
-  const thisScript = document.currentScript;
-  const isLoadedFromAbsoluteUrl = !!thisScript &&
-    /^https?:\/\//i.test(thisScript.getAttribute("src") || "");
-  const QN_MENU_BASE = isLoadedFromAbsoluteUrl
-    ? 'https://qonny-game.github.io/QN-PLAYER/'
-    : new URL('.', location.href).href;
+  const QN_MENU_BASE = 'https://qonny-game.github.io/QN-PLAYER/';
   const THEME_STORAGE_KEY = 'qn_theme';
   const GLOW_STORAGE_KEY = 'qn_glow';
 
@@ -131,6 +123,13 @@
   const mount = document.getElementById('qnMenuMount');
   if (!mount) return; // ホスト側にマウント先が無ければ何もしない
 
+  // 3b. 既にqnMenuMountの中にメニューHTMLが直接埋め込まれている場合
+  // （QN-PLAYER自身）は、fetchせずそのまま初期化する。
+  if (mount.querySelector('.qn-menu-wrapper')) {
+    initMenu();
+    return;
+  }
+
   // ---------- Load qn-menu.css (once) ----------
   function loadMenuCss() {
     if (document.getElementById('qnMenuCssLink')) return;
@@ -141,7 +140,7 @@
     document.head.appendChild(link);
   }
 
-  // ---------- Fetch qn-menu.html and inject ----------
+  // ---------- Fetch qn-menu.html and inject (3a. 他のQNシリーズアプリ用) ----------
   fetch(QN_MENU_BASE + 'qn-menu.html')
     .then(res => {
       if (!res.ok) throw new Error('qn-menu.html fetch failed: ' + res.status);

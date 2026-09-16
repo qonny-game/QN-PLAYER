@@ -192,8 +192,10 @@ if (exportRunBtn) {
     const fileNameBase = (exportFileNameInput.value || "output").trim() || "output";
 
     const isMp3 = exportFormatMp3 && exportFormatMp3.checked;
-    const wavSampleRate = parseInt(document.getElementById("exportWavSampleRate").value, 10) || 44100;
-    const mp3Bitrate = parseInt(document.getElementById("exportMp3Bitrate").value, 10) || 128;
+    const wavSampleRateChecked = document.querySelector('input[name="exportWavSampleRate"]:checked');
+    const mp3BitrateChecked = document.querySelector('input[name="exportMp3Bitrate"]:checked');
+    const wavSampleRate = parseInt((wavSampleRateChecked && wavSampleRateChecked.value) || "", 10) || 44100;
+    const mp3Bitrate = parseInt((mp3BitrateChecked && mp3BitrateChecked.value) || "", 10) || 128;
 
     exportRunBtn.disabled = true;
     setExportStatus("Processing...");

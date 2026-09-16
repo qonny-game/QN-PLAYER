@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="CSS/style-layout-pc-v2.css">
 <link rel="stylesheet" href="CSS/style-auth.css">
 <link rel="stylesheet" href="CSS/style-shareware.css">
+<link rel="stylesheet" href="CSS/qn-menu.css">
 <script>
   window.QN_CURRENT_APP = "player";
   window.QN_SHORTCUTS = [
@@ -76,7 +77,82 @@
 </div>
 
 <div id="appHeader">
-  <div id="qnMenuMount"></div>
+  <!-- ============================================================
+       QNシリーズ共通ハンバーガーメニュー（PC v2完成までの暫定措置として
+       本体に直接内蔵。旧: qn-menu.html を qn-menu.js が fetch して注入
+       していたが、QN-PLAYER自身のカスタムドメイン化に伴うGitHub Pagesの
+       クロスオリジンhttpリダイレクトがMixed Content扱いでブロックされ、
+       Keyboard/ColorパネルがLoadingのまま固まる不具合があったため、
+       外部読み込みをやめてここに直接埋め込む。
+       Section 3（Keyboard Shortcuts）は、window.QN_SHORTCUTSが未定義の
+       場合、qn-menu.js側でdata-qn-section="shortcuts"のブロックごと
+       非表示にする。 ============================================================ -->
+  <div id="qnMenuMount">
+    <div class="qn-menu-wrapper">
+      <button id="qnMenuBtn" title="QN Series Menu">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
+      </button>
+
+      <div class="qn-menu-popup" id="qnMenuPopup">
+
+        <!-- SECTION 1: App Navigation Links -->
+        <div class="qn-menu-section" data-qn-section="nav">
+          <span class="qn-menu-section-label">QN Series</span>
+          <a class="qn-nav-btn" data-qn-app="player" href="https://qonny-game.github.io/QN-PLAYER/" title="QNPLAYER" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+            <span>QNPLAYER</span>
+          </a>
+          <a class="qn-nav-btn" data-qn-app="pitch" href="https://qonny-game.github.io/QN-PITCH/" title="QNPITCH" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V7a4 4 0 0 0-4-4zm7 9a7 7 0 0 1-14 0H3a9 9 0 0 0 8 8.94V22h2v-1.06A9 9 0 0 0 21 12h-2z"/></svg>
+            <span>QNPITCH</span>
+          </a>
+          <a class="qn-nav-btn" data-qn-app="phrase" href="https://qonny-game.github.io/QN-PHRASE" title="QNPHRASE" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M9 3v10.55A4 4 0 1 0 11 17V7h4v3h2V3H9zM8 15.5A2.5 2.5 0 1 1 8 15.5z"/></svg>
+            <span>QNPHRASE</span>
+          </a>
+          <a class="qn-nav-btn" data-qn-app="tempo" href="https://qonny-game.github.io/QN-TEMPO/" title="QNTEMPO" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M9 2v2h6V2h2v2.06c1.14.2 2 1.2 2 2.4 0 .77-.35 1.46-.9 1.92L20 20H4l1.9-11.62A2.5 2.5 0 0 1 5 6.46c0-1.2.86-2.2 2-2.4V2h2zm2.6 6.5-1.9 9.9h2.6l1.6-8.4-2.3-1.5z"/></svg>
+            <span>QNTEMPO</span>
+          </a>
+          <a class="qn-nav-btn" data-qn-app="tuner" href="https://qonny-game.github.io/QN-TUNER/" title="QNTUNER" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M9 3v6.28A3.5 3.5 0 1 0 11 12.7V7h4V3H9zm7 8h-2v10h2V11zm-8 0H6v10h2V11z"/></svg>
+            <span>QNTUNER</span>
+          </a>
+        </div>
+
+        <!-- SECTION 2: Color Theme Selector & Glow Switch -->
+        <div class="qn-menu-section" data-qn-section="theme">
+          <span class="qn-menu-section-label">Color Theme</span>
+          <!-- スウォッチはqn-menu.js側のQN_THEMES配列(単色14色)から動的生成される。
+               全件を常時展開表示するため、Moreボタン・追加コンテナ・rainbow
+               (アニメーションする特殊テーマ)は廃止した。
+               テーマを追加・編集する時はqn-menu.js内のQN_THEMESだけを直せばよく、
+               このHTMLやqn-menu.css側の個別記述を編集する必要はない。 -->
+          <div class="qn-theme-swatches" id="qnThemeSwatches"></div>
+          <div class="qn-glow-toggle-row">
+            <span class="qn-glow-toggle-label">Glow current color</span>
+            <button id="qnGlowToggleBtn" class="qn-glow-switch" role="switch" aria-checked="false" title="Fade the current color in and out">
+              <span class="qn-glow-switch-knob"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- SECTION 3: Keyboard Shortcuts Table (hidden if window.QN_SHORTCUTS is not defined) -->
+        <div class="qn-menu-section" data-qn-section="shortcuts" id="qnShortcutsSection">
+          <span class="qn-menu-section-label">Keyboard Shortcuts</span>
+          <table class="qn-shortcut-table" id="qnShortcutsTable">
+            <thead>
+              <tr><th>Action</th><th>Key</th></tr>
+            </thead>
+            <tbody id="qnShortcutsTbody">
+              <!-- qn-menu.js が window.QN_SHORTCUTS の内容でここを組み立てる -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
   <h1 id="appLogo"><span id="appLogoQN">QN</span>PLAYER <span id="appVersion">v2.2.0</span></h1>
 
   <!-- Premiumアップグレード導線。押すとアンロックモーダル(4プランカード)を直接開く。 -->
@@ -512,23 +588,38 @@
           </label>
         </div>
 
-        <!-- WAV選択時：サンプルレート -->
+        <!-- WAV選択時：サンプルレート（プルダウンではなくボタン選択式） -->
         <div class="export-format-detail" id="exportWavDetail">
           <label class="export-marker-select-label">Sample Rate</label>
-          <select id="exportWavSampleRate" class="export-marker-select">
-            <option value="44100" selected>44.1 kHz</option>
-            <option value="48000">48 kHz</option>
-          </select>
+          <div class="export-format-options" id="exportWavSampleRateGroup">
+            <label class="export-radio-row">
+              <input type="radio" name="exportWavSampleRate" value="44100" checked>
+              <span>44.1 kHz</span>
+            </label>
+            <label class="export-radio-row">
+              <input type="radio" name="exportWavSampleRate" value="48000">
+              <span>48 kHz</span>
+            </label>
+          </div>
         </div>
 
-        <!-- MP3選択時：ビットレート -->
+        <!-- MP3選択時：ビットレート（プルダウンではなくボタン選択式） -->
         <div class="export-format-detail" id="exportMp3Detail" style="display:none;">
           <label class="export-marker-select-label">Bitrate</label>
-          <select id="exportMp3Bitrate" class="export-marker-select">
-            <option value="128" selected>128 kbps</option>
-            <option value="192">192 kbps</option>
-            <option value="320">320 kbps</option>
-          </select>
+          <div class="export-format-options" id="exportMp3BitrateGroup">
+            <label class="export-radio-row">
+              <input type="radio" name="exportMp3Bitrate" value="128" checked>
+              <span>128 kbps</span>
+            </label>
+            <label class="export-radio-row">
+              <input type="radio" name="exportMp3Bitrate" value="192">
+              <span>192 kbps</span>
+            </label>
+            <label class="export-radio-row">
+              <input type="radio" name="exportMp3Bitrate" value="320">
+              <span>320 kbps</span>
+            </label>
+          </div>
         </div>
       </div>
     </div>

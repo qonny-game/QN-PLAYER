@@ -1157,11 +1157,13 @@
         '<span>EDIT</span>' +
       '</button>'
     );
+    const editBtnLabel = editBtn.querySelector("span");
     editBtn.classList.toggle("active", textEditModeOn);
     editBtn.addEventListener("click", () => {
       textEditModeOn = !textEditModeOn;
       textarea.readOnly = !textEditModeOn;
       editBtn.classList.toggle("active", textEditModeOn);
+      if (editBtnLabel) editBtnLabel.textContent = textEditModeOn ? "OK" : "EDIT";
       if (textEditModeOn) textarea.focus();
     });
     actions.appendChild(editBtn);
