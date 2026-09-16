@@ -288,16 +288,28 @@ swUpdateSpeedKeyLockUI();
 // index.html側の<div id="swDebugPanel">〜</div>、
 // CSS/style-shareware.css側の#swDebugPanel関連スタイルも合わせて削除する。
 // ============================================================
+
+// 残り時間をHH:MM:SS形式に整形する（デバッグパネル専用。本番のモーダル等で
+// 使うswGetUnlockRemainingLabelとは別の、検証用の細かい表示のため独立させている）。
+function swDebugFormatCountdown(remainMs) {
+  const totalSec = Math.max(0, Math.floor(remainMs / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
 function swDebugUpdateStatusLabel() {
   const statusEl = document.getElementById("swDebugStatus");
   if (!statusEl) return;
   const until = swGetUnlockUntil();
   if (until === -1) {
-    statusEl.textContent = "PREMIUM";
+    statusEl.textContent = "PR";
   } else if (until > 0 && Date.now() < until) {
-    statusEl.textContent = "UNLOCKED (" + (swGetUnlockRemainingLabel() || "") + ")";
+    statusEl.textContent = "UNLOCKED " + swDebugFormatCountdown(until - Date.now());
   } else {
-    statusEl.textContent = "FREE";
+    statusEl.textContent = "FR";
   }
 }
 
@@ -305,6 +317,15 @@ const swDebugUnlockPremiumBtn = document.getElementById("swDebugUnlockPremiumBtn
 if (swDebugUnlockPremiumBtn) {
   swDebugUnlockPremiumBtn.onclick = () => {
     swUnlockPremium();
+    swRefreshAllLockedUI();
+    swDebugUpdateStatusLabel();
+  };
+}
+
+const swDebugUnlock24hBtn = document.getElementById("swDebugUnlock24hBtn");
+if (swDebugUnlock24hBtn) {
+  swDebugUnlock24hBtn.onclick = () => {
+    swUnlockForHours(24);
     swRefreshAllLockedUI();
     swDebugUpdateStatusLabel();
   };
@@ -332,8 +353,8 @@ if (swDebugRelockBtn) {
 // デバッグパネルの表示が追従するよう、共通リフレッシュ機構に登録する。
 swRegisterRefreshCallback(swDebugUpdateStatusLabel);
 
-// 時限解除中は残り時間が減っていくのが分かるよう、1分ごとに表示を更新する。
-setInterval(swDebugUpdateStatusLabel, 60 * 1000);
+// HH:MM:SS表示のカウントダウンが秒単位で減っていくのが分かるよう、1秒ごとに更新する。
+setInterval(swDebugUpdateStatusLabel, 1000);
 
 swDebugUpdateStatusLabel();
 // ============================================================
