@@ -862,14 +862,6 @@ body.pc-v2-active > .app-container {
   display: none;
 }
 
-#pcV2BottomBar .pcv2-ctrl-btn.with-label span {
-  display: block;
-}
-
-#pcV2BottomBar .pcv2-ctrl-btn.with-label {
-  gap: 3px;
-}
-
 /* Volumeポップアップ(縦スライダー) */
 #pcV2VolumePopup {
   position: absolute;
@@ -1069,7 +1061,7 @@ body.pc-v2-active #topControlsSpacer {
 }
 
 /* ボタン内ラベルはモックのctrl-btn同様、デフォルト非表示
-   （with-labelに相当するMarker系だけ表示する） */
+   （Marker系だけ表示する。詳細はMARKER/LOOPの個別ルール参照） */
 #pcV2BottomBar .top-controls-btn-label {
   display: none;
   font-size: 9px;

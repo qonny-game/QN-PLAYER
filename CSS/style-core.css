@@ -676,10 +676,7 @@ body {
 
 .adjust-controls-row #eqToggleBtn,
 .adjust-controls-row #exportToggleBtn,
-.adjust-controls-row .header-btn-wrapper,
-.adjust-controls-row #volToggleBtn,
-.adjust-controls-row #speedToggleBtn,
-.adjust-controls-row #keyToggleBtn {
+.adjust-controls-row .header-btn-wrapper {
   flex-grow: 1;
   flex-shrink: 1;
   flex-basis: 0%;
@@ -706,10 +703,6 @@ body {
 
 .adjust-controls-row .time-controls-buttons > *:first-child .av-toggle-btn {
   border-left-width: 1px !important;
-}
-
-#volToggleBtn {
-  border-top-left-radius: 16px !important;
 }
 
 #keyToggleBtn {
@@ -810,42 +803,6 @@ body {
 
 .av-toggle-btn .key-disabled-badge {
   margin-left: 2px;
-}
-
-.av-popup {
-  display: none;
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  z-index: 350;
-  background: #16161b;
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-  width: 260px;
-  opacity: 0;
-  transform: translateY(-6px) scale(0.96);
-  transition: opacity var(--dur-open) var(--ease-dismiss), transform var(--dur-open) var(--ease-dismiss);
-}
-
-.av-popup.open {
-  display: block;
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  transition: opacity var(--dur-open) var(--ease-pop), transform var(--dur-open) var(--ease-pop);
-}
-
-/* ボタンが画面下部にあり、下に開くと画面外へはみ出す場合はJS側で判定してこのクラスを付け、
-   ポップアップをボタンの上に開き直す（画面内に必ず収める） */
-.av-popup.open-upward {
-  top: auto;
-  bottom: calc(100% + 10px);
-}
-
-.av-popup .control-card {
-  min-width: 0;
-  width: 100%;
 }
 
 #loopInfo,

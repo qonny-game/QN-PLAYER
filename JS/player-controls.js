@@ -64,9 +64,8 @@ function handleSpeedRangeInput(e) {
     return;
   }
 
-  // Basic欄のポップアップ経由(setupAvPopup)ならボタンを開いた時点で接続されるが、
-  // CONTROLタブのスライダーはポップアップの開閉を経由せず直接操作できてしまうため、
-  // ここでも同様に、実際に操作された瞬間にWeb Audio API接続を試みる必要がある
+  // CONTROLタブのスライダーは直接操作できるため、実際に操作された瞬間に
+  // Web Audio API接続を試みる必要がある
   // （EQ/Speed/Keyのどれも操作しなければ接続されない、という設計自体は維持する）。
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
 
@@ -279,9 +278,8 @@ function setKeySemitones(value) {
     return;
   }
 
-  // Basic欄のポップアップ経由(setupAvPopup)ならボタンを開いた時点で接続されるが、
-  // CONTROLタブのステッパーボタンはポップアップの開閉を経由せず直接操作できてしまうため、
-  // ここでも同様に、実際に操作された瞬間にWeb Audio API接続を試みる必要がある。
+  // CONTROLタブのステッパーボタンは直接操作できるため、実際に操作された
+  // 瞬間にWeb Audio API接続を試みる必要がある。
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
 
   const clamped = Math.max(KEY_MIN, Math.min(KEY_MAX, value));
@@ -363,111 +361,6 @@ function updateKeyControlAvailability() {
 
 
 // player-control-eq.js（旧player-eq.js）に分割移動済み（EQバンド制御・プリセット・モーダル開閉）
-
-// VOL / SPEED / KEY ポップアップの開閉（同じ開閉パターンを共通化）
-const avPopupInstances = [];
-
-// ポップアップがボタンの下に開くと画面外（下方向）にはみ出す場合、
-// 上に開き直す（画面内に必ず収まるようにする）。
-// popup要素は position: absolute で toggleBtn の直近の position:relative 祖先を基準に配置されるため、
-// 実際の画面内での収まり具合は getBoundingClientRect() で毎回判定し直す必要がある。
-function keepPopupInViewport(toggleBtn, popup) {
-  // 一旦「下に開く」基準の状態に戻してから採寸する（前回「上開き」のままだと採寸がずれるため）
-  popup.classList.remove("open-upward");
-
-  // 表示状態でないと正確な高さが取れないため、次のフレームで採寸する
-  requestAnimationFrame(() => {
-    const btnRect = toggleBtn.getBoundingClientRect();
-    const popupRect = popup.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-
-    const spaceBelow = viewportHeight - btnRect.bottom;
-    const spaceAbove = btnRect.top;
-
-    // 下方向に十分な余白がなく、上方向の方が広ければ上に開く
-    if (spaceBelow < popupRect.height + 16 && spaceAbove > spaceBelow) {
-      popup.classList.add("open-upward");
-    }
-
-    // 横方向も画面外にはみ出していたら、右端に揃えず画面内に収める
-    const popupRectAfter = popup.getBoundingClientRect();
-    if (popupRectAfter.left < 8) {
-      popup.style.left = "8px";
-      popup.style.right = "auto";
-    } else {
-      popup.style.left = "";
-      popup.style.right = "";
-    }
-  });
-}
-
-function setupAvPopup(toggleBtnId, popupId) {
-  const toggleBtn = document.getElementById(toggleBtnId);
-  const popup = document.getElementById(popupId);
-  if (!toggleBtn || !popup) return;
-
-  const instance = { toggleBtn, popup };
-  avPopupInstances.push(instance);
-
-  function closeThis() {
-    popup.classList.remove("open");
-    toggleBtn.classList.remove("active");
-  }
-
-  toggleBtn.onclick = (e) => {
-    e.stopPropagation();
-    if (toggleBtn.disabled) return;
-    hapticTap();
-
-    // SpeedまたはKeyのポップアップを実際に開いた（＝操作しようとした）瞬間に、
-    // 初めてWeb Audio API（位相ボコーダー）へ接続する。EQボタンと同じ考え方で、
-    // 実際に使われるまでは<audio>要素をWeb Audio APIに繋がない設計にすることで、
-    // EQ・Speed・Keyのどれも使わない通常再生ではSafari固有の不具合を避けられる。
-    if (toggleBtnId === "speedToggleBtn" || toggleBtnId === "keyToggleBtn") {
-      setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
-    }
-
-    const willOpen = !popup.classList.contains("open");
-    // VOL/SPEED/KEYは排他：開く前に他の全ポップアップを閉じる
-    avPopupInstances.forEach(other => {
-      if (other !== instance) {
-        other.popup.classList.remove("open");
-        other.toggleBtn.classList.remove("active");
-      }
-    });
-
-    popup.classList.toggle("open", willOpen);
-    toggleBtn.classList.toggle("active", willOpen);
-    if (willOpen) keepPopupInViewport(toggleBtn, popup);
-  };
-  popup.onclick = (e) => {
-    e.stopPropagation();
-  };
-  document.addEventListener("click", closeThis);
-}
-
-setupAvPopup("volToggleBtn", "volPopup");
-setupAvPopup("speedToggleBtn", "speedPopup");
-setupAvPopup("keyToggleBtn", "keyPopup");
-
-// CONTROLタブの各行（Vol/Speed/Key）は、それぞれ対応するBasic欄のトグルボタンを
-// そのままクリックしたことにする。これにより、ポップアップの開閉・排他制御・
-// オンデマンドのWeb Audio API接続(setupAvPopup側の処理)を重複実装せずに済む。
-const CONTROL_LIST_ITEM_TARGET_MAP = {
-  controlListVol: "volToggleBtn",
-  controlListSpeed: "speedToggleBtn",
-  controlListKey: "keyToggleBtn"
-};
-Object.entries(CONTROL_LIST_ITEM_TARGET_MAP).forEach(([listItemId, targetBtnId]) => {
-  const listItem = document.getElementById(listItemId);
-  const targetBtn = document.getElementById(targetBtnId);
-  if (listItem && targetBtn) {
-    listItem.onclick = (e) => {
-      e.stopPropagation();
-      targetBtn.click();
-    };
-  }
-});
 
 const loopToggleBtn = document.getElementById("loopToggleBtn");
 

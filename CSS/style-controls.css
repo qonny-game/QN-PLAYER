@@ -2,8 +2,7 @@
    style-controls.css
    つまみ系操作のUI：Loop（単一区間ループ）・Repeat（Off/One/All）・
    再生ボタン(#playToggle)、Speed/AutoSpeed（自動加速）・Key（音程調整）。
-   VOL/SPEED/KEYポップアップの共通枠(.av-popup)や.tripleNavBtn等、
-   複数機能で共有される土台デザインは style-core.css 側に残っている。
+   .tripleNavBtn等、複数機能で共有される土台デザインは style-core.css 側に残っている。
    ============================================================ */
 
 .loopbtn {
