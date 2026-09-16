@@ -808,10 +808,17 @@ body.pc-v2-active > .app-container {
   border: none;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   position: relative;
+  transition: transform var(--dur-press) var(--ease-snap);
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn:hover {
   color: var(--accent-primary);
+}
+
+/* LOOP/REPEAT等の .tripleNavBtn-third:active / .loopbtn:active と揃え、
+   クリック時に少し縮んで「押した感」が出るようにする。 */
+#pcV2BottomBar .pcv2-ctrl-btn:active {
+  transform: scale(0.94);
 }
 
 /* Speed/Key/EQのON/OFFトグルボタン：OFF時は白、ONの間はアクセントカラーにして
@@ -1029,7 +1036,7 @@ body.pc-v2-active #topControlsSpacer {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  color: #f0f0f3;
+  color: #8b8b9e;
   gap: 0;
 }
 
