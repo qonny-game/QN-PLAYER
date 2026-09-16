@@ -34,7 +34,7 @@
   max-height: 88vh;
   overflow-y: auto;
   background: #16161b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 20px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
   transform: translateY(24px) scale(0.94);
@@ -58,12 +58,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 22px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--bg-hover-subtle);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 .export-modal-close {
@@ -71,7 +71,7 @@
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   background: #1c1c24;
   color: var(--icon-muted);
   font-size: 13px;
@@ -81,7 +81,7 @@
 
 .export-modal-close:hover {
   background: #252530;
-  color: #f0f0f3;
+  color: var(--text-bright);
   border-color: var(--accent-primary);
 }
 
@@ -139,7 +139,7 @@
   gap: 8px;
   padding: 10px 14px;
   background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   cursor: pointer;
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
@@ -162,7 +162,7 @@
 .export-checkbox-row:has(input:checked) {
   background: var(--accent-glow);
   border-color: var(--accent-primary);
-  color: #fff;
+  color: var(--text-pure-white);
 }
 
 .export-radio-row input,
@@ -175,9 +175,9 @@
   width: 100%;
   padding: 10px 12px;
   background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
-  color: #f0f0f3;
+  color: var(--text-bright);
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 13px;
   cursor: pointer;
@@ -199,12 +199,12 @@
    accent-primaryの背景で分かりやすく示す。 */
 .export-marker-select option {
   background: #1c1c24;
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 .export-marker-select option:checked {
   background: var(--accent-primary);
-  color: #fff;
+  color: var(--text-pure-white);
 }
 
 /* Marker Rangeの開始・終了プルダウンを横並びに配置する */
@@ -234,9 +234,9 @@
   width: 100%;
   padding: 10px 12px;
   background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
-  color: #f0f0f3;
+  color: var(--text-bright);
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 13px;
   box-sizing: border-box;
@@ -259,7 +259,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 18px 22px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--bg-hover-subtle);
 }
 
 .export-status {
@@ -272,7 +272,7 @@
 }
 
 .export-status.error {
-  color: #ef4444;
+  color: var(--danger);
 }
 
 .export-status.success {
@@ -283,7 +283,7 @@
   flex-shrink: 0;
   padding: 12px 28px;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: #fff;
+  color: var(--text-pure-white);
   border: none;
   border-radius: 12px;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
@@ -332,9 +332,9 @@
 }
 
 .export-cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover-subtle);
   border-color: rgba(255, 255, 255, 0.2);
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 .export-cancel-btn:active {

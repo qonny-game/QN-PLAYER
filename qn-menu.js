@@ -120,6 +120,12 @@
     { name: "rose-dark", title: "Rose Dark", primary: "#be123c", secondary: "#be123c" },
   ];
 
+  // マーカー色選択（player-markers.js の MARKER_COLOR_PALETTE）が、Color
+  // パネルと全く同じ配色一覧をそのまま流用できるよう、QN_THEMES自体を
+  // window経由で公開する。QN_THEMESの配列を直せば、Colorパネルのスウォッチ
+  // とマーカー色ピッカーの両方に同時に反映される（一元管理）。
+  window.QN_THEMES = QN_THEMES;
+
   const mount = document.getElementById('qnMenuMount');
   if (!mount) return; // ホスト側にマウント先が無ければ何もしない
 

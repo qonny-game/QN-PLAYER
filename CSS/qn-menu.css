@@ -31,7 +31,7 @@
 #qnMenuBtn {
   background: #18181b;
   border: 1px solid #27272a;
-  color: #f0f0f3;
+  color: var(--text-bright);
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -149,10 +149,10 @@
   gap: 10px;
   padding: 10px 12px;
   background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   cursor: pointer;
-  color: #f0f0f3;
+  color: var(--text-bright);
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
@@ -195,7 +195,7 @@
 }
 .qn-theme-swatch:hover {
   transform: scale(1.1);
-  border-color: #fff;
+  border-color: var(--text-pure-white);
 }
 .qn-theme-swatch.active {
   border: 2px solid #ffffff;
@@ -208,7 +208,7 @@
    動的に生成される。rainbowだけは例外でこのすぐ下に固定で残っている。 */
 
 .qn-swatch-rainbow {
-  background: conic-gradient(from 0deg, #ef4444, #f97316, #f59e0b, #84cc16, #10b981, #14b8a6, #06b6d4, #0ea5e9, #3b82f6, #6366f1, #8b5cf6, #a855f7, #ec4899, #f43f5e, #ef4444);
+  background: conic-gradient(from 0deg, var(--danger), #f97316, #f59e0b, #84cc16, #10b981, #14b8a6, #06b6d4, #0ea5e9, #3b82f6, #6366f1, #8b5cf6, #a855f7, #ec4899, #f43f5e, var(--danger));
   animation: qn-rainbow-spin 4s linear infinite;
 }
 @keyframes qn-rainbow-spin {
@@ -233,7 +233,7 @@
   height: 22px;
   border-radius: 11px;
   background: #2a2a35;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -254,7 +254,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #f0f0f3;
+  background: var(--text-bright);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .qn-glow-switch[aria-checked="true"] .qn-glow-switch-knob {
@@ -282,7 +282,7 @@
   font-size: 11px;
 }
 .qn-shortcut-table td {
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 .qn-shortcut-table kbd {
   background: #252530;

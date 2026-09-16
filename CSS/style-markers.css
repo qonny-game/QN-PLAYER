@@ -25,7 +25,7 @@
   box-sizing: border-box;
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
   border-radius: 0;
   font-size: 13px;
   transition: background 0.2s;
@@ -52,7 +52,7 @@
   letter-spacing: 0.5px;
   cursor: pointer;
   font-weight: 500;
-  color: #f0f0f3;
+  color: var(--text-bright);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -99,8 +99,8 @@
 }
 
 .pin-edit-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #f0f0f3;
+  background: var(--bg-hover-subtle);
+  color: var(--text-bright);
 }
 
 .pin-edit-btn svg {
@@ -137,7 +137,7 @@
   gap: 8px;
   padding: 12px;
   background: #16161b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
@@ -157,7 +157,7 @@
 }
 
 .marker-color-swatch.active {
-  border-color: #fff;
+  border-color: var(--text-pure-white);
 }
 
 .marker-color-swatch.marker-color-none {
@@ -189,7 +189,7 @@
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 14px;
   font-weight: 500;
-  color: #f0f0f3;
+  color: var(--text-bright);
   background: #14141a;
   border: 1px solid var(--accent-primary);
   border-radius: 6px;
@@ -224,7 +224,7 @@
 }
 
 .pin-memo-preset-chip:hover {
-  color: #f0f0f3;
+  color: var(--text-bright);
   border-color: var(--accent-primary);
 }
 
@@ -235,7 +235,7 @@
   padding: 7px;
   cursor: pointer;
   background: none;
-  color: #fff;
+  color: var(--text-pure-white);
   border: none;
   border-radius: 6px;
   font-weight: 600;
@@ -262,14 +262,14 @@
 /* 表示/非表示の状態はテーマカラーで目立たせず、ほんのりグレーで
    統一する。ON/OFFの区別はアイコン形状(目が開いている/閉じている)自体で
    伝わるため、色分けは不要。ホバー時は下部コントロール(LOOP/REPEAT等)と
-   同じ挙動(var(--icon-muted)→#f0f0f3の白)に揃える。 */
+   同じ挙動(var(--icon-muted)→var(--text-bright)の白)に揃える。 */
 .pinItem:not(.disabled) .toggle-btn {
   color: var(--icon-muted);
   transition: color var(--dur-hover) var(--ease-snap);
 }
 
 .pinItem:not(.disabled) .toggle-btn:hover {
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 .pinItem.disabled .toggle-btn {
@@ -277,7 +277,7 @@
 }
 
 .pinItem button:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover-subtle);
 }
 
 /* .pinItem button { padding: 5px 10px; border-radius: 6px; }（汎用ボタン
@@ -311,7 +311,7 @@
 }
 
 .playlistItem .toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover-subtle);
 }
 
 .playlistItem:not(.disabled) .toggle-btn {
@@ -327,9 +327,9 @@
 }
 
 .del-btn.confirm {
-  background: #ef4444 !important;
-  color: #fff !important;
-  border-color: #ef4444 !important;
+  background: var(--danger) !important;
+  color: var(--text-pure-white) !important;
+  border-color: var(--danger) !important;
   animation: delConfirmPulse 0.9s var(--ease-snap) infinite;
 }
 

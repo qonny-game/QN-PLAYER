@@ -22,6 +22,26 @@
      色を変えたい時は、ここを直すだけで全箇所に反映される。 */
   --icon-muted: #8b8b9e;
 
+  /* 白系のテキスト・強調色。テーマカラー(--accent-primary等)とは独立して
+     常に白系で使う箇所（見出し、値の強調表示、アイコンのホバー色等）を
+     ここに一元化する。
+     --text-bright: わずかに青みを含む白(#f0f0f3)。本文寄りの強調テキストや
+       ホバー時のアイコン色など、アプリ全体で最も多用される白。
+     --text-pure-white: 純白(#fff)。ボタン内の文字やボーダーなど、より
+       強いコントラストが欲しい箇所に使う。 */
+  --text-bright: #f0f0f3;
+  --text-pure-white: #fff;
+
+  /* 白の半透明ボーダー・背景。透明度の意味を用途で使い分けている
+     （0.08=枠線、0.06=ホバー時の背景）ため、値ごとに変数を分ける。 */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --bg-hover-subtle: rgba(255, 255, 255, 0.06);
+
+  /* 削除・警告用の赤。--accent-primaryはテーマ切り替えで色が変わる
+     （赤テーマ選択時は--accent-primary自体が赤になる）ため、削除ボタン等
+     の「常に赤であるべき」箇所はテーマに関わらず独立させておく。 */
+  --danger: #ef4444;
+
   /* ============================================================
      モーション設計トークン（docs/ui-motion-haptics-design.md 参照）
      4種のイージングを動作の意味ごとに使い分ける。
@@ -171,7 +191,7 @@ body {
     radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 45%),
     radial-gradient(circle at 100% 15%, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 40%),
     #0d0d0f;
-  color: #f0f0f3;
+  color: var(--text-bright);
   font-family: var(--font-body, 'Instrument Sans'), -apple-system, BlinkMacSystemFont, sans-serif;
   padding: 24px;
   margin: 0;
@@ -206,7 +226,7 @@ body {
   font-weight: 700;
   letter-spacing: 1px;
   margin: 0;
-  color: #f0f0f3;
+  color: var(--text-bright);
   text-transform: uppercase;
 }
 
@@ -359,7 +379,7 @@ body {
   display: flex;
   gap: 6px;
   background: #16161b;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bg-hover-subtle);
   border-bottom: none;
   border-radius: 14px 14px 0 0;
   padding: 6px;
@@ -388,12 +408,12 @@ body {
   /* PLAYボタン(#playToggle)と同じグラデーションに揃える。単色のvar(--accent-primary)
      だけだと、PLAYボタンのグラデーションと並んだ時に色味が微妙にずれて見えるため。 */
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: #fff;
+  color: var(--text-pure-white);
 }
 
 .mobile-tab-btn:not(.active):hover {
   background: #22222c;
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 /* タブパネルは選択中のもの以外を隠す。タブの直下は上側の角丸をなくして一体化させる。 */
@@ -402,7 +422,7 @@ body {
   width: 100%;
   box-sizing: border-box;
   background: #16161b;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bg-hover-subtle);
   border-top: none;
   border-radius: 0 0 16px 16px;
   padding: 10px 20px 20px;
@@ -436,7 +456,7 @@ body {
 .control-list .control-card {
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
   border-radius: 0;
   padding: 14px 0;
   min-width: 0;
@@ -477,7 +497,7 @@ body {
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   background: rgba(13, 13, 15, 0.92);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-subtle);
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
 }
 
@@ -502,7 +522,7 @@ body {
   display: flex;
   align-items: stretch;
   background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   overflow: hidden;
@@ -514,7 +534,7 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #fff;
+  color: var(--text-pure-white);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -717,10 +737,10 @@ body {
   /* テーマカラーをごく薄く滲ませた枠線にする（以前はrgba(255,255,255,0.08)の
      無彩色グレー）。hover/active時の--accent-primaryへの変化と地続きになるよう、
      通常時も同じ色相を薄く効かせておく。 */
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, rgba(255, 255, 255, 0.08));
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, var(--border-subtle));
   border-radius: 14px;
   cursor: pointer;
-  color: #f0f0f3;
+  color: var(--text-bright);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   transition: background var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
 }
@@ -784,8 +804,8 @@ body {
 
 .av-toggle-btn.key-disabled:hover {
   background: #1c1c24;
-  border-color: rgba(255, 255, 255, 0.08);
-  color: #f0f0f3;
+  border-color: var(--border-subtle);
+  color: var(--text-bright);
 }
 
 .av-toggle-btn .key-disabled-badge {
@@ -799,7 +819,7 @@ body {
   right: 0;
   z-index: 350;
   background: #16161b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 18px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
@@ -1139,7 +1159,7 @@ body, .vbar-line, .pinItem, .vbar, button {
   width: 100%;
   padding: 20px 20px;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: #fff;
+  color: var(--text-pure-white);
   text-align: center;
   border: none;
   border-radius: 14px;
@@ -1227,7 +1247,7 @@ body, .vbar-line, .pinItem, .vbar, button {
   font-size: 60px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: #f0f0f3;
+  color: var(--text-bright);
   text-transform: uppercase;
   opacity: 0;
   transform: scale(0.92);

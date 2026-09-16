@@ -38,11 +38,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 22px 24px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-weight: 800;
   font-size: 22px;
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 .sw-unlock-modal-close {
@@ -55,7 +55,7 @@
 }
 
 .sw-unlock-modal-close:hover {
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 .sw-unlock-modal-body {
@@ -88,7 +88,7 @@
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
-  color: #f0f0f3;
+  color: var(--text-bright);
   cursor: pointer;
   text-align: left;
   transition: background 0.15s ease, border-color 0.15s ease;
@@ -161,7 +161,7 @@
   padding: 11px 8px;
   border-radius: 999px;
   background: var(--accent-primary, #3b82f6);
-  color: #fff;
+  color: var(--text-pure-white);
   font-size: 13px;
   font-weight: 700;
   text-align: center;
@@ -171,7 +171,7 @@
 
 .sw-pricing-cta-secondary {
   background: rgba(255, 255, 255, 0.1);
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 .sw-pricing-card-highlight {
@@ -190,7 +190,7 @@
   padding: 3px 11px;
   border-radius: 999px;
   background: var(--accent-primary, #3b82f6);
-  color: #fff;
+  color: var(--text-pure-white);
   font-size: 11px;
   font-weight: 700;
 }
@@ -205,7 +205,7 @@
   padding: 3px 11px;
   border-radius: 999px;
   background: linear-gradient(135deg, #f59e0b, #f43f5e);
-  color: #fff;
+  color: var(--text-pure-white);
   font-size: 10.5px;
   font-weight: 700;
   white-space: nowrap;
@@ -231,7 +231,7 @@
   padding-top: 14px;
   padding-left: 0;
   margin-top: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   gap: 9px;
@@ -318,7 +318,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   font-size: 11px;
   font-weight: 600;
-  color: #f0f0f3;
+  color: var(--text-bright);
   letter-spacing: 0.3px;
   z-index: 5;
   display: none;
@@ -367,7 +367,7 @@
   border-radius: 6px;
   border: 1px solid rgba(245, 158, 11, 0.4);
   background: rgba(245, 158, 11, 0.12);
-  color: #f0f0f3;
+  color: var(--text-bright);
   font-size: 11px;
   cursor: pointer;
   white-space: nowrap;
@@ -466,7 +466,7 @@
   border: none;
   border-radius: 999px;
   background: linear-gradient(135deg, #f59e0b, #f43f5e);
-  color: #fff;
+  color: var(--text-pure-white);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 12px;
   font-weight: 800;

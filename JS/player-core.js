@@ -11,9 +11,15 @@ let audio = new Audio();
 let pins = [];
 let loopEnabled = false;
 
-// マーカーの色付けに使うカラーパレット。テーマカラー（qn-menu.js側で管理）と
-// 同じ配色・同じ--accent-primaryの値を流用する。テーマを切り替えてもマーカーの色自体は
-// 変わらないよう、名前と色コードをここに固定で持つ（テーマ変更時のCSS変数切替とは独立させる）。
+// マーカーの色付けに使うカラーパレット。Colorパネル（qn-menu.js側の
+// QN_THEMES配列）と全く同じ一覧をそのまま流用する。
+// 読み込み順の都合（このファイルはqn-menu.jsより先に読み込まれるため、
+// 定義された直後の時点ではwindow.QN_THEMESはまだ存在しない）、まずは
+// 最低限のフォールバック値（旧・14色）で初期化しておき、後から
+// applyMarkerColorPaletteFromThemes()でQN_THEMES(42色)の内容に
+// 差し替える。既存コードは全てMARKER_COLOR_PALETTE[キー]という
+// プロパティアクセスのため、オブジェクト自体の参照を保ったまま中身だけ
+// 書き換えれば、呼び出し側の変更は不要。
 const MARKER_COLOR_PALETTE = {
   red: "#ef4444",
   orange: "#f97316",
@@ -30,6 +36,23 @@ const MARKER_COLOR_PALETTE = {
   pink: "#ec4899",
   rose: "#f43f5e"
 };
+
+// window.QN_THEMES（qn-menu.js側で定義・公開）の内容で、
+// MARKER_COLOR_PALETTEの中身を洗い替える。QN_THEMESは
+// { name, title, primary, secondary } の配列で、Light/Base/Darkの
+// 3トーン×14色相=42エントリを持つため、置き換え後はマーカー色の
+// 選択肢もColorパネルと同じ42色になる。
+function applyMarkerColorPaletteFromThemes() {
+  if (!Array.isArray(window.QN_THEMES) || window.QN_THEMES.length === 0) return;
+  Object.keys(MARKER_COLOR_PALETTE).forEach(key => delete MARKER_COLOR_PALETTE[key]);
+  window.QN_THEMES.forEach(theme => {
+    if (theme && theme.name && theme.primary) {
+      MARKER_COLOR_PALETTE[theme.name] = theme.primary;
+    }
+  });
+}
+applyMarkerColorPaletteFromThemes();
+document.addEventListener("DOMContentLoaded", applyMarkerColorPaletteFromThemes);
 
 // "#rrggbb"形式のHEXカラーを、指定した不透明度のrgba()文字列に変換する。
 // マーカーの色付きループエリア背景（segmentHighlight）等で使用。

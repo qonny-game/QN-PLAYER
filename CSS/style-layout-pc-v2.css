@@ -83,7 +83,7 @@ body.pc-v2-active > .app-container {
 
 /* --- 左：縦アイコンバー --- */
 #pcV2IconBar {
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -108,7 +108,7 @@ body.pc-v2-active > .app-container {
 }
 
 .pcv2-icon-item:hover {
-  color: #f0f0f3;
+  color: var(--text-bright);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -146,13 +146,13 @@ body.pc-v2-active > .app-container {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-subtle);
   padding-top: 8px;
 }
 
 /* --- 中央：選択中パネル --- */
 #pcV2Panel {
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -161,7 +161,7 @@ body.pc-v2-active > .app-container {
 
 #pcV2PanelHeader {
   padding: 14px 16px 14px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 20px;
   font-weight: 600;
@@ -198,12 +198,12 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2PanelHeader .panel-edit-btn:hover {
-  color: #f0f0f3;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-bright);
+  background: var(--bg-hover-subtle);
 }
 
 #pcV2PanelHeader .panel-edit-btn.active {
-  color: #fff;
+  color: var(--text-pure-white);
   background: var(--accent-primary);
   border-color: var(--accent-primary);
 }
@@ -224,8 +224,8 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2PanelHeader .panel-addfile-btn:hover {
-  color: #f0f0f3;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-bright);
+  background: var(--bg-hover-subtle);
 }
 
 #pcV2PanelHeader .panel-addfile-btn svg {
@@ -285,8 +285,8 @@ body.pc-v2-active > .app-container {
 
 #pcV2PanelBody.markers-edit-mode #pinList .del-btn.pcv2-selected,
 #pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn.pcv2-selected {
-  background: #ef4444;
-  border-color: #ef4444;
+  background: var(--danger);
+  border-color: var(--danger);
 }
 
 #pcV2PanelBody.markers-edit-mode #pinList .del-btn.pcv2-selected::after,
@@ -295,8 +295,8 @@ body.pc-v2-active > .app-container {
   display: block;
   width: 5px;
   height: 9px;
-  border-right: 2px solid #fff;
-  border-bottom: 2px solid #fff;
+  border-right: 2px solid var(--text-pure-white);
+  border-bottom: 2px solid var(--text-pure-white);
   transform: rotate(45deg) translate(-1px, -1px);
 }
 
@@ -317,8 +317,8 @@ body.pc-v2-active > .app-container {
   padding: 5px 10px;
   border-radius: 6px;
   border: none;
-  background: #ef4444;
-  color: #fff;
+  background: var(--danger);
+  color: var(--text-pure-white);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -382,7 +382,7 @@ body.pc-v2-active > .app-container {
 #pcV2PanelBody .export-section {
   display: block;
   padding: 26px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 #pcV2PanelBody .export-section:first-child {
@@ -433,7 +433,7 @@ body.pc-v2-active > .app-container {
   display: flex;
   gap: 0;
   flex-wrap: nowrap;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -446,7 +446,7 @@ body.pc-v2-active > .app-container {
   background: none;
   border: none;
   border-radius: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--border-subtle);
   color: var(--icon-muted);
   font-size: 12px;
 }
@@ -459,13 +459,13 @@ body.pc-v2-active > .app-container {
 #pcV2PanelBody .export-radio-row:hover,
 #pcV2PanelBody .export-checkbox-row:hover {
   background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-subtle);
 }
 
 #pcV2PanelBody .export-radio-row:has(input:checked),
 #pcV2PanelBody .export-checkbox-row:has(input:checked) {
   background: var(--accent-primary);
-  color: #fff;
+  color: var(--text-pure-white);
   font-weight: 600;
 }
 
@@ -485,12 +485,12 @@ body.pc-v2-active > .app-container {
 
 #pcV2PanelBody .export-marker-select {
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
 }
 
 #pcV2PanelBody .export-filename-input {
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
 }
 
 #pcV2PanelBody .export-filename-input:focus {
@@ -512,7 +512,7 @@ body.pc-v2-active > .app-container {
 
 .pcv2-section-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   margin: 0 0 16px;
 }
 
@@ -582,7 +582,7 @@ body.pc-v2-active > .app-container {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #f0f0f3;
+  color: var(--text-bright);
   /* #pcV2WaveArea(flex column)の子として並ぶと、波形部分
      (#vbarContainer)が多くの高さを要求するためflexboxに縮小され、
      本来1行分の高さより低く潰されて文字の上端が overflow:hidden で
@@ -630,7 +630,7 @@ body.pc-v2-active > .app-container {
 #pcV2TimeRow #timeDisplay .time-val {
   font-size: 12px;
   font-weight: 500;
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 #pcV2TimeRow #timeDisplay .time-sep {
@@ -749,7 +749,7 @@ body.pc-v2-active > .app-container {
 
 /* --- 下段：固定コントロールバー（モック準拠） --- */
 #pcV2BottomBar {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-subtle);
   padding: 10px 24px;
   display: flex;
   align-items: center;
@@ -793,7 +793,7 @@ body.pc-v2-active > .app-container {
 #pcV2BottomBar .pcv2-ctrl-divider {
   width: 1px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   margin: 0 10px;
 }
 
@@ -833,7 +833,7 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn.effect-off:hover {
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn.primary {
@@ -877,7 +877,7 @@ body.pc-v2-active > .app-container {
   left: 50%;
   transform: translateX(-50%);
   background: #101013;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 16px 12px 14px;
   display: none;
@@ -916,7 +916,7 @@ body.pc-v2-active > .app-container {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--text-pure-white);
   cursor: pointer;
 }
 
@@ -978,7 +978,7 @@ body.pc-v2-active #topControlsSpacer {
 
 #pcV2BottomBar .tripleNavBtn-third:hover {
   background: none;
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 
 #pcV2BottomBar .tripleNavBtn-third:active {
@@ -1047,7 +1047,7 @@ body.pc-v2-active #topControlsSpacer {
 
 #pcV2BottomBar .loopbtn:hover {
   background: none;
-  color: #f0f0f3;
+  color: var(--text-bright);
   transform: none;
   box-shadow: none;
 }
@@ -1087,7 +1087,7 @@ body.pc-v2-active #topControlsSpacer {
 /* --- ヘッダー：モック準拠（52px高さ、下境界線、小さめロゴ＋QN Seriesドロップダウン） --- */
 body.pc-v2-active #appHeader {
   height: 52px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
   margin: 0;
   padding: 0 20px;
   width: 100%;
@@ -1144,8 +1144,8 @@ body.pc-v2-active #qnMenuMount {
 
 .pcv2-header-nav-trigger:hover,
 #pcV2HeaderNav.open .pcv2-header-nav-trigger {
-  color: #f0f0f3;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-bright);
+  background: var(--bg-hover-subtle);
 }
 
 .pcv2-header-nav-trigger svg {
@@ -1169,7 +1169,7 @@ body.pc-v2-active #qnMenuMount {
   top: calc(100% + 10px);
   left: 0;
   background: #101013;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 8px;
   min-width: 320px;
@@ -1194,7 +1194,7 @@ body.pc-v2-active #qnMenuMount {
 }
 
 .pcv2-header-nav-link:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover-subtle);
 }
 
 .pcv2-header-nav-link-name {
@@ -1202,7 +1202,7 @@ body.pc-v2-active #qnMenuMount {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: #f0f0f3;
+  color: var(--text-bright);
   flex-shrink: 0;
 }
 
@@ -1309,7 +1309,7 @@ body.pc-v2-active #qnMenuMount {
 
 #pcV2PanelBody.pcv2-panel-text .note-textarea:read-write {
   background: #1c1c24;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-subtle);
 }
 
 /* Textパネルのヘッダーアクション（EDIT・フルスクリーン）。フルスクリーン
@@ -1331,8 +1331,8 @@ body.pc-v2-active #qnMenuMount {
 }
 
 #pcV2PanelHeader #noteTextFullscreenBtn:hover {
-  color: #f0f0f3;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-bright);
+  background: var(--bg-hover-subtle);
 }
 
 #pcV2PanelHeader #noteTextFullscreenBtn svg {
@@ -1408,7 +1408,7 @@ body.pc-v2-active #qnMenuMount {
     -webkit-overflow-scrolling: touch;
     padding: 14px 12px;
     scrollbar-width: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--border-subtle);
   }
 
   #pcV2BottomBar::-webkit-scrollbar {
@@ -1514,7 +1514,7 @@ body.pc-v2-active #qnMenuMount {
   #pcV2IconBarBottom {
     flex-direction: row;
     border-top: none;
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 1px solid var(--border-subtle);
     padding-top: 0;
     padding-left: 8px;
     margin-left: 4px;

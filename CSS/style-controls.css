@@ -12,10 +12,10 @@
   font-size: 20px;
   text-align: center;
   background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   cursor: pointer;
-  color: #fff;
+  color: var(--text-pure-white);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   transition: background var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap), transform var(--dur-press) var(--ease-snap), box-shadow var(--dur-press) var(--ease-snap);
   display: flex;
@@ -58,13 +58,13 @@
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   border: none;
   box-shadow: 0 6px 20px var(--accent-glow);
-  color: #fff;
+  color: var(--text-pure-white);
 }
 
 #playToggle:hover {
   background: linear-gradient(135deg, var(--accent-hover-1), var(--accent-hover-2));
   box-shadow: 0 8px 25px var(--accent-glow);
-  color: #fff;
+  color: var(--text-pure-white);
 }
 
 .loopbtn { 
@@ -115,7 +115,7 @@
 .auto-speed-card {
   margin-top: 20px;
   padding-top: 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-subtle);
   gap: 12px;
 }
 
@@ -202,9 +202,9 @@
   width: 56px;
   padding: 6px 8px;
   background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  color: #f0f0f3;
+  color: var(--text-bright);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -227,7 +227,7 @@
   gap: 0;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
 }
 
 .auto-speed-dir-btn {
@@ -235,7 +235,7 @@
   padding: 8px 6px;
   background: #1c1c24;
   border: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 1px solid var(--border-subtle);
   color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 11px;
@@ -252,7 +252,7 @@
 
 .auto-speed-dir-btn.active {
   background: var(--accent-primary);
-  color: #fff;
+  color: var(--text-pure-white);
 }
 
 .auto-speed-status {
@@ -269,7 +269,7 @@
   width: auto;
   height: 26px;
   padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 6px;
   background: none;
   color: var(--icon-muted);
@@ -286,7 +286,7 @@
 }
 
 .mini-reset-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover-subtle);
   color: var(--accent-primary);
   border-color: var(--accent-primary);
 }
@@ -324,7 +324,7 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   background: none;
   color: var(--icon-muted);
   font-size: 15px;
@@ -355,7 +355,7 @@
 .key-step-btn:disabled:hover {
   background: none;
   color: var(--icon-muted);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-subtle);
 }
 
 .key-stepper-bar {
@@ -388,7 +388,7 @@
   height: 22px;
   border-radius: 11px;
   background: #2a2a35;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -412,7 +412,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #f0f0f3;
+  background: var(--text-bright);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
