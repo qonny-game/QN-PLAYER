@@ -71,6 +71,21 @@
   background: #16161b;
 }
 
+/* ON状態（Repeat All/One、Loop有効時）：文字・アイコンをアクセントカラーに、
+   背景・枠線も薄く色付けして「オンになっている」ことを一目でわかるようにする。
+   currentColor を使っている .loopbtn svg にも自動で反映される。 */
+.loopbtn.is-active {
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 14%, #16161b);
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(56, 189, 248, 0.15) inset;
+}
+
+.loopbtn.is-active:hover {
+  background: color-mix(in srgb, var(--accent-primary) 22%, #1c1c24);
+  border-color: var(--accent-primary);
+}
+
 #allRepeatToggleBtn {
   position: relative;
 }
