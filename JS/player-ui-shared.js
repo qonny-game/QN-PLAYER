@@ -613,6 +613,19 @@ function updateBars() {
         const end = activePins[i+1];
 
         if (prevTime < end && ct >= end) {
+          // シェアウェア制限：無料版はAB間ループ5回で自動停止。
+          if (typeof isUnlocked === "function" && !isUnlocked()) {
+            swAbLoopCount++;
+            swUpdateLoopCounterUI();
+            if (swAbLoopCount >= SW_LIMITS.AB_LOOP_MAX_COUNT) {
+              loopEnabled = false;
+              swAbLoopCount = 0;
+              if (typeof applyLoopButtonUI === "function") applyLoopButtonUI();
+              swUpdateLoopCounterUI();
+              swOpenUnlockModal(`無料版のAB間ループは${SW_LIMITS.AB_LOOP_MAX_COUNT}回で自動停止します。`);
+              break;
+            }
+          }
           audio.currentTime = start;
           isJumping = true;
           // このマーカー(区間の開始側)に設定された色をそのまま引き継ぐ。

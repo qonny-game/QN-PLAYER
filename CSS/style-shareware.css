@@ -1,0 +1,225 @@
+/* ============================================================
+   style-shareware.css
+   プレミアムアンロックモーダル、および無料版制限下のロック表現
+   （鍵アイコン・グレーアウト・半透明）用スタイル。
+   既存のexport-modal / eq-modal と共通のダーク配色トークンに揃える。
+   ============================================================ */
+
+/* AB間ループ回数カウンター(#swLoopCounter)を波形右上に絶対配置するための基準。 */
+#vbarContainer {
+  position: relative;
+}
+
+.sw-unlock-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+}
+
+.sw-unlock-modal-overlay.active {
+  display: flex;
+}
+
+.sw-unlock-modal {
+  width: min(420px, 90vw);
+  background: #16161a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.sw-unlock-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #f0f0f3;
+}
+
+.sw-unlock-modal-close {
+  background: none;
+  border: none;
+  color: #9a9aa5;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.sw-unlock-modal-close:hover {
+  color: #f0f0f3;
+}
+
+.sw-unlock-modal-body {
+  padding: 18px;
+}
+
+.sw-unlock-modal-desc {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #b5b5bf;
+  line-height: 1.5;
+}
+
+.sw-unlock-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sw-unlock-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f0f0f3;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sw-unlock-option:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: color-mix(in srgb, var(--accent-primary) 55%, transparent);
+}
+
+.sw-unlock-option-title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.sw-unlock-option-sub {
+  font-size: 11.5px;
+  color: #8a8a95;
+}
+
+.sw-unlock-option-premium {
+  border-color: color-mix(in srgb, var(--accent-primary) 60%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 16%, transparent), color-mix(in srgb, var(--accent-secondary) 12%, transparent));
+}
+
+.sw-unlock-option-premium:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent), color-mix(in srgb, var(--accent-secondary) 20%, transparent));
+}
+
+/* --- ロック表現：鍵アイコン --- */
+.sw-lock-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #9a9aa5;
+}
+
+.sw-lock-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* プレイリスト項目：ロック中は半透明＋クリックでブロック */
+.playlistItem.sw-locked {
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+.playlistItem.sw-locked .playlist-thumb {
+  filter: grayscale(1);
+}
+
+/* マーカー項目：ロック中は半透明表示、タイムラインジャンプ不可 */
+.pinItem.sw-locked {
+  opacity: 0.4;
+}
+
+.pinItem.sw-locked .pin-info {
+  cursor: pointer;
+}
+
+/* ループカウンター表示（AB間ループ: 3 / 5 回） */
+#swLoopCounter {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 11px;
+  font-weight: 600;
+  color: #f0f0f3;
+  letter-spacing: 0.3px;
+  z-index: 5;
+  display: none;
+}
+
+#swLoopCounter.active {
+  display: block;
+}
+
+/* 無効化された操作コントロール（Key/Speed等）：見た目を暗くするだけで、
+   クリック自体は各関数側(setSpeed/setKeySemitones等)でガードしてモーダルを開く。
+   pointer-events: noneにしないのは、無効化中でもクリックさせてモーダルを
+   出す必要があるため。 */
+.sw-disabled-control {
+  opacity: 0.45;
+}
+
+/* ============================================================
+   【検証用・一時的】swDebugPanel
+   リリース前にこのブロックとindex.html内の対応する<div id="swDebugPanel">、
+   player-shareware.js末尾のデバッグ用スクリプトを削除すること。
+   目立たせるため意図的に警告色（オレンジ）にしている。
+   ============================================================ */
+#swDebugPanel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin-left: 10px;
+  border: 1px dashed #f59e0b;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  font-size: 11px;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+}
+
+#swDebugStatus {
+  font-weight: 700;
+  color: #f59e0b;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+#swDebugPanel button {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.12);
+  color: #f0f0f3;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#swDebugPanel button:hover {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+@media (max-width: 900px) {
+  #swDebugPanel {
+    display: none;
+  }
+}

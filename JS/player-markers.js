@@ -27,7 +27,10 @@ function addCurrentPin() {
 document.getElementById("addPinBtn").onclick = addCurrentPin;
 
 function jumpToNextMarker() {
-  const activePins = pins.filter(p => p.enabled);
+  const activePins = pins
+    .map((p, i) => ({ p, i }))
+    .filter(({ p, i }) => p.enabled && !(typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE))
+    .map(({ p }) => p);
   if (activePins.length === 0) return;
   hapticTap();
 
@@ -45,7 +48,10 @@ function jumpToNextMarker() {
 }
 
 function jumpToPrevMarker() {
-  const activePins = pins.filter(p => p.enabled);
+  const activePins = pins
+    .map((p, i) => ({ p, i }))
+    .filter(({ p, i }) => p.enabled && !(typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE))
+    .map(({ p }) => p);
   if (activePins.length === 0) return;
   hapticTap();
 
@@ -101,6 +107,11 @@ function renderPins() {
     if (!pinObj.enabled) {
       line.classList.add("disabled");
     }
+    // シェアウェア制限：無料版で4個目以降は波形上も半透明ロック表示にする。
+    const isLockedMarker = typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE;
+    if (isLockedMarker) {
+      line.classList.add("sw-locked");
+    }
     line.style.left = `${x}%`;
     // マーカーに色が設定されていれば、ライン(縦線)の背景色に反映する。
     // ただし無効化中(disabled)は専用の見た目を優先し、
@@ -138,6 +149,10 @@ function renderPins() {
 
     function handleMarkerTapOrDrag(e) {
       e.stopPropagation();
+      if (isLockedMarker) {
+        swOpenUnlockModal(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
+        return;
+      }
       // タップ（クリック）は常にそのマーカーへシーク＆再生する。
       // 以前はスマホだけMOVEモード（再タップで選択→別の位置をタップして移動）に
       // 分岐していたが、意図通りに動作しなかったため廃止し、PC/スマホ共通で
@@ -157,10 +172,13 @@ function renderPins() {
     // ドラッグでマーカーを直接動かせる。PC(mousedown)・スマホ(touchstart)共通で
     // startDragPin（このファイル内で定義、下記参照）を使う。startDragPin自体は
     // e.typeを見てマウス/タッチ両方のイベントに対応済み。
-    label.onmousedown = startDragPin(i);
-    line.onmousedown = startDragPin(i);
-    label.ontouchstart = startDragPin(i);
-    line.ontouchstart = startDragPin(i);
+    // シェアウェア制限：ロック中のマーカーはドラッグ移動も不可にする。
+    if (!isLockedMarker) {
+      label.onmousedown = startDragPin(i);
+      line.onmousedown = startDragPin(i);
+      label.ontouchstart = startDragPin(i);
+      line.ontouchstart = startDragPin(i);
+    }
 
     line.appendChild(label);
 
@@ -373,6 +391,11 @@ function renderPinList() {
       div.classList.add("disabled");
     }
 
+    // シェアウェア制限：無料版で4個目以降(index >= MARKER_MAX_ACTIVE)は
+    // 削除せず保持・表示するが、鍵アイコン付きでロックする（タイムラインジャンプ不可）。
+    const isLockedMarker = typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE;
+    if (isLockedMarker) div.classList.add("sw-locked");
+
     // マーカーの左端の色の目印。クリックするとカラーパレットが開く（色未設定ならグレー表示）。
     const colorMark = document.createElement("button");
     colorMark.className = "pin-color-mark";
@@ -380,8 +403,20 @@ function renderPinList() {
     colorMark.style.background = (pinObj.color && MARKER_COLOR_PALETTE[pinObj.color]) ? MARKER_COLOR_PALETTE[pinObj.color] : "#3a3a48";
     colorMark.onclick = (e) => {
       e.stopPropagation();
+      // シェアウェア制限：無料版はマーカーの色変更不可。
+      if (typeof isUnlocked === "function" && !isUnlocked()) {
+        swOpenUnlockModal("無料版ではマーカーの色変更はできません。");
+        return;
+      }
       openMarkerColorPicker(colorMark, pinObj, i);
     };
+    if (isLockedMarker) {
+      const lockIcon = document.createElement("span");
+      lockIcon.className = "sw-lock-icon";
+      lockIcon.style.marginRight = "4px";
+      lockIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2h1M12 3a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg>';
+      div.appendChild(lockIcon);
+    }
     div.appendChild(colorMark);
 
     // ラベル行：テキスト(infoSpan)と鉛筆ボタン(editBtn)をまとめて包む。
@@ -401,6 +436,10 @@ function renderPinList() {
     if (pinObj.memo) infoSpan.title = pinObj.memo;
 
     infoSpan.onclick = () => { 
+      if (isLockedMarker) {
+        swOpenUnlockModal(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
+        return;
+      }
       isSeeking = true;
       audio.currentTime = pinObj.t; 
       prevTime = pinObj.t;
@@ -418,6 +457,10 @@ function renderPinList() {
     editBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
     editBtn.onclick = (e) => {
       e.stopPropagation();
+      if (typeof isUnlocked === "function" && !isUnlocked()) {
+        swOpenUnlockModal("無料版ではマーカーメモを利用できません。");
+        return;
+      }
       startPinMemoEdit(div, infoSpan, pinObj, i);
     };
     labelRow.appendChild(editBtn);
@@ -633,4 +676,13 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
     setTimeout(commit, 0);
   });
   input.addEventListener("click", e => e.stopPropagation());
+}
+
+// シェアウェア制限：広告解除/サブスク購入した瞬間、マーカーの鍵アイコン表示・
+// 波形ロック表示を即座に更新するため、player-shareware.js側のリフレッシュ機構に登録する。
+if (typeof swRegisterRefreshCallback === "function") {
+  swRegisterRefreshCallback(() => {
+    if (typeof renderPinList === "function") renderPinList();
+    if (typeof renderPins === "function") renderPins();
+  });
 }

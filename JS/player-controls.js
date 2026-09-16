@@ -36,6 +36,12 @@ function syncSpeedDisplays() {
 syncSpeedDisplays();
 
 function setSpeed(value) {
+  // シェアウェア制限：無料版はSpeed変更不可。値を変えずにモーダルだけ表示する。
+  if (typeof isUnlocked === "function" && !isUnlocked() && value !== 1.0) {
+    swOpenUnlockModal("無料版ではSpeed変更を利用できません。");
+    syncSpeedDisplays();
+    return;
+  }
   currentSpeed = Math.round(Math.max(SPEED_MIN, Math.min(SPEED_MAX, value)) * 100) / 100;
   syncSpeedDisplays();
   updatePlaybackRate();
@@ -48,6 +54,14 @@ let lastSpeedTickValue = currentSpeed;
 // 操作が一段落してから(最後のinputイベントから90ms後)にまとめて1回だけ行う。
 let speedApplyDebounceTimer = null;
 function handleSpeedRangeInput(e) {
+  // シェアウェア制限：無料版はSpeed変更不可。スライダーを1.0に戻し、モーダルを表示する。
+  if (typeof isUnlocked === "function" && !isUnlocked()) {
+    e.target.value = 1.0;
+    syncSpeedDisplays();
+    swOpenUnlockModal("無料版ではSpeed変更を利用できません。");
+    return;
+  }
+
   // Basic欄のポップアップ経由(setupAvPopup)ならボタンを開いた時点で接続されるが、
   // CONTROLタブのスライダーはポップアップの開閉を経由せず直接操作できてしまうため、
   // ここでも同様に、実際に操作された瞬間にWeb Audio API接続を試みる必要がある
@@ -257,6 +271,12 @@ function renderKeyDisplay() {
 }
 
 function setKeySemitones(value) {
+  // シェアウェア制限：無料版はKey変更不可。値を変えずにモーダルだけ表示する。
+  if (typeof isUnlocked === "function" && !isUnlocked() && value !== 0) {
+    swOpenUnlockModal("無料版ではKey変更を利用できません。");
+    return;
+  }
+
   // Basic欄のポップアップ経由(setupAvPopup)ならボタンを開いた時点で接続されるが、
   // CONTROLタブのステッパーボタンはポップアップの開閉を経由せず直接操作できてしまうため、
   // ここでも同様に、実際に操作された瞬間にWeb Audio API接続を試みる必要がある。
@@ -469,6 +489,9 @@ if (loopToggleBtn) {
     hapticTap();
     loopEnabled = !loopEnabled;
     try { localStorage.setItem(LOOP_ENABLED_STORAGE_KEY, loopEnabled ? "1" : "0"); } catch (e) {}
+    // ループをONにする瞬間、AB間ループ回数カウンターをリセットする。
+    if (typeof swAbLoopCount !== "undefined") swAbLoopCount = 0;
+    if (typeof swUpdateLoopCounterUI === "function") swUpdateLoopCounterUI();
     applyLoopButtonUI();
     renderSegments();
   };
@@ -509,8 +532,19 @@ if (allRepeatToggleBtn) {
       repeatMode = savedRepeatMode;
     }
   } catch (e) {}
+  // シェアウェア制限：無料版に戻った場合（Premium期限切れ等）は起動時にOFF固定へ戻す。
+  if (typeof isUnlocked === "function" && !isUnlocked() && repeatMode !== "off") {
+    repeatMode = "off";
+    try { localStorage.setItem(REPEAT_MODE_STORAGE_KEY, "off"); } catch (e) {}
+  }
 
   allRepeatToggleBtn.onclick = () => {
+    // シェアウェア制限：無料版はリピートOFF固定。トグル動作自体をブロックし、
+    // アンロックモーダルを表示する（repeatModeはoffのまま変化させない）。
+    if (typeof isUnlocked === "function" && !isUnlocked()) {
+      swOpenUnlockModal("無料版ではトラックリピートを利用できません。");
+      return;
+    }
     hapticTap();
     repeatMode = repeatMode === "off" ? "one" : repeatMode === "one" ? "all" : "off";
     try { localStorage.setItem(REPEAT_MODE_STORAGE_KEY, repeatMode); } catch (e) {}

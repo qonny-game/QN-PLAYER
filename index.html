@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="CSS/style-layout-sp.css">
 <link rel="stylesheet" href="CSS/style-layout-pc-v2.css">
 <link rel="stylesheet" href="CSS/style-auth.css">
+<link rel="stylesheet" href="CSS/style-shareware.css">
 <script>
   window.QN_CURRENT_APP = "player";
   window.QN_SHORTCUTS = [
@@ -73,6 +74,18 @@
       </button>
     </div>
   </div>
+
+  <!-- ============================================================
+       【検証用・一時的】シェアウェア動作確認用デバッグパネル。
+       リリース前に必ずこの<div id="swDebugPanel">〜</div>ブロック全体を削除すること。
+       ============================================================ -->
+  <div id="swDebugPanel">
+    <span id="swDebugStatus">FREE</span>
+    <button id="swDebugUnlockPremiumBtn" title="Premium(永久)として解除">Premium ON</button>
+    <button id="swDebugUnlock1hBtn" title="1時間解除">+1h</button>
+    <button id="swDebugRelockBtn" title="無料版に戻す">Free版に戻す</button>
+  </div>
+  <!-- ============================================================ -->
 </div>
 
 <div class="app-container">
@@ -85,6 +98,8 @@
       <div class="vbar" id="bar4"><canvas class="vwave" id="wave4"></canvas><div id="fill4" class="vfill"></div></div>
       <div class="vbar" id="bar5"><canvas class="vwave" id="wave5"></canvas><div id="fill5" class="vfill"></div></div>
       <div class="vbar" id="bar6"><canvas class="vwave" id="wave6"></canvas><div id="fill6" class="vfill"></div></div>
+      <!-- シェアウェア制限：無料版のAB間ループ回数カウンター（5回で自動停止） -->
+      <span id="swLoopCounter"></span>
     </div>
     
     <div class="top-controls" id="topControls">
@@ -192,7 +207,7 @@
           <input type="range" id="controlVolume" min="0" max="1" step="0.01" value="0.8">
         </div>
 
-        <div class="control-card">
+        <div class="control-card" id="controlSpeedCard">
           <label>
             Speed <span id="controlSpeedDisplay" style="color:#fff;">1.00</span>x
             <button class="mini-reset-btn" id="controlSpeedResetBtn" title="Reset speed to 1.00x">RESET</button>
@@ -508,6 +523,7 @@
 
 
 <script src="JS/lame_min.js"></script>
+<script src="JS/player-shareware.js"></script>
 <script src="JS/player-core.js"></script>
 <script src="JS/player-ui-shared.js"></script>
 <script src="JS/player-id3.js"></script>

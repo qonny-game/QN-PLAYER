@@ -20,6 +20,13 @@ function addFilesToPlaylist(files) {
   const audioFiles = files.filter(f => f.type.startsWith("audio/") || /\.(mp3|wav|ogg|oga|m4a|aac|flac|webm|opus)$/i.test(f.name));
   if (audioFiles.length === 0) return;
 
+  // シェアウェア制限：無料版はライブラリ3曲まで。既に3曲以上ある状態での
+  // 追加操作はアンロックモーダルを表示してブロックする（既存データの削除はしない）。
+  if (typeof isUnlocked === "function" && !isUnlocked() && playlist.length >= SW_LIMITS.LIBRARY_MAX_TRACKS) {
+    swOpenUnlockModal(`無料版はライブラリに${SW_LIMITS.LIBRARY_MAX_TRACKS}曲までしか保存できません。`);
+    return;
+  }
+
   const wasEmpty = playlist.length === 0;
   audioFiles.forEach(file => {
     const track = { file, name: file.name, title: null, artist: null, duration: null, enabled: true };
@@ -135,6 +142,11 @@ function renderPlaylist() {
     if (i === currentPlaylistIndex) item.classList.add("playing");
     if (!track.enabled) item.classList.add("disabled");
 
+    // シェアウェア制限：無料版で4曲目以降(index >= LIBRARY_MAX_TRACKS)は
+    // 削除せず保持・表示するが、鍵アイコン付きでロックする。
+    const isLockedTrack = typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.LIBRARY_MAX_TRACKS;
+    if (isLockedTrack) item.classList.add("sw-locked");
+
     // ドラッグ並び替え用のハンドル（この部分を掴んでドラッグする）
     const dragHandle = document.createElement("span");
     dragHandle.className = "playlist-drag-handle";
@@ -149,6 +161,13 @@ function renderPlaylist() {
       thumb.style.backgroundImage = `url("${track.thumbnailUrl}")`;
     } else {
       thumb.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+    }
+    if (isLockedTrack) {
+      const lockIcon = document.createElement("span");
+      lockIcon.className = "sw-lock-icon";
+      lockIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2h1M12 3a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg>';
+      thumb.appendChild(lockIcon);
+      thumb.onclick = () => swOpenUnlockModal(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
     }
     item.appendChild(thumb);
 
@@ -167,6 +186,10 @@ function renderPlaylist() {
       // されてしまっていた（再生されないバグの直接原因）。
       if (e.target.closest(".playlist-editable-input")) return;
       if (e.target.closest(".playlist-hover-edit-btn")) return;
+      if (isLockedTrack) {
+        swOpenUnlockModal(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
+        return;
+      }
       playTrackAt(parseInt(item.dataset.index, 10));
     };
 
@@ -476,6 +499,13 @@ function setupPlaylistDragReorder(box) {
     function onTouchEnd() { onEnd(); }
 
     function startDrag(clientY) {
+      // シェアウェア制限：無料版は並び替え不可。ドラッグ自体を開始させず、
+      // 通知だけ表示する。
+      if (typeof isUnlocked === "function" && !isUnlocked()) {
+        swOpenUnlockModal("無料版ではライブラリの並び替えはできません。");
+        return;
+      }
+
       draggedItem = handle.closest(".playlistItem");
       if (!draggedItem) return;
 
@@ -524,3 +554,9 @@ function setupPlaylistDragReorder(box) {
 
 // （⋮メニューは廃止。ファイル名変更はホバー鉛筆編集、スルーON/OFFは
 // EDITモードのPLAY/SKIPトグルに統合済み。）
+
+// シェアウェア制限：広告解除/サブスク購入した瞬間、ライブラリの鍵アイコン表示を
+// 即座に更新するため、player-shareware.js側のリフレッシュ機構に登録する。
+if (typeof swRegisterRefreshCallback === "function") {
+  swRegisterRefreshCallback(() => { if (typeof renderPlaylist === "function") renderPlaylist(); });
+}

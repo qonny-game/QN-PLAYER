@@ -16,6 +16,13 @@ import {
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- firebaseConfig ---
 const firebaseConfig = {
@@ -30,13 +37,44 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
+const db = getFirestore(firebaseApp);
+
+// --- Firestore: 購入/解除フラグ(unlockUntil)の読み書き ---
+// コレクション: users/{uid}  フィールド: unlockUntil (number), updatedAt (serverTimestamp)
+// unlockUntilの意味はplayer-shareware.js側のlocalStorageキーと同じ
+// （-1=Premium永久解除、それ以外=epoch msまでの時限解除、0/未設定=無料版）。
+async function fetchUnlockUntilFromFirestore(uid) {
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists() && typeof snap.data().unlockUntil === "number") {
+      return snap.data().unlockUntil;
+    }
+    return null;
+  } catch (err) {
+    console.error("[QN_AUTH] Firestore read failed:", err);
+    return null;
+  }
+}
+
+async function saveUnlockUntilToFirestore(uid, unlockUntil) {
+  try {
+    await setDoc(doc(db, "users", uid), {
+      unlockUntil,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch (err) {
+    console.error("[QN_AUTH] Firestore write failed:", err);
+  }
+}
 
 // 他のJSファイル（player-core.js等）から現在のユーザー情報を
 // 参照できるよう、window.QN_AUTHとして公開しておく。
 // currentUserはonAuthStateChangedが発火するまではnullのまま。
 window.QN_AUTH = {
   auth,
-  currentUser: null
+  currentUser: null,
+  fetchUnlockUntilFromFirestore,
+  saveUnlockUntilToFirestore
 };
 
 // --- DOM要素 ---
@@ -70,7 +108,7 @@ if (btnLoginGoogle) btnLoginGoogle.addEventListener("click", handleLogin);
 if (btnLogout) btnLogout.addEventListener("click", handleLogout);
 
 // --- ログイン状態監視・UI自動切り替え ---
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   window.QN_AUTH.currentUser = user;
 
   if (user) {
@@ -79,6 +117,13 @@ onAuthStateChanged(auth, (user) => {
     if (userNameEl) userNameEl.textContent = user.displayName || user.email || "";
     if (btnLoginGoogle) btnLoginGoogle.style.display = "none";
     if (userInfoEl) userInfoEl.style.display = "flex";
+
+    // Firestoreに保存されている解除状態と、このブラウザのlocalStorageの解除状態を
+    // マージする（詳細な優先ルールはplayer-shareware.js側のswSyncUnlockWithFirestoreが持つ）。
+    // player-shareware.jsはこのファイルより先に読み込まれている前提。
+    if (typeof window.swSyncUnlockWithFirestore === "function") {
+      await window.swSyncUnlockWithFirestore(user.uid);
+    }
 
     // 他モジュール（購入フラグ判定等）へ通知したい場合はここでカスタムイベントを発火できる。
     // 例: window.dispatchEvent(new CustomEvent("qn-auth-changed", { detail: { user } }));
