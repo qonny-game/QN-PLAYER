@@ -25,7 +25,7 @@
 }
 
 .sw-unlock-modal {
-  width: min(760px, 94vw);
+  width: min(1100px, 94vw);
   max-height: 90vh;
   overflow-y: auto;
   background: #16161a;
@@ -37,11 +37,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 18px;
+  padding: 22px 24px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 800;
+  font-size: 22px;
   color: #f0f0f3;
 }
 
@@ -59,29 +59,33 @@
 }
 
 .sw-unlock-modal-body {
-  padding: 18px;
+  padding: 20px 24px 24px;
 }
 
 .sw-unlock-modal-desc {
-  margin: 0 0 16px;
-  font-size: 13px;
+  margin: 0 0 20px;
+  font-size: 13.5px;
   color: #b5b5bf;
   line-height: 1.5;
+  text-align: center;
+}
+.sw-unlock-modal-desc:empty {
+  display: none;
 }
 
 .sw-pricing-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 16px;
+  align-items: stretch;
 }
 
 .sw-pricing-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px 12px;
-  border-radius: 12px;
+  padding: 24px 20px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
   color: #f0f0f3;
@@ -95,39 +99,73 @@
   border-color: color-mix(in srgb, var(--accent-primary) 55%, transparent);
 }
 
+.sw-pricing-card-top {
+  display: flex;
+  flex-direction: column;
+}
+
 .sw-pricing-card-title {
-  font-size: 13px;
-  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  height: 84px;
+  margin-bottom: 6px;
+}
+
+.sw-pricing-card-title-en {
+  display: block;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+}
+
+.sw-pricing-card-title-jp {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a8a95;
+  letter-spacing: 0;
+  margin-top: 5px;
+}
+
+.sw-pricing-card-desc {
+  font-size: 12px;
+  color: #8a8a95;
+  line-height: 1.5;
+  height: 36px;
+  overflow: hidden;
+  margin-bottom: 16px;
 }
 
 .sw-pricing-card-price {
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   line-height: 1;
+  height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin-bottom: 6px;
 }
 
 .sw-pricing-card-price-unit {
+  display: block;
   font-size: 11px;
   font-weight: 500;
   color: #8a8a95;
-  margin-left: 2px;
-}
-
-.sw-pricing-card-sub {
-  font-size: 10.5px;
-  color: #8a8a95;
-  min-height: 28px;
+  margin-top: 6px;
 }
 
 .sw-pricing-card-cta {
-  margin-top: auto;
-  padding: 7px 8px;
+  width: 100%;
+  padding: 11px 8px;
   border-radius: 999px;
   background: var(--accent-primary, #3b82f6);
   color: #fff;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-align: center;
+  margin-top: 18px;
+  margin-bottom: 16px;
 }
 
 .sw-pricing-cta-secondary {
@@ -146,21 +184,77 @@
 
 .sw-pricing-badge {
   position: absolute;
-  top: -9px;
-  left: 12px;
-  padding: 2px 9px;
+  top: -11px;
+  left: 20px;
+  padding: 3px 11px;
   border-radius: 999px;
   background: var(--accent-primary, #3b82f6);
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
+}
+
+/* 「日本限定価格」バッジ。「おすすめ」バッジと同居するカード（サブスク）では
+   右上に配置してぶつからないようにする。単独のカード（永久ライセンス）では
+   左上に置く。 */
+.sw-pricing-jp-badge {
+  position: absolute;
+  top: -11px;
+  right: 20px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f59e0b, #f43f5e);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#swUnlockLifetime .sw-pricing-jp-badge {
+  left: 20px;
+  right: auto;
+}
+
+/* 海外価格の取り消し線表示。実際の価格（¥150など）の上に小さく表示する。 */
+.sw-pricing-price-overseas {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a8a95;
+  text-decoration: line-through;
+  margin-bottom: 2px;
+}
+
+.sw-pricing-feature-list {
+  list-style: none;
+  padding-top: 14px;
+  margin-top: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sw-pricing-feature-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.sw-pricing-check {
+  color: #4ade80;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .sw-pricing-compare-link {
   display: block;
-  margin-top: 14px;
+  margin-top: 20px;
   text-align: center;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--accent-primary, #3b82f6);
   text-decoration: none;
 }
@@ -172,7 +266,7 @@
 /* スマホ幅：4列だと窮屈になるので2列に折り返す */
 @media (max-width: 640px) {
   .sw-pricing-cards {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 }
 

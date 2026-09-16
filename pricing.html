@@ -133,10 +133,54 @@
       border-radius: 12px;
     }
 
-    .card-title {
-      font-size: 1.25rem;
+    /* 「日本限定価格」バッジ。おすすめバッジと同居するカード（サブスク）では
+       右上に配置し、単独のカード（永久ライセンス）では左上に置く。 */
+    .badge-jp-price {
+      position: absolute;
+      top: -12px;
+      right: 20px;
+      background: linear-gradient(135deg, #f59e0b, #f43f5e);
+      color: #fff;
+      font-size: 0.72rem;
       font-weight: bold;
+      padding: 2px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    .badge-jp-price-standalone {
+      left: 20px;
+      right: auto;
+    }
+
+    /* 海外価格の取り消し線表示。実際の価格の上に小さく表示する。 */
+    .price-overseas {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-decoration: line-through;
+      margin-bottom: 2px;
+    }
+
+    .card-title {
+      display: flex;
+      flex-direction: column;
       margin-bottom: 6px;
+    }
+
+    .card-title-en {
+      display: block;
+      font-size: 1.7rem;
+      font-weight: bold;
+      line-height: 1.15;
+      letter-spacing: -0.3px;
+    }
+
+    .card-title-jp {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-top: 5px;
     }
 
     .card-desc {
@@ -292,7 +336,7 @@
     <div class="cards-grid">
 
       <div class="card">
-        <div class="card-title">広告（1時間）</div>
+        <div class="card-title"><span class="card-title-en">TimePass</span><span class="card-title-en">1Hour</span><span class="card-title-jp">広告解除1時間</span></div>
         <div class="card-desc">動画広告を1本視聴して、1曲集中耳コピや短時間の練習に。</div>
         <div class="price-box">
           <div class="price-main">無料</div>
@@ -307,7 +351,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title">広告（24時間）</div>
+        <div class="card-title"><span class="card-title-en">TimePass</span><span class="card-title-en">1Day</span><span class="card-title-jp">広告解除1日</span></div>
         <div class="card-desc">広告を数本まとめて視聴して、週末の長時間練習やセッションに。</div>
         <div class="price-box">
           <div class="price-main">無料</div>
@@ -323,9 +367,11 @@
 
       <div class="card highlight">
         <div class="badge-recommend">おすすめ</div>
-        <div class="card-title">サブスク</div>
+        <div class="badge-jp-price">🇯🇵 日本限定価格</div>
+        <div class="card-title"><span class="card-title-en">Premium</span><span class="card-title-en">(Monthly)</span><span class="card-title-jp">マンスリー</span></div>
         <div class="card-desc">広告なしで常に快適。手軽に始めたい方に最適な月額プラン。</div>
         <div class="price-box">
+          <div class="price-overseas" id="sub-price-overseas">$4.99</div>
           <div class="price-main" id="sub-price">¥150</div>
           <div class="price-sub" id="sub-period">/ 月（自動更新）</div>
         </div>
@@ -338,9 +384,11 @@
       </div>
 
       <div class="card">
-        <div class="card-title">永久ライセンス</div>
+        <div class="badge-jp-price badge-jp-price-standalone">🇯🇵 日本限定価格</div>
+        <div class="card-title"><span class="card-title-en">Premium</span><span class="card-title-en">(Lifetime)</span><span class="card-title-jp">永久ライセンス</span></div>
         <div class="card-desc">一度の支払いでずっと使い放題。サブスクの管理が不要な方に。</div>
         <div class="price-box">
+          <div class="price-overseas">$80</div>
           <div class="price-main">¥2,500</div>
           <div class="price-sub">買い切り（追加料金なし）</div>
         </div>
@@ -361,9 +409,9 @@
           <tr>
             <th>項目 / 機能</th>
             <th><div class="plan-free">無料版</div></th>
-            <th><div class="plan-ad">広告（1時間）</div></th>
-            <th><div class="plan-ad">広告（24時間）</div></th>
-            <th><div class="plan-sub">サブスク / 永久</div></th>
+            <th><div class="plan-ad">TimePass 1Hour</div></th>
+            <th><div class="plan-ad">TimePass 1Day</div></th>
+            <th><div class="plan-sub">Premium (マンスリー / 永久)</div></th>
           </tr>
         </thead>
         <tbody>
@@ -445,17 +493,20 @@
       const btnYearly = document.getElementById('btn-yearly');
       const subPrice = document.getElementById('sub-price');
       const subPeriod = document.getElementById('sub-period');
+      const subPriceOverseas = document.getElementById('sub-price-overseas');
 
       if (type === 'yearly') {
         btnYearly.classList.add('active');
         btnMonthly.classList.remove('active');
         subPrice.innerText = '¥1,500';
         subPeriod.innerText = '/ 年（2ヶ月分お得）';
+        subPriceOverseas.innerText = '$49.99';
       } else {
         btnMonthly.classList.add('active');
         btnYearly.classList.remove('active');
         subPrice.innerText = '¥150';
         subPeriod.innerText = '/ 月（自動更新）';
+        subPriceOverseas.innerText = '$4.99';
       }
     }
   </script>

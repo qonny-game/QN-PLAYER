@@ -161,36 +161,72 @@ function swBuildModal() {
   overlay.innerHTML = `
     <div class="sw-unlock-modal">
       <div class="sw-unlock-modal-header">
-        <span id="swUnlockModalTitle">この機能はPremium限定です</span>
+        <span id="swUnlockModalTitle">アップグレードしてQNPLAYERの全機能を解放</span>
         <button id="swUnlockModalCloseBtn" class="sw-unlock-modal-close" title="Close">✕</button>
       </div>
       <div class="sw-unlock-modal-body">
         <p id="swUnlockModalDesc" class="sw-unlock-modal-desc"></p>
         <div class="sw-pricing-cards">
           <div class="sw-pricing-card" id="swUnlockAd1h">
-            <div class="sw-pricing-card-title">広告（1時間）</div>
-            <div class="sw-pricing-card-price">無料</div>
-            <div class="sw-pricing-card-sub">動画広告 1本視聴</div>
+            <div class="sw-pricing-card-top">
+              <div class="sw-pricing-card-title"><span class="sw-pricing-card-title-en">TimePass</span><span class="sw-pricing-card-title-en">1Hour</span><span class="sw-pricing-card-title-jp">広告解除1時間</span></div>
+              <div class="sw-pricing-card-desc">動画広告を1本視聴して、1曲集中耳コピや短時間の練習に。</div>
+              <div class="sw-pricing-card-price">無料<span class="sw-pricing-card-price-unit">動画広告 1本視聴</span></div>
+            </div>
             <div class="sw-pricing-card-cta sw-pricing-cta-secondary">1時間解放</div>
+            <ul class="sw-pricing-feature-list">
+              <li><span class="sw-pricing-check">✓</span>1時間 全機能が無制限で解放</li>
+              <li><span class="sw-pricing-check">✓</span>ライブラリ保存数 無制限</li>
+              <li><span class="sw-pricing-check">✓</span>マーカー・ループ自動停止なし</li>
+            </ul>
           </div>
           <div class="sw-pricing-card" id="swUnlockAd24h">
-            <div class="sw-pricing-card-title">広告（24時間）</div>
-            <div class="sw-pricing-card-price">無料</div>
-            <div class="sw-pricing-card-sub">動画広告 2〜3本視聴</div>
+            <div class="sw-pricing-card-top">
+              <div class="sw-pricing-card-title"><span class="sw-pricing-card-title-en">TimePass</span><span class="sw-pricing-card-title-en">1Day</span><span class="sw-pricing-card-title-jp">広告解除1日</span></div>
+              <div class="sw-pricing-card-desc">広告を数本まとめて視聴して、週末の長時間練習やセッションに。</div>
+              <div class="sw-pricing-card-price">無料<span class="sw-pricing-card-price-unit">動画広告 2〜3本視聴</span></div>
+            </div>
             <div class="sw-pricing-card-cta sw-pricing-cta-secondary">24時間解放</div>
+            <ul class="sw-pricing-feature-list">
+              <li><span class="sw-pricing-check">✓</span>24時間 全機能が無制限で解放</li>
+              <li><span class="sw-pricing-check">✓</span>ライブラリ保存数 無制限</li>
+              <li><span class="sw-pricing-check">✓</span>マーカー・ループ自動停止なし</li>
+            </ul>
           </div>
           <div class="sw-pricing-card sw-pricing-card-highlight" id="swUnlockSubscribe">
             <div class="sw-pricing-badge">おすすめ</div>
-            <div class="sw-pricing-card-title">サブスク</div>
-            <div class="sw-pricing-card-price">¥150<span class="sw-pricing-card-price-unit">/ 月</span></div>
-            <div class="sw-pricing-card-sub">広告なしで常時解放</div>
+            <div class="sw-pricing-jp-badge">🇯🇵 日本限定価格</div>
+            <div class="sw-pricing-card-top">
+              <div class="sw-pricing-card-title"><span class="sw-pricing-card-title-en">Premium</span><span class="sw-pricing-card-title-en">(Monthly)</span><span class="sw-pricing-card-title-jp">マンスリー</span></div>
+              <div class="sw-pricing-card-desc">広告なしで常に快適。手軽に始めたい方に最適な月額プラン。</div>
+              <div class="sw-pricing-card-price">
+                <span class="sw-pricing-price-overseas">$4.99</span>
+                ¥150<span class="sw-pricing-card-price-unit">/ 月（自動更新）</span>
+              </div>
+            </div>
             <div class="sw-pricing-card-cta">サブスクに登録</div>
+            <ul class="sw-pricing-feature-list">
+              <li><span class="sw-pricing-check">✓</span><b>広告表示・視聴 一切なし</b></li>
+              <li><span class="sw-pricing-check">✓</span>常時 すべての制限が無制限</li>
+              <li><span class="sw-pricing-check">✓</span>気軽に解約・再開が可能</li>
+            </ul>
           </div>
           <div class="sw-pricing-card" id="swUnlockLifetime">
-            <div class="sw-pricing-card-title">永久ライセンス</div>
-            <div class="sw-pricing-card-price">¥2,500</div>
-            <div class="sw-pricing-card-sub">買い切り・追加料金なし</div>
+            <div class="sw-pricing-jp-badge">🇯🇵 日本限定価格</div>
+            <div class="sw-pricing-card-top">
+              <div class="sw-pricing-card-title"><span class="sw-pricing-card-title-en">Premium</span><span class="sw-pricing-card-title-en">(Lifetime)</span><span class="sw-pricing-card-title-jp">永久ライセンス</span></div>
+              <div class="sw-pricing-card-desc">一度の支払いでずっと使い放題。サブスクの管理が不要な方に。</div>
+              <div class="sw-pricing-card-price">
+                <span class="sw-pricing-price-overseas">$80</span>
+                ¥2,500<span class="sw-pricing-card-price-unit">買い切り（追加料金なし）</span>
+              </div>
+            </div>
             <div class="sw-pricing-card-cta sw-pricing-cta-secondary">永久ライセンス購入</div>
+            <ul class="sw-pricing-feature-list">
+              <li><span class="sw-pricing-check">✓</span><b>広告表示・視聴 一切なし</b></li>
+              <li><span class="sw-pricing-check">✓</span>無期限で全機能使い放題</li>
+              <li><span class="sw-pricing-check">✓</span>アプデ後の新機能も永続適用</li>
+            </ul>
           </div>
         </div>
         <a href="/pricing.html" target="_blank" rel="noopener" class="sw-pricing-compare-link">詳しく比較する →</a>
