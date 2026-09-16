@@ -82,12 +82,12 @@
   display: none;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   padding: 0;
   background: none;
-  color: #8b8b9e;
+  color: #c7c7d6;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -104,8 +104,8 @@
 }
 
 .pin-edit-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
   fill: currentColor;
 }
 

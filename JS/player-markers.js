@@ -617,7 +617,7 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   input.type = "text";
   input.className = "pin-memo-input";
   input.value = pinObj.memo || "";
-  input.placeholder = `${index + 1} - ${pinObj.t.toFixed(2)}s`;
+  input.placeholder = `${pinObj.t.toFixed(2)}s`;
   input.maxLength = 60;
 
   infoSpan.style.display = "none";

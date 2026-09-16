@@ -38,7 +38,23 @@
 (() => {
   'use strict';
 
-  const QN_MENU_BASE = 'https://qonny-game.github.io/QN-PLAYER/';
+  // QN-PLAYER自身（このスクリプトの発信元リポジトリ）のカスタムドメインで
+  // 動いている場合、GitHub Pages経由(https://qonny-game.github.io/QN-PLAYER/)
+  // へfetchすると、GitHub Pages側がカスタムドメインへの301リダイレクトを
+  // 返し、かつそのリダイレクト先がhttp（非TLS）であるため、httpsページから
+  // 見るとMixed Content扱いでブラウザにブロックされてしまう
+  // （fetchが失敗し続け、呼び出し元でLoading表示のまま止まる不具合の原因）。
+  // QN-PLAYER自身は同一オリジンにqn-menu.html/qn-menu.cssを持っているため、
+  // このスクリプト自身が相対パス（同一オリジン）で読み込まれている場合は
+  // 自分自身=QN-PLAYERと判断してそちらを優先し、他のQNシリーズアプリ
+  // (QNTEMPO/QNTUNER等、絶対URLで読み込む=別オリジン)は従来通り
+  // GitHub Pages経由で取得する。
+  const thisScript = document.currentScript;
+  const isLoadedFromAbsoluteUrl = !!thisScript &&
+    /^https?:\/\//i.test(thisScript.getAttribute("src") || "");
+  const QN_MENU_BASE = isLoadedFromAbsoluteUrl
+    ? 'https://qonny-game.github.io/QN-PLAYER/'
+    : new URL('.', location.href).href;
   const THEME_STORAGE_KEY = 'qn_theme';
   const GLOW_STORAGE_KEY = 'qn_glow';
 

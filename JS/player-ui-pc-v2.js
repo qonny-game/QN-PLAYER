@@ -782,13 +782,17 @@
         headerActions.appendChild(addFileBtn);
       }
 
-      const editBtn = el(
-        '<button type="button" class="panel-edit-btn" id="pcV2' + (panelId === "markers" ? "Markers" : "Playlist") + 'EditBtn" title="Edit ' + panelId + '">' +
-          '<span>EDIT</span>' +
-        '</button>'
-      );
-      editBtn.addEventListener("click", () => toggleEditMode(panelId));
-      headerActions.appendChild(editBtn);
+      if (panelId === "markers") {
+        const addMarkerBtn = el(
+          '<button type="button" class="panel-addfile-btn" id="pcV2AddMarkerBtn" title="Add Marker">' +
+            '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
+          '</button>'
+        );
+        addMarkerBtn.addEventListener("click", () => {
+          if (typeof addCurrentPin === "function") addCurrentPin();
+        });
+        headerActions.appendChild(addMarkerBtn);
+      }
 
       const deleteBtn = el(
         '<button type="button" id="pcV2DeleteSelectedBtn" disabled>' +
@@ -797,6 +801,14 @@
       );
       deleteBtn.addEventListener("click", () => deleteSelectedItems(panelId));
       headerActions.appendChild(deleteBtn);
+
+      const editBtn = el(
+        '<button type="button" class="panel-edit-btn" id="pcV2' + (panelId === "markers" ? "Markers" : "Playlist") + 'EditBtn" title="Edit ' + panelId + '">' +
+          '<span>EDIT</span>' +
+        '</button>'
+      );
+      editBtn.addEventListener("click", () => toggleEditMode(panelId));
+      headerActions.appendChild(editBtn);
 
       panelHeader.appendChild(headerActions);
     }
@@ -876,7 +888,11 @@
     const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
     const cssClass = panelId + "-edit-mode";
     if (panelBody) panelBody.classList.toggle(cssClass, editModeState[panelId]);
-    if (editBtn) editBtn.classList.toggle("active", editModeState[panelId]);
+    if (editBtn) {
+      editBtn.classList.toggle("active", editModeState[panelId]);
+      const editBtnLabel = editBtn.querySelector("span");
+      if (editBtnLabel) editBtnLabel.textContent = editModeState[panelId] ? "OK" : "EDIT";
+    }
     if (deleteBtn) {
       deleteBtn.style.display = editModeState[panelId] ? "flex" : "none";
       deleteBtn.disabled = true;
@@ -898,19 +914,12 @@
     }
   }
 
-  // 通常時(編集モードOFF)は表示非表示トグル(.toggle-btn)のクリックを
-  // 無効化する（編集モード専用の機能のため）。
-  // 【重要】.pin-edit-btn/.playlist-hover-edit-btnは今回の変更で「通常
-  // モードでこそ使う」ホバー編集ボタンに意味が変わったため、ここでの
-  // 無効化対象から外す。以前はここに.pin-edit-btnも含まれていたが、
-  // それにより通常モードでの鉛筆クリックが常にキャプチャ段階で
-  // stopPropagation/preventDefaultされ、ラベル編集が一切開始できなく
-  // なるバグを引き起こしていた（実機のPuppeteerクリックで検出）。
-  // 編集モードON時はこのブロックを解除し、player-markers.js/
-  // player-playlist.js側の本来のクリックハンドラがそのまま動くように
-  // なる。どちらのモードでもリスト自体はrenderPinList()/renderPlaylist()
-  // で都度作り直されるため、常時イベント委譲(キャプチャフェーズ)で
-  // container自体に1つだけリスナーを置き、個別ボタンには何もしない。
+  // 通常時(編集モードOFF)はチェックボックス選択用の要素だけを無効化する。
+  // 【重要】.toggle-btn（マーカーON/OFFの目アイコン）と.pin-edit-btn/
+  // .playlist-hover-edit-btn（ホバー編集ボタン）は、通常モードでこそ使う
+  // 機能のため、ここでの無効化対象から外す。以前は.toggle-btnも含めて
+  // キャプチャ段階でstopPropagation/preventDefaultしていたため、通常
+  // モードで目アイコンをクリックしても何も起きないバグを引き起こしていた。
   const disableHandlers = { markers: null, playlist: null };
 
   function attachDisableGuard(panelId) {
@@ -918,10 +927,7 @@
     if (!container || disableHandlers[panelId]) return;
     const handler = (e) => {
       if (editModeState[panelId]) return;
-      const target = e.target.closest(".toggle-btn");
-      if (!target || !container.contains(target)) return;
-      e.stopPropagation();
-      e.preventDefault();
+      return;
     };
     container.addEventListener("click", handler, true);
     disableHandlers[panelId] = handler;
@@ -1231,6 +1237,17 @@
       }
     });
     pcv2QnObserver.observe(mount, { childList: true, subtree: true });
+
+    // qn-menu.js側のfetch失敗（オフライン、CORS、Mixed Content等）で
+    // 注入が永久に来ない場合、Loading表示のまま固まってしまうため、
+    // 一定時間待って注入が確認できなければエラー表示に差し替える。
+    setTimeout(() => {
+      if (pcv2QnSections[panelId]) return; // 注入済みなら何もしない
+      if (currentPanel !== panelId) return; // 別パネルに切り替え済みなら何もしない
+      if (panelBody.contains(loading)) {
+        loading.textContent = "読み込みに失敗しました。再読み込みしてお試しください。";
+      }
+    }, 8000);
   }
 
   // 元の位置に戻すための目印（コメントノード）。要素移動前に元の場所へ
