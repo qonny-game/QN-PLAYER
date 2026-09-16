@@ -185,8 +185,8 @@
 }
 
 .qn-theme-swatch {
-  width: 28px;
-  height: 28px;
+  width: 31px;
+  height: 31px;
   border-radius: 50%;
   aspect-ratio: 1 / 1;
   border: 2px solid rgba(255, 255, 255, 0.15);
@@ -222,9 +222,9 @@
   justify-content: space-between;
 }
 .qn-glow-toggle-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #c8c8d0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #8b8b9e;
 }
 
 .qn-glow-switch {
