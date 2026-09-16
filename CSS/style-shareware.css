@@ -218,8 +218,17 @@
   background: rgba(245, 158, 11, 0.25);
 }
 
+/* スマホ幅でも検証できるよう、非表示にはせず折り返し表示にする。
+   ヘッダー内で場所を取りすぎる場合はここを縮小する。 */
 @media (max-width: 900px) {
   #swDebugPanel {
-    display: none;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  #swDebugPanel button {
+    font-size: 10px;
+    padding: 3px 6px;
   }
 }
