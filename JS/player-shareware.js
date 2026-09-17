@@ -19,6 +19,9 @@ const SW_UNLOCK_UPDATED_AT_KEY = "qnplayer_unlock_updated_at"; // このブラ�
                                                                  // Firestoreとのマージ時、「どちらの操作が新しいか」の判定に使う
                                                                  // （単純にunlockUntilの値が大きい方を採用すると、無料版へ
                                                                  //   「戻す」操作が古い時限解除の値に上書きされてしまうため）。
+const SW_PLAN_TYPE_STORAGE_KEY = "qnplayer_plan_type"; // "monthly" / "yearly" / "lifetime" / null(広告時限解除・無料版)。
+                                                          // Cloud Functions(stripeWebhook)がFirestoreに書き込んだ値をそのまま
+                                                          // ミラーする。モーダルの階層表示（同等・下位プランのボタンを隠す）に使う。
 
 // 無料版の各種上限値。仕様書(QNPLAYER_Shareware_Spec.md)の数値をそのまま定数化。
 const SW_LIMITS = {
@@ -39,6 +42,29 @@ function swGetUnlockUntil() {
   }
 }
 
+// 現在契約中のプラン種別を返す（"monthly" / "yearly" / "lifetime" / null）。
+// nullは「広告視聴による時限解除」または「無料版」のいずれか
+// （両者ともプラン購入ではないので区別しない。isUnlocked()と組み合わせて使う）。
+function swGetPlanType() {
+  try {
+    const raw = localStorage.getItem(SW_PLAN_TYPE_STORAGE_KEY);
+    if (raw === "monthly" || raw === "yearly" || raw === "lifetime") return raw;
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function swSetPlanType(planType) {
+  try {
+    if (planType === "monthly" || planType === "yearly" || planType === "lifetime") {
+      localStorage.setItem(SW_PLAN_TYPE_STORAGE_KEY, planType);
+    } else {
+      localStorage.removeItem(SW_PLAN_TYPE_STORAGE_KEY);
+    }
+  } catch (e) {}
+}
+
 function swGetLocalUpdatedAt() {
   try {
     const raw = localStorage.getItem(SW_UNLOCK_UPDATED_AT_KEY);
@@ -52,17 +78,22 @@ function swGetLocalUpdatedAt() {
 // value: 新しい解除状態。updatedAtMsを省略した場合は「今、この端末で操作した」
 // ものとして現在時刻を記録する。Firestoreからのマージ結果を書き戻す時だけ、
 // 呼び出し側からリモート側のupdatedAtMsをそのまま渡す（時刻の二重更新を防ぐため）。
+// この関数はローカル操作（広告視聴による時限解除・デバッグパネルでの
+// 無料版リセット）専用。決済によるプラン確定はCloud Functions(stripeWebhook)が
+// 直接Firestoreに書き込むため、この関数を経由しない。そのため、ここでは
+// 常にplanTypeを購入によるものではない状態（null）にリセットする。
 function swSetUnlockUntil(value, updatedAtMs) {
   const ts = typeof updatedAtMs === "number" ? updatedAtMs : Date.now();
   try {
     localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(value));
     localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(ts));
   } catch (e) {}
+  swSetPlanType(null);
 
   // ログイン中はFirestoreにも書き込み、他の端末/ブラウザからも同じ解除状態が
   // 見えるようにする（未ログインの場合はlocalStorageのみのフォールバック動作）。
   if (window.QN_AUTH && window.QN_AUTH.currentUser && typeof window.QN_AUTH.saveUnlockUntilToFirestore === "function") {
-    window.QN_AUTH.saveUnlockUntilToFirestore(window.QN_AUTH.currentUser.uid, value);
+    window.QN_AUTH.saveUnlockUntilToFirestore(window.QN_AUTH.currentUser.uid, value, null);
   }
 }
 
@@ -131,7 +162,7 @@ async function swSyncUnlockWithFirestore(uid) {
   if (!remote) {
     // Firestore未登録：ローカルの状態をそのまま書き込んで初期化する。
     if (window.QN_AUTH.saveUnlockUntilToFirestore) {
-      window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil);
+      window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil, swGetPlanType());
     }
     swRefreshAllLockedUI();
     return;
@@ -146,6 +177,7 @@ async function swSyncUnlockWithFirestore(uid) {
       localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
       localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
     } catch (e) {}
+    swSetPlanType(remote.planType);
     swRefreshAllLockedUI();
     return;
   }
@@ -157,10 +189,11 @@ async function swSyncUnlockWithFirestore(uid) {
       localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
       localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
     } catch (e) {}
+    swSetPlanType(remote.planType);
   } else if (localUpdatedAt > remote.updatedAtMs) {
     // ローカルの方が新しい場合、Firestore側が古いまま残らないよう書き戻す。
     if (window.QN_AUTH.saveUnlockUntilToFirestore) {
-      window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil);
+      window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil, swGetPlanType());
     }
   }
 
@@ -369,22 +402,55 @@ function swOpenUnlockModal(message) {
   const descEl = overlay.querySelector("#swUnlockModalDesc");
   if (descEl) descEl.textContent = message || "この機能は無料版では利用できません。";
 
-  // サブスク購入後・永久ライセンス購入後は、広告視聴カード（1時間/24時間）を
-  // 非表示にする。すでに無制限で使える状態の人に「動画広告を見て解除する」
-  // という選択肢を見せる/押せる状態にしておく意味がないため。
-  // 月額/年額/永久ライセンスのカードは、プラン変更（年額へのアップグレード等）
-  // の導線として有料中でも残す。
-  const isPremium = typeof isUnlocked === "function" && isUnlocked();
-  const ad1h = overlay.querySelector("#swUnlockAd1h");
-  const ad24h = overlay.querySelector("#swUnlockAd24h");
-  if (ad1h) ad1h.style.display = isPremium ? "none" : "";
-  if (ad24h) ad24h.style.display = isPremium ? "none" : "";
+  // プランの階層表示：契約中のプランと同等・下位のカードは隠し、上位の
+  // アップグレード先だけを残す（広告視聴・無料版が最下位、以降
+  // 月額 < 年額 < 永久ライセンスの順）。
+  //   永久ライセンス中: 何も表示しない（もう買うものが無い）
+  //   年額中: 永久のみ表示
+  //   月額中: 年額・永久を表示
+  //   広告時限解除・無料版: 全カード表示
+  // 広告カード（1h/24h）は「有料プラン契約中は一切出さない」というご要望
+  // により、月額/年額/永久のいずれかを契約中なら常に隠す。
+  const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
+  const cardVisibility = {
+    ad1h: planType === null,
+    ad24h: planType === null,
+    monthly: planType === null,
+    yearly: planType === null || planType === "monthly",
+    lifetime: planType === null || planType === "monthly" || planType === "yearly"
+  };
 
-  // 広告カード2枚を隠すと、grid-template-columns: repeat(5, 1fr)のままでは
-  // 5列のトラック自体は維持され、残り3枚（月額/年額/永久）が左詰めになって
-  // 右側2列分が空白のまま残ってしまう。有料中は3列に切り替えて詰める。
+  const cardElements = {
+    ad1h: overlay.querySelector("#swUnlockAd1h"),
+    ad24h: overlay.querySelector("#swUnlockAd24h"),
+    monthly: overlay.querySelector("#swUnlockSubscribe"),
+    yearly: overlay.querySelector("#swUnlockYearly"),
+    lifetime: overlay.querySelector("#swUnlockLifetime")
+  };
+  let visibleCount = 0;
+  Object.keys(cardElements).forEach(key => {
+    const el = cardElements[key];
+    if (!el) return;
+    const visible = cardVisibility[key];
+    el.style.display = visible ? "" : "none";
+    if (visible) visibleCount++;
+  });
+
+  // 表示枚数に応じてグリッドの列数を詰める（5列固定のままだと、枚数が
+  // 減った分だけ右側に空白が残ってしまうため）。0枚（永久ライセンス中）の
+  // 場合は「ご利用中のプランは最上位です」のような案内文に切り替える。
   const cardsEl = overlay.querySelector(".sw-pricing-cards");
-  if (cardsEl) cardsEl.classList.toggle("sw-pricing-cards-premium", isPremium);
+  if (cardsEl) {
+    if (visibleCount === 0) {
+      cardsEl.style.display = "none";
+    } else {
+      cardsEl.style.display = "";
+      cardsEl.style.gridTemplateColumns = visibleCount < 5 ? `repeat(${visibleCount}, 1fr)` : "";
+    }
+  }
+  if (descEl && visibleCount === 0) {
+    descEl.textContent = "永久ライセンスをご利用中です。これ以上アップグレードできるプランはありません。";
+  }
 
   overlay.classList.add("active");
 }

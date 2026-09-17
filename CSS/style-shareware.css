@@ -85,9 +85,10 @@
    5列のトラックのままだと右側2列分が空白のまま残ってしまうため、
    3列に切り替えて詰める（JS側player-shareware.jsのswOpenUnlockModalで
    isUnlocked()の時にこのクラスを付与する）。 */
-.sw-pricing-cards.sw-pricing-cards-premium {
-  grid-template-columns: repeat(3, 1fr);
-}
+/* 表示するプランカードの列数は、swOpenUnlockModal（player-shareware.js）が
+   実際に表示している枚数に応じてgrid-template-columnsをインラインで
+   直接書き換える（月額中は2枚、無料版は5枚、等、枚数の組み合わせが
+   複数あるため固定クラスではなく可変にしている）。 */
 
 .sw-pricing-card {
   position: relative;

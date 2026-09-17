@@ -21,7 +21,8 @@ import {
   doc,
   getDoc,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
+  deleteField
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- firebaseConfig ---
@@ -48,6 +49,10 @@ const db = getFirestore(firebaseApp);
 // purchasedAtMsは、Cloud Functions(stripeWebhook)がStripe決済確定時に書き込んだ
 // タイムスタンプ。存在する場合、player-shareware.js側でローカルとの新旧比較より
 // 優先して採用するために使う（決済結果が古いlocalStorageの値で上書きされる事故防止）。
+// planTypeは、Cloud Functionsが決済のPrice IDから判定した契約プランの種類
+// （"monthly" / "yearly" / "lifetime"）。広告視聴による時限解除の場合はnull。
+// player-shareware.js側で「今契約中のプランと同等・下位のボタンを隠す」
+// 階層表示に使う。
 async function fetchUnlockUntilFromFirestore(uid) {
   try {
     const snap = await getDoc(doc(db, "users", uid));
@@ -55,7 +60,8 @@ async function fetchUnlockUntilFromFirestore(uid) {
       const data = snap.data();
       const updatedAtMs = data.updatedAt && typeof data.updatedAt.toMillis === "function" ? data.updatedAt.toMillis() : 0;
       const purchasedAtMs = data.purchasedAt && typeof data.purchasedAt.toMillis === "function" ? data.purchasedAt.toMillis() : 0;
-      return { unlockUntil: data.unlockUntil, updatedAtMs, purchasedAtMs };
+      const planType = typeof data.planType === "string" ? data.planType : null;
+      return { unlockUntil: data.unlockUntil, updatedAtMs, purchasedAtMs, planType };
     }
     return null;
   } catch (err) {
@@ -64,12 +70,21 @@ async function fetchUnlockUntilFromFirestore(uid) {
   }
 }
 
-async function saveUnlockUntilToFirestore(uid, unlockUntil) {
+// planTypeを省略した場合はフィールドを変更しない（mergeなので既存値を維持）。
+// 明示的にnullを渡した場合は「購入によるプランではなくなった」として
+// フィールド自体を削除する（広告視聴による解除・無料版への切り戻し時に使う）。
+async function saveUnlockUntilToFirestore(uid, unlockUntil, planType) {
   try {
-    await setDoc(doc(db, "users", uid), {
+    const payload = {
       unlockUntil,
       updatedAt: serverTimestamp()
-    }, { merge: true });
+    };
+    if (planType === null) {
+      payload.planType = deleteField();
+    } else if (typeof planType === "string") {
+      payload.planType = planType;
+    }
+    await setDoc(doc(db, "users", uid), payload, { merge: true });
   } catch (err) {
     console.error("[QN_AUTH] Firestore write failed:", err);
   }
