@@ -60,6 +60,7 @@
 
 .sw-unlock-modal-body {
   padding: 20px 24px 24px;
+  text-align: center;
 }
 
 .sw-unlock-modal-desc {
@@ -70,6 +71,27 @@
   text-align: center;
 }
 .sw-unlock-modal-desc:empty {
+  display: none;
+}
+
+/* 現在のプラン表示バッジ：説明文の下、プランカード一覧の上に表示する。
+   JS側(swOpenUnlockModal)がテキストを入れ、無料版の時はdisplay:noneで隠す。 */
+.sw-current-plan-badge {
+  display: inline-block;
+  margin: 0 auto 18px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-bright, #f5f5f7);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+/* バッジをモーダル中央に配置するため、親(.sw-unlock-modal-body)側で
+   text-align: centerを指定している（上記62行目付近）。 */
+.sw-current-plan-badge:empty {
   display: none;
 }
 

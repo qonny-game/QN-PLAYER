@@ -114,8 +114,37 @@ function swGetUnlockRemainingLabel() {
   const remainMs = until - Date.now();
   if (remainMs <= 0) return null;
   const remainHours = remainMs / (1000 * 60 * 60);
-  if (remainHours >= 1) return `残り約${Math.ceil(remainHours)}時間`;
-  return `残り約${Math.ceil(remainMs / (1000 * 60))}分`;
+  if (remainHours >= 1) return `${Math.ceil(remainHours)}h left`;
+  return `${Math.ceil(remainMs / (1000 * 60))}m left`;
+}
+
+// 現在の契約状態を、アンロックモーダルの「現在のプラン」表示欄用に
+// 人間が読める文言で返す（無料版・広告時限解除中はnullを返し、
+// バッジ自体を非表示にする）。表記は英語（ご要望によりヘッダーラベル
+// 部分のみ英語化。プランカード本体の日本語表記はそのまま）。
+//   永久ライセンス: 「Current Plan: Lifetime」
+//   年額/月額: 「Current Plan: Yearly (30 days left)」等
+//   広告視聴による時限解除: ご要望により、プラン名は出さず残り時間のみ
+//   （「Ad Unlock (2h left)」）
+function swGetCurrentPlanLabel() {
+  const until = swGetUnlockUntil();
+  const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
+
+  if (until === -1 && planType === "lifetime") {
+    return "Current Plan: Lifetime";
+  }
+  if (until > 0 && Date.now() < until && (planType === "monthly" || planType === "yearly")) {
+    const remainMs = until - Date.now();
+    const remainDays = Math.ceil(remainMs / (1000 * 60 * 60 * 24));
+    const planLabel = planType === "yearly" ? "Yearly" : "Monthly";
+    return `Current Plan: ${planLabel} (${remainDays} days left)`;
+  }
+  // 広告視聴による時限解除中：プラン名は出さず、残り時間だけ表示する。
+  if (until > 0 && Date.now() < until && planType === null) {
+    const remainingLabel = swGetUnlockRemainingLabel();
+    return remainingLabel ? `Ad Unlock (${remainingLabel})` : null;
+  }
+  return null; // 無料版：バッジ自体を表示しない。
 }
 
 // --- ダミー広告解除・サブスク解除（実際の広告SDK/決済は後工程） ---
@@ -277,6 +306,7 @@ function swBuildModal() {
       </div>
       <div class="sw-unlock-modal-body">
         <p id="swUnlockModalDesc" class="sw-unlock-modal-desc"></p>
+        <div id="swUnlockCurrentPlanBadge" class="sw-current-plan-badge"></div>
         <div class="sw-pricing-cards">
           <div class="sw-pricing-card" id="swUnlockAd1h">
             <div class="sw-pricing-card-top">
@@ -412,6 +442,19 @@ function swOpenUnlockModal(message) {
   const overlay = swBuildModal();
   const descEl = overlay.querySelector("#swUnlockModalDesc");
   if (descEl) descEl.textContent = message || "この機能は無料版では利用できません。";
+
+  // 現在のプラン表示バッジ：無料版・購入導線しかない状態ではバッジ自体を隠す。
+  const planBadgeEl = overlay.querySelector("#swUnlockCurrentPlanBadge");
+  if (planBadgeEl) {
+    const label = typeof swGetCurrentPlanLabel === "function" ? swGetCurrentPlanLabel() : null;
+    if (label) {
+      planBadgeEl.textContent = label;
+      planBadgeEl.style.display = "";
+    } else {
+      planBadgeEl.textContent = "";
+      planBadgeEl.style.display = "none";
+    }
+  }
 
   // プランの階層表示：契約中のプランと同等・下位のカードは隠し、上位の
   // アップグレード先だけを残す（広告視聴・無料版が最下位、以降
