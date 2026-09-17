@@ -80,6 +80,15 @@
   align-items: stretch;
 }
 
+/* サブスク購入後・永久ライセンス購入後：広告視聴カード2枚(#swUnlockAd1h/
+   #swUnlockAd24h)がdisplay:noneになり、月額/年額/永久の3枚だけが残る。
+   5列のトラックのままだと右側2列分が空白のまま残ってしまうため、
+   3列に切り替えて詰める（JS側player-shareware.jsのswOpenUnlockModalで
+   isUnlocked()の時にこのクラスを付与する）。 */
+.sw-pricing-cards.sw-pricing-cards-premium {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .sw-pricing-card {
   position: relative;
   display: flex;

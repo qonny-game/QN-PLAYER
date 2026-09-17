@@ -90,9 +90,14 @@ function swGetUnlockRemainingLabel() {
 // --- ダミー広告解除・サブスク解除（実際の広告SDK/決済は後工程） ---
 function swUnlockForHours(hours) {
   const until = Date.now() + hours * 60 * 60 * 1000;
-  // 既に時限解除中で残り時間がそれより長い場合は短縮しない（延長のみ）。
   const current = swGetUnlockUntil();
-  if (current !== -1 && current > until) return;
+  // 永久ライセンス(-1)は広告視聴では絶対に上書きしない。
+  // 以前は「current !== -1 && current > until」という条件だったため、
+  // 永久ライセンス保有者が広告視聴ボタンを押すと-1が24時間後の数値に
+  // 書き換えられてしまう実害のあるバグがあった。
+  if (current === -1) return;
+  // 既に時限解除中で残り時間がそれより長い場合は短縮しない（延長のみ）。
+  if (current > until) return;
   swSetUnlockUntil(until);
 }
 
@@ -100,14 +105,22 @@ function swUnlockForHours(hours) {
 // FirestoreとlocalStorageの解除状態マージ（ログイン成功直後にplayer-auth.js
 // から呼ばれる）。
 //
-// 優先ルール（Last-Write-Wins）：
-//   「どちらの操作が時刻的に新しいか」で決める。以前は「値が大きい方
-//   （＝残り時間が長い方）」を優先していたが、これだと「無料版に戻す」
-//   という明示的な操作が、他端末の古い時限解除の値に上書きされてしまう
-//   不具合があったため、updatedAtのタイムスタンプ比較に変更した。
+// 優先ルール：
+//   1. Firestore側にpurchasedAtMs（Stripe決済確定時のサーバー側タイムスタンプ）
+//      があり、それが直近5分以内なら、時刻比較を待たず必ずFirestore側を採用する。
+//      これが無いと、決済直後にこの同期処理が走った際、たまたまローカルの
+//      updatedAtの方が新しく判定されてしまい、決済結果が古いlocalStorageの
+//      値で上書きされてしまう事故が起きうるため（実際に発生した不具合）。
+//   2. それ以外はLast-Write-Wins（どちらの操作が時刻的に新しいか）で決める。
+//      以前は「値が大きい方（＝残り時間が長い方）」を優先していたが、これだと
+//      「無料版に戻す」という明示的な操作が、他端末の古い時限解除の値に
+//      上書きされてしまう不具合があったため、updatedAtのタイムスタンプ比較に
+//      変更した。
 //   Firestore未登録（このアカウントで初めての同期）の場合は、
 //   ローカル側をそのままFirestoreに書き込む。
 // ============================================================
+const SW_PURCHASE_PRIORITY_WINDOW_MS = 5 * 60 * 1000; // 決済確定から5分以内は無条件で優先
+
 async function swSyncUnlockWithFirestore(uid) {
   if (!window.QN_AUTH || typeof window.QN_AUTH.fetchUnlockUntilFromFirestore !== "function") return;
 
@@ -124,7 +137,20 @@ async function swSyncUnlockWithFirestore(uid) {
     return;
   }
 
-  // リモートの方が新しければリモートを採用してローカルに反映。
+  // ルール1：直近の決済確定（purchasedAtMs）があれば無条件でFirestoreを採用。
+  const isRecentPurchase = remote.purchasedAtMs > 0 &&
+    (Date.now() - remote.purchasedAtMs) < SW_PURCHASE_PRIORITY_WINDOW_MS;
+
+  if (isRecentPurchase) {
+    try {
+      localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
+      localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
+    } catch (e) {}
+    swRefreshAllLockedUI();
+    return;
+  }
+
+  // ルール2：リモートの方が新しければリモートを採用してローカルに反映。
   // ローカルの方が新しい、または同時刻なら何もしない（ローカルを正とする）。
   if (remote.updatedAtMs > localUpdatedAt) {
     try {
@@ -342,6 +368,24 @@ function swOpenUnlockModal(message) {
   const overlay = swBuildModal();
   const descEl = overlay.querySelector("#swUnlockModalDesc");
   if (descEl) descEl.textContent = message || "この機能は無料版では利用できません。";
+
+  // サブスク購入後・永久ライセンス購入後は、広告視聴カード（1時間/24時間）を
+  // 非表示にする。すでに無制限で使える状態の人に「動画広告を見て解除する」
+  // という選択肢を見せる/押せる状態にしておく意味がないため。
+  // 月額/年額/永久ライセンスのカードは、プラン変更（年額へのアップグレード等）
+  // の導線として有料中でも残す。
+  const isPremium = typeof isUnlocked === "function" && isUnlocked();
+  const ad1h = overlay.querySelector("#swUnlockAd1h");
+  const ad24h = overlay.querySelector("#swUnlockAd24h");
+  if (ad1h) ad1h.style.display = isPremium ? "none" : "";
+  if (ad24h) ad24h.style.display = isPremium ? "none" : "";
+
+  // 広告カード2枚を隠すと、grid-template-columns: repeat(5, 1fr)のままでは
+  // 5列のトラック自体は維持され、残り3枚（月額/年額/永久）が左詰めになって
+  // 右側2列分が空白のまま残ってしまう。有料中は3列に切り替えて詰める。
+  const cardsEl = overlay.querySelector(".sw-pricing-cards");
+  if (cardsEl) cardsEl.classList.toggle("sw-pricing-cards-premium", isPremium);
+
   overlay.classList.add("active");
 }
 

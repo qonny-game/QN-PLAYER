@@ -45,13 +45,17 @@ const db = getFirestore(firebaseApp);
 // （-1=Premium永久解除、それ以外=epoch msまでの時限解除、0/未設定=無料版）。
 // マージ時に「どちらの操作が新しいか」を判定するため、updatedAtも一緒に返す
 // （epoch msに変換。ドキュメント未作成、またはサーバー側の反映待ちでnullの場合は0扱い）。
+// purchasedAtMsは、Cloud Functions(stripeWebhook)がStripe決済確定時に書き込んだ
+// タイムスタンプ。存在する場合、player-shareware.js側でローカルとの新旧比較より
+// 優先して採用するために使う（決済結果が古いlocalStorageの値で上書きされる事故防止）。
 async function fetchUnlockUntilFromFirestore(uid) {
   try {
     const snap = await getDoc(doc(db, "users", uid));
     if (snap.exists() && typeof snap.data().unlockUntil === "number") {
       const data = snap.data();
       const updatedAtMs = data.updatedAt && typeof data.updatedAt.toMillis === "function" ? data.updatedAt.toMillis() : 0;
-      return { unlockUntil: data.unlockUntil, updatedAtMs };
+      const purchasedAtMs = data.purchasedAt && typeof data.purchasedAt.toMillis === "function" ? data.purchasedAt.toMillis() : 0;
+      return { unlockUntil: data.unlockUntil, updatedAtMs, purchasedAtMs };
     }
     return null;
   } catch (err) {
