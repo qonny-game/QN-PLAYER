@@ -217,6 +217,9 @@ let swModalOverlay = null;
 // その場合はどのユーザーの解除状態にも反映できないため）。
 // 遷移時は、決済完了後にStripe Webhook側でどのユーザーかを特定できるよう、
 // UIDをclient_reference_idとしてURLに付加する。
+// Stripeの決済ページは新規タブで開く（window.open、_blank）。これにより
+// 決済後にタブを閉じるだけでQNPLAYER側の画面がそのまま残り、決済前の
+// 再生状態等が失われない。
 function swGoToCheckout(stripeUrl) {
   hapticTap();
 
@@ -227,7 +230,7 @@ function swGoToCheckout(stripeUrl) {
   }
 
   if (window.QN_AUTH && window.QN_AUTH.currentUser) {
-    window.location.href = urlWithUid(window.QN_AUTH.currentUser.uid);
+    window.open(urlWithUid(window.QN_AUTH.currentUser.uid), "_blank", "noopener");
     return;
   }
 
@@ -240,10 +243,18 @@ function swGoToCheckout(stripeUrl) {
   // ログイン完了（qn-auth-changed）を1回だけ待ってから決済ページへ進む。
   // ユーザーがログインをキャンセルした場合はイベントが発火せず、
   // このモーダルの上に立ったままになる（再度ボタンを押せば再試行できる）。
+  // 注意：ログイン完了はボタンクリックから時間差があるため、この
+  // window.openはブラウザにポップアップブロックされる可能性がある
+  // （ユーザー操作の直接の結果と見なされないため）。ブロックされた場合、
+  // window.openはnullを返すので、その場合は今のタブで開くフォールバックにする。
   const onAuthChanged = (e) => {
     if (e.detail && e.detail.user) {
       window.removeEventListener("qn-auth-changed", onAuthChanged);
-      window.location.href = urlWithUid(e.detail.user.uid);
+      const url = urlWithUid(e.detail.user.uid);
+      const newTab = window.open(url, "_blank", "noopener");
+      if (!newTab) {
+        window.location.href = url;
+      }
     }
   };
   window.addEventListener("qn-auth-changed", onAuthChanged);
@@ -439,6 +450,10 @@ function swOpenUnlockModal(message) {
   // 表示枚数に応じてグリッドの列数を詰める（5列固定のままだと、枚数が
   // 減った分だけ右側に空白が残ってしまうため）。0枚（永久ライセンス中）の
   // 場合は「ご利用中のプランは最上位です」のような案内文に切り替える。
+  // 枚数が少ない時（1〜2枚）は、列数を詰めるだけだと1カードあたりの幅が
+  // 間延びして見えるため、1カードの目安幅(260px)を基準にグリッド全体の
+  // max-widthも制限し、中央寄せにする。
+  const SW_CARD_TARGET_WIDTH = 260;
   const cardsEl = overlay.querySelector(".sw-pricing-cards");
   if (cardsEl) {
     if (visibleCount === 0) {
@@ -446,6 +461,15 @@ function swOpenUnlockModal(message) {
     } else {
       cardsEl.style.display = "";
       cardsEl.style.gridTemplateColumns = visibleCount < 5 ? `repeat(${visibleCount}, 1fr)` : "";
+      if (visibleCount <= 3) {
+        cardsEl.style.maxWidth = `${SW_CARD_TARGET_WIDTH * visibleCount + 12 * (visibleCount - 1)}px`;
+        cardsEl.style.marginLeft = "auto";
+        cardsEl.style.marginRight = "auto";
+      } else {
+        cardsEl.style.maxWidth = "";
+        cardsEl.style.marginLeft = "";
+        cardsEl.style.marginRight = "";
+      }
     }
   }
   if (descEl && visibleCount === 0) {
