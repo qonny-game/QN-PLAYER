@@ -281,6 +281,8 @@ function swBuildModal() {
     </div>
   `;
 
+  
+
   document.body.appendChild(overlay);
   swModalOverlay = overlay;
 
@@ -304,25 +306,40 @@ function swBuildModal() {
     swCloseUnlockModal();
     swRefreshAllLockedUI();
   };
-  
-  // 1ヶ月プラン（Stripe決済リンク、決済前ログイン必須）
+
+  // 共通の決済処理（UIDをStripeに受け渡す）
+  const handleCheckoutWithUid = (baseUrl) => {
+    hapticTap();
+    // ログイン中のユーザーUIDを取得
+    const user = typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser : null;
+    const uid = user ? user.uid : "";
+
+    if (!uid) {
+      alert("決済を行うにはGoogleログインが必要です。");
+      return;
+    }
+
+    // StripeのURLに client_reference_id としてUIDを付加して遷移
+    window.location.href = `${baseUrl}?client_reference_id=${uid}`;
+  };
+
+  // 1ヶ月プラン
   overlay.querySelector("#swUnlockSubscribe").onclick = () => {
-    swGoToCheckout("https://buy.stripe.com/test_28E00i7aTab69bkbJf14401");
+    handleCheckoutWithUid("https://buy.stripe.com/test_28E00i7aTab69bkbJf14401");
   };
 
-  // 1年プラン（Stripe決済リンク、決済前ログイン必須）
+  // 1年プラン
   overlay.querySelector("#swUnlockYearly").onclick = () => {
-    swGoToCheckout("https://buy.stripe.com/test_8x26oG3YH2IE73ccNj14402");
+    handleCheckoutWithUid("https://buy.stripe.com/test_8x26oG3YH2IE73ccNj14402");
   };
 
-  // 永久ライセンス（Stripe決済リンク、決済前ログイン必須）
+  // 永久ライセンス
   overlay.querySelector("#swUnlockLifetime").onclick = () => {
-    swGoToCheckout("https://buy.stripe.com/test_9B64gyeDl1EA4V44gN14403");
+    handleCheckoutWithUid("https://buy.stripe.com/test_9B64gyeDl1EA4V44gN14403");
   };
 
   return overlay;
 }
-
 
 
 
