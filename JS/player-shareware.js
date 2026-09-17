@@ -122,8 +122,10 @@ function swGetUnlockRemainingLabel() {
 // 人間が読める文言で返す（無料版・広告時限解除中はnullを返し、
 // バッジ自体を非表示にする）。表記は英語（ご要望によりヘッダーラベル
 // 部分のみ英語化。プランカード本体の日本語表記はそのまま）。
-//   永久ライセンス: 「Current Plan: Lifetime」
-//   年額/月額: 「Current Plan: Yearly (30 days left)」等
+// 「Current Plan: 」のようなプレフィックスは付けず、値のみ返す
+// （ご要望によりタイトル文字は省いている）。
+//   永久ライセンス: 「Lifetime」
+//   年額/月額: 「Yearly (30 days left)」等
 //   広告視聴による時限解除: ご要望により、プラン名は出さず残り時間のみ
 //   （「Ad Unlock (2h left)」）
 function swGetCurrentPlanLabel() {
@@ -131,13 +133,13 @@ function swGetCurrentPlanLabel() {
   const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
 
   if (until === -1 && planType === "lifetime") {
-    return "Current Plan: Lifetime";
+    return "Lifetime";
   }
   if (until > 0 && Date.now() < until && (planType === "monthly" || planType === "yearly")) {
     const remainMs = until - Date.now();
     const remainDays = Math.ceil(remainMs / (1000 * 60 * 60 * 24));
     const planLabel = planType === "yearly" ? "Yearly" : "Monthly";
-    return `Current Plan: ${planLabel} (${remainDays} days left)`;
+    return `${planLabel} (${remainDays} days left)`;
   }
   // 広告視聴による時限解除中：プラン名は出さず、残り時間だけ表示する。
   if (until > 0 && Date.now() < until && planType === null) {
@@ -658,6 +660,38 @@ function swUpdateSpeedKeyLockUI() {
 swRegisterRefreshCallback(swUpdateSpeedKeyLockUI);
 // 初期表示にも反映する（DOMContentLoaded後にこのファイルが読み込まれる前提のため即実行）。
 swUpdateSpeedKeyLockUI();
+
+// ============================================================
+// ヘッダー常設の現在プラン表示（アカウント画像の左、#userPlanBadge）。
+// モーダル内のバッジ(swGetCurrentPlanLabel)より短い表記にする
+// （ヘッダーは常時表示なので、日数入りの長い文言だと窮屈になるため）。
+//   永久ライセンス: 「Lifetime」
+//   年額/月額: 「Yearly」「Monthly」（残り日数はヘッダーには出さない。
+//     詳細はモーダルを開けば見える）
+//   広告視聴による時限解除: 「Ad」（残り時間はヘッダーには出さない）
+//   無料版: バッジ自体を空にして隠す
+// ============================================================
+function swGetHeaderPlanBadgeLabel() {
+  const until = swGetUnlockUntil();
+  const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
+
+  if (until === -1 && planType === "lifetime") return "Lifetime";
+  if (until > 0 && Date.now() < until) {
+    if (planType === "yearly") return "Yearly";
+    if (planType === "monthly") return "Monthly";
+    return "Ad"; // 広告視聴による時限解除中。
+  }
+  return null; // 無料版：バッジ自体を表示しない。
+}
+
+function swUpdateHeaderPlanBadge() {
+  const el = document.getElementById("userPlanBadge");
+  if (!el) return;
+  const label = swGetHeaderPlanBadgeLabel();
+  el.textContent = label || "";
+}
+swRegisterRefreshCallback(swUpdateHeaderPlanBadge);
+swUpdateHeaderPlanBadge();
 
 // ============================================================
 // 【検証用・一時的】ここから下は動作確認用のデバッグパネル処理。
