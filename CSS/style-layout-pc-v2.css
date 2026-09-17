@@ -33,7 +33,12 @@ html.pc-v2-active-html {
 }
 
 body.pc-v2-active {
-  height: 100vh;
+  height: 100vh; /* dvh未対応ブラウザ向けフォールバック */
+  height: 100dvh; /* Android Chrome等、URLバー/ツールバーの表示状態で
+                     ビューポート実寸が変わる環境でも、実際に見える高さに
+                     追従させる。#pcV2IconBar（Control/Markers/Library/Text
+                     の切り替え入口）が画面最下部固定のため、100vh固定だと
+                     ブラウザUIの分だけ下端が隠れてしまう問題への対処。 */
   box-sizing: border-box;
   overflow: hidden;
   /* モック準拠：グローエフェクトのグラデーションを外し単色背景にする。
@@ -847,7 +852,7 @@ body.pc-v2-active > .app-container {
 #pcV2BottomBar .pcv2-ctrl-btn svg {
   width: 20px;
   height: 20px;
-  fill: currentColor;
+  fill: var(--icon-muted);
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn.primary svg {
