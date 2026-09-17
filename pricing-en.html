@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QNPLAYER - Pricing & Feature Comparison</title>
+    <meta name="description" content="QNPLAYER pricing and feature comparison. Choose from Free, TimePass, and Premium (Monthly/Yearly/Lifetime) plans tailored to your practice style.">
+
+    <!-- OGP -->
+    <meta property="og:title" content="QNPLAYER - Pricing & Feature Comparison">
+    <meta property="og:description" content="Choose the perfect plan for your practice style and workflow.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://player.qnaudio.stream/pricing-en.html">
+    <meta property="og:image" content="https://qnaudio.stream/images/ogp.jpg">
+
+    <!-- Instrument Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+
+    <!-- Favicon / App Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+    <link rel="shortcut icon" href="/favicon/favicon.ico">
+    <link rel="manifest" href="/favicon/site.webmanifest">
+
+  <style>
+    /* --------------------------------------------------
+       1. Design Variables & Reset (Shared tokens with qnaudio.stream)
+    -------------------------------------------------- */
+    :root {
+      --accent-primary: #38bdf8;
+      --accent-secondary: #818cf8;
+      --accent-tertiary: #c084fc;
+      --font-body: 'Instrument Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --bg-main: #090a0f;
+      --card-bg: rgba(18, 20, 29, 0.65);
+      --card-hover-bg: rgba(24, 27, 40, 0.85);
+      --text-main: #f0f0f3;
+      --text-muted: #94a3b8;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(56, 189, 248, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      background-image:
+        radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--accent-primary) 15%, transparent), transparent 50%),
+        radial-gradient(circle at 85% 30%, color-mix(in srgb, var(--accent-tertiary) 12%, transparent), transparent 45%),
+        radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--accent-secondary) 15%, transparent), transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: var(--accent-primary);
+      text-decoration: none;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .fade-up {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .fade-up.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* --------------------------------------------------
+       2. Hero Section
+    -------------------------------------------------- */
+    .hero {
+      padding: 90px 0 40px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -60%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(129, 140, 248, 0.03) 40%, transparent 70%);
+      border-radius: 50%;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      transition: color 0.25s ease;
+    }
+    .back-link:hover { color: var(--accent-primary); }
+
+    .hero-logo {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+      margin-bottom: 1rem;
+      color: #ffffff;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+
+    .hero-logo span {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .qn-accent {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1, .hero-title {
+      font-size: 2.6rem;
+      line-height: 1.25;
+      margin-bottom: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+    }
+
+    .hero p, .hero-description {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* --------------------------------------------------
+       3. Monthly / Yearly Toggle
+    -------------------------------------------------- */
+    .billing-toggle-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 40px 0 8px;
+    }
+
+    .billing-toggle {
+      display: inline-flex;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 9999px;
+      padding: 6px;
+      backdrop-filter: blur(12px);
+      gap: 4px;
+    }
+
+    .billing-toggle button {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .billing-toggle button.active {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      color: #090a0f;
+      box-shadow: 0 8px 20px -5px rgba(56, 189, 248, 0.4);
+    }
+
+    .billing-toggle .save-badge {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-primary);
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 9999px;
+    }
+    .billing-toggle button.active .save-badge {
+      background: rgba(9, 10, 15, 0.2);
+      color: #090a0f;
+    }
+
+    /* --------------------------------------------------
+       4. Pricing Cards
+    -------------------------------------------------- */
+    .pricing {
+      padding: 30px 0 60px;
+      position: relative;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+      align-items: stretch;
+    }
+
+    .pricing-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      backdrop-filter: blur(12px);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.3s ease,
+                  box-shadow 0.3s ease;
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .pricing-card.featured {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 40px rgba(56, 189, 248, 0.2);
+      background: rgba(24, 28, 42, 0.8);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      color: #090a0f;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 4px 18px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .pricing-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 4px;
+      text-align: center;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .pricing-subheading {
+      font-size: 0.85rem;
+      color: var(--accent-primary);
+      text-align: center;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .pricing-caption {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 18px;
+      min-height: 2.6em;
+    }
+
+    .pricing-price-container {
+      text-align: center;
+      margin-bottom: 22px;
+      min-height: 92px;
+    }
+
+    .pricing-price-original {
+      font-size: 0.95rem;
+      color: #64748b;
+      text-decoration: line-through;
+      margin-bottom: 2px;
+    }
+
+    .pricing-price {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--accent-primary);
+      line-height: 1.1;
+    }
+
+    .pricing-price.small {
+      font-size: 1.35rem;
+    }
+
+    .pricing-period {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .pricing-note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 28px;
+      flex-grow: 1;
+    }
+
+    .pricing-features li {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.86rem;
+      color: #cbd5e1;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .pricing-features li::before {
+      content: "✓";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .pricing-features li.disabled {
+      color: #64748b;
+    }
+
+    .pricing-features li.disabled::before {
+      content: "×";
+      color: #64748b;
+    }
+
+    .pricing-features li strong {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* CTA Button */
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      color: #090a0f;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 13px 20px;
+      border-radius: 9999px;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 30px -5px rgba(56, 189, 248, 0.4);
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+
+    .btn-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px -5px rgba(56, 189, 248, 0.6);
+      color: #000000;
+    }
+
+    .btn-cta.ghost {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      box-shadow: none;
+    }
+    .btn-cta.ghost:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: none;
+    }
+
+    /* --------------------------------------------------
+       5. Detailed Feature Comparison Table
+    -------------------------------------------------- */
+    .compare-section {
+      padding: 20px 0 100px;
+      position: relative;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 3rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+
+    .compare-table-wrap {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      overflow-x: auto;
+    }
+
+    table.compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    .compare-table th, .compare-table td {
+      padding: 16px 18px;
+      text-align: center;
+      font-size: 0.92rem;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    .compare-table thead th {
+      color: #ffffff;
+      font-weight: 700;
+      background: rgba(56, 189, 248, 0.06);
+      position: sticky;
+      top: 0;
+    }
+
+    .compare-table th:first-child, .compare-table td:first-child {
+      text-align: left;
+      color: var(--text-main);
+      font-weight: 600;
+      white-space: normal;
+      min-width: 160px;
+    }
+
+    .compare-table td {
+      color: var(--text-muted);
+    }
+
+    .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .compare-table .no { color: #64748b; }
+
+    .compare-table .col-premium {
+      color: #ffffff;
+      background: rgba(56, 189, 248, 0.04);
+      font-weight: 600;
+    }
+
+    .compare-table .yes,
+    .compare-table .col-premium.yes {
+      color: var(--accent-primary);
+      font-weight: 700;
+    }
+
+    /* --------------------------------------------------
+       6. Footer
+    -------------------------------------------------- */
+    footer {
+      padding: 50px 0;
+      text-align: center;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+      font-size: 0.875rem;
+      background: rgba(9, 10, 15, 0.9);
+    }
+
+    /* --------------------------------------------------
+       7. Responsive
+    -------------------------------------------------- */
+    @media (max-width: 1024px) {
+      .pricing-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero h1, .hero-title { font-size: 1.9rem; }
+      .hero p, .hero-description { font-size: 1rem; }
+      .billing-toggle button { padding: 9px 16px; font-size: 0.85rem; }
+      .section-title { font-size: 1.6rem; }
+    }
+
+    @media (max-width: 560px) {
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <a href="https://player.qnaudio.stream/" class="back-link fade-up">&larr; Back to QNPLAYER</a>
+      <div class="hero-logo fade-up"><span>QN</span>PLAYER</div>
+      <h1 class="hero-title fade-up">Upgrade and Unlock<br class="pc-only">All <span class="qn-accent">QN</span>PLAYER Features</h1>
+      <p class="hero-description fade-up">
+        Choose the optimal plan tailored to your practice style and workflow.
+      </p>
+
+      <div class="billing-toggle-wrap fade-up">
+        <div class="billing-toggle" id="billingToggle">
+          <button type="button" class="active" data-mode="monthly">Monthly</button>
+          <button type="button" data-mode="yearly">Yearly <span class="save-badge">Save 2 Months</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Cards -->
+  <section class="pricing">
+    <div class="container">
+      <div class="pricing-grid">
+
+        <!-- TimePass 1Hour -->
+        <div class="pricing-card fade-up">
+          <h3>TimePass<br>1Hour</h3>
+          <div class="pricing-subheading">Ad-Free &bull; 1 Hour</div>
+          <div class="pricing-caption">Watch 1 video ad to unlock full features for focused 1-song transcription or quick practice.</div>
+          <div class="pricing-price-container">
+            <div class="pricing-price">Free</div>
+            <div class="pricing-period">Watch 1 Video Ad</div>
+            <div class="pricing-note">&rarr; 1 Hour Access</div>
+          </div>
+          <ul class="pricing-features">
+            <li>1 hour of unlimited full features</li>
+            <li>Unlimited library track saves</li>
+            <li>No automatic marker / loop stops</li>
+          </ul>
+          <a href="https://player.qnaudio.stream/" class="btn-cta ghost">Watch Ad to Unlock</a>
+        </div>
+
+        <!-- TimePass 1Day -->
+        <div class="pricing-card fade-up">
+          <h3>TimePass<br>1Day</h3>
+          <div class="pricing-subheading">Ad-Free &bull; 1 Day</div>
+          <div class="pricing-caption">Watch a few ads back-to-back for weekend extended practice sessions or jams.</div>
+          <div class="pricing-price-container">
+            <div class="pricing-price">Free</div>
+            <div class="pricing-period">Watch 2&ndash;3 Video Ads</div>
+            <div class="pricing-note">&rarr; 24 Hours Access</div>
+          </div>
+          <ul class="pricing-features">
+            <li>24 hours of unlimited full features</li>
+            <li>Unlimited library track saves</li>
+            <li>No automatic marker / loop stops</li>
+          </ul>
+          <a href="https://player.qnaudio.stream/" class="btn-cta ghost">Watch Ads to Unlock</a>
+        </div>
+
+        <!-- Premium Monthly / Yearly -->
+        <div class="pricing-card featured fade-up">
+          <div class="pricing-badge">Recommended</div>
+          <h3>Premium <span style="font-size: 0.8em; font-weight: normal; color: var(--text-muted);" data-plan-label>(Monthly)</span></h3>
+          <div class="pricing-subheading" data-plan-sub>Monthly Subscription</div>
+          <div class="pricing-caption">Completely ad-free and always seamless. Perfect for regular practice.</div>
+          <div class="pricing-price-container">
+            <div data-price-monthly>
+              <div class="pricing-price">$4.99</div>
+              <div class="pricing-period">/ month (Auto-renewing)</div>
+            </div>
+            <div data-price-yearly style="display:none;">
+              <div class="pricing-price">$49.90</div>
+              <div class="pricing-period">/ year (Auto-renewing &bull; Save 2 mos)</div>
+            </div>
+          </div>
+          <ul class="pricing-features">
+            <li><strong>Zero ads or sponsored views</strong></li>
+            <li>All limitations completely removed</li>
+            <li>Cancel or resume anytime easily</li>
+          </ul>
+          <a href="https://player.qnaudio.stream/" class="btn-cta">Subscribe Now</a>
+        </div>
+
+        <!-- Premium Lifetime -->
+        <div class="pricing-card fade-up">
+          <h3>Premium <span style="font-size: 0.8em; font-weight: normal; color: var(--text-muted);">(Lifetime)</span></h3>
+          <div class="pricing-subheading">Lifetime License</div>
+          <div class="pricing-caption">Pay once, use forever. Ideal if you prefer avoiding subscriptions.</div>
+          <div class="pricing-price-container">
+            <div class="pricing-price">$80</div>
+            <div class="pricing-period">One-time purchase (No extra fees)</div>
+          </div>
+          <ul class="pricing-features">
+            <li><strong>Zero ads or sponsored views</strong></li>
+            <li>Unlimited lifetime access</li>
+            <li>All future updates included permanently</li>
+          </ul>
+          <a href="https://player.qnaudio.stream/" class="btn-cta">Get Lifetime Access</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Detailed Feature Comparison -->
+  <section class="compare-section">
+    <div class="container">
+      <h2 class="section-title fade-up">Detailed Feature Comparison</h2>
+      <div class="compare-table-wrap fade-up">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Feature / Item</th>
+              <th>Free Version</th>
+              <th>TimePass<br>1Hour</th>
+              <th>TimePass<br>1Day</th>
+              <th class="col-premium">Premium<br>(Monthly / Lifetime)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Unlock Condition</td>
+              <td>Always available (Default)</td>
+              <td>Watch 1 ad</td>
+              <td>Watch 2&ndash;3 ads</td>
+              <td class="col-premium">$4.99/mo or $80 lifetime</td>
+            </tr>
+            <tr>
+              <td>Target Use Case</td>
+              <td>Casual practice & trial</td>
+              <td>Focused single-song transcription</td>
+              <td>Weekend extended practice</td>
+              <td class="col-premium">Heavy users wanting zero ads</td>
+            </tr>
+            <tr>
+              <td>Validity Period</td>
+              <td>Unlimited</td>
+              <td>1 Hour</td>
+              <td>24 Hours</td>
+              <td class="col-premium">Active subscription / Lifetime</td>
+            </tr>
+            <tr>
+              <td>Play / Pause</td>
+              <td class="yes">&checkmark;</td>
+              <td class="yes">&checkmark;</td>
+              <td class="yes">&checkmark;</td>
+              <td class="col-premium yes">&checkmark;</td>
+            </tr>
+            <tr>
+              <td>Library Storage</td>
+              <td>Up to 3 tracks</td>
+              <td colspan="3" class="col-premium yes">Unlimited</td>
+            </tr>
+            <tr>
+              <td>Library Sorting</td>
+              <td class="no">&times;</td>
+              <td colspan="3" class="col-premium yes">&checkmark; (Custom order)</td>
+            </tr>
+            <tr>
+              <td>Track Repeat Modes</td>
+              <td>Single play only (OFF locked)</td>
+              <td colspan="3" class="col-premium yes">All modes unlocked</td>
+            </tr>
+            <tr>
+              <td>Marker Placement</td>
+              <td>Up to 3 / track</td>
+              <td colspan="3" class="col-premium yes">Unlimited</td>
+            </tr>
+            <tr>
+              <td>Marker Color Customization</td>
+              <td class="no">&times;</td>
+              <td colspan="3" class="col-premium yes">&checkmark; (Customizable)</td>
+            </tr>
+            <tr>
+              <td>A-B Loop Playback</td>
+              <td>Auto-stops after 5 loops</td>
+              <td colspan="3" class="col-premium yes">Unlimited loops</td>
+            </tr>
+            <tr>
+              <td>Key / Speed Adjustment</td>
+              <td class="no">&times;</td>
+              <td colspan="3" class="col-premium yes">&checkmark;</td>
+            </tr>
+            <tr>
+              <td>Marker Memos / Notes</td>
+              <td class="no">&times;</td>
+              <td colspan="3" class="col-premium yes">&checkmark;</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="fade-up">
+    <div class="container">
+      <p>&copy; 2026 QNAUDIO. All rights reserved.</p>
+      <p style="margin-top: 10px;">
+        <a href="https://player.qnaudio.stream/">Launch QNPLAYER</a> |
+        <a href="https://qnaudio.stream/">Home</a> |
+        <a href="mailto:contact@qnaudio.stream">Contact</a>
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Scroll fade-up observer
+      const observerOptions = { root: null, rootMargin: '0px 0px -40px 0px', threshold: 0.1 };
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            obs.unobserve(entry.target);
+          }
+        });
+      }, observerOptions);
+      document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+      // Monthly / Yearly Toggle
+      const toggle = document.getElementById('billingToggle');
+      const buttons = toggle.querySelectorAll('button');
+      const priceMonthly = document.querySelector('[data-price-monthly]');
+      const priceYearly = document.querySelector('[data-price-yearly]');
+      const planLabel = document.querySelector('[data-plan-label]');
+      const planSub = document.querySelector('[data-plan-sub]');
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const isYearly = btn.dataset.mode === 'yearly';
+
+          priceMonthly.style.display = isYearly ? 'none' : 'block';
+          priceYearly.style.display = isYearly ? 'block' : 'none';
+          planLabel.textContent = isYearly ? '(Yearly)' : '(Monthly)';
+          planSub.textContent = isYearly ? 'Yearly Subscription' : 'Monthly Subscription';
+        });
+      });
+    });
+  </script>
+</body>
+</html>

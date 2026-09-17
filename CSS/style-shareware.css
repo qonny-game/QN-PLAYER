@@ -25,7 +25,7 @@
 }
 
 .sw-unlock-modal {
-  width: min(1100px, 94vw);
+  width: min(1220px, 96vw);
   max-height: 90vh;
   overflow-y: auto;
   background: #16161a;
@@ -75,8 +75,8 @@
 
 .sw-pricing-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
   align-items: stretch;
 }
 
@@ -84,7 +84,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 24px 20px;
+  padding: 20px 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
@@ -113,7 +113,7 @@
 
 .sw-pricing-card-title-en {
   display: block;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.3px;
@@ -137,7 +137,7 @@
 }
 
 .sw-pricing-card-price {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1;
   height: 58px;
@@ -158,15 +158,16 @@
 .sw-pricing-card-cta {
   box-sizing: border-box;
   width: 100%;
-  padding: 11px 8px;
+  padding: 11px 6px;
   border-radius: 999px;
   background: var(--accent-primary, #3b82f6);
   color: var(--text-pure-white);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   text-align: center;
   margin-top: 18px;
   margin-bottom: 16px;
+  white-space: nowrap;
 }
 
 .sw-pricing-cta-secondary {
@@ -389,6 +390,18 @@
   #swDebugPanel button {
     font-size: 10px;
     padding: 3px 6px;
+  }
+
+  /* 5列固定だと狭い画面でカードが極端に狭くなり文字が詰まるため、
+     900px以下は2列×3行に折り返す（1行に5枚収めるのはPC幅限定）。 */
+  .sw-pricing-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .sw-pricing-cards {
+    grid-template-columns: 1fr;
   }
 }
 

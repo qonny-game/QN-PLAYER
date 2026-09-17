@@ -151,6 +151,39 @@ function swUnlockPremium() {
 // ============================================================
 let swModalOverlay = null;
 
+// 決済ボタン共通処理：未ログインの場合はまずGoogleログインを促し、
+// ログインが成功したら自動でStripe決済ページへ遷移する。
+// 「誰が決済したか」をアプリ側（Firestore）で紐付けるため、決済前の
+// ログインを必須にする（決済自体はログイン無しでも開始できてしまうが、
+// その場合はどのユーザーの解除状態にも反映できないため）。
+function swGoToCheckout(stripeUrl) {
+  hapticTap();
+
+  if (window.QN_AUTH && window.QN_AUTH.currentUser) {
+    window.location.href = stripeUrl;
+    return;
+  }
+
+  if (!window.QN_AUTH || typeof window.QN_AUTH.login !== "function") {
+    // player-auth.js未読み込み等、想定外の状態。念のためログインなしでは進めない。
+    alert("ログイン機能の準備中です。しばらくしてから再度お試しください。");
+    return;
+  }
+
+  // ログイン完了（qn-auth-changed）を1回だけ待ってから決済ページへ進む。
+  // ユーザーがログインをキャンセルした場合はイベントが発火せず、
+  // このモーダルの上に立ったままになる（再度ボタンを押せば再試行できる）。
+  const onAuthChanged = (e) => {
+    if (e.detail && e.detail.user) {
+      window.removeEventListener("qn-auth-changed", onAuthChanged);
+      window.location.href = stripeUrl;
+    }
+  };
+  window.addEventListener("qn-auth-changed", onAuthChanged);
+  window.QN_AUTH.login();
+}
+
+
 function swBuildModal() {
   if (swModalOverlay) return swModalOverlay;
 
@@ -193,22 +226,37 @@ function swBuildModal() {
               <li><span class="sw-pricing-check">✓</span>マーカー・ループ自動停止なし</li>
             </ul>
           </div>
-          <div class="sw-pricing-card sw-pricing-card-highlight" id="swUnlockSubscribe">
-            <div class="sw-pricing-badge">おすすめ</div>
+          <div class="sw-pricing-card" id="swUnlockSubscribe">
             <div class="sw-pricing-jp-badge">🇯🇵 日本限定価格</div>
             <div class="sw-pricing-card-top">
               <div class="sw-pricing-card-title"><span class="sw-pricing-card-title-en">Premium</span><span class="sw-pricing-card-title-en">(Monthly)</span><span class="sw-pricing-card-title-jp">マンスリー</span></div>
               <div class="sw-pricing-card-desc">広告なしで常に快適。手軽に始めたい方に最適な月額プラン。</div>
               <div class="sw-pricing-card-price">
-                <span class="sw-pricing-price-overseas">$4.99</span>
                 ¥150<span class="sw-pricing-card-price-unit">/ 月（自動更新）</span>
               </div>
             </div>
-            <div class="sw-pricing-card-cta">サブスクに登録</div>
+            <div class="sw-pricing-card-cta sw-pricing-cta-secondary">月額プランに登録</div>
             <ul class="sw-pricing-feature-list">
               <li><span class="sw-pricing-check">✓</span><b>広告表示・視聴 一切なし</b></li>
               <li><span class="sw-pricing-check">✓</span>常時 すべての制限が無制限</li>
               <li><span class="sw-pricing-check">✓</span>気軽に解約・再開が可能</li>
+            </ul>
+          </div>
+          <div class="sw-pricing-card sw-pricing-card-highlight" id="swUnlockYearly">
+            <div class="sw-pricing-badge">おすすめ</div>
+            <div class="sw-pricing-jp-badge">🇯🇵 日本限定価格</div>
+            <div class="sw-pricing-card-top">
+              <div class="sw-pricing-card-title"><span class="sw-pricing-card-title-en">Premium</span><span class="sw-pricing-card-title-en">(Yearly)</span><span class="sw-pricing-card-title-jp">アニュアル</span></div>
+              <div class="sw-pricing-card-desc">1年間たっぷり使えてお得な年間プラン。長く練習する方に。</div>
+              <div class="sw-pricing-card-price">
+                ¥1,500<span class="sw-pricing-card-price-unit">/ 年（自動更新）</span>
+              </div>
+            </div>
+            <div class="sw-pricing-card-cta">年間プランに登録</div>
+            <ul class="sw-pricing-feature-list">
+              <li><span class="sw-pricing-check">✓</span><b>広告表示・視聴 一切なし</b></li>
+              <li><span class="sw-pricing-check">✓</span>常時 すべての制限が無制限</li>
+              <li><span class="sw-pricing-check">✓</span>月額よりさらにお得な価格</li>
             </ul>
           </div>
           <div class="sw-pricing-card" id="swUnlockLifetime">
@@ -217,7 +265,6 @@ function swBuildModal() {
               <div class="sw-pricing-card-title"><span class="sw-pricing-card-title-en">Premium</span><span class="sw-pricing-card-title-en">(Lifetime)</span><span class="sw-pricing-card-title-jp">永久ライセンス</span></div>
               <div class="sw-pricing-card-desc">一度の支払いでずっと使い放題。サブスクの管理が不要な方に。</div>
               <div class="sw-pricing-card-price">
-                <span class="sw-pricing-price-overseas">$80</span>
                 ¥2,500<span class="sw-pricing-card-price-unit">買い切り（追加料金なし）</span>
               </div>
             </div>
@@ -243,34 +290,41 @@ function swBuildModal() {
     if (e.target === overlay) swCloseUnlockModal();
   };
 
-  // ダミー広告視聴（実際の広告SDK連携は後工程。タップ即解除）。
+  // 広告視聴（1時間）
   overlay.querySelector("#swUnlockAd1h").onclick = () => {
     hapticSuccess();
     swUnlockForHours(1);
     swCloseUnlockModal();
     swRefreshAllLockedUI();
   };
+  // 広告視聴（24時間）
   overlay.querySelector("#swUnlockAd24h").onclick = () => {
     hapticSuccess();
     swUnlockForHours(24);
     swCloseUnlockModal();
     swRefreshAllLockedUI();
   };
-  // サブスク・永久ライセンスは決済連携が未実装のため、現時点では案内のみ
-  // （後工程でStripe Checkout等に接続。永久ライセンスはswUnlockPremiumと
-  // 同じ「-1（永久解除）」状態になる想定だが、購入確定ロジックが無いため
-  // ボタン自体はまだ何も解除しない）。
+  
+  // 1ヶ月プラン（Stripe決済リンク、決済前ログイン必須）
   overlay.querySelector("#swUnlockSubscribe").onclick = () => {
-    hapticTap();
-    alert("サブスクリプション機能は準備中です。");
+    swGoToCheckout("https://buy.stripe.com/test_28E00i7aTab69bkbJf14401");
   };
+
+  // 1年プラン（Stripe決済リンク、決済前ログイン必須）
+  overlay.querySelector("#swUnlockYearly").onclick = () => {
+    swGoToCheckout("https://buy.stripe.com/test_8x26oG3YH2IE73ccNj14402");
+  };
+
+  // 永久ライセンス（Stripe決済リンク、決済前ログイン必須）
   overlay.querySelector("#swUnlockLifetime").onclick = () => {
-    hapticTap();
-    alert("永久ライセンスの購入機能は準備中です。");
+    swGoToCheckout("https://buy.stripe.com/test_9B64gyeDl1EA4V44gN14403");
   };
 
   return overlay;
 }
+
+
+
 
 function swOpenUnlockModal(message) {
   hapticWarning();

@@ -79,9 +79,7 @@ window.QN_AUTH = {
   currentUser: null,
   fetchUnlockUntilFromFirestore,
   saveUnlockUntilToFirestore
-};
-
-// --- DOM要素 ---
+};// --- DOM要素 ---
 const btnLoginGoogle = document.getElementById("btnLoginGoogle");
 const btnLogout = document.getElementById("btnLogout");
 const userInfoEl = document.getElementById("userInfo");
@@ -110,6 +108,10 @@ async function handleLogout() {
 
 if (btnLoginGoogle) btnLoginGoogle.addEventListener("click", handleLogin);
 if (btnLogout) btnLogout.addEventListener("click", handleLogout);
+
+// 決済ボタン等、他のJSファイルから「ログインを促してから進める」フローで
+// 使うため、handleLoginをwindow.QN_AUTH経由でも呼べるようにする。
+window.QN_AUTH.login = handleLogin;
 
 // --- ログイン状態監視・UI自動切り替え ---
 onAuthStateChanged(auth, async (user) => {
