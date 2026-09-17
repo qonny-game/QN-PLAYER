@@ -156,11 +156,19 @@ let swModalOverlay = null;
 // 「誰が決済したか」をアプリ側（Firestore）で紐付けるため、決済前の
 // ログインを必須にする（決済自体はログイン無しでも開始できてしまうが、
 // その場合はどのユーザーの解除状態にも反映できないため）。
+// 遷移時は、決済完了後にStripe Webhook側でどのユーザーかを特定できるよう、
+// UIDをclient_reference_idとしてURLに付加する。
 function swGoToCheckout(stripeUrl) {
   hapticTap();
 
+  // window.QN_AUTH.currentUser.uid が正しいUIDの参照先（このファイル内に
+  // 素の"auth"変数は存在しないので、直接auth.currentUserは参照できない）。
+  function urlWithUid(uid) {
+    return `${stripeUrl}?client_reference_id=${encodeURIComponent(uid)}`;
+  }
+
   if (window.QN_AUTH && window.QN_AUTH.currentUser) {
-    window.location.href = stripeUrl;
+    window.location.href = urlWithUid(window.QN_AUTH.currentUser.uid);
     return;
   }
 
@@ -176,7 +184,7 @@ function swGoToCheckout(stripeUrl) {
   const onAuthChanged = (e) => {
     if (e.detail && e.detail.user) {
       window.removeEventListener("qn-auth-changed", onAuthChanged);
-      window.location.href = stripeUrl;
+      window.location.href = urlWithUid(e.detail.user.uid);
     }
   };
   window.addEventListener("qn-auth-changed", onAuthChanged);
@@ -307,35 +315,21 @@ function swBuildModal() {
     swRefreshAllLockedUI();
   };
 
-  // 共通の決済処理（UIDをStripeに受け渡す）
-  const handleCheckoutWithUid = (baseUrl) => {
-    hapticTap();
-    // ログイン中のユーザーUIDを取得
-    const user = typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser : null;
-    const uid = user ? user.uid : "";
-
-    if (!uid) {
-      alert("決済を行うにはGoogleログインが必要です。");
-      return;
-    }
-
-    // StripeのURLに client_reference_id としてUIDを付加して遷移
-    window.location.href = `${baseUrl}?client_reference_id=${uid}`;
-  };
+  // 共通の決済処理は swGoToCheckout（ファイル先頭側で定義、UID付与込み）を使う。
 
   // 1ヶ月プラン
   overlay.querySelector("#swUnlockSubscribe").onclick = () => {
-    handleCheckoutWithUid("https://buy.stripe.com/test_28E00i7aTab69bkbJf14401");
+    swGoToCheckout("https://buy.stripe.com/test_28E00i7aTab69bkbJf14401");
   };
 
   // 1年プラン
   overlay.querySelector("#swUnlockYearly").onclick = () => {
-    handleCheckoutWithUid("https://buy.stripe.com/test_8x26oG3YH2IE73ccNj14402");
+    swGoToCheckout("https://buy.stripe.com/test_8x26oG3YH2IE73ccNj14402");
   };
 
   // 永久ライセンス
   overlay.querySelector("#swUnlockLifetime").onclick = () => {
-    handleCheckoutWithUid("https://buy.stripe.com/test_9B64gyeDl1EA4V44gN14403");
+    swGoToCheckout("https://buy.stripe.com/test_9B64gyeDl1EA4V44gN14403");
   };
 
   return overlay;
