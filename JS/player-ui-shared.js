@@ -441,9 +441,9 @@ document.addEventListener("keydown", e => {
   }
   else if (e.ctrlKey && (e.key === "r" || e.key === "R")) {
     e.preventDefault();
-    const speedResetBtnEl = document.getElementById("speedResetBtn");
-    if (speedResetBtnEl) speedResetBtnEl.click();
-    const keyResetBtnEl = document.getElementById("keyResetBtn");
+    const speedResetBtnEl = document.getElementById("controlSpeedResetBtn");
+    if (speedResetBtnEl && !speedResetBtnEl.disabled) speedResetBtnEl.click();
+    const keyResetBtnEl = document.getElementById("controlKeyResetBtn");
     if (keyResetBtnEl && !keyResetBtnEl.disabled) keyResetBtnEl.click();
   }
   else if (e.key === "r" || e.key === "R") {

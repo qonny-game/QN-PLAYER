@@ -9,7 +9,6 @@
 // renderSegments）。
 // ============================================================
 
-const speedRange = document.getElementById("speedRange");
 const speedDisplay = document.getElementById("speedDisplay");
 const controlSpeedRange = document.getElementById("controlSpeedRange");
 const controlSpeedDisplay = document.getElementById("controlSpeedDisplay");
@@ -19,7 +18,6 @@ const SPEED_MAX = 1.5;
 
 // Speedの表示・スライダー値を、Basic欄・CONTROLタブ・SP専用ステータス表示、全てに反映する
 function syncSpeedDisplays() {
-  if (speedRange) speedRange.value = currentSpeed;
   if (speedDisplay) speedDisplay.textContent = currentSpeed.toFixed(2);
   if (controlSpeedRange) controlSpeedRange.value = currentSpeed;
   if (controlSpeedDisplay) controlSpeedDisplay.textContent = currentSpeed.toFixed(2);
@@ -81,7 +79,6 @@ function handleSpeedRangeInput(e) {
     updatePlaybackRate();
   }, 90);
 }
-if (speedRange) speedRange.oninput = handleSpeedRangeInput;
 if (controlSpeedRange) controlSpeedRange.oninput = handleSpeedRangeInput;
 
 function resetSpeed() {
@@ -89,8 +86,6 @@ function resetSpeed() {
   syncSpeedDisplays();
   updatePlaybackRate();
 }
-const speedResetBtn = document.getElementById("speedResetBtn");
-if (speedResetBtn) speedResetBtn.onclick = resetSpeed;
 const controlSpeedResetBtn = document.getElementById("controlSpeedResetBtn");
 if (controlSpeedResetBtn) controlSpeedResetBtn.onclick = resetSpeed;
 
@@ -312,50 +307,48 @@ if (controlKeyResetBtn) controlKeyResetBtn.onclick = () => setKeySemitones(0);
 
 renderKeyDisplay();
 
-// ピッチシフト(位相ボコーダー)の準備が整ったらKEY操作を有効化し、
-// グレーアウトと「SOON」バッジを解除する。失敗時は無効のまま維持する。
+// ピッチシフト(位相ボコーダー)の準備が整ったらKEY/SPEED操作を有効化する。
+// 失敗時（AudioWorklet非対応ブラウザ等）は無効のまま維持する。
+// 対象はPC v2の実UI要素（controlKey*/controlSpeed*）と、シェアウェア無料版制限用の
+// ON/OFFトグル(controlKeyEnableToggle/controlSpeedEnableToggle)の両方。
+// 無料版制限とブラウザ非対応という別々の理由による無効化状態が重ならないよう、
+// 非対応時はトグルごとまとめて触れなくする。
 function updateKeyControlAvailability() {
-  const keyToggleBtn = document.getElementById("keyToggleBtn");
-  const badge = keyToggleBtn ? keyToggleBtn.querySelector(".key-disabled-badge") : null;
-  const speedToggleBtn = document.getElementById("speedToggleBtn");
-  const speedRangeEl = document.getElementById("speedRange");
-  const speedResetBtnEl = document.getElementById("speedResetBtn");
+  const keyElements = [controlKeyUpBtn, controlKeyDownBtn, controlKeyResetBtn, controlKeyEnableToggle];
+  const speedElements = [controlSpeedRange, controlSpeedResetBtn, controlSpeedEnableToggle];
 
   if (pitchShiftAvailable) {
-    [keyToggleBtn, keyResetBtn, keyUpBtn, keyDownBtn].forEach(el => {
-      if (el) el.disabled = false;
+    keyElements.forEach(el => {
+      if (el) {
+        el.disabled = false;
+        el.classList.remove("key-disabled");
+        el.removeAttribute("title");
+      }
     });
-    if (keyToggleBtn) {
-      keyToggleBtn.classList.remove("key-disabled");
-      keyToggleBtn.title = "Key";
-    }
-    if (badge) badge.remove();
-
-    [speedToggleBtn, speedRangeEl, speedResetBtnEl].forEach(el => {
-      if (el) el.disabled = false;
+    speedElements.forEach(el => {
+      if (el) {
+        el.disabled = false;
+        el.classList.remove("key-disabled");
+        el.removeAttribute("title");
+      }
     });
-    if (speedToggleBtn) {
-      speedToggleBtn.classList.remove("key-disabled");
-      speedToggleBtn.title = "Speed";
-    }
   } else {
-    [keyToggleBtn, keyResetBtn, keyUpBtn, keyDownBtn].forEach(el => {
-      if (el) el.disabled = true;
+    keyElements.forEach(el => {
+      if (el) {
+        el.disabled = true;
+        el.classList.add("key-disabled");
+        el.title = "Key change is unavailable in this browser (AudioWorklet not supported)";
+      }
     });
-    if (keyToggleBtn) {
-      keyToggleBtn.classList.add("key-disabled");
-      keyToggleBtn.title = "Key change is unavailable in this browser (AudioWorklet not supported)";
-    }
-
     // Speedもキー変更と同じ位相ボコーダーを経由するため、AudioWorklet非対応環境では
     // 音質の悪いplaybackRateベースの簡易フォールバックは提供せず、Speed自体を無効化する。
-    [speedToggleBtn, speedRangeEl, speedResetBtnEl].forEach(el => {
-      if (el) el.disabled = true;
+    speedElements.forEach(el => {
+      if (el) {
+        el.disabled = true;
+        el.classList.add("key-disabled");
+        el.title = "Speed change is unavailable in this browser (AudioWorklet not supported)";
+      }
     });
-    if (speedToggleBtn) {
-      speedToggleBtn.classList.add("key-disabled");
-      speedToggleBtn.title = "Speed change is unavailable in this browser (AudioWorklet not supported)";
-    }
   }
 }
 

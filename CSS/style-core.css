@@ -674,7 +674,6 @@ body {
   gap: 0;
 }
 
-.adjust-controls-row #eqToggleBtn,
 .adjust-controls-row #exportToggleBtn,
 .adjust-controls-row .header-btn-wrapper {
   flex-grow: 1;
@@ -703,14 +702,6 @@ body {
 
 .adjust-controls-row .time-controls-buttons > *:first-child .av-toggle-btn {
   border-left-width: 1px !important;
-}
-
-#keyToggleBtn {
-  border-top-right-radius: 16px !important;
-}
-
-#eqToggleBtn {
-  border-bottom-left-radius: 16px !important;
 }
 
 #fileUploadWrapper .av-toggle-btn {
@@ -782,11 +773,6 @@ body {
   text-transform: uppercase;
   color: inherit;
   opacity: 0.65;
-}
-
-/* 値表示(av-toggle-btn-value)を持たないボタン(EQ)は、ラベル単体を縦中央に揃える */
-#eqToggleBtn .av-toggle-btn-text {
-  justify-content: center;
 }
 
 .av-toggle-btn.key-disabled {

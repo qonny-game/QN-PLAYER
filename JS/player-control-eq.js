@@ -259,7 +259,6 @@ if (eqBandsEl) {
 }
 
 // EQモーダルの開閉（Exportモーダルと同じパターン）
-const eqToggleBtn = document.getElementById("eqToggleBtn");
 const eqModalOverlay = document.getElementById("eqModalOverlay");
 const eqModalCloseBtn = document.getElementById("eqModalCloseBtn");
 
@@ -276,12 +275,6 @@ function closeEqModal() {
   if (eqModalOverlay) eqModalOverlay.classList.remove("open");
 }
 
-if (eqToggleBtn) {
-  eqToggleBtn.onclick = (e) => {
-    e.stopPropagation();
-    openEqModal();
-  };
-}
 if (eqModalCloseBtn) {
   eqModalCloseBtn.onclick = () => closeEqModal();
 }
