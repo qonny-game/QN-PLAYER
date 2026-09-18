@@ -681,7 +681,7 @@ function swGetHeaderPlanBadgeLabel() {
     if (planType === "monthly") return "Monthly";
     return "Ad"; // 広告視聴による時限解除中。
   }
-  return null; // 無料版：バッジ自体を表示しない。
+  return "FREE"; // 無料版のときに「FREE」と表示する
 }
 
 function swUpdateHeaderPlanBadge() {
