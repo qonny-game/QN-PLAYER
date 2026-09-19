@@ -163,3 +163,27 @@ onAuthStateChanged(auth, async (user) => {
     window.dispatchEvent(new CustomEvent("qn-auth-changed", { detail: { user: null } }));
   }
 });
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const avatarBtn = document.getElementById("userAvatarBtn");
+  const dropdown = document.getElementById("userDropdown");
+
+  if (avatarBtn && dropdown) {
+    // アイコンクリックで開閉切り替え
+    avatarBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle("active");
+    });
+
+    // ポップアップ内のクリックイベントが外側に伝播しないように制限
+    dropdown.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    // 画面の他の場所をクリックしたら閉じる
+    document.addEventListener("click", () => {
+      dropdown.classList.remove("active");
+    });
+  }
+});

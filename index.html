@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QNPLAYER 2.2.1</title>
+<title>QNPLAYER 2.2.2</title>
 <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
@@ -159,26 +159,60 @@
   <!-- Premiumアップグレード導線。押すとアンロックモーダル(4プランカード)を直接開く。 -->
   <button id="swUpgradeBtn" title="Upgrade to Premium">UPGRADE</button>
 
-  <!-- Firebase Authentication（Googleログイン）UI -->
-  <div id="authContainer">
-    <button id="btnLoginGoogle" title="Googleでログイン">
-      <svg viewBox="0 0 24 24"><path fill="#fff" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>
-    </button>
-    <div id="userInfo" style="display:none;">
-      <span id="userPlanBadge" class="sw-header-plan-badge"></span>
-        <!-- ============================================================
-       【検証用・一時的】シェアウェア動作確認用デバッグパネル。
-       リリース前に必ずこの<div id="swDebugPanel">〜</div>ブロック全体を削除すること。
-       ============================================================ -->
-       <span id="swDebugStatus">FR</span>
-  <!-- ============================================================ -->
 
-      <img id="userPhoto" src="" alt="">
-      <button id="btnLogout" title="ログアウト">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17 7l-1.41 1.41L17.17 10H9v2h8.17l-1.58 1.58L17 15l4-4zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h7v-2H5V5z"/></svg>
-      </button>
+
+
+
+
+
+
+
+
+
+
+<!-- Firebase Authentication（Googleログイン）UI -->
+<div id="authContainer">
+  <!-- 未ログイン時：Googleログインボタン -->
+  <button id="btnLoginGoogle" title="Googleでログイン">
+    <svg viewBox="0 0 24 24"><path fill="#fff" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>
+    <span>Googleでログイン</span>
+  </button>
+
+  <!-- ログイン時：アバターアイコン ＆ ドロップダウンポップアップ -->
+  <div id="userInfo" style="display:none;">
+    <!-- アイコンボタン（クリックでドロップダウンを開閉） -->
+    <button id="userAvatarBtn" title="アカウントメニュー">
+      <img id="userPhoto" src="" alt="User Photo">
+    </button>
+
+    <!-- ポップアップメニュー（デフォルト非表示） -->
+    <div id="userDropdown" class="user-dropdown">
+      <div class="user-dropdown-header">
+        <span id="userName">User Name</span>
+      </div>
+      <div class="user-dropdown-body">
+        <div class="user-dropdown-item">
+          <span class="user-dropdown-label">プラン</span>
+          <span id="userPlanBadge" class="sw-header-plan-badge">FREE</span>
+        </div>
+        <div class="user-dropdown-item">
+          <span class="user-dropdown-label">残り時間 / 有効期限</span>
+          <span id="userPlanExpiry" class="user-dropdown-val">なし</span>
+        </div>
+      </div>
+      <div class="user-dropdown-footer">
+        <button id="btnLogout">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17 7l-1.41 1.41L17.17 10H9v2h8.17l-1.58 1.58L17 15l4-4zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h7v-2H5V5z"/></svg>
+          <span>ログアウト</span>
+        </button>
+      </div>
     </div>
   </div>
+</div>
+  
+
+
+
 
 
 </div>
