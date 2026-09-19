@@ -375,31 +375,15 @@
    player-shareware.js末尾のデバッグ用スクリプトを削除すること。
    目立たせるため意図的に警告色（オレンジ）にしている。
    ============================================================ */
-#swDebugPanel {
-  display: flex;
-  align-items: center;
-  margin-left: 10px;
-  font-size: 11px;
-  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-}
+
 
 #swDebugStatus {
   font-weight: 700;
-  color: #f59e0b;
+  color: var(--text-bright);
   padding: 0 4px;
   white-space: nowrap;
 }
 
-
-/* スマホ幅でも検証できるよう、非表示にはせず折り返し表示にする。
-   ヘッダー内で場所を取りすぎる場合はここを縮小する。 */
-@media (max-width: 900px) {
-  #swDebugPanel {
-    flex-wrap: wrap;
-    row-gap: 4px;
-    font-size: 10px;
-    padding: 3px 6px;
-  }
 
 
   /* 5列固定だと狭い画面でカードが極端に狭くなり文字が詰まるため、
