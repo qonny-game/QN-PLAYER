@@ -146,7 +146,7 @@ function swGetCurrentPlanLabel() {
     const remainingLabel = swGetUnlockRemainingLabel();
     return remainingLabel ? `Ad Unlock (${remainingLabel})` : null;
   }
-  return "FREE"; // 無料版：バッジ自体を表示しない。
+  return "FREE PLAN"; // 無料版：バッジ自体を表示しない。
 }
 
 // --- ダミー広告解除・サブスク解除（実際の広告SDK/決済は後工程） ---

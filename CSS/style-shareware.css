@@ -385,11 +385,11 @@
 }
 
 
-
+@media (max-width: 900px) {
   /* 5列固定だと狭い画面でカードが極端に狭くなり文字が詰まるため、
      900px以下は2列×3行に折り返す（1行に5枚収めるのはPC幅限定）。 */
   .sw-pricing-cards {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
