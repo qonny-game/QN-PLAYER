@@ -142,11 +142,11 @@ function swGetCurrentPlanLabel() {
     return `${planLabel} (${remainDays} days left)`;
   }
   // 広告視聴による時限解除中：プラン名は出さず、残り時間だけ表示する。
-  if (until > 0 && Date.now() < until && planType === null) {
+  if (until > 0 && Date.now() < until && planType === "AD") {
     const remainingLabel = swGetUnlockRemainingLabel();
     return remainingLabel ? `Ad Unlock (${remainingLabel})` : null;
   }
-  return null; // 無料版：バッジ自体を表示しない。
+  return "FREE"; // 無料版：バッジ自体を表示しない。
 }
 
 // --- ダミー広告解除・サブスク解除（実際の広告SDK/決済は後工程） ---
