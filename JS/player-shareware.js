@@ -715,12 +715,12 @@ function swDebugUpdateStatusLabel() {
   const statusEl = document.getElementById("swDebugStatus");
   if (!statusEl) return;
   const until = swGetUnlockUntil();
-  if (until === -1) {
-    statusEl.textContent = "PR";
-  } else if (until > 0 && Date.now() < until) {
-    statusEl.textContent = "UNLOCKED " + swDebugFormatCountdown(until - Date.now());
+  // 時限解除中かつ有効期限内の場合のみカウントダウンを表示
+  if (until > 0 && Date.now() < until) {
+    statusEl.textContent = swDebugFormatCountdown(until - Date.now());
   } else {
-    statusEl.textContent = "FR";
+    // 永久解除(until === -1) や 無料版(until === 0) などの場合は非表示（空文字）
+    statusEl.textContent = "";
   }
 }
 
