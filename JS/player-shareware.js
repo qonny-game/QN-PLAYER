@@ -228,8 +228,13 @@ async function swPollForPurchaseReflection(uid) {
   // 既定回数まで試したが反映が確認できなかった：諦めて案内を出す。
   // フラグ自体は消さない（TTL内であれば次回のページ読み込み時にも
   // この判定に入り、もう一度ポーリングを試みる）。
+  // 文言について：単純な反映待ちのラグだけでなく、決済失敗やキャンセル
+  // でWebhook自体が送られてこないケースもこの分岐に入り得る
+  // （Gemini担当確認済み：失敗時は反映待ちと区別が付かない）。そのため
+  // 「まだ反映されていないだけ」と断定せず、決済が完了していない
+  // 可能性も含めた表現にしている。
   if (noticeEl) {
-    noticeEl.textContent = "反映に時間がかかっています。少し待ってからページを再読み込みしてください。";
+    noticeEl.textContent = "反映に時間がかかっているか、決済が完了していない可能性があります。ページを再読み込みするか、アカウント状態をご確認ください。";
     noticeEl.classList.add("sw-purchase-pending-notice-delay");
   }
 }
@@ -341,6 +346,32 @@ function swIsCheckoutPending() {
   }
   return true;
 }
+
+// ============================================================
+// 「?checkout=success」URLパラメータの検知。
+// Stripe Payment Link側で、決済完了後のリダイレクト先を
+// https://qnaudio-8b46e.web.app?checkout=success に設定済み（Gemini担当
+// バックエンド対応、2026年9月確認）。このパラメータが付いていれば、
+// localStorageのフラグ（swIsCheckoutPending、10分TTL）よりも確実に
+// 「今まさに決済から戻ってきた」と判断できる。
+// ページ読み込み時に一度だけ呼び、パラメータを検知したら
+// swMarkCheckoutPending()と同じ状態にし（フラグが無い/切れていても
+// 決済直後の判定に乗せる）、URLからパラメータを取り除く
+// （history.replaceStateでリロードのたびに再検知しないようにする）。
+// ============================================================
+function swCheckUrlForCheckoutSuccess() {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("checkout") !== "success") return;
+
+    swMarkCheckoutPending();
+
+    url.searchParams.delete("checkout");
+    const cleaned = url.pathname + (url.search ? url.search : "") + url.hash;
+    window.history.replaceState(null, "", cleaned || window.location.pathname);
+  } catch (e) {}
+}
+swCheckUrlForCheckoutSuccess();
 
 // 遷移時は、決済完了後にStripe Webhook側でどのユーザーかを特定できるよう、
 // UIDをclient_reference_idとしてURLに付加する。
