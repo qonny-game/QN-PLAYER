@@ -520,3 +520,41 @@
   background: rgba(255, 255, 255, 0.09);
   color: #d8d8de;
 }
+
+/* ============================================================
+   決済反映待ち通知バー（#swPurchasePendingNotice）
+   決済ボタンを押した直後、Stripe Webhookの反映待ちでポーリング中に
+   画面上部へ表示する控えめな通知。邪魔にならないよう、細めのバーで
+   画面最上部に固定表示する。
+   ============================================================ */
+.sw-purchase-pending-notice {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--accent-primary, #3b82f6), var(--accent-secondary, #3b82f6));
+  color: var(--text-pure-white, #fff);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  animation: sw-purchase-pending-slide-in 0.3s ease;
+}
+
+/* タイムアウトして「時間がかかっています」案内に切り替わった時は、
+   進行中を示す青系ではなく、少し落ち着いたグレー系にする。 */
+.sw-purchase-pending-notice.sw-purchase-pending-notice-delay {
+  background: #3a3a42;
+}
+
+@keyframes sw-purchase-pending-slide-in {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}

@@ -182,13 +182,88 @@ function swUnlockForHours(hours) {
 // 不要になり、ルール1（決済直後5分間の優先）とルール2（通常時）を
 // 統合できるため、あわせて簡略化している。
 // ============================================================
+// remoteの{unlockUntil}がPremium相当かどうかを判定する（isUnlocked()と
+// 同じロジックをFirestoreから取得した値に対して適用するためのヘルパー）。
+function swIsRemoteUnlocked(remote) {
+  if (!remote) return false;
+  const until = remote.unlockUntil;
+  if (until === -1) return true;
+  if (until > 0 && Date.now() < until) return true;
+  return false;
+}
+
+// 決済直後、Stripe Webhookがまだ反映されていない可能性がある場合に、
+// 数秒おきにFirestoreを再確認する（ポーリング）。
+// 呼ばれるのはswSyncUnlockWithFirestore内、「決済ボタンを押した形跡
+// （swIsCheckoutPending）があるのに、Firestoreがまだ無料版のまま」
+// だった場合のみ。本当のFREEユーザーはこの関数自体を通らないため、
+// 待たされることはない。
+// 最大5回・2秒おき（合計10秒）試し、それでも反映されなければ諦めて
+// 通常表示に戻し、次回のページ読み込み時にまた同じ判定からやり直す。
+const SW_POLL_INTERVAL_MS = 2000;
+const SW_POLL_MAX_ATTEMPTS = 5;
+
+async function swPollForPurchaseReflection(uid) {
+  const noticeEl = swEnsurePurchasePendingNotice();
+  if (noticeEl) noticeEl.style.display = "flex";
+
+  for (let attempt = 1; attempt <= SW_POLL_MAX_ATTEMPTS; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, SW_POLL_INTERVAL_MS));
+
+    const remote = await window.QN_AUTH.fetchUnlockUntilFromFirestore(uid);
+    if (swIsRemoteUnlocked(remote)) {
+      // 反映を確認できた：通常の同期と同じ手順でローカルへ反映する。
+      try {
+        localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
+        localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
+      } catch (e) {}
+      swSetPlanType(remote.planType);
+      swClearCheckoutPending();
+      if (noticeEl) noticeEl.style.display = "none";
+      swRefreshAllLockedUI();
+      return;
+    }
+  }
+
+  // 既定回数まで試したが反映が確認できなかった：諦めて案内を出す。
+  // フラグ自体は消さない（TTL内であれば次回のページ読み込み時にも
+  // この判定に入り、もう一度ポーリングを試みる）。
+  if (noticeEl) {
+    noticeEl.textContent = "反映に時間がかかっています。少し待ってからページを再読み込みしてください。";
+    noticeEl.classList.add("sw-purchase-pending-notice-delay");
+  }
+}
+
+// ポーリング中に画面上部へ出す控えめな通知バー（初回のみ生成し、以降は
+// 使い回す）。「Premium反映を確認しています…」の間はこれを表示し、
+// 反映確認/タイムアウトで文言・表示を切り替える。
+function swEnsurePurchasePendingNotice() {
+  let el = document.getElementById("swPurchasePendingNotice");
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "swPurchasePendingNotice";
+  el.className = "sw-purchase-pending-notice";
+  el.textContent = "決済の反映を確認しています…";
+  el.style.display = "none";
+  document.body.appendChild(el);
+  return el;
+}
+
 async function swSyncUnlockWithFirestore(uid) {
   if (!window.QN_AUTH || typeof window.QN_AUTH.fetchUnlockUntilFromFirestore !== "function") return;
 
   const remote = await window.QN_AUTH.fetchUnlockUntilFromFirestore(uid);
 
   if (!remote) {
-    // Firestore未登録：本当の新規ユーザー初回ログインなど。
+    // Firestore未登録：通常はここに来る前（ログイン直後の最初の同期）で
+    // 既にドキュメントが作成されているはずだが、念のための安全網として、
+    // 決済直後フラグが立っている場合はここでもポーリングを試みる
+    // （何らかの理由でドキュメント作成が間に合っていない場合の保険）。
+    if (swIsCheckoutPending()) {
+      swPollForPurchaseReflection(uid);
+      return;
+    }
+    // 本当の新規ユーザー初回ログインなど。
     // ローカルの状態（通常は無料版の初期値）をそのまま書き込んで初期化する。
     const localUntil = swGetUnlockUntil();
     if (window.QN_AUTH.saveUnlockUntilToFirestore) {
@@ -199,11 +274,20 @@ async function swSyncUnlockWithFirestore(uid) {
   }
 
   // Firestoreにデータがあれば、常にそれを正としてローカルへ反映する。
+  // ただし「決済ボタンを押した直後（swIsCheckoutPending）」かつ
+  // 「Firestoreがまだ無料版のまま」の場合だけは、Stripe Webhookの反映
+  // 待ちの可能性があるため、即座に確定せずポーリングで数回粘る。
+  if (swIsCheckoutPending() && !swIsRemoteUnlocked(remote)) {
+    swPollForPurchaseReflection(uid); // 完了を待たず、バックグラウンドで進める
+    return;
+  }
+
   try {
     localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
     localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
   } catch (e) {}
   swSetPlanType(remote.planType);
+  swClearCheckoutPending(); // Premium状態を確認できたので、フラグは不要
   swRefreshAllLockedUI();
 }
 window.swSyncUnlockWithFirestore = swSyncUnlockWithFirestore;
@@ -222,6 +306,42 @@ let swModalOverlay = null;
 // 「誰が決済したか」をアプリ側（Firestore）で紐付けるため、決済前の
 // ログインを必須にする（決済自体はログイン無しでも開始できてしまうが、
 // その場合はどのユーザーの解除状態にも反映できないため）。
+// ============================================================
+// 「決済直後かもしれない」フラグ（sw_checkout_pending_at）
+// 決済ボタンを押した時刻を記録しておき、次にFirestoreと同期する時
+// （ページロード/リロード時）、このフラグが有効期限内なら「決済直後の
+// 可能性がある」と判断してポーリング（swPollForPurchaseReflection、
+// 後述）を行う。本当のFREEユーザーが毎回待たされないよう、決済ボタンを
+// 押した人だけに限定するための仕組み。
+// 有効期限（10分）を過ぎたフラグは無視する＝決済せずタブを閉じた・
+// キャンセルした等でフラグが残り続けても、永久にポーリングし続ける
+// ことはない。
+// ============================================================
+const SW_CHECKOUT_PENDING_KEY = "qnplayer_checkout_pending_at";
+const SW_CHECKOUT_PENDING_TTL_MS = 10 * 60 * 1000; // 10分
+
+function swMarkCheckoutPending() {
+  try { localStorage.setItem(SW_CHECKOUT_PENDING_KEY, String(Date.now())); } catch (e) {}
+}
+
+function swClearCheckoutPending() {
+  try { localStorage.removeItem(SW_CHECKOUT_PENDING_KEY); } catch (e) {}
+}
+
+// 有効なフラグが立っているか（決済ボタンを押してから10分以内か）を返す。
+// 副作用として、期限切れのフラグは自動で削除する。
+function swIsCheckoutPending() {
+  let raw = null;
+  try { raw = localStorage.getItem(SW_CHECKOUT_PENDING_KEY); } catch (e) {}
+  if (!raw) return false;
+  const ts = parseInt(raw, 10);
+  if (!Number.isFinite(ts) || Date.now() - ts > SW_CHECKOUT_PENDING_TTL_MS) {
+    swClearCheckoutPending();
+    return false;
+  }
+  return true;
+}
+
 // 遷移時は、決済完了後にStripe Webhook側でどのユーザーかを特定できるよう、
 // UIDをclient_reference_idとしてURLに付加する。
 // Stripeの決済ページは新規タブで開く（window.open、_blank）。これにより
@@ -237,6 +357,7 @@ function swGoToCheckout(stripeUrl) {
   }
 
   if (window.QN_AUTH && window.QN_AUTH.currentUser) {
+    swMarkCheckoutPending();
     window.open(urlWithUid(window.QN_AUTH.currentUser.uid), "_blank", "noopener");
     return;
   }
@@ -257,6 +378,7 @@ function swGoToCheckout(stripeUrl) {
   const onAuthChanged = (e) => {
     if (e.detail && e.detail.user) {
       window.removeEventListener("qn-auth-changed", onAuthChanged);
+      swMarkCheckoutPending();
       const url = urlWithUid(e.detail.user.uid);
       const newTab = window.open(url, "_blank", "noopener");
       if (!newTab) {
