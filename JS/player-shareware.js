@@ -745,15 +745,13 @@ setInterval(swUpdatePlanRemainingUI, 60 * 1000);
 //
 // Customer PortalのURLは「今ログイン中のユーザー用に毎回サーバー側で
 // 発行してもらう」必要がある（Stripeの仕様上、固定リンクにはできない）。
-// そのため、Cloud Functions側に「ポータルセッションを作ってURLを返す」
-// エンドポイント（例: createPortalSession）を用意してもらう必要がある。
-// 現時点ではCloud Functions側が未実装のため、実際の遷移はまだ行わず、
-// 準備中であることを案内するプレースホルダー動作にしている。
-//
-// Cloud Functions側の実装後は、下記のswGoToCustomerPortal()の中身を
-// 実際のfetch呼び出し（エンドポイントにUIDを渡し、返ってきたurlへ
-// window.open）に差し替えるだけでよいように、関数を分離してある。
+// そのため、Cloud Functions側の createPortalSession エンドポイントに
+// UIDを渡してURLを発行してもらい、そのURLへ遷移する。
+// エンドポイントURL: Gemini担当によりバックエンド実装完了、
+// https://us-central1-qnaudio-8b46e.cloudfunctions.net/createPortalSession
 // ============================================================
+const SW_CREATE_PORTAL_SESSION_URL = "https://us-central1-qnaudio-8b46e.cloudfunctions.net/createPortalSession";
+
 async function swGoToCustomerPortal() {
   hapticTap();
 
@@ -762,15 +760,43 @@ async function swGoToCustomerPortal() {
     return;
   }
 
-  // TODO(Cloud Functions実装後、以下に差し替え):
-  //   const res = await fetch("https://<region>-qnaudio-8b46e.cloudfunctions.net/createPortalSession", {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ uid: window.QN_AUTH.currentUser.uid })
-  //   });
-  //   const { url } = await res.json();
-  //   window.open(url, "_blank", "noopener");
-  alert("解約手続きページは準備中です。しばらくお待ちください。");
+  const btn = document.getElementById("btnCancelSubscription");
+  const originalLabel = btn ? btn.textContent : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "処理中…";
+  }
+
+  try {
+    const res = await fetch(SW_CREATE_PORTAL_SESSION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid: window.QN_AUTH.currentUser.uid })
+    });
+
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status);
+    }
+
+    const data = await res.json();
+    if (!data || !data.url) {
+      throw new Error("レスポンスにurlが含まれていません");
+    }
+
+    // 新規タブで開く。window.openはユーザー操作（クリック）に対する
+    // 同期的な応答の中でないとポップアップブロックされることがあるが、
+    // このawait fetch自体はクリックハンドラの流れの中で完結しており、
+    // 通常のブラウザではブロックされない想定。
+    window.open(data.url, "_blank", "noopener");
+  } catch (err) {
+    console.error("Customer Portalセッションの作成に失敗しました:", err);
+    alert("解約手続きページを開けませんでした。しばらくしてから再度お試しください。");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  }
 }
 
 const swCancelSubscriptionBtn = document.getElementById("btnCancelSubscription");
