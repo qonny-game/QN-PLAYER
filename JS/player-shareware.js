@@ -163,35 +163,34 @@ function swUnlockForHours(hours) {
   swSetUnlockUntil(until);
 }
 
+// Firestoreとログイン中のブラウザのローカル状態(unlockUntil)を同期する。
 // ============================================================
-// FirestoreとlocalStorageの解除状態マージ（ログイン成功直後にplayer-auth.js
-// から呼ばれる）。
+// 【方針】Firestoreにドキュメントがあれば、常にFirestore側を正として
+// ローカルへ反映する（updatedAtの新旧比較はしない）。
 //
-// 優先ルール：
-//   1. Firestore側にpurchasedAtMs（Stripe決済確定時のサーバー側タイムスタンプ）
-//      があり、それが直近5分以内なら、時刻比較を待たず必ずFirestore側を採用する。
-//      これが無いと、決済直後にこの同期処理が走った際、たまたまローカルの
-//      updatedAtの方が新しく判定されてしまい、決済結果が古いlocalStorageの
-//      値で上書きされてしまう事故が起きうるため（実際に発生した不具合）。
-//   2. それ以外はLast-Write-Wins（どちらの操作が時刻的に新しいか）で決める。
-//      以前は「値が大きい方（＝残り時間が長い方）」を優先していたが、これだと
-//      「無料版に戻す」という明示的な操作が、他端末の古い時限解除の値に
-//      上書きされてしまう不具合があったため、updatedAtのタイムスタンプ比較に
-//      変更した。
-//   Firestore未登録（このアカウントで初めての同期）の場合は、
-//   ローカル側をそのままFirestoreに書き込む。
+// 経緯：以前はローカルとFirestoreの更新時刻を比較し、ローカルの方が
+// 新しければFirestoreへ書き戻す処理があった。これは元々、未ログイン
+// 状態でのデバッグパネル操作（当時はindex.htmlに解除/無料化テスト用の
+// ボタン群が存在した）をログイン後にFirestoreへ反映するためのものだった。
+// しかしデバッグパネルのHTML自体は既に撤去済みで、この処理が意図通りに
+// 使われる場面は本番では起こらない。その一方で、Firestoreのunlock Untilを
+// 直接（Firebaseコンソール等から）手動で書き換えた際、その手動編集が
+// updatedAtフィールドを伴わないと、ブラウザのlocalStorage側に残っていた
+// 古いupdatedAtの方が新しいと誤判定され、手動修正した値がローカルの
+// 古い値で上書きされてしまう実害のあるバグを引き起こしていたため撤去した。
+// Firestore側を常に信頼する方針にしたことで、更新時刻の比較自体が
+// 不要になり、ルール1（決済直後5分間の優先）とルール2（通常時）を
+// 統合できるため、あわせて簡略化している。
 // ============================================================
-const SW_PURCHASE_PRIORITY_WINDOW_MS = 5 * 60 * 1000; // 決済確定から5分以内は無条件で優先
-
 async function swSyncUnlockWithFirestore(uid) {
   if (!window.QN_AUTH || typeof window.QN_AUTH.fetchUnlockUntilFromFirestore !== "function") return;
 
   const remote = await window.QN_AUTH.fetchUnlockUntilFromFirestore(uid);
-  const localUntil = swGetUnlockUntil();
-  const localUpdatedAt = swGetLocalUpdatedAt();
 
   if (!remote) {
-    // Firestore未登録：ローカルの状態をそのまま書き込んで初期化する。
+    // Firestore未登録：本当の新規ユーザー初回ログインなど。
+    // ローカルの状態（通常は無料版の初期値）をそのまま書き込んで初期化する。
+    const localUntil = swGetUnlockUntil();
     if (window.QN_AUTH.saveUnlockUntilToFirestore) {
       window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil, swGetPlanType());
     }
@@ -199,35 +198,12 @@ async function swSyncUnlockWithFirestore(uid) {
     return;
   }
 
-  // ルール1：直近の決済確定（purchasedAtMs）があれば無条件でFirestoreを採用。
-  const isRecentPurchase = remote.purchasedAtMs > 0 &&
-    (Date.now() - remote.purchasedAtMs) < SW_PURCHASE_PRIORITY_WINDOW_MS;
-
-  if (isRecentPurchase) {
-    try {
-      localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
-      localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
-    } catch (e) {}
-    swSetPlanType(remote.planType);
-    swRefreshAllLockedUI();
-    return;
-  }
-
-  // ルール2：リモートの方が新しければリモートを採用してローカルに反映。
-  // ローカルの方が新しい、または同時刻なら何もしない（ローカルを正とする）。
-  if (remote.updatedAtMs > localUpdatedAt) {
-    try {
-      localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
-      localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
-    } catch (e) {}
-    swSetPlanType(remote.planType);
-  } else if (localUpdatedAt > remote.updatedAtMs) {
-    // ローカルの方が新しい場合、Firestore側が古いまま残らないよう書き戻す。
-    if (window.QN_AUTH.saveUnlockUntilToFirestore) {
-      window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil, swGetPlanType());
-    }
-  }
-
+  // Firestoreにデータがあれば、常にそれを正としてローカルへ反映する。
+  try {
+    localStorage.setItem(SW_UNLOCK_STORAGE_KEY, String(remote.unlockUntil));
+    localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
+  } catch (e) {}
+  swSetPlanType(remote.planType);
   swRefreshAllLockedUI();
 }
 window.swSyncUnlockWithFirestore = swSyncUnlockWithFirestore;
