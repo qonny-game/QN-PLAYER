@@ -644,6 +644,47 @@
   </div>
 </div>
 
+<!-- ============================================================
+     解約確認モーダル（#btnCancelSubscription押下時、Stripe Customer
+     Portalへ遷移する前に挟む最終確認）。
+     表示内容: プラン名・残り期間（カウントダウン）・次回自動更新日
+     （年月日）・「解約しても利用可能」な最終日（次回自動更新日と同じ
+     日付だが、文脈が異なるため別行で表示）。
+     中身（プラン名・日付）はplayer-shareware.js側のswOpenCancelModal()
+     が開くたびに算出して差し込む。
+     ============================================================ -->
+<div id="cancelModalOverlay" class="export-modal-overlay">
+  <div class="export-modal cancel-modal">
+    <div class="export-modal-header">
+      <span>サブスクリプションの解約</span>
+      <button id="cancelModalCloseBtn" class="export-modal-close" title="Close">✕</button>
+    </div>
+
+    <div class="export-modal-body">
+      <div class="cancel-modal-row">
+        <span class="cancel-modal-label">プラン</span>
+        <span class="cancel-modal-val" id="cancelModalPlan">-</span>
+      </div>
+      <div class="cancel-modal-row">
+        <span class="cancel-modal-label">残り期間</span>
+        <span class="cancel-modal-val" id="cancelModalRemaining">-</span>
+      </div>
+      <div class="cancel-modal-row">
+        <span class="cancel-modal-label">次回自動更新日</span>
+        <span class="cancel-modal-val" id="cancelModalNextRenewal">-</span>
+      </div>
+      <div class="cancel-modal-notice">
+        解約手続きを行った場合も、<strong id="cancelModalUntilDate">-</strong>まで引き続きPremium機能をご利用いただけます。それ以降は自動的に無料プランへ切り替わります。
+      </div>
+    </div>
+
+    <div class="export-modal-footer">
+      <button id="cancelModalCancelBtn" class="export-cancel-btn" title="Close">キャンセル</button>
+      <button id="cancelModalConfirmBtn" class="export-run-btn cancel-modal-confirm-btn">解約手続きへ進む</button>
+    </div>
+  </div>
+</div>
+
 <!-- スマホ幅でtop-controlsを画面下部に固定した際、ページ最下部（フッター前）に高さ分の余白を確保する -->
 <div class="top-controls-spacer" id="topControlsSpacer"></div>
 

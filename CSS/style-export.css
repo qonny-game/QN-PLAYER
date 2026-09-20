@@ -342,3 +342,62 @@
 }
 
 
+
+/* ============================================================
+   解約確認モーダル（#cancelModalOverlay）固有のスタイル。
+   モーダルの器自体(.export-modal-overlay/.export-modal/
+   .export-modal-header/.export-modal-body/.export-modal-footer)は
+   Export/EQモーダルと共通のものをそのまま使い、ここでは中身
+   （プラン情報の行、注意書き）だけを追加定義する。
+   ============================================================ */
+.cancel-modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cancel-modal-row:last-of-type {
+  border-bottom: none;
+}
+
+.cancel-modal-label {
+  font-size: 13px;
+  color: var(--icon-muted);
+}
+
+.cancel-modal-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.cancel-modal-notice {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-bright);
+}
+
+.cancel-modal-notice strong {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+/* 「解約手続きへ進む」ボタンは、他のexport-run-btn（青系アクション）とは
+   意味合いが異なる破壊的操作のため、危険色（赤系）にして誤タップの
+   印象を和らげる（うっかり押しても「進む」の手前で気づけるよう、
+   Exportボタンと視覚的にはっきり区別する）。 */
+.cancel-modal-confirm-btn {
+  background: var(--danger, #ef4444);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
+}
+
+.cancel-modal-confirm-btn:hover {
+  background: #dc2626;
+}

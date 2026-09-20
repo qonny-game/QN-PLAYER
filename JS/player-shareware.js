@@ -739,6 +739,57 @@ swUpdatePlanRemainingUI();
 setInterval(swUpdatePlanRemainingUI, 60 * 1000);
 
 // ============================================================
+// 解約確認モーダル（#cancelModalOverlay）
+// 解約ボタン押下時、いきなりStripe Customer Portalへ飛ばす前に、
+// プラン名・残り期間・次回自動更新日・解約後も使える最終日を
+// 確認してもらう。「解約手続きへ進む」を押して初めて
+// swGoToCustomerPortal()（実際のAPI呼び出し）を実行する。
+// ============================================================
+
+// 年月日形式（例: "2026年10月21日"）のフォーマッタ。
+// カウントダウン表示(swFormatRemainingDdHhMm)とは別に、次回自動更新日・
+// 解約後の利用可能最終日のような「絶対日付」を示す箇所で使う。
+function swFormatDateYMD(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+function swOpenCancelModal() {
+  const overlay = document.getElementById("cancelModalOverlay");
+  if (!overlay) return;
+
+  const until = swGetUnlockUntil();
+  const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
+  const isSubscription = (planType === "monthly" || planType === "yearly") && until > 0 && Date.now() < until;
+
+  if (!isSubscription) {
+    // 通常はボタン自体がmonthly/yearly時しか表示されないため到達しない
+    // はずだが、念のための防御。
+    alert("現在、解約可能なサブスクリプションはありません。");
+    return;
+  }
+
+  const planLabel = planType === "yearly" ? "Yearly" : "Monthly";
+  const dateLabel = swFormatDateYMD(until);
+
+  const planEl = document.getElementById("cancelModalPlan");
+  const remainingEl = document.getElementById("cancelModalRemaining");
+  const nextRenewalEl = document.getElementById("cancelModalNextRenewal");
+  const untilDateEl = document.getElementById("cancelModalUntilDate");
+  if (planEl) planEl.textContent = planLabel;
+  if (remainingEl) remainingEl.textContent = swFormatRemainingDdHhMm(until - Date.now());
+  if (nextRenewalEl) nextRenewalEl.textContent = dateLabel;
+  if (untilDateEl) untilDateEl.textContent = dateLabel;
+
+  overlay.classList.add("open");
+}
+
+function swCloseCancelModal() {
+  const overlay = document.getElementById("cancelModalOverlay");
+  if (overlay) overlay.classList.remove("open");
+}
+
+// ============================================================
 // 解約ボタン（#btnCancelSubscription）
 // Stripe Customer Portal（顧客自身がサブスクを解約・支払い方法変更できる
 // Stripe提供の画面）へ遷移させる。
@@ -749,6 +800,10 @@ setInterval(swUpdatePlanRemainingUI, 60 * 1000);
 // UIDを渡してURLを発行してもらい、そのURLへ遷移する。
 // エンドポイントURL: Gemini担当によりバックエンド実装完了、
 // https://us-central1-qnaudio-8b46e.cloudfunctions.net/createPortalSession
+//
+// 呼び出し元: #cancelModalConfirmBtn（解約確認モーダルの「解約手続きへ
+// 進む」ボタン）。#btnCancelSubscription自体は、まずswOpenCancelModal()
+// でモーダルを開くだけのトリガーに変わっている。
 // ============================================================
 const SW_CREATE_PORTAL_SESSION_URL = "https://us-central1-qnaudio-8b46e.cloudfunctions.net/createPortalSession";
 
@@ -760,7 +815,7 @@ async function swGoToCustomerPortal() {
     return;
   }
 
-  const btn = document.getElementById("btnCancelSubscription");
+  const btn = document.getElementById("cancelModalConfirmBtn");
   const originalLabel = btn ? btn.textContent : null;
   if (btn) {
     btn.disabled = true;
@@ -785,9 +840,10 @@ async function swGoToCustomerPortal() {
 
     // 新規タブで開く。window.openはユーザー操作（クリック）に対する
     // 同期的な応答の中でないとポップアップブロックされることがあるが、
-    // このawait fetch自体はクリックハンドラの流れの中で完結しており、
-    // 通常のブラウザではブロックされない想定。
+    // このawait fetch自体は「解約手続きへ進む」ボタンのクリックハンドラの
+    // 流れの中で完結しており、通常のブラウザではブロックされない想定。
     window.open(data.url, "_blank", "noopener");
+    swCloseCancelModal();
   } catch (err) {
     console.error("Customer Portalセッションの作成に失敗しました:", err);
     alert("解約手続きページを開けませんでした。しばらくしてから再度お試しください。");
@@ -801,8 +857,37 @@ async function swGoToCustomerPortal() {
 
 const swCancelSubscriptionBtn = document.getElementById("btnCancelSubscription");
 if (swCancelSubscriptionBtn) {
-  swCancelSubscriptionBtn.onclick = swGoToCustomerPortal;
+  swCancelSubscriptionBtn.onclick = swOpenCancelModal;
 }
+
+const cancelModalConfirmBtn = document.getElementById("cancelModalConfirmBtn");
+if (cancelModalConfirmBtn) {
+  cancelModalConfirmBtn.onclick = swGoToCustomerPortal;
+}
+
+const cancelModalCancelBtn = document.getElementById("cancelModalCancelBtn");
+if (cancelModalCancelBtn) {
+  cancelModalCancelBtn.onclick = () => { hapticTap(); swCloseCancelModal(); };
+}
+
+const cancelModalCloseBtn = document.getElementById("cancelModalCloseBtn");
+if (cancelModalCloseBtn) {
+  cancelModalCloseBtn.onclick = () => { hapticTap(); swCloseCancelModal(); };
+}
+
+const cancelModalOverlay = document.getElementById("cancelModalOverlay");
+if (cancelModalOverlay) {
+  cancelModalOverlay.onclick = (e) => {
+    if (e.target === cancelModalOverlay) swCloseCancelModal();
+  };
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    const overlay = document.getElementById("cancelModalOverlay");
+    if (overlay && overlay.classList.contains("open")) swCloseCancelModal();
+  }
+});
 
 // ============================================================
 // 【検証用・一時的】ここから下は動作確認用のデバッグパネル処理。
