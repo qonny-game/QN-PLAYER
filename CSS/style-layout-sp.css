@@ -45,9 +45,9 @@
     flex-shrink: 0;
   }
 
-  /* ハンバーガーメニュー（QN Series/Color Theme/Keyboard Shortcuts）は
-     qn-menu.html/css/js が #qnMenuMount に注入する共通コンポーネント。
-     SP幅での見た目調整もqn-menu.css側が担うため、このアプリ側では上書きしない。 */
+  /* ハンバーガーメニュー（Color Theme/Keyboard Shortcuts）は
+     player-theme.js/style-theme.cssが担当する#qnMenuMount内のコンポーネント。
+     SP幅での見た目調整もstyle-theme.css側が担うため、このアプリ側では上書きしない。 */
 }
 
 @media screen and (max-width: 768px) {

@@ -377,7 +377,7 @@
 }
 
 
-/* Auto SpeedのON/OFFトグルスイッチ(.glow-switch)。qn-menu.cssの
+/* Auto SpeedのON/OFFトグルスイッチ(.glow-switch)。style-theme.cssの
    .qn-glow-switchと同じデザインを、Controlタブ内で使うため
    プレフィックス無しのクラス名で定義する（元々CSS定義自体が
    存在せず、素のbutton要素として表示されてしまっていた）。 */

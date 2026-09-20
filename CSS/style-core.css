@@ -1075,89 +1075,17 @@ body, .vbar-line, .pinItem, .vbar, button {
 
 /* ドラッグ&ドロップオーバーレイは style-playlist.css に分割移動済み */
 
+/* welcomeOverlay（初回案内・ADD FILEボタン）は撤去済み。
+   シークバーエリア右下の+ADD AUDIOボタン(#pcV2WaveAddAudioBtn、
+   style-layout-pc-v2.css側)に一本化した。 */
 
-/* 初回：まだファイルが読み込まれていない間、画面全体を薄暗く覆い
-   SELECT FILEボタンとD&D案内だけを見せる案内オーバーレイ */
-#welcomeOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(5, 5, 7, 0.88);
-  backdrop-filter: blur(2px);
-  z-index: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  box-sizing: border-box;
-  transition: opacity 0.3s ease;
-}
 
-#welcomeOverlay.hidden {
-  display: none;
-}
-
-.welcome-content {
-  width: 100%;
-  max-width: 360px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-#welcomeSelectBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  padding: 20px 20px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: var(--text-pure-white);
-  text-align: center;
-  border: none;
-  border-radius: 14px;
-  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  cursor: pointer;
-  box-shadow: 0 8px 28px var(--accent-glow);
-  transition: background var(--dur-hover) var(--ease-snap), box-shadow var(--dur-press) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
-}
-
-#welcomeSelectBtn:hover {
-  background: linear-gradient(135deg, var(--accent-hover-1), var(--accent-hover-2));
-  box-shadow: 0 10px 32px var(--accent-glow);
-  transform: translateY(-2px);
-}
-
-#welcomeSelectBtn:active {
-  transform: translateY(0) scale(0.97);
-}
-
-#welcomeSelectBtn svg {
-  width: 24px;
-  height: 24px;
-  fill: currentColor;
-  flex-shrink: 0;
-}
-
-.welcome-hint {
-  margin: 16px 0 0;
-  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 13px;
-  color: var(--icon-muted);
-}
 
 
 /* 旧カラーテーマスウォッチ(.theme-swatches等)は現在どこからも参照されていない
-   デッドコードのため削除済み。現行のカラーテーマ選択UIはqn-menu.css/qn-menu.js側
-   （ハンバーガーメニュー内、QN_THEMES配列から動的生成）に一本化されている。 */
+   デッドコードのため削除済み。現行のカラーテーマ選択UIはstyle-theme.css/
+   player-theme.js側（ハンバーガーメニュー内、QN_THEMES配列から動的生成）
+   に一本化されている。 */
 
 
 

@@ -1,10 +1,17 @@
 /* ============================================================
-   qn-menu.css
-   QNシリーズ共通ハンバーガーメニュー（QN-PLAYER配布・fetchで読み込む）
+   style-theme.css
+   カラーテーマ切替・Keyboard Shortcuts一覧・ハンバーガーメニュー
+   （#qnMenuMount）のスタイル。
 
-   置き場所: https://qonny-game.github.io/QN-PLAYER/qn-menu.css
-   各アプリはこのファイルをコピーせず、qn-menu.js が fetch して
-   <style> タグとして注入する。更新はこのファイル1箇所で全アプリに反映される。
+   【経緯】元は「qn-menu.css」というQNシリーズ共通ファイル（配布用、
+   qonny-game.github.io/QN-PLAYER/ から他アプリがfetchして読み込んで
+   いたもの）だったが、QNPLAYER単体リリースにあたり配布の仕組み自体が
+   不要になったため、QNPLAYER専用のファイルとしてこちらへ統合した。
+   QN Series他アプリへの遷移リンク一覧（.qn-nav-btn等、Section 1相当）は
+   既にHTML側から削除済みのため、対応するスタイルもここには含めていない。
+   単色テーマ方針に伴い使われなくなっていた.qn-swatch-rainbow（アニメー
+   ションする特殊テーマ）も、HTML/JS側で生成されなくなっていたデッド
+   コードのため統合時に削除した。
 
    前提: 各アプリの :root には既に --accent-primary 等のCSS変数が
    定義されている（QNAUDIOデザインシステム）。このメニューはテーマ切替時、
@@ -13,14 +20,10 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
-/* ---------- Color themes ---------- */
-/* テーマ名ごとの配色。qn-menu.js が data-theme 属性を body に付けて切り替える。
-   各アプリ本体の :root 定義とは独立しており、テーマ選択時のみこちらが優先される。 */
 /* テーマごとのCSSカスタムプロパティ(--accent-primary等)とスウォッチの
-   背景グラデーション(.qn-swatch-*)は、qn-menu.js内のQN_THEMES配列から
-   動的に生成され、<style id="qnThemeGeneratedCss">として注入される。
-   このファイルには個別テーマの記述を持たせない（唯一のソースはJS側の配列）。
-   rainbowだけは例外的に下の方に固定で残っている。 */
+   背景グラデーション(.qn-swatch-*)は、player-theme.js内のQN_THEMES配列
+   から動的に生成され、<style id="qnThemeGeneratedCss">として注入される。
+   このファイルには個別テーマの記述を持たせない（唯一のソースはJS側の配列）。 */
 
 /* ---------- Hamburger button & popup container ---------- */
 .qn-menu-wrapper {
@@ -31,7 +34,7 @@
 #qnMenuBtn {
   background: #18181b;
   border: 1px solid #27272a;
-  color: #f0f0f3;
+  color: var(--text-bright);
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -122,7 +125,7 @@
   }
 }
 
-/* ---------- Sections & nav links ---------- */
+/* ---------- Sections ---------- */
 .qn-menu-section {
   display: flex;
   flex-direction: column;
@@ -143,40 +146,6 @@
   color: #6b6b7b;
 }
 
-.qn-nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  cursor: pointer;
-  color: #f0f0f3;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  transition: background 130ms cubic-bezier(0.2, 0, 0, 1), border-color 130ms cubic-bezier(0.2, 0, 0, 1), color 130ms cubic-bezier(0.2, 0, 0, 1);
-}
-.qn-nav-btn:hover {
-  background: #27272a;
-  border-color: var(--accent-primary, #3b82f6);
-  color: var(--accent-hover-1, #2563eb);
-}
-.qn-nav-btn.current {
-  background: var(--accent-primary, #3b82f6);
-  border-color: var(--accent-primary, #3b82f6);
-  color: #ffffff;
-  pointer-events: none;
-}
-.qn-nav-btn svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
-  flex-shrink: 0;
-}
-
 /* ---------- Color swatches & glow switch ---------- */
 .qn-theme-swatches {
   display: flex;
@@ -185,8 +154,8 @@
 }
 
 .qn-theme-swatch {
-  width: 28px;
-  height: 28px;
+  width: 31px;
+  height: 31px;
   border-radius: 50%;
   aspect-ratio: 1 / 1;
   border: 2px solid rgba(255, 255, 255, 0.15);
@@ -195,7 +164,7 @@
 }
 .qn-theme-swatch:hover {
   transform: scale(1.1);
-  border-color: #fff;
+  border-color: var(--text-pure-white);
 }
 .qn-theme-swatch.active {
   border: 2px solid #ffffff;
@@ -204,17 +173,8 @@
   transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 130ms cubic-bezier(0.2, 0, 0, 1), box-shadow 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 各テーマのスウォッチ背景(.qn-swatch-*)もqn-menu.js内のQN_THEMES配列から
-   動的に生成される。rainbowだけは例外でこのすぐ下に固定で残っている。 */
-
-.qn-swatch-rainbow {
-  background: conic-gradient(from 0deg, #ef4444, #f97316, #f59e0b, #84cc16, #10b981, #14b8a6, #06b6d4, #0ea5e9, #3b82f6, #6366f1, #8b5cf6, #a855f7, #ec4899, #f43f5e, #ef4444);
-  animation: qn-rainbow-spin 4s linear infinite;
-}
-@keyframes qn-rainbow-spin {
-  from { filter: hue-rotate(0deg); }
-  to { filter: hue-rotate(360deg); }
-}
+/* 各テーマのスウォッチ背景(.qn-swatch-*)もplayer-theme.js内のQN_THEMES
+   配列から動的に生成される。 */
 
 .qn-glow-toggle-row {
   display: flex;
@@ -222,9 +182,9 @@
   justify-content: space-between;
 }
 .qn-glow-toggle-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #c8c8d0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--icon-muted);
 }
 
 .qn-glow-switch {
@@ -233,7 +193,7 @@
   height: 22px;
   border-radius: 11px;
   background: #2a2a35;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -254,7 +214,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #f0f0f3;
+  background: var(--text-bright);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .qn-glow-switch[aria-checked="true"] .qn-glow-switch-knob {
@@ -275,14 +235,14 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 .qn-shortcut-table th {
-  color: #8b8b9e;
+  color: var(--icon-muted);
   font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   font-size: 11px;
 }
 .qn-shortcut-table td {
-  color: #f0f0f3;
+  color: var(--text-bright);
 }
 .qn-shortcut-table kbd {
   background: #252530;

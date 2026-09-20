@@ -12,18 +12,14 @@
 // ============================================================
 
 
-// 初回案内オーバーレイ：ファイルが1曲でも読み込まれたら非表示にする
+// 初回案内オーバーレイ(welcomeOverlay)は撤去済み（シークバーエリア右下の
+// +ADD AUDIOボタン(#pcV2WaveAddAudioBtn、player-ui-pc-v2.js側)に一本化した
+// ため）。hideWelcomeOverlay()自体は他ファイル(loadFile内)からの呼び出しが
+// 残っているため、関数としては残し、対象要素が存在しない場合は何もしない
+// 安全な実装にしている。
 function hideWelcomeOverlay() {
   const overlay = document.getElementById("welcomeOverlay");
   if (overlay) overlay.classList.add("hidden");
-}
-
-const welcomeSelectBtn = document.getElementById("welcomeSelectBtn");
-if (welcomeSelectBtn) {
-  welcomeSelectBtn.onclick = () => {
-    const fileInput = document.getElementById("fileInput");
-    if (fileInput) fileInput.click();
-  };
 }
 
 
@@ -692,7 +688,7 @@ const isMobileLayout = () => window.matchMedia("(max-width: 768px)").matches;
 // player-markers.js に分割移動済み（Marker移動/カラーピッカー/メモ編集/ループ区間描画）
 
 
-// Keyboard Shortcuts は qn-menu.js が window.QN_SHORTCUTS を読んで自動生成する（index.html側で定義）
+// Keyboard Shortcuts は player-theme.js が window.QN_SHORTCUTS を読んで自動生成する（index.html側で定義）
 
 // スマホ専用タブ切り替え（Time&Vol / Speed&Key / Markers / Playlist）
 // Markers/Playlistのタブ切り替え。PC/SP完全に同じレイアウトに統一されたため、

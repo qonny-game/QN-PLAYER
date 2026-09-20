@@ -11,9 +11,9 @@ let audio = new Audio();
 let pins = [];
 let loopEnabled = false;
 
-// マーカーの色付けに使うカラーパレット。Colorパネル（qn-menu.js側の
+// マーカーの色付けに使うカラーパレット。Colorパネル（player-theme.js側の
 // QN_THEMES配列）と全く同じ一覧をそのまま流用する。
-// 読み込み順の都合（このファイルはqn-menu.jsより先に読み込まれるため、
+// 読み込み順の都合（このファイルはplayer-theme.jsより先に読み込まれるため、
 // 定義された直後の時点ではwindow.QN_THEMESはまだ存在しない）、まずは
 // 最低限のフォールバック値（旧・14色）で初期化しておき、後から
 // applyMarkerColorPaletteFromThemes()でQN_THEMES(42色)の内容に
@@ -37,7 +37,7 @@ const MARKER_COLOR_PALETTE = {
   rose: "#f43f5e"
 };
 
-// window.QN_THEMES（qn-menu.js側で定義・公開）の内容で、
+// window.QN_THEMES（player-theme.js側で定義・公開）の内容で、
 // MARKER_COLOR_PALETTEの中身を洗い替える。QN_THEMESは
 // { name, title, primary, secondary } の配列で、Light/Base/Darkの
 // 3トーン×14色相=42エントリを持つため、置き換え後はマーカー色の

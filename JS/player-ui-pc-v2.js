@@ -43,8 +43,21 @@
   // panelType: "tab" = 既存の.mobile-tab-panel(#sidebarSection内)をそのまま表示
   //            "eq"  = EQモーダルの中身(.export-modal-body)を表示
   //            "export" = Exportモーダルの中身(.export-modal-body)を表示
-  //            "action" = パネルを開かず即座にアクションを実行（Add File）
+  //            "action" = パネルを開かず即座にアクションを実行するタイプ
+  //                      （現在は該当する項目なし。旧Add Fileがこれだったが、
+  //                      シークバーエリア右下の+ADD AUDIOボタンに一本化した
+  //                      ため撤去。将来また即実行系ボタンを追加する場合の
+  //                      ためロジックは残している）
+  //            "close" = パネルを開かず、開いていれば閉じる（波形/シークバーが
+  //                      見える基本画面に戻るためのショートカット。SP幅専用の
+  //                      挙動で、PC幅では常時パネル表示のため実質何もしない）
   const ICON_ITEMS = [
+    {
+      id: "seekbar",
+      label: "Seekbar",
+      panelType: "close",
+      icon: '<path d="M4 5h2v14H4zm4 3h2v8H8zm4-6h2v20h-2zm4 4h2v12h-2zm4 3h2v6h-2z"/>'
+    },
     {
       id: "control",
       label: "Control",
@@ -78,12 +91,6 @@
       label: "Export",
       panelType: "export",
       icon: '<path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>'
-    },
-    {
-      id: "addfile",
-      label: "Add File",
-      panelType: "action",
-      icon: '<path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>'
     }
   ];
 
@@ -124,10 +131,10 @@
     });
 
     // アイコンバー下段：Keyboard Shortcuts / Color Theme
-    // 既存のQNシリーズ共通ハンバーガーメニュー(qn-menu.js/html)のTheme/
+    // #qnMenuMount内（player-theme.js/style-theme.cssが担当）のTheme/
     // Shortcutsセクションを、パネルとして中央カラムに表示する
-    // （qn-menu.js自体のロジック・DOM構造には手を入れず、該当セクションを
-    // DOMごと移動して表示するだけ）。
+    // （player-theme.js自体のロジック・DOM構造には手を入れず、該当
+    // セクションをDOMごと移動して表示するだけ）。
     const spacer = el('<div id="pcV2IconBarSpacer"></div>');
     const bottomGroup = el('<div id="pcV2IconBarBottom"></div>');
     [
@@ -146,7 +153,26 @@
     iconBar.appendChild(spacer);
     iconBar.appendChild(bottomGroup);
 
+    // --- アイコンバーの右端「まだ続きがある」ヒント矢印（SP幅専用） ---
+    // #pcV2IconBarは横スクロールするが、パッと見でスクロール可能なことに
+    // 気づきにくいため、右端に固定表示の矢印ヒントを重ねる。
+    // 【重要】iconBarをラップするコンテナは作らない。syncBottomBarPosition()が
+    // 「#pcV2Layoutの直接の子である#pcV2IconBarの直前にbottomBarを挿入する」
+    // 処理をしており、ラップすると#pcV2IconBarがlayoutの直接の子でなくなって
+    // その処理が壊れるため。矢印はlayoutの直接の子として、CSS側で
+    // #pcV2IconBarに右端で重なるよう絶対配置する（position: absolute、
+    // #pcV2IconBarの親である#pcV2Layout、または専用ラッパ不要の構成は
+    // style-layout-pc-v2.css側の実装を参照）。
+    // 表示/非表示はJS側(setupIconBarScrollHint)がスクロール位置を見て
+    // 切り替える。最後までスクロールしたら自動で消える。
+    const iconBarScrollHint = el(
+      '<div id="pcV2IconBarScrollHint" aria-hidden="true">' +
+        '<svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>' +
+      '</div>'
+    );
+
     layout.appendChild(iconBar);
+    layout.appendChild(iconBarScrollHint);
     layout.appendChild(panel);
     layout.appendChild(waveArea);
 
@@ -442,6 +468,10 @@
     syncBottomBarPosition();
     window.addEventListener("resize", syncBottomBarPosition);
 
+    // アイコンバー右端の「まだ続きがある」ヒント矢印：スクロール位置に
+    // 応じて表示/非表示を切り替える（最後までスクロールしたら消える）。
+    setupIconBarScrollHint();
+
     // 時刻表示(.time-controls-row)：PC幅ではgroup1(Repeatの右)、SP幅では
     // #pcV2TimeRow(専用行)へ実際にDOM移動する。
     syncTimeRowPosition();
@@ -461,6 +491,24 @@
       if (elmt) waveArea.appendChild(elmt);
     });
 
+    // --- シークバーエリア右下の+ADD AUDIOボタン ---
+    // 初回起動時、波形が空の状態でも「ここでファイルを追加すればいい」と
+    // 直感的に伝わるよう、常設のフローティングボタンとして設置する
+    // （旧#welcomeOverlay内のADD FILEボタンは撤去し、これに一本化した）。
+    // Markers/Library/TextパネルのFAB(#pcV2PanelFab、.panel-fab-btn)と
+    // 同じ見た目に揃えるため、同じクラスを使う。
+    const waveAddAudioBtn = el(
+      '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddAudioBtn" title="Add Audio">' +
+        '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
+        '<span>ADD AUDIO</span>' +
+      '</button>'
+    );
+    waveAddAudioBtn.addEventListener("click", () => {
+      const fileInputEl = document.getElementById("fileInput");
+      if (fileInputEl) fileInputEl.click();
+    });
+    waveArea.appendChild(waveAddAudioBtn);
+
     // basic-panel-box（Exportボタン等、旧UI）はPC v2では使わないため隠す
     // （fileInput自体は中に残っているので参照は生き続ける）
     const basicPanelBox = document.querySelector(".basic-panel-box");
@@ -473,7 +521,22 @@
     setupVolumeControl();
 
     initPanels();
-    switchPanel("playlist");
+
+    // 初期表示：PC幅は常時パネル表示のため、従来通りLibrary(playlist)を
+    // 開いた状態にする。SP幅は初期状態でパネルが閉じており、波形が見える
+    // 「Seekbar」状態がユーザーの実際の見え方と一致するため、そちらを
+    // アクティブにする（switchPanel("playlist")を呼ぶと、パネルの中身は
+    // 見えないままアイコンバーのLibraryだけ色がつく、という見た目と
+    // 実際の表示状態が食い違う状態になってしまうため呼ばない）。
+    // closePanelOverlay()は「currentPanelをseekbarにし、アイコンバーの
+    // 色もSeekbarに揃える」処理をそのまま流用できる（パネルを開いた
+    // 直後に閉じるのと、最初から閉じているのは、内部的には同じ状態）。
+    const isSpWidthInit = window.matchMedia("(max-width: 900px)").matches;
+    if (isSpWidthInit) {
+      closePanelOverlay();
+    } else {
+      switchPanel("playlist");
+    }
   }
 
   // #pcV2VolumeBtn/#pcV2VolumePopupの開閉と、既存のControlパネル内
@@ -605,6 +668,48 @@
     }
   }
 
+  // アイコンバー右端の「まだ続きがある」ヒント矢印。
+  // #pcV2IconBarがまだ右方向にスクロールできる間だけ表示し、右端まで
+  // スクロールしきったら自動で消える（PC幅ではそもそもスクロールしない
+  // レイアウトのため、CSS側で常に非表示にしている＝ここでのdisplay制御は
+  // 実質SP幅時のみ意味を持つ）。
+  function updateIconBarScrollHint() {
+    const iconBar = document.getElementById("pcV2IconBar");
+    const hint = document.getElementById("pcV2IconBarScrollHint");
+    if (!iconBar || !hint) return;
+
+    // 右方向にあとどれだけスクロールできるか。1pxの誤差（ブラウザや
+    // ズーム倍率による端数）を許容し、それ以下なら「もう最後まで見た」
+    // とみなす。
+    const remaining = iconBar.scrollWidth - iconBar.clientWidth - iconBar.scrollLeft;
+    const canScrollMore = remaining > 1;
+    hint.classList.toggle("visible", canScrollMore);
+  }
+
+  // 初期化：スクロール位置の変化・要素サイズの変化（ボタン増減、
+  // ウィンドウリサイズ等）の両方を拾って判定し直す。
+  //   scroll: ユーザーが実際に横スクロールした時
+  //   resize(window): 画面幅が変わり、PC幅⇔SP幅を跨いだ時
+  //   ResizeObserver(iconBar): アイコンバー自体の幅・中身の幅が変わった時
+  //     （将来ボタン数が増減した場合や、フォント読み込み後の幅確定など）
+  function setupIconBarScrollHint() {
+    const iconBar = document.getElementById("pcV2IconBar");
+    if (!iconBar) return;
+
+    iconBar.addEventListener("scroll", updateIconBarScrollHint, { passive: true });
+    window.addEventListener("resize", updateIconBarScrollHint);
+
+    if (typeof ResizeObserver === "function") {
+      const ro = new ResizeObserver(updateIconBarScrollHint);
+      ro.observe(iconBar);
+    }
+
+    // 初回判定（DOM構築直後は幅が確定しきっていない場合があるため、
+    // 次フレームで再判定する）。
+    updateIconBarScrollHint();
+    requestAnimationFrame(updateIconBarScrollHint);
+  }
+
   // 【SP幅レイアウト】時刻表示(.time-controls-row)を、SP幅では
   // #pcV2TimeRow(波形エリアの下・下部バーの上、専用行)へ、PC幅では
   // group1(#topControls内、Repeatボタンの右)へ実際にDOM移動する。
@@ -642,6 +747,14 @@
       // Add File: パネルを開かず、既存のファイル選択をそのまま発火
       const fileInputEl = document.getElementById("fileInput");
       if (fileInputEl) fileInputEl.click();
+      return;
+    }
+
+    if (item.panelType === "close") {
+      // Seekbar: パネルを開かず、開いていれば閉じるだけ（波形が見える
+      // 基本画面に戻る）。PC幅ではパネルは常時表示のクラスを持たない
+      // ため、closePanelOverlay()を呼んでも見た目上は何も起きない。
+      closePanelOverlay();
       return;
     }
 
@@ -697,9 +810,89 @@
   function closePanelOverlay() {
     const layoutEl = document.getElementById("pcV2Layout");
     if (layoutEl) layoutEl.classList.remove("pcv2-panel-open");
+
+    // パネルを閉じた=波形(シークバー)が見える画面がアクティブになった
+    // ということなので、内部状態(currentPanel)もアイコンバーの色も
+    // Seekbarに揃える（ユーザーの見た目上の認識と、内部の「今どのパネルが
+    // 選ばれているか」の状態を一致させるため。ここを合わせておかないと、
+    // 次に同じアイコンを押した時に「閉じる/開く」の判定(openPanelOverlay
+    // 内のisSamePanel)がユーザーの体感とズレる）。
+    currentPanel = "seekbar";
     document.querySelectorAll("#pcV2IconBar .pcv2-icon-item").forEach(btn => {
-      btn.classList.remove("active");
+      btn.classList.toggle("active", btn.getAttribute("data-panel-id") === "seekbar");
     });
+  }
+
+  // Markers/Libraryパネル共通：画面右下に浮かぶフローティングアクション
+  // ボタン群（縦2段。上段=Add系⇔Delete（編集モードで切り替え）、
+  // 下段=EDIT⇔OK）を組み立てて返す。
+  // panelBody（リスト本体）の末尾に追加することで、position: absoluteで
+  // panelBody基準の右下に固定表示される（CSS側、style-layout-pc-v2.css参照）。
+  // Add Marker / Add Audioのように panelId で内容を出し分ける以外は
+  // markers/playlist共通のため、この関数1つで両方をまかなう。
+  //
+  // 上段は「Add系ボタンのグループ」と「Deleteボタン」の2つのDOM要素を
+  // 両方とも常に作っておき、どちらか一方だけをCSSのdisplayで出し分ける
+  // （toggleEditMode側がedit-mode中はAdd系を隠してDeleteを出す）。
+  // こうすることで、Delete側に「選択件数によるdisabled制御」等の
+  // 既存ロジック（#pcV2DeleteSelectedBtnをdocument.getElementByIdで
+  // 参照している箇所）をそのまま使い続けられる。
+  function buildPanelFab(panelId) {
+    const fab = el('<div id="pcV2PanelFab"></div>');
+
+    // 上段グループ1：Add系（通常時に表示）。
+    const addGroup = el('<div class="pcv2-fab-addgroup"></div>');
+
+    if (panelId === "playlist") {
+      const addFileBtn = el(
+        '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2LibraryAddFileBtn" title="Add Audio">' +
+          '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
+          '<span>ADD AUDIO</span>' +
+        '</button>'
+      );
+      addFileBtn.addEventListener("click", () => {
+        const fileInputEl = document.getElementById("fileInput");
+        if (fileInputEl) fileInputEl.click();
+      });
+      addGroup.appendChild(addFileBtn);
+    }
+
+    if (panelId === "markers") {
+      const addMarkerBtn = el(
+        '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2AddMarkerBtn" title="Add Marker">' +
+          '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
+          '<span>ADD MARKER</span>' +
+        '</button>'
+      );
+      addMarkerBtn.addEventListener("click", () => {
+        if (typeof addCurrentPin === "function") addCurrentPin();
+      });
+      addGroup.appendChild(addMarkerBtn);
+    }
+
+    fab.appendChild(addGroup);
+
+    // 上段グループ2：Delete（編集モード中のみ表示）。
+    const deleteBtn = el(
+      '<button type="button" class="panel-fab-btn panel-fab-delete-btn" id="pcV2DeleteSelectedBtn" disabled>' +
+        '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
+        '<span>Delete</span>' +
+      '</button>'
+    );
+    deleteBtn.addEventListener("click", () => deleteSelectedItems(panelId));
+    fab.appendChild(deleteBtn);
+
+    // 下段：EDIT⇔OK（常時表示）。
+    const editBtn = el(
+      '<button type="button" class="panel-fab-btn panel-edit-btn" id="pcV2' + (panelId === "markers" ? "Markers" : "Playlist") + 'EditBtn" title="Edit ' + panelId + '">' +
+        '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
+        '<span>EDIT</span>' +
+      '</button>'
+    );
+    editBtn.addEventListener("click", () => toggleEditMode(panelId));
+    fab.appendChild(editBtn);
+
+    return fab;
   }
 
   function switchPanel(panelId) {
@@ -766,53 +959,6 @@
     titleSpan.textContent = item.label;
     panelHeader.appendChild(titleSpan);
 
-    if (panelId === "markers" || panelId === "playlist") {
-      const headerActions = el('<div class="pcv2-panel-header-actions"></div>');
-
-      if (panelId === "playlist") {
-        const addFileBtn = el(
-          '<button type="button" class="panel-addfile-btn" id="pcV2LibraryAddFileBtn" title="Add File">' +
-            '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-          '</button>'
-        );
-        addFileBtn.addEventListener("click", () => {
-          const fileInputEl = document.getElementById("fileInput");
-          if (fileInputEl) fileInputEl.click();
-        });
-        headerActions.appendChild(addFileBtn);
-      }
-
-      if (panelId === "markers") {
-        const addMarkerBtn = el(
-          '<button type="button" class="panel-addfile-btn" id="pcV2AddMarkerBtn" title="Add Marker">' +
-            '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-          '</button>'
-        );
-        addMarkerBtn.addEventListener("click", () => {
-          if (typeof addCurrentPin === "function") addCurrentPin();
-        });
-        headerActions.appendChild(addMarkerBtn);
-      }
-
-      const deleteBtn = el(
-        '<button type="button" id="pcV2DeleteSelectedBtn" disabled>' +
-          '<span>Delete</span>' +
-        '</button>'
-      );
-      deleteBtn.addEventListener("click", () => deleteSelectedItems(panelId));
-      headerActions.appendChild(deleteBtn);
-
-      const editBtn = el(
-        '<button type="button" class="panel-edit-btn" id="pcV2' + (panelId === "markers" ? "Markers" : "Playlist") + 'EditBtn" title="Edit ' + panelId + '">' +
-          '<span>EDIT</span>' +
-        '</button>'
-      );
-      editBtn.addEventListener("click", () => toggleEditMode(panelId));
-      headerActions.appendChild(editBtn);
-
-      panelHeader.appendChild(headerActions);
-    }
-
     if (item.panelType === "tab") {
       // 「Control」パネルだけはSpeed/Key/EQを1つに統合する要望のため、
       // controlBody(Speed/Key)の下にeqBody(EQ)を続けて差し込む。
@@ -830,9 +976,11 @@
       } else if (panelId === "markers") {
         if (markersBody) panelBody.appendChild(markersBody);
         attachDisableGuard("markers");
+        panelBody.appendChild(buildPanelFab(panelId));
       } else if (panelId === "playlist") {
         if (playlistBody) panelBody.appendChild(playlistBody);
         attachDisableGuard("playlist");
+        panelBody.appendChild(buildPanelFab(panelId));
       } else if (panelId === "text") {
         if (textBody) panelBody.appendChild(textBody);
         setupTextPanelHeaderControls();
@@ -886,12 +1034,20 @@
     const editBtnId = panelId === "markers" ? "pcV2MarkersEditBtn" : "pcV2PlaylistEditBtn";
     const editBtn = document.getElementById(editBtnId);
     const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
+    const fab = document.getElementById("pcV2PanelFab");
+    const addGroup = fab ? fab.querySelector(".pcv2-fab-addgroup") : null;
     const cssClass = panelId + "-edit-mode";
     if (panelBody) panelBody.classList.toggle(cssClass, editModeState[panelId]);
     if (editBtn) {
       editBtn.classList.toggle("active", editModeState[panelId]);
       const editBtnLabel = editBtn.querySelector("span");
       if (editBtnLabel) editBtnLabel.textContent = editModeState[panelId] ? "OK" : "EDIT";
+    }
+    // 上段：編集モード中はAdd系を隠してDeleteを表示、通常時はその逆
+    // （新規追加と削除選択を同時に操作できてしまうと紛らわしいための
+    // 排他表示）。
+    if (addGroup) {
+      addGroup.style.display = editModeState[panelId] ? "none" : "flex";
     }
     if (deleteBtn) {
       deleteBtn.style.display = editModeState[panelId] ? "flex" : "none";
@@ -1132,54 +1288,68 @@
   let textEditModeOn = false;
   function setupTextPanelHeaderControls() {
     const panelHeader = document.getElementById("pcV2PanelHeader");
+    const panelBody = document.getElementById("pcV2PanelBody");
     const textarea = document.getElementById("noteTextArea");
-    if (!panelHeader || !textarea) return;
+    if (!panelHeader || !panelBody || !textarea) return;
 
     // デフォルトで編集モードにしない：readonly状態から始める。
     textarea.readOnly = !textEditModeOn;
 
-    const actions = el('<div class="pcv2-panel-header-actions"></div>');
+    // Fullscreen・EDITはヘッダーではなく、画面右下のフローティング
+    // アクションボタン（#pcV2PanelFab、Markers/Libraryと共通のスタイル）
+    // として表示する（上段=Fullscreen、下段=EDIT）。
+    const fab = el('<div id="pcV2PanelFab"></div>');
 
+    // 【重要】fullscreenBtnはこの時点でdocument.getElementByIdで取得し、
+    // 以降はこの変数（同じ参照）をそのまま使い回す。fab.appendChild()で
+    // fabの中へ移した瞬間、fabはまだpanelBodyへ追加されておらず
+    // documentツリーに未接続のため、この後もう一度
+    // document.getElementById("noteTextFullscreenBtn")を呼ぶと見つからず
+    // nullが返る（実際にこれが原因で、編集モード中にFullscreenボタンが
+    // 隠れないバグが発生していた）。
     const holder = document.getElementById("pcV2TextControlsHolder");
-    if (holder) {
+    const fullscreenBtn = document.getElementById("noteTextFullscreenBtn");
+    if (holder && fullscreenBtn) {
       // 文字サイズ変更(+/-)は、フルスクリーンオーバーレイ内の
       // #noteTextAreaFullscreenにだけ効く機能(player-text.js側の設計)
       // のため、通常表示のヘッダーには置かず、フルスクリーンオーバーレイ
       // 側に残す（保持コンテナには退避しない）。フルスクリーンボタン
-      // だけをヘッダーへ移動する。PDF指摘により、EDITボタンより先
-      // （＝表示上は左）に配置する。
-      const fullscreenBtn = document.getElementById("noteTextFullscreenBtn");
-      if (fullscreenBtn) actions.appendChild(fullscreenBtn);
+      // だけをFABへ移動する。
+      fab.appendChild(fullscreenBtn);
     }
 
     const editBtn = el(
-      '<button type="button" class="panel-edit-btn" id="pcV2TextEditBtn" title="Edit text">' +
+      '<button type="button" class="panel-fab-btn panel-edit-btn" id="pcV2TextEditBtn" title="Edit text">' +
+        '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
         '<span>EDIT</span>' +
       '</button>'
     );
     const editBtnLabel = editBtn.querySelector("span");
     editBtn.classList.toggle("active", textEditModeOn);
+    // 編集モード中はFullscreen（上段）を隠す。Markers/Libraryの
+    // 「編集中はAdd系を隠す」と挙動を揃えるための対応（Text自体には
+    // Delete相当の機能は無いが、非表示にする対象がFullscreenになる）。
+    if (fullscreenBtn) fullscreenBtn.style.display = textEditModeOn ? "none" : "flex";
     editBtn.addEventListener("click", () => {
       textEditModeOn = !textEditModeOn;
       textarea.readOnly = !textEditModeOn;
       editBtn.classList.toggle("active", textEditModeOn);
       if (editBtnLabel) editBtnLabel.textContent = textEditModeOn ? "OK" : "EDIT";
+      if (fullscreenBtn) fullscreenBtn.style.display = textEditModeOn ? "none" : "flex";
       if (textEditModeOn) textarea.focus();
     });
-    actions.appendChild(editBtn);
+    fab.appendChild(editBtn);
 
-    panelHeader.appendChild(actions);
+    panelBody.appendChild(fab);
   }
 
-  // Keyboard/Colorパネル：既存のQNシリーズ共通ハンバーガーメニュー
-  // (qn-menu.js/html、#qnMenuMountへfetchで非同期に注入される)が持つ
-  // Theme(Color)/Shortcuts(Keyboard)セクションを、DOMごとパネルへ移動して
-  // 表示する。qn-menu.js自体のロジック(テーマ切替・Glowトグル・
-  // ショートカット表生成)には一切手を入れない。
+  // Keyboard/Colorパネル：#qnMenuMount内（player-theme.js/style-theme.css
+  // が担当）のTheme(Color)/Shortcuts(Keyboard)セクションを、DOMごと
+  // パネルへ移動して表示する。player-theme.js自体のロジック(テーマ切替・
+  // Glowトグル・ショートカット表生成)には一切手を入れない。
   // 一度移動したセクションはpcv2QnSectionsに保持し、パネルを行き来しても
   // 同じ要素（イベントハンドラ・状態を保ったまま）を再利用する。
   const pcv2QnSections = { keyboard: null, color: null };
-  let pcv2QnObserver = null;
 
   function qnSectionSelector(panelId) {
     return panelId === "keyboard"
@@ -1213,43 +1383,10 @@
       return;
     }
 
-    // qn-menu.js側のfetchによるDOM注入がまだ完了していない場合、
-    // ローディング表示を出しつつMutationObserverで注入完了を待つ。
-    const loading = el('<div class="pcv2-qn-loading">Loading…</div>');
-    panelBody.appendChild(loading);
-
-    const mount = document.getElementById("qnMenuMount");
-    if (!mount) return;
-
-    if (pcv2QnObserver) pcv2QnObserver.disconnect();
-    pcv2QnObserver = new MutationObserver(() => {
-      tryClaimQnSections();
-      if (pcv2QnSections.keyboard && pcv2QnSections.color) {
-        pcv2QnObserver.disconnect();
-        pcv2QnObserver = null;
-      }
-      // 現在表示中のパネルがこのpanelIdのままであれば、ローディング表示を
-      // 実際のセクションに差し替える。別のパネルに切り替わっていた場合は
-      // 何もしない（要素はpcv2QnSectionsに保持されているので、次回
-      // Keyboard/Colorを開いた時にrenderQnMenuSectionPanelの先頭分岐で
-      // 即座に表示される）。
-      if (pcv2QnSections[panelId] && currentPanel === panelId) {
-        panelBody.innerHTML = "";
-        panelBody.appendChild(pcv2QnSections[panelId]);
-      }
-    });
-    pcv2QnObserver.observe(mount, { childList: true, subtree: true });
-
-    // qn-menu.js側のfetch失敗（オフライン、CORS、Mixed Content等）で
-    // 注入が永久に来ない場合、Loading表示のまま固まってしまうため、
-    // 一定時間待って注入が確認できなければエラー表示に差し替える。
-    setTimeout(() => {
-      if (pcv2QnSections[panelId]) return; // 注入済みなら何もしない
-      if (currentPanel !== panelId) return; // 別パネルに切り替え済みなら何もしない
-      if (panelBody.contains(loading)) {
-        loading.textContent = "読み込みに失敗しました。再読み込みしてお試しください。";
-      }
-    }, 8000);
+    // #qnMenuMount内にセクションが見つからない場合（index.html側の
+    // マークアップが壊れている等、通常は起こらない異常系）のみ、
+    // エラー表示に留める。
+    panelBody.appendChild(el('<div class="pcv2-qn-loading">読み込みに失敗しました。再読み込みしてお試しください。</div>'));
   }
 
   // 元の位置に戻すための目印（コメントノード）。要素移動前に元の場所へ
@@ -1351,21 +1488,14 @@
     const headerNav = document.getElementById("pcV2HeaderNav");
     if (headerNav) headerNav.parentNode.removeChild(headerNav);
 
-    // Keyboard/Colorパネルへ移動していたqn-menuのセクションを、元の
-    // .qn-menu-popup(SP幅ではハンバーガーメニューのポップアップとして
-    // 引き続き使われる)へ戻す。qn-menu.js側のDOM構造・並び順の前提
-    // (nav→theme→shortcutsの順)を壊さないよう、Navセクションの直後に
-    // theme、その後にshortcutsという順で差し戻す。
+    // Keyboard/Colorパネルへ移動していたセクションを、元の.qn-menu-popup
+    // (SP幅ではハンバーガーメニューのポップアップとして引き続き使われる)
+    // へ戻す。theme→shortcutsの順（index.html側の元の並び順）を保つ。
     if (pcv2QnSections.color || pcv2QnSections.keyboard) {
       const popup = document.getElementById("qnMenuPopup");
       if (popup) {
-        const navSection = popup.querySelector('.qn-menu-section[data-qn-section="nav"]');
         if (pcv2QnSections.color) {
-          if (navSection && navSection.nextSibling) {
-            popup.insertBefore(pcv2QnSections.color, navSection.nextSibling);
-          } else {
-            popup.appendChild(pcv2QnSections.color);
-          }
+          popup.insertBefore(pcv2QnSections.color, popup.firstChild);
         }
         if (pcv2QnSections.keyboard) {
           popup.appendChild(pcv2QnSections.keyboard);
@@ -1373,10 +1503,6 @@
       }
       pcv2QnSections.color = null;
       pcv2QnSections.keyboard = null;
-    }
-    if (pcv2QnObserver) {
-      pcv2QnObserver.disconnect();
-      pcv2QnObserver = null;
     }
 
     const layout = document.getElementById("pcV2Root");

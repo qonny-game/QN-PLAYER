@@ -694,6 +694,91 @@ swRegisterRefreshCallback(swUpdateHeaderPlanBadge);
 swUpdateHeaderPlanBadge();
 
 // ============================================================
+// ドロップダウン内「残り○日 hh:mm」表示（monthly/yearly契約中のみ）。
+// 1分ごとに再計算する（秒は表示しないため1分間隔で十分。setInterval）。
+// 対象: monthly/yearly（自動更新のサブスク）のみ。
+//   Lifetime: 有効期限が無いため対象外。
+//   Ad（広告視聴による時限解除）: 数十分〜数時間単位のためこの「dd日hh:mm」
+//     表示にはそぐわず対象外（ヘッダーバッジの「Ad」表記のみで足りる）。
+//   FREE: 期限自体が無いため対象外。
+// 表示形式は「dd日 hh:mm」固定（1日未満でも「0日 hh:mm」の形で出す）。
+// ============================================================
+function swFormatRemainingDdHhMm(remainMs) {
+  const totalMin = Math.max(0, Math.floor(remainMs / (1000 * 60)));
+  const days = Math.floor(totalMin / (60 * 24));
+  const hours = Math.floor((totalMin % (60 * 24)) / 60);
+  const minutes = totalMin % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${days}日 ${pad(hours)}:${pad(minutes)}`;
+}
+
+function swUpdatePlanRemainingUI() {
+  const rowEl = document.getElementById("userPlanRemainingRow");
+  const valEl = document.getElementById("userPlanRemaining");
+  const cancelBtn = document.getElementById("btnCancelSubscription");
+  if (!rowEl || !valEl) return;
+
+  const until = swGetUnlockUntil();
+  const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
+  const isSubscription = (planType === "monthly" || planType === "yearly") && until > 0 && Date.now() < until;
+
+  if (isSubscription) {
+    valEl.textContent = swFormatRemainingDdHhMm(until - Date.now());
+    rowEl.style.display = "";
+  } else {
+    valEl.textContent = "";
+    rowEl.style.display = "none";
+  }
+
+  // 解約ボタンもmonthly/yearly契約中のみ表示（Lifetime/Ad/FREEでは出さない）。
+  if (cancelBtn) cancelBtn.style.display = isSubscription ? "" : "none";
+}
+swRegisterRefreshCallback(swUpdatePlanRemainingUI);
+swUpdatePlanRemainingUI();
+// 1分ごとに再計算（秒表示が無いため60秒間隔で十分）。
+setInterval(swUpdatePlanRemainingUI, 60 * 1000);
+
+// ============================================================
+// 解約ボタン（#btnCancelSubscription）
+// Stripe Customer Portal（顧客自身がサブスクを解約・支払い方法変更できる
+// Stripe提供の画面）へ遷移させる。
+//
+// Customer PortalのURLは「今ログイン中のユーザー用に毎回サーバー側で
+// 発行してもらう」必要がある（Stripeの仕様上、固定リンクにはできない）。
+// そのため、Cloud Functions側に「ポータルセッションを作ってURLを返す」
+// エンドポイント（例: createPortalSession）を用意してもらう必要がある。
+// 現時点ではCloud Functions側が未実装のため、実際の遷移はまだ行わず、
+// 準備中であることを案内するプレースホルダー動作にしている。
+//
+// Cloud Functions側の実装後は、下記のswGoToCustomerPortal()の中身を
+// 実際のfetch呼び出し（エンドポイントにUIDを渡し、返ってきたurlへ
+// window.open）に差し替えるだけでよいように、関数を分離してある。
+// ============================================================
+async function swGoToCustomerPortal() {
+  hapticTap();
+
+  if (!window.QN_AUTH || !window.QN_AUTH.currentUser) {
+    alert("ログインしてから解約手続きを行ってください。");
+    return;
+  }
+
+  // TODO(Cloud Functions実装後、以下に差し替え):
+  //   const res = await fetch("https://<region>-qnaudio-8b46e.cloudfunctions.net/createPortalSession", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify({ uid: window.QN_AUTH.currentUser.uid })
+  //   });
+  //   const { url } = await res.json();
+  //   window.open(url, "_blank", "noopener");
+  alert("解約手続きページは準備中です。しばらくお待ちください。");
+}
+
+const swCancelSubscriptionBtn = document.getElementById("btnCancelSubscription");
+if (swCancelSubscriptionBtn) {
+  swCancelSubscriptionBtn.onclick = swGoToCustomerPortal;
+}
+
+// ============================================================
 // 【検証用・一時的】ここから下は動作確認用のデバッグパネル処理。
 // リリース前にこのブロック全体（次のコメント終端まで）を削除すること。
 // index.html側の<div id="swDebugPanel">〜</div>、
