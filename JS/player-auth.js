@@ -53,6 +53,11 @@ const db = getFirestore(firebaseApp);
 // （"monthly" / "yearly" / "lifetime"）。広告視聴による時限解除の場合はnull。
 // player-shareware.js側で「今契約中のプランと同等・下位のボタンを隠す」
 // 階層表示に使う。
+// cancelAtPeriodEndは、Stripeのsubscription.cancel_at_period_endをそのまま
+// 反映したもの（Cloud Functions側、customer.subscription.updatedイベントで
+// 書き込み）。true = 既に解約手続き済みで、期限（unlockUntil）到達後は
+// 自動更新されない。フィールド自体が無い場合（バックエンド未対応時点の
+// 古いドキュメント等）はfalse扱いにする。
 async function fetchUnlockUntilFromFirestore(uid) {
   try {
     const snap = await getDoc(doc(db, "users", uid));
@@ -61,7 +66,8 @@ async function fetchUnlockUntilFromFirestore(uid) {
       const updatedAtMs = data.updatedAt && typeof data.updatedAt.toMillis === "function" ? data.updatedAt.toMillis() : 0;
       const purchasedAtMs = data.purchasedAt && typeof data.purchasedAt.toMillis === "function" ? data.purchasedAt.toMillis() : 0;
       const planType = typeof data.planType === "string" ? data.planType : null;
-      return { unlockUntil: data.unlockUntil, updatedAtMs, purchasedAtMs, planType };
+      const cancelAtPeriodEnd = data.cancelAtPeriodEnd === true;
+      return { unlockUntil: data.unlockUntil, updatedAtMs, purchasedAtMs, planType, cancelAtPeriodEnd };
     }
     return null;
   } catch (err) {

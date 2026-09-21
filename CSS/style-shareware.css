@@ -558,3 +558,21 @@
   from { transform: translateY(-100%); }
   to { transform: translateY(0); }
 }
+
+/* ============================================================
+   「サブスクを続ける」ボタン（#btnCancelSubscription、既に解約手続き
+   済みの場合のみ、JS側でこのクラスが付く。player-shareware.js側の
+   swUpdatePlanRemainingUI参照）。
+   「解約する」の控えめなグレーとは対照的に、再開を後押しする前向きな
+   アクションであることが伝わるよう、アクセントカラー系にする。
+   ============================================================ */
+#btnCancelSubscription.sw-resume-subscription-btn {
+  border-color: var(--accent-primary, #3b82f6);
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent-primary, #3b82f6);
+}
+
+#btnCancelSubscription.sw-resume-subscription-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent-hover-1, #2563eb);
+}

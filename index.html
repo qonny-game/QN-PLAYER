@@ -177,11 +177,22 @@
           <span class="user-dropdown-label">残り</span>
           <span id="userPlanRemaining" class="user-dropdown-val"></span>
         </div>
+        <!-- monthly/yearly契約中で、かつ既に解約手続き済み(cancelAtPeriodEnd=true)の場合のみ表示。
+             「このまま何もしなければ、この日付で無料版に戻る」ことを明示する行(player-shareware.js側で制御)。 -->
+        <div class="user-dropdown-item" id="userPlanEndDateRow" style="display:none;">
+          <span class="user-dropdown-label">利用終了日</span>
+          <span id="userPlanEndDate" class="user-dropdown-val"></span>
+        </div>
       </div>
       <div class="user-dropdown-footer">
         <!-- Premiumアップグレード導線。押すとアンロックモーダル(4プランカード)を直接開く。 -->
         <button id="swUpgradeBtn" title="Upgrade to Premium">UPGRADE</button>
-        <!-- monthly/yearly契約中のみ表示。Stripe Customer Portalへ遷移して解約する。 -->
+        <!-- monthly/yearly契約中のみ表示。Stripe Customer Portalへ遷移する。
+             通常時は「解約する」→ Customer Portalの解約画面。
+             既に解約手続き済み(cancelAtPeriodEnd=true)の場合は「サブスクを続ける」
+             に文言を変える（Customer Portal側に「続ける」ボタンがあり、そこへ
+             同じ遷移で導く。player-shareware.js側で文言・class・遷移先の
+             出し分けを制御）。 -->
         <button id="btnCancelSubscription" style="display:none;">解約する</button>
         <button id="btnLogout">
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17 7l-1.41 1.41L17.17 10H9v2h8.17l-1.58 1.58L17 15l4-4zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h7v-2H5V5z"/></svg>

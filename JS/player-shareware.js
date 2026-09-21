@@ -22,6 +22,11 @@ const SW_UNLOCK_UPDATED_AT_KEY = "qnplayer_unlock_updated_at"; // このブラ�
 const SW_PLAN_TYPE_STORAGE_KEY = "qnplayer_plan_type"; // "monthly" / "yearly" / "lifetime" / null(広告時限解除・無料版)。
                                                           // Cloud Functions(stripeWebhook)がFirestoreに書き込んだ値をそのまま
                                                           // ミラーする。モーダルの階層表示（同等・下位プランのボタンを隠す）に使う。
+const SW_CANCEL_AT_PERIOD_END_KEY = "qnplayer_cancel_at_period_end"; // "1" = 既に解約手続き済み（期限到達後は自動更新されない）、
+                                                                       // それ以外(未設定含む) = 自動更新継続中。
+                                                                       // Cloud Functions側、Stripeのsubscription.cancel_at_period_end
+                                                                       // をそのままミラーしたもの。monthly/yearlyの表示を
+                                                                       // 「次回自動更新日」か「利用終了日」かで出し分けるのに使う。
 
 // 無料版の各種上限値。仕様書(QNPLAYER_Shareware_Spec.md)の数値をそのまま定数化。
 const SW_LIMITS = {
@@ -61,6 +66,26 @@ function swSetPlanType(planType) {
       localStorage.setItem(SW_PLAN_TYPE_STORAGE_KEY, planType);
     } else {
       localStorage.removeItem(SW_PLAN_TYPE_STORAGE_KEY);
+    }
+  } catch (e) {}
+}
+
+// 既に解約手続き済み（Stripeのcancel_at_period_end = true）かどうか。
+// true = 期限（unlockUntil）到達後は自動更新されず、そのまま無料版に戻る。
+function swGetCancelAtPeriodEnd() {
+  try {
+    return localStorage.getItem(SW_CANCEL_AT_PERIOD_END_KEY) === "1";
+  } catch (e) {
+    return false;
+  }
+}
+
+function swSetCancelAtPeriodEnd(value) {
+  try {
+    if (value) {
+      localStorage.setItem(SW_CANCEL_AT_PERIOD_END_KEY, "1");
+    } else {
+      localStorage.removeItem(SW_CANCEL_AT_PERIOD_END_KEY);
     }
   } catch (e) {}
 }
@@ -287,6 +312,7 @@ async function swSyncUnlockWithFirestore(uid) {
       localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(Date.now()));
     } catch (e) {}
     swSetPlanType(null);
+    swSetCancelAtPeriodEnd(false);
     swRefreshAllLockedUI();
     return;
   }
@@ -305,6 +331,7 @@ async function swSyncUnlockWithFirestore(uid) {
     localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(remote.updatedAtMs));
   } catch (e) {}
   swSetPlanType(remote.planType);
+  swSetCancelAtPeriodEnd(remote.cancelAtPeriodEnd === true);
   swClearCheckoutPending(); // Premium状態を確認できたので、フラグは不要
   swRefreshAllLockedUI();
 }
@@ -869,6 +896,8 @@ function swUpdatePlanRemainingUI() {
   const rowEl = document.getElementById("userPlanRemainingRow");
   const valEl = document.getElementById("userPlanRemaining");
   const cancelBtn = document.getElementById("btnCancelSubscription");
+  const endDateRowEl = document.getElementById("userPlanEndDateRow");
+  const endDateValEl = document.getElementById("userPlanEndDate");
   if (!rowEl || !valEl) return;
 
   const until = swGetUnlockUntil();
@@ -879,6 +908,7 @@ function swUpdatePlanRemainingUI() {
   // （swGetHeaderPlanBadgeLabelの判定条件と揃えている）。
   const isAdUnlock = planType !== "monthly" && planType !== "yearly" && planType !== "lifetime" &&
     until > 0 && Date.now() < until;
+  const isCanceled = isSubscription && typeof swGetCancelAtPeriodEnd === "function" && swGetCancelAtPeriodEnd();
 
   if (isSubscription) {
     valEl.textContent = swFormatRemainingDdHhMm(until - Date.now());
@@ -891,8 +921,30 @@ function swUpdatePlanRemainingUI() {
     rowEl.style.display = "none";
   }
 
+  // 「利用終了日」行：monthly/yearly契約中で、かつ既に解約手続き済みの
+  // 場合のみ表示する（未解約なら自動更新されるので、この行自体が不要）。
+  if (endDateRowEl && endDateValEl) {
+    if (isCanceled) {
+      endDateValEl.textContent = swFormatDateYMD(until);
+      endDateRowEl.style.display = "";
+    } else {
+      endDateValEl.textContent = "";
+      endDateRowEl.style.display = "none";
+    }
+  }
+
   // 解約ボタンもmonthly/yearly契約中のみ表示（Lifetime/Ad/FREEでは出さない）。
-  if (cancelBtn) cancelBtn.style.display = isSubscription ? "" : "none";
+  // 既に解約手続き済みの場合は、同じボタンを「サブスクを続ける」に文言・
+  // 見た目を変える（押した時の遷移先は解約前と同じCustomer Portal。
+  // Customer Portal側が状況に応じて「続ける」ボタンを出してくれるため、
+  // フロント側は表示の出し分けだけで対応できる）。
+  if (cancelBtn) {
+    cancelBtn.style.display = isSubscription ? "" : "none";
+    if (isSubscription) {
+      cancelBtn.textContent = isCanceled ? "サブスクを続ける" : "解約する";
+      cancelBtn.classList.toggle("sw-resume-subscription-btn", isCanceled);
+    }
+  }
 }
 swRegisterRefreshCallback(swUpdatePlanRemainingUI);
 swUpdatePlanRemainingUI();
@@ -916,9 +968,6 @@ function swFormatDateYMD(ms) {
 }
 
 function swOpenCancelModal() {
-  const overlay = document.getElementById("cancelModalOverlay");
-  if (!overlay) return;
-
   const until = swGetUnlockUntil();
   const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
   const isSubscription = (planType === "monthly" || planType === "yearly") && until > 0 && Date.now() < until;
@@ -929,6 +978,20 @@ function swOpenCancelModal() {
     alert("現在、解約可能なサブスクリプションはありません。");
     return;
   }
+
+  // 既に解約手続き済み（cancelAtPeriodEnd=true）の場合、このボタンは
+  // 「サブスクを続ける」になっている。「解約しますか？」という確認
+  // モーダルを出すのは文脈として不自然なため、確認画面を挟まず直接
+  // Customer Portalへ遷移する（Customer Portal側に「サブスクを続ける」
+  // ボタンが表示され、そこで再開の手続きができる）。
+  const isCanceled = typeof swGetCancelAtPeriodEnd === "function" && swGetCancelAtPeriodEnd();
+  if (isCanceled) {
+    swGoToCustomerPortal();
+    return;
+  }
+
+  const overlay = document.getElementById("cancelModalOverlay");
+  if (!overlay) return;
 
   const planLabel = planType === "yearly" ? "Yearly" : "Monthly";
   const dateLabel = swFormatDateYMD(until);
