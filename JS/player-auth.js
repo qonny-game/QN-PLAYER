@@ -38,6 +38,13 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
+// ログイン毎に必ずGoogleのアカウント選択画面を出す設定。
+// これが無いと、ブラウザが前回ログインしたアカウントを記憶していて、
+// 「ログアウト→別アカウントでログイン」をしたい時に、確認なしで
+// 同じアカウントに自動で再ログインしてしまい、アカウントを切り替え
+// られない（動作検証時、複数アカウントでのテストがしづらいという
+// 指摘を受けての対応）。
+googleProvider.setCustomParameters({ prompt: "select_account" });
 const db = getFirestore(firebaseApp);
 
 // --- Firestore: 購入/解除フラグ(unlockUntil)の読み書き ---
