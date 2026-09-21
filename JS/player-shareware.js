@@ -284,6 +284,19 @@ async function swSyncUnlockWithFirestore(uid) {
 
   const remote = await window.QN_AUTH.fetchUnlockUntilFromFirestore(uid);
 
+  // 【安全対策】Firestoreのunlock Untilが不正な値（NaN等）だった場合。
+  // バックエンド側の計算ミスの可能性が高い異常系のため、ここでは何も
+  // 変更せず、今のローカルの状態をそのまま維持する（無料版への自動
+  // 初期化も、既存の値の上書きもしない）。実際にこの状態を「Firestore
+  // 未登録」と誤判定し、無料版へ自動初期化してしまったことで、
+  // 「解約したら即座にFREEに戻った」という不具合が発生したため、
+  // 「存在しない」と「壊れている」を明確に区別して対処している。
+  if (remote && remote.corrupted) {
+    console.error("[SW] unlockUntilが不正な値のため、同期をスキップしました。ローカルの状態を維持します。");
+    swRefreshAllLockedUI();
+    return;
+  }
+
   if (!remote) {
     // Firestore未登録：通常はここに来る前（ログイン直後の最初の同期）で
     // 既にドキュメントが作成されているはずだが、念のための安全網として、

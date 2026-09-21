@@ -58,18 +58,35 @@ const db = getFirestore(firebaseApp);
 // 書き込み）。true = 既に解約手続き済みで、期限（unlockUntil）到達後は
 // 自動更新されない。フィールド自体が無い場合（バックエンド未対応時点の
 // 古いドキュメント等）はfalse扱いにする。
+//
+// 戻り値は3パターン：
+//   null = ドキュメント自体が存在しない（本当の新規ユーザー等）
+//   { corrupted: true } = ドキュメントは存在するが、unlockUntilが数値として
+//     不正（NaN等）。バックエンド側の書き込みミスの可能性が高い異常系。
+//     「存在しない」と区別することで、呼び出し元が誤って無料版へ
+//     自動初期化してしまう事故を防ぐ（実際にこれが原因で「解約したら
+//     即座にFREEに戻った」という不具合が発生したことがある）。
+//   { unlockUntil, ... } = 正常なデータ
 async function fetchUnlockUntilFromFirestore(uid) {
   try {
     const snap = await getDoc(doc(db, "users", uid));
-    if (snap.exists() && typeof snap.data().unlockUntil === "number") {
-      const data = snap.data();
-      const updatedAtMs = data.updatedAt && typeof data.updatedAt.toMillis === "function" ? data.updatedAt.toMillis() : 0;
-      const purchasedAtMs = data.purchasedAt && typeof data.purchasedAt.toMillis === "function" ? data.purchasedAt.toMillis() : 0;
-      const planType = typeof data.planType === "string" ? data.planType : null;
-      const cancelAtPeriodEnd = data.cancelAtPeriodEnd === true;
-      return { unlockUntil: data.unlockUntil, updatedAtMs, purchasedAtMs, planType, cancelAtPeriodEnd };
+    if (!snap.exists()) return null;
+
+    const data = snap.data();
+    // 【重要】typeof NaN === "number" は true になるため、typeofだけの
+    // チェックだとNaN値でもここを通過してしまう。Number.isFinite()で
+    // 「実際に有限の数値か」まで確認する（-1や0、正の数はtrueになり、
+    // NaN・Infinity・非数値はfalseになる）。
+    if (!Number.isFinite(data.unlockUntil)) {
+      console.error("[QN_AUTH] Firestoreのunlock Untilが不正な値です（NaN等）。値:", data.unlockUntil);
+      return { corrupted: true };
     }
-    return null;
+
+    const updatedAtMs = data.updatedAt && typeof data.updatedAt.toMillis === "function" ? data.updatedAt.toMillis() : 0;
+    const purchasedAtMs = data.purchasedAt && typeof data.purchasedAt.toMillis === "function" ? data.purchasedAt.toMillis() : 0;
+    const planType = typeof data.planType === "string" ? data.planType : null;
+    const cancelAtPeriodEnd = data.cancelAtPeriodEnd === true;
+    return { unlockUntil: data.unlockUntil, updatedAtMs, purchasedAtMs, planType, cancelAtPeriodEnd };
   } catch (err) {
     console.error("[QN_AUTH] Firestore read failed:", err);
     return null;
