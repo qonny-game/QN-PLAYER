@@ -229,8 +229,7 @@
 }
 
 /* 「日本限定価格」バッジ。「おすすめ」バッジと同居するカード（サブスク）では
-   右上に配置してぶつからないようにする。単独のカード（永久ライセンス）では
-   左上に置く。 */
+   右上に配置してぶつからないようにする。 */
 .sw-pricing-jp-badge {
   position: absolute;
   top: -11px;
@@ -242,11 +241,6 @@
   font-size: 10.5px;
   font-weight: 700;
   white-space: nowrap;
-}
-
-#swUnlockLifetime .sw-pricing-jp-badge {
-  left: 20px;
-  right: auto;
 }
 
 /* 海外価格の取り消し線表示。実際の価格（¥150など）の上に小さく表示する。 */

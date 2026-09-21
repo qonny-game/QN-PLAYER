@@ -551,22 +551,6 @@ function swBuildModal() {
               <li><span class="sw-pricing-check">✓</span>月額よりさらにお得な価格</li>
             </ul>
           </div>
-          <div class="sw-pricing-card" id="swUnlockLifetime">
-            <div class="sw-pricing-jp-badge">🇯🇵 日本限定価格</div>
-            <div class="sw-pricing-card-top">
-              <div class="sw-pricing-card-title"><span class="sw-pricing-card-title-en">Premium</span><span class="sw-pricing-card-title-en">(Lifetime)</span><span class="sw-pricing-card-title-jp">永久ライセンス</span></div>
-              <div class="sw-pricing-card-desc">一度の支払いでずっと使い放題。サブスクの管理が不要な方に。</div>
-              <div class="sw-pricing-card-price">
-                ¥2,500<span class="sw-pricing-card-price-unit">買い切り（追加料金なし）</span>
-              </div>
-            </div>
-            <div class="sw-pricing-card-cta sw-pricing-cta-secondary">永久ライセンス購入</div>
-            <ul class="sw-pricing-feature-list">
-              <li><span class="sw-pricing-check">✓</span><b>広告表示・視聴 一切なし</b></li>
-              <li><span class="sw-pricing-check">✓</span>無期限で全機能使い放題</li>
-              <li><span class="sw-pricing-check">✓</span>アプデ後の新機能も永続適用</li>
-            </ul>
-          </div>
         </div>
         <a href="/pricing.html" target="_blank" rel="noopener" class="sw-pricing-compare-link">詳しく比較する →</a>
       </div>
@@ -611,11 +595,6 @@ function swBuildModal() {
     swGoToCheckout("https://buy.stripe.com/test_8x26oG3YH2IE73ccNj14402");
   };
 
-  // 永久ライセンス
-  overlay.querySelector("#swUnlockLifetime").onclick = () => {
-    swGoToCheckout("https://buy.stripe.com/test_9B64gyeDl1EA4V44gN14403");
-  };
-
   return overlay;
 }
 
@@ -642,28 +621,31 @@ function swOpenUnlockModal(message) {
 
   // プランの階層表示：契約中のプランと同等・下位のカードは隠し、上位の
   // アップグレード先だけを残す（広告視聴・無料版が最下位、以降
-  // 月額 < 年額 < 永久ライセンスの順）。
-  //   永久ライセンス中: 何も表示しない（もう買うものが無い）
-  //   年額中: 永久のみ表示
-  //   月額中: 年額・永久を表示
+  // 月額 < 年額の順）。
+  //   年額中: 何も表示しない（もう買うものが無い）
+  //   月額中: 年額のみ表示
   //   広告時限解除・無料版: 全カード表示
   // 広告カード（1h/24h）は「有料プラン契約中は一切出さない」というご要望
-  // により、月額/年額/永久のいずれかを契約中なら常に隠す。
+  // により、月額/年額のいずれかを契約中なら常に隠す。
+  // 【Lifetime(永久ライセンス)について】購入導線（#swUnlockLifetimeカード）
+  // は撤去済み（Lifetime購入時に既存サブスクが自動解約されない不具合が
+  // 解消できなかったため）。ただし、運営側が手動でFirestoreの
+  // planType: "lifetime" をセットして使うケースは引き続きサポートする
+  // ため、isUnlocked()等の判定ロジック自体（swGetPlanType, until===-1の
+  // 判定など）はあえて変更していない。
   const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
   const cardVisibility = {
     ad1h: planType === null,
     ad24h: planType === null,
     monthly: planType === null,
-    yearly: planType === null || planType === "monthly",
-    lifetime: planType === null || planType === "monthly" || planType === "yearly"
+    yearly: planType === null || planType === "monthly"
   };
 
   const cardElements = {
     ad1h: overlay.querySelector("#swUnlockAd1h"),
     ad24h: overlay.querySelector("#swUnlockAd24h"),
     monthly: overlay.querySelector("#swUnlockSubscribe"),
-    yearly: overlay.querySelector("#swUnlockYearly"),
-    lifetime: overlay.querySelector("#swUnlockLifetime")
+    yearly: overlay.querySelector("#swUnlockYearly")
   };
   let visibleCount = 0;
   Object.keys(cardElements).forEach(key => {
@@ -675,8 +657,8 @@ function swOpenUnlockModal(message) {
   });
 
   // 表示枚数に応じてグリッドの列数を詰める（5列固定のままだと、枚数が
-  // 減った分だけ右側に空白が残ってしまうため）。0枚（永久ライセンス中）の
-  // 場合は「ご利用中のプランは最上位です」のような案内文に切り替える。
+  // 減った分だけ右側に空白が残ってしまうため）。0枚（年額契約中、これ
+  // 以上アップグレードできるプランが無い）の場合は、案内文に切り替える。
   // 枚数が少ない時（1〜2枚）は、列数を詰めるだけだと1カードあたりの幅が
   // 間延びして見えるため、1カードの目安幅(260px)を基準にグリッド全体の
   // max-widthも制限し、中央寄せにする。
@@ -700,7 +682,7 @@ function swOpenUnlockModal(message) {
     }
   }
   if (descEl && visibleCount === 0) {
-    descEl.textContent = "永久ライセンスをご利用中です。これ以上アップグレードできるプランはありません。";
+    descEl.textContent = "年間プランをご利用中です。これ以上アップグレードできるプランはありません。";
   }
 
   overlay.classList.add("active");
