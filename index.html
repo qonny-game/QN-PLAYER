@@ -171,7 +171,8 @@
           <span class="user-dropdown-label">プラン</span>
           <span id="userPlanBadge" class="sw-header-plan-badge">FREE</span>
         </div>
-        <!-- monthly/yearly契約中のみ、残り時間(dd日hh:mm形式)を表示。それ以外(FREE/Ad/Lifetime)は非表示(player-shareware.js側で制御)。 -->
+        <!-- monthly/yearly契約中は残り時間(dd日hh:mm形式)、Ad(広告視聴による時限解除)中は
+             残り時間(HH時間MM分形式)を表示。それ以外(FREE/Lifetime)は非表示(player-shareware.js側で制御)。 -->
         <div class="user-dropdown-item" id="userPlanRemainingRow" style="display:none;">
           <span class="user-dropdown-label">残り</span>
           <span id="userPlanRemaining" class="user-dropdown-val"></span>

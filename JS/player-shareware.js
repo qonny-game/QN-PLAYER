@@ -268,12 +268,25 @@ async function swSyncUnlockWithFirestore(uid) {
       swPollForPurchaseReflection(uid);
       return;
     }
-    // 本当の新規ユーザー初回ログインなど。
-    // ローカルの状態（通常は無料版の初期値）をそのまま書き込んで初期化する。
-    const localUntil = swGetUnlockUntil();
+    // 【重要】以前はここで「ローカルの状態をそのままFirestoreへ書き込む」
+    // 処理をしていたが、削除した。
+    // 経緯（Gemini担当の検証で特定）：Firestoreのドキュメント自体を
+    // 手動で削除した場合も、この!remote分岐に入る。その際、ブラウザの
+    // localStorageに過去のプラン情報（例：昔契約していたyearlyプラン）が
+    // 残っていると、それがそのままFirestoreへ書き戻されてしまい、
+    // 「Firestore側を消したのに復元される」という実害のあるバグの原因に
+    // なっていた。
+    // 本当の新規ユーザー初回ログインであれば、この時点でローカルの
+    // unlockUntilは初期値(0)のはずなので、ローカルの値を信用せず、
+    // 常に無料版として明示的に初期化する方が安全と判断した。
     if (window.QN_AUTH.saveUnlockUntilToFirestore) {
-      window.QN_AUTH.saveUnlockUntilToFirestore(uid, localUntil, swGetPlanType());
+      window.QN_AUTH.saveUnlockUntilToFirestore(uid, 0, null);
     }
+    try {
+      localStorage.setItem(SW_UNLOCK_STORAGE_KEY, "0");
+      localStorage.setItem(SW_UNLOCK_UPDATED_AT_KEY, String(Date.now()));
+    } catch (e) {}
+    swSetPlanType(null);
     swRefreshAllLockedUI();
     return;
   }
@@ -795,9 +808,10 @@ swUpdateSpeedKeyLockUI();
 // モーダル内のバッジ(swGetCurrentPlanLabel)より短い表記にする
 // （ヘッダーは常時表示なので、日数入りの長い文言だと窮屈になるため）。
 //   永久ライセンス: 「Lifetime」
-//   年額/月額: 「Yearly」「Monthly」（残り日数はヘッダーには出さない。
-//     詳細はモーダルを開けば見える）
-//   広告視聴による時限解除: 「Ad」（残り時間はヘッダーには出さない）
+//   年額/月額: 「Yearly」「Monthly」（残り日数はこのバッジ自体には出さない。
+//     詳細はアカウントメニュー内のドロップダウン(#userPlanRemaining、
+//     swUpdatePlanRemainingUI側)を開けば見える）
+//   広告視聴による時限解除: 「Ad」（同上、残り時間はドロップダウン側で見える）
 //   無料版: バッジ自体を空にして隠す
 // ============================================================
 function swGetHeaderPlanBadgeLabel() {
@@ -823,14 +837,14 @@ swRegisterRefreshCallback(swUpdateHeaderPlanBadge);
 swUpdateHeaderPlanBadge();
 
 // ============================================================
-// ドロップダウン内「残り○日 hh:mm」表示（monthly/yearly契約中のみ）。
+// ドロップダウン内「残り時間」表示。
 // 1分ごとに再計算する（秒は表示しないため1分間隔で十分。setInterval）。
-// 対象: monthly/yearly（自動更新のサブスク）のみ。
+// 対象と表示形式:
+//   monthly/yearly（自動更新のサブスク）: 「dd日 hh:mm」形式
+//   Ad（広告視聴による時限解除）: 数十分〜数時間単位のため、日付部分を
+//     省いた「HH時間MM分」形式（swFormatRemainingHhMm）
 //   Lifetime: 有効期限が無いため対象外。
-//   Ad（広告視聴による時限解除）: 数十分〜数時間単位のためこの「dd日hh:mm」
-//     表示にはそぐわず対象外（ヘッダーバッジの「Ad」表記のみで足りる）。
 //   FREE: 期限自体が無いため対象外。
-// 表示形式は「dd日 hh:mm」固定（1日未満でも「0日 hh:mm」の形で出す）。
 // ============================================================
 function swFormatRemainingDdHhMm(remainMs) {
   const totalMin = Math.max(0, Math.floor(remainMs / (1000 * 60)));
@@ -839,6 +853,16 @@ function swFormatRemainingDdHhMm(remainMs) {
   const minutes = totalMin % 60;
   const pad = (n) => String(n).padStart(2, "0");
   return `${days}日 ${pad(hours)}:${pad(minutes)}`;
+}
+
+// Ad（広告視聴による時限解除）専用の残り時間フォーマッタ。
+// 数十分〜数時間単位のため、monthly/yearly用の「dd日hh:mm」だと
+// 常に「0日」が付いて不格好になる。日付部分を省いた「HH時間MM分」形式にする。
+function swFormatRemainingHhMm(remainMs) {
+  const totalMin = Math.max(0, Math.floor(remainMs / (1000 * 60)));
+  const hours = Math.floor(totalMin / 60);
+  const minutes = totalMin % 60;
+  return `${hours}時間${String(minutes).padStart(2, "0")}分`;
 }
 
 function swUpdatePlanRemainingUI() {
@@ -850,9 +874,17 @@ function swUpdatePlanRemainingUI() {
   const until = swGetUnlockUntil();
   const planType = typeof swGetPlanType === "function" ? swGetPlanType() : null;
   const isSubscription = (planType === "monthly" || planType === "yearly") && until > 0 && Date.now() < until;
+  // Ad（広告視聴による時限解除）：planTypeがnullで、かつunlockUntilが
+  // 「今より先」かつ「永久(-1)ではない」場合がこれにあたる
+  // （swGetHeaderPlanBadgeLabelの判定条件と揃えている）。
+  const isAdUnlock = planType !== "monthly" && planType !== "yearly" && planType !== "lifetime" &&
+    until > 0 && Date.now() < until;
 
   if (isSubscription) {
     valEl.textContent = swFormatRemainingDdHhMm(until - Date.now());
+    rowEl.style.display = "";
+  } else if (isAdUnlock) {
+    valEl.textContent = swFormatRemainingHhMm(until - Date.now());
     rowEl.style.display = "";
   } else {
     valEl.textContent = "";
