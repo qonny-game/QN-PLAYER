@@ -1149,12 +1149,22 @@
       container.removeEventListener("click", selectionHandlers[panelId], true);
     }
     const handler = (e) => {
-      const delBtn = e.target.closest(".del-btn");
-      if (!delBtn || !container.contains(delBtn)) return;
+      // markersパネルは.del-btn自体（20x20pxの丸）がそのままタップ判定。
+      // playlistパネルは.playlist-del-zone（行の上下いっぱい・右端まで・
+      // 左はPLAY/SKIPトグルの手前までの広い当たり判定エリア）で受ける
+      // （「●の物理サイズだけがタップ範囲でシビアすぎる」との指摘を受け、
+      // 削除選択だけ広い判定エリアを別途設けた）。見た目の丸自体は
+      // .playlist-del-zoneの中の.del-btnなので、選択状態の表示
+      // （pcv2-selectedクラス）は引き続きそちらへ付け外しする。
+      const zoneSelector = panelId === "playlist" ? ".playlist-del-zone" : ".del-btn";
+      const zone = e.target.closest(zoneSelector);
+      if (!zone || !container.contains(zone)) return;
+      const delBtn = panelId === "playlist" ? zone.querySelector(".del-btn") : zone;
+      if (!delBtn) return;
       e.stopPropagation();
       e.preventDefault();
       const items = getRowItems(panelId);
-      const index = items.indexOf(delBtn.closest(".pinItem, .playlistItem"));
+      const index = items.indexOf(zone.closest(".pinItem, .playlistItem"));
       if (index === -1) return;
       if (selectedIndices[panelId].has(index)) {
         selectedIndices[panelId].delete(index);
@@ -1198,6 +1208,33 @@
     const indices = Array.from(selectedIndices[panelId]).sort((a, b) => b - a);
     if (indices.length === 0) return;
     hapticWarning();
+
+    // 選択中の行にフェードアウト演出を掛けてから、実際のデータ削除・
+    // リスト再描画を行う（即座に消えると「削除された」感が薄いとの
+    // 指摘を受けた対応）。演出中（フェードアウトの数百ms）に他の選択・
+    // ドラッグ並び替え等が行われるとindicesとplaylist配列がズレて
+    // しまうため、リスト全体を一時的にpointer-events:noneで操作不能に
+    // する（削除ボタン自体もdisabledにする）。
+    const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
+    if (deleteBtn) deleteBtn.disabled = true;
+
+    const container = getListContainer(panelId);
+    const items = getRowItems(panelId);
+    const fadingEls = indices.map(i => items[i]).filter(Boolean);
+    const FADE_MS = 260;
+
+    if (container) container.style.pointerEvents = "none";
+    fadingEls.forEach(el => el.classList.add("pcv2-row-deleting"));
+
+    setTimeout(() => {
+      if (container) container.style.pointerEvents = "";
+      performDelete(panelId, indices);
+    }, fadingEls.length > 0 ? FADE_MS : 0);
+  }
+
+  // deleteSelectedItems()からフェードアウト分の待機を挟んで呼ばれる、
+  // 実際のデータ削除本体。
+  function performDelete(panelId, indices) {
     if (panelId === "markers") {
       indices.forEach(i => pins.splice(i, 1));
       // マーカー構成が変わったため、ループ折り返し判定の対象区間

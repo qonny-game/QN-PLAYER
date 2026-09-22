@@ -307,14 +307,16 @@ body.pc-v2-active > .app-container {
    （見た目もdisabled風に薄くする）。実際のクリック無効化は
    player-ui-pc-v2.js側でキャプチャフェーズのイベントを止めて実現し、
    player-markers.js/player-playlist.js側のロジックには手を入れない。
-   削除用のチェック(.del-btn)は編集モード時のみ表示する。 */
+   削除用のチェックは編集モード時のみ表示する。markersパネルは.del-btn
+   自体がグリッドセル、playlistパネルは.playlist-del-zone（.del-btnを
+   包む広いタップ判定エリア）がグリッドセルになる。 */
 #pcV2PanelBody #pinList .del-btn,
-#pcV2PanelBody #playlistBox .del-btn {
+#pcV2PanelBody #playlistBox .playlist-del-zone {
   display: none;
 }
 
 #pcV2PanelBody.markers-edit-mode #pinList .del-btn,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn {
+#pcV2PanelBody.playlist-edit-mode #playlistBox .playlist-del-zone {
   display: flex;
 }
 
@@ -333,6 +335,21 @@ body.pc-v2-active > .app-container {
   cursor: pointer;
 }
 
+/* .playlist-del-zone：削除チェック(.del-btn)の物理サイズ(20x20px)より
+   広いタップ判定エリア。行の上下いっぱい・右端まで広げるため、
+   .playlistItemのpadding(9px 12px)を打ち消す向きに負のマージンを取り、
+   その分をpaddingで内側に押し戻して.del-btnの見た目位置を保つ
+   （「●そのものしかタップできずシビア」との指摘を受けた対応）。
+   左方向（PLAY/SKIPトグル側）へは広げない。 */
+#pcV2PanelBody.playlist-edit-mode #playlistBox .playlist-del-zone {
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin: -9px -12px -9px 0;
+  padding: 9px 16px 9px 8px;
+  cursor: pointer;
+}
+
 /* 削除チェックボックス化した.del-btn：通常の"✕"テキストではなく、
    選択状態を丸チェックボックスの見た目で示す。 */
 #pcV2PanelBody.markers-edit-mode #pinList .del-btn,
@@ -348,6 +365,7 @@ body.pc-v2-active > .app-container {
   font-size: 0;
   padding: 0;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 #pcV2PanelBody.markers-edit-mode #pinList .del-btn.pcv2-selected,
@@ -365,6 +383,18 @@ body.pc-v2-active > .app-container {
   border-right: 2px solid var(--text-pure-white);
   border-bottom: 2px solid var(--text-pure-white);
   transform: rotate(45deg) translate(-1px, -1px);
+}
+
+/* 一括削除確定時、実際にデータを消す前にこのクラスを付けて一瞬
+   フェードアウト＋わずかに縮小させる（削除ボタンを押した瞬間に即座に
+   消えると「消された」感が薄いとの指摘を受けた対応）。
+   player-ui-pc-v2.js側のdeleteSelectedItems()がこのクラスを付けてから
+   FADE_MS(260ms)待ち、実データの削除・再描画(performDelete)を行う。 */
+.pcv2-row-deleting {
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.26s ease, transform 0.26s ease;
+  pointer-events: none;
 }
 
 /* ヘッダー内の「選択項目を削除」ボタン。編集モード中のみ表示する。

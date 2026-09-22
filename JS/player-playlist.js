@@ -295,9 +295,19 @@ function renderPlaylist() {
       };
       item.appendChild(skipToggle);
 
+      // 削除チェック(.del-btn)自体は20x20pxの小さい丸だが、タップ判定は
+      // それより広い「ゾーン」(.playlist-del-zone)で受ける：行の上下
+      // いっぱい、右はアイテム右端まで、左はPLAY/SKIPトグルの手前まで。
+      // 見た目の丸自体はズレないよう中央に据え置く（player-ui-pc-v2.js
+      // 側のattachSelectionHandlersも、判定対象を.del-btnから
+      // .playlist-del-zoneへ変更している）。
+      const delZone = document.createElement("div");
+      delZone.className = "playlist-del-zone";
+
       const delBtn = document.createElement("button");
       delBtn.textContent = "✕";
       delBtn.className = "del-btn";
+      delBtn.tabIndex = -1;
       delBtn.onclick = (e) => {
         e.stopPropagation();
         if (delBtn.classList.contains("confirm")) {
@@ -314,7 +324,8 @@ function renderPlaylist() {
           }, 3000);
         }
       };
-      item.appendChild(delBtn);
+      delZone.appendChild(delBtn);
+      item.appendChild(delZone);
     }
     // 通常モードでは⋮メニューを廃止。ファイル名変更は曲名/アーティスト
     // 欄のホバー鉛筆編集に統合済み、曲送り時スルーON/OFFはEDITモードの

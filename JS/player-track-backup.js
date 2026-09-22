@@ -4,22 +4,30 @@
 // モーダル内はBackup/Importの2タブ構成：
 // - Backup: ライブラリ全曲分の音声データ・メタデータ(title/artist)・
 //   マーカー(位置/メモ)・テキストメモを、チェックボックスで選んだ
-//   項目だけJSZipで1つのZIPにまとめてダウンロードする。
-// - Import: Backupで書き出したZIPを読み込み、ライブラリに曲を追加し、
-//   マーカー・メタデータ・テキストメモを反映する。同名の曲が既に
-//   ライブラリにある場合は、曲ごとに「上書き」か「スキップ」かを選ぶ。
+//   項目だけダウンロードする。「音声データ」にチェックが入っていれば
+//   JSZipでZIP化(markers.json + audio/フォルダ)、チェックが外れていれば
+//   音声実体を含まないためZIP化せずmarkers.json単体をそのまま出力する
+//   （曲名/マーカー/メモだけを軽量に共有したい用途）。
+// - Import: Backupで書き出したZIPまたはmarkers.json単体を読み込み、
+//   ライブラリに曲を追加し、マーカー・メタデータ・テキストメモを反映
+//   する。同名の曲が既にライブラリにある場合は、曲ごとに「上書き」か
+//   「スキップ」かを選ぶ。JSON単体インポートは音声実体を含まないため、
+//   新規曲は追加できず（再生できないため）、既存曲への上書きにのみ
+//   使える。
 //
-// ZIP構成は「インポートエクスポート機能.md」(将来の全曲一括インポート/
-// エクスポート機能)と互換になるよう合わせている：
-//   qnplayer_library_backup_YYYYMMDD.zip
+// ZIP/JSONの構成は「インポートエクスポート機能.md」(将来の全曲一括
+// インポート/エクスポート機能)と互換になるよう合わせている：
+//   qnplayer_library_backup_YYYYMMDD.zip  （音声データを含む場合）
 //   ├── markers.json   … tracks配列に全曲分のメタデータ・マーカーを格納
 //   └── audio/
 //       └── <各曲の元のファイル名>
+//   qnplayer_library_backup_YYYYMMDD.json （音声データを含まない場合）
+//   … markers.json単体と同じ内容をそのまま
 //
 // 依存: player-core.js（playlist配列, savePlaylistTrack）、
 // player-ui-shared.js（hapticTap等）、player-playlist.js（renderPlaylist,
 // persistPlaylistOrder）。JSZip(JS/jszip.min.js)はこのファイルより前に
-// 読み込むこと。
+// 読み込むこと（音声データを含むBackup/ZIPインポート時のみ使用）。
 // ============================================================
 
 const trackBackupModalOverlay = document.getElementById("trackBackupModalOverlay");
@@ -122,10 +130,6 @@ function loadStoredNoteTextFor(fileName) {
 }
 
 async function runTrackBackup() {
-  if (typeof JSZip === "undefined") {
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "JSZipが読み込まれていません。";
-    return;
-  }
   if (!Array.isArray(playlist) || playlist.length === 0) {
     if (trackBackupStatusEl) trackBackupStatusEl.textContent = "バックアップ対象の曲がありません。";
     return;
@@ -145,6 +149,13 @@ async function runTrackBackup() {
     return;
   }
 
+  // 音声データを含める場合のみZIP化するためJSZipが要る。含めない場合は
+  // markers.json単体で出力するためJSZip自体を使わない。
+  if (opts.audio && typeof JSZip === "undefined") {
+    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "JSZipが読み込まれていません。";
+    return;
+  }
+
   hapticTap();
   if (trackBackupRunBtn) {
     trackBackupRunBtn.disabled = true;
@@ -153,9 +164,6 @@ async function runTrackBackup() {
   if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
 
   try {
-    const zip = new JSZip();
-    const audioFolder = opts.audio ? zip.folder("audio") : null;
-
     const tracksForExport = playlist.map(track => {
       let markersForExport = [];
       if (opts.markerPos || opts.markerMemo) {
@@ -180,10 +188,6 @@ async function runTrackBackup() {
       if (opts.markerPos || opts.markerMemo) trackData.markers = markersForExport;
       if (opts.text) trackData.noteText = loadStoredNoteTextFor(track.name);
 
-      if (opts.audio && audioFolder) {
-        audioFolder.file(track.name, track.file);
-      }
-
       return trackData;
     });
 
@@ -192,14 +196,32 @@ async function runTrackBackup() {
       exportDate: new Date().toISOString(),
       tracks: tracksForExport
     };
-    zip.file("markers.json", JSON.stringify(exportData, null, 2));
-
-    const zipBlob = await zip.generateAsync({ type: "blob" });
+    const markersJsonText = JSON.stringify(exportData, null, 2);
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const downloadUrl = URL.createObjectURL(zipBlob);
+
+    let downloadBlob;
+    let downloadName;
+
+    if (opts.audio) {
+      // 音声データを含む場合は、従来通りmarkers.json + audio/フォルダの
+      // ZIP形式で出力する（音声実体があるためテキストのみでは完結しない）。
+      const zip = new JSZip();
+      const audioFolder = zip.folder("audio");
+      playlist.forEach(track => audioFolder.file(track.name, track.file));
+      zip.file("markers.json", markersJsonText);
+      downloadBlob = await zip.generateAsync({ type: "blob" });
+      downloadName = `qnplayer_library_backup_${dateStr}.zip`;
+    } else {
+      // 音声データを含めない場合はZIPにせず、markers.json単体をそのまま
+      // ダウンロードする（曲名/マーカー/メモだけを軽量に共有したい用途）。
+      downloadBlob = new Blob([markersJsonText], { type: "application/json" });
+      downloadName = `qnplayer_library_backup_${dateStr}.json`;
+    }
+
+    const downloadUrl = URL.createObjectURL(downloadBlob);
     const a = document.createElement("a");
     a.href = downloadUrl;
-    a.download = `qnplayer_library_backup_${dateStr}.zip`;
+    a.download = downloadName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -308,12 +330,14 @@ if (trackImportFileInputEl) {
 }
 
 async function handleTrackImportFileSelected(file) {
-  if (typeof JSZip === "undefined") {
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "JSZipが読み込まれていません。";
+  const isZip = /\.zip$/i.test(file.name);
+  const isJson = /\.json$/i.test(file.name);
+  if (!isZip && !isJson) {
+    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ZIPまたはJSONファイルを選択してください。";
     return;
   }
-  if (!/\.zip$/i.test(file.name)) {
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ZIPファイルを選択してください。";
+  if (isZip && typeof JSZip === "undefined") {
+    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "JSZipが読み込まれていません。";
     return;
   }
 
@@ -321,26 +345,38 @@ async function handleTrackImportFileSelected(file) {
   if (trackBackupStatusEl) trackBackupStatusEl.textContent = "読み込み中...";
 
   try {
-    const zip = await JSZip.loadAsync(file);
-    const markersEntry = zip.file("markers.json");
-    if (!markersEntry) {
-      if (trackBackupStatusEl) trackBackupStatusEl.textContent = "markers.jsonが見つかりません。";
-      return;
-    }
-    const markersText = await markersEntry.async("string");
-    const parsed = JSON.parse(markersText);
-    if (!parsed || !Array.isArray(parsed.tracks)) {
-      if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ZIPの内容を読み取れませんでした。";
-      return;
+    let parsed;
+    const audioMap = new Map();
+
+    if (isZip) {
+      const zip = await JSZip.loadAsync(file);
+      const markersEntry = zip.file("markers.json");
+      if (!markersEntry) {
+        if (trackBackupStatusEl) trackBackupStatusEl.textContent = "markers.jsonが見つかりません。";
+        return;
+      }
+      const markersText = await markersEntry.async("string");
+      parsed = JSON.parse(markersText);
+
+      // audio/フォルダ配下のファイルを、ファイル名をキーにしたMapへ集める。
+      const audioFolderFiles = zip.folder("audio") ? zip.folder("audio").file(/.*/) : [];
+      for (const entry of audioFolderFiles) {
+        const blob = await entry.async("blob");
+        const baseName = entry.name.split("/").pop();
+        audioMap.set(baseName, blob);
+      }
+    } else {
+      // markers.json単体でのインポート。音声データは含まれないため、
+      // 既存曲への上書き（メタデータ/マーカー/メモのみ）専用になる
+      // （音声実体が無い新規曲は、この後の重複判定・runTrackImport側の
+      // 「音声なしのためスキップ」ロジックがそのまま処理する）。
+      const jsonText = await file.text();
+      parsed = JSON.parse(jsonText);
     }
 
-    // audio/フォルダ配下のファイルを、ファイル名をキーにしたMapへ集める。
-    const audioMap = new Map();
-    const audioFolderFiles = zip.folder("audio") ? zip.folder("audio").file(/.*/) : [];
-    for (const entry of audioFolderFiles) {
-      const blob = await entry.async("blob");
-      const baseName = entry.name.split("/").pop();
-      audioMap.set(baseName, blob);
+    if (!parsed || !Array.isArray(parsed.tracks)) {
+      if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ファイルの内容を読み取れませんでした。";
+      return;
     }
 
     trackImportParsedData = parsed;
@@ -348,8 +384,8 @@ async function handleTrackImportFileSelected(file) {
 
     if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
 
-    // ZIP読み込み後はドロップゾーンを隠し、代わりに読み込み済み情報を
-    // 表示する（ドロップ位置によって「通常のファイル追加」と「ZIP
+    // 読み込み後はドロップゾーンを隠し、代わりに読み込み済み情報を
+    // 表示する（ドロップ位置によって「通常のファイル追加」と「ZIP/JSON
     // インポート」の挙動が入り乱れるのを避けるため、読み込み後は
     // ドロップ自体を受け付ける場所を無くす）。選び直したい場合は
     // Cancelボタンが「Back」になり、resetImportState()で元に戻す。
@@ -372,7 +408,7 @@ async function handleTrackImportFileSelected(file) {
     if (trackImportRunBtn) trackImportRunBtn.disabled = false;
   } catch (err) {
     console.warn("handleTrackImportFileSelected failed:", err);
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ZIPの読み込みに失敗しました。";
+    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ファイルの読み込みに失敗しました。";
   }
 }
 
@@ -519,8 +555,9 @@ async function runTrackImport() {
       } else {
         // --- 新規追加 ---
         if (!audioBlob) {
-          // 音声データを含まないZIP(または対象曲の音声だけ無い)の場合、
-          // 新規追加は音声実体が無いと再生できないためスキップする。
+          // 音声データを含まないインポート(ZIPでチェックを外した場合や
+          // markers.json単体インポート)の場合、新規追加は音声実体が
+          // 無いと再生できないためスキップする。
           noAudioSkippedCount++;
           continue;
         }

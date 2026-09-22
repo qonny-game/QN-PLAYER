@@ -33,7 +33,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "2.10.5";
+  window.QN_APP_VERSION = "2.11.0";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -709,9 +709,12 @@
      ライブラリ一括バックアップ／インポートモーダル。
      PC v2サイドメニュー(#pcV2IconBar)のBackupアイコン押下で開く。
      上部タブ(Backup/Import)で中身を切り替える：
-     - Backup: チェックした項目だけを全曲分まとめてZIPでダウンロード
-     - Import: ZIPファイル(D&D/選択)を読み込み、ライブラリに曲を追加
-       ・マーカー/メモを反映する。同名曲があれば1曲ずつ上書き/スキップを選ぶ
+     - Backup: チェックした項目だけを全曲分まとめてダウンロード。音声
+       データを含む場合はZIP、含めない場合はmarkers.json単体で出力する
+     - Import: ZIPまたはmarkers.json単体(D&D/選択)を読み込み、ライブラリ
+       に曲を追加・マーカー/メモを反映する。同名曲があれば1曲ずつ
+       上書き/スキップを選ぶ（JSON単体は音声を含まないため既存曲の
+       上書きにのみ使える）
      （player-track-backup.js側で組み立て）。
      ============================================================ -->
 <div id="trackBackupModalOverlay" class="export-modal-overlay">
@@ -769,9 +772,9 @@
           <div class="track-import-col-main">
             <div id="trackImportDropZone" class="track-import-dropzone">
               <svg viewBox="0 0 24 24" class="track-import-dropzone-icon"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
-              <div class="track-import-dropzone-text">ZIPファイルをドロップ</div>
+              <div class="track-import-dropzone-text">ZIP/JSONファイルをドロップ</div>
               <div class="track-import-dropzone-sub">またはクリックして選択</div>
-              <input type="file" id="trackImportFileInput" accept=".zip" style="display:none;">
+              <input type="file" id="trackImportFileInput" accept=".zip,.json" style="display:none;">
             </div>
             <!-- ZIP読み込み後はドロップゾーンの代わりにこちらを表示する
                  （player-track-backup.js側で表示/非表示を切り替える）。
