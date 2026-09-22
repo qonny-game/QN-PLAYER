@@ -484,7 +484,7 @@ document.addEventListener("keydown", e => {
   else if (e.key === "ArrowUp") {
     if (activePins.length > 0) {
       e.preventDefault();
-      isSeeking = true;
+      beginSeek();
       audio.currentTime = activePins[0].t;
       prevTime = activePins[0].t;
       audio.play();
@@ -496,7 +496,7 @@ document.addEventListener("keydown", e => {
   else if (e.key === "ArrowDown") {
     if (activePins.length > 0) {
       e.preventDefault();
-      isSeeking = true;
+      beginSeek();
       audio.currentTime = activePins[activePins.length - 1].t;
       prevTime = activePins[activePins.length - 1].t;
       audio.play();
@@ -522,7 +522,7 @@ document.addEventListener("keydown", e => {
     // ONのものだけを抜き出したactivePinsではなく、pins配列を直接参照する。
     if (pins[index] !== undefined) {
       e.preventDefault();
-      isSeeking = true;
+      beginSeek();
       audio.currentTime = pins[index].t;
       prevTime = pins[index].t;
       audio.play();
@@ -700,7 +700,7 @@ function calcTimeFromBarPosition(bar, barIndex, clientX) {
 
 document.querySelectorAll(".vbar").forEach((bar, index) => {
   bar.addEventListener("click", e => {
-    isSeeking = true;
+    beginSeek();
 
     const clickedTime = calcTimeFromBarPosition(bar, index, e.clientX);
 

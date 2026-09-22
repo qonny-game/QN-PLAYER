@@ -1,24 +1,27 @@
 // ============================================================
 // player-track-backup.js
-// PC v2サイドメニュー(#pcV2IconBar)のBackupアイコン用。
-// モーダル内はBackup/Importの2タブ構成：
-// - Backup: ライブラリ全曲分の音声データ・メタデータ(title/artist)・
-//   マーカー(位置/メモ)・テキストメモを、チェックボックスで選んだ
-//   項目だけダウンロードする。「音声データ」にチェックが入っていれば
-//   JSZipでZIP化(markers.json + audio/フォルダ)、チェックが外れていれば
-//   音声実体を含まないためZIP化せずmarkers.json単体をそのまま出力する
-//   （曲名/マーカー/メモだけを軽量に共有したい用途）。
+// PC v2サイドメニュー(#pcV2IconBar)のBackup/Importアイコン用。
+// Backup/Importはそれぞれ別モーダル(#trackBackupModalOverlay /
+// #trackImportModalOverlay)として独立している。
+//
+// - Backup: フローは「曲を選択（全選/全解除＋個別チェック、選択中の
+//   合計ファイルサイズを表示）→ 含める項目を選択 → Download」。
+//   「音声データ」にチェックが入っていればJSZipでZIP化(markers.json +
+//   audio/フォルダ)、チェックが外れていれば音声実体を含まないため
+//   ZIP化せずmarkers.json単体をそのまま出力する（曲名/マーカー/メモ
+//   だけを軽量に共有したい用途）。
 // - Import: Backupで書き出したZIPまたはmarkers.json単体を読み込み、
 //   ライブラリに曲を追加し、マーカー・メタデータ・テキストメモを反映
 //   する。同名の曲が既にライブラリにある場合は、曲ごとに「上書き」か
 //   「スキップ」かを選ぶ。JSON単体インポートは音声実体を含まないため、
 //   新規曲は追加できず（再生できないため）、既存曲への上書きにのみ
-//   使える。
+//   使える。インポート完了後はImportボタンが「Close」に変わり、結果
+//   を確認したらそのままモーダルを閉じられる。
 //
 // ZIP/JSONの構成は「インポートエクスポート機能.md」(将来の全曲一括
 // インポート/エクスポート機能)と互換になるよう合わせている：
 //   qnplayer_library_backup_YYYYMMDD.zip  （音声データを含む場合）
-//   ├── markers.json   … tracks配列に全曲分のメタデータ・マーカーを格納
+//   ├── markers.json   … tracks配列に選択曲分のメタデータ・マーカーを格納
 //   └── audio/
 //       └── <各曲の元のファイル名>
 //   qnplayer_library_backup_YYYYMMDD.json （音声データを含まない場合）
@@ -30,13 +33,20 @@
 // 読み込むこと（音声データを含むBackup/ZIPインポート時のみ使用）。
 // ============================================================
 
+// ============================================================
+// Backupモーダル
+// ============================================================
 const trackBackupModalOverlay = document.getElementById("trackBackupModalOverlay");
 const trackBackupModalCloseBtn = document.getElementById("trackBackupModalCloseBtn");
 const trackBackupCancelBtn = document.getElementById("trackBackupCancelBtn");
 const trackBackupRunBtn = document.getElementById("trackBackupRunBtn");
 const trackBackupStatusEl = document.getElementById("trackBackupStatus");
-const trackBackupTargetNameEl = document.getElementById("trackBackupTargetName");
-const trackBackupModalTitleEl = document.getElementById("trackBackupModalTitle");
+
+const trackBackupTrackListEl = document.getElementById("trackBackupTrackList");
+const trackBackupSelectAllBtn = document.getElementById("trackBackupSelectAllBtn");
+const trackBackupSelectNoneBtn = document.getElementById("trackBackupSelectNoneBtn");
+const trackBackupSelectedCountEl = document.getElementById("trackBackupSelectedCount");
+const trackBackupTotalSizeEl = document.getElementById("trackBackupTotalSize");
 
 const trackBackupCheckboxes = {
   audio: document.getElementById("trackBackupIncludeAudio"),
@@ -47,46 +57,103 @@ const trackBackupCheckboxes = {
   text: document.getElementById("trackBackupIncludeText")
 };
 
-// --- タブ切り替え(Backup/Import) ---
-const trackBackupTabBackupBtn = document.getElementById("trackBackupTabBackup");
-const trackBackupTabImportBtn = document.getElementById("trackBackupTabImport");
-const trackBackupPaneBackupEl = document.getElementById("trackBackupPaneBackup");
-const trackBackupPaneImportEl = document.getElementById("trackBackupPaneImport");
-const trackImportRunBtn = document.getElementById("trackImportRunBtn");
+// 曲一覧のチェック状態。キーはtrack.name。開くたびに全曲trueでリセットする。
+let trackBackupSelectedNames = new Set();
 
-function setTrackBackupTab(tab) {
-  const isImport = tab === "import";
-  if (trackBackupTabBackupBtn) trackBackupTabBackupBtn.classList.toggle("active", !isImport);
-  if (trackBackupTabImportBtn) trackBackupTabImportBtn.classList.toggle("active", isImport);
-  if (trackBackupPaneBackupEl) trackBackupPaneBackupEl.style.display = isImport ? "none" : "flex";
-  if (trackBackupPaneImportEl) trackBackupPaneImportEl.style.display = isImport ? "flex" : "none";
-  if (trackBackupRunBtn) trackBackupRunBtn.style.display = isImport ? "none" : "";
-  if (trackImportRunBtn) trackImportRunBtn.style.display = isImport ? "" : "none";
-  if (trackBackupModalTitleEl) trackBackupModalTitleEl.textContent = isImport ? "Import Library" : "Backup Library";
-  if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
-  updateTrackBackupCancelBtnMode();
+// ファイルサイズを「12.3 MB」のような表示用文字列に整形する。
+// 1000バイト区切り(MB/KB)ではなく1024バイト区切りにする（OSのファイル
+// サイズ表示に近く、ユーザーの感覚に合わせやすいため）。
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return "0 MB";
+  const mb = bytes / (1024 * 1024);
+  if (mb < 0.1) {
+    const kb = bytes / 1024;
+    return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
+  }
+  return `${mb.toFixed(mb < 10 ? 1 : 1)} MB`;
 }
 
-if (trackBackupTabBackupBtn) trackBackupTabBackupBtn.onclick = () => setTrackBackupTab("backup");
-if (trackBackupTabImportBtn) trackBackupTabImportBtn.onclick = () => setTrackBackupTab("import");
+function updateTrackBackupSelectionSummary() {
+  if (!Array.isArray(playlist)) return;
+  const selectedTracks = playlist.filter(t => trackBackupSelectedNames.has(t.name));
+  if (trackBackupSelectedCountEl) {
+    trackBackupSelectedCountEl.textContent = `${selectedTracks.length}曲選択中`;
+  }
+  if (trackBackupTotalSizeEl) {
+    const totalBytes = selectedTracks.reduce((sum, t) => sum + (t.file && t.file.size ? t.file.size : 0), 0);
+    trackBackupTotalSizeEl.textContent = formatFileSize(totalBytes);
+  }
+  if (trackBackupRunBtn) {
+    trackBackupRunBtn.disabled = selectedTracks.length === 0;
+  }
+}
+
+function renderTrackBackupTrackList() {
+  if (!trackBackupTrackListEl) return;
+  trackBackupTrackListEl.innerHTML = "";
+
+  (Array.isArray(playlist) ? playlist : []).forEach(track => {
+    const row = document.createElement("label");
+    row.className = "track-backup-track-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = trackBackupSelectedNames.has(track.name);
+    checkbox.onchange = () => {
+      if (checkbox.checked) {
+        trackBackupSelectedNames.add(track.name);
+      } else {
+        trackBackupSelectedNames.delete(track.name);
+      }
+      updateTrackBackupSelectionSummary();
+    };
+    row.appendChild(checkbox);
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "track-backup-track-name";
+    nameSpan.textContent = track.title || track.name;
+    nameSpan.title = track.title || track.name;
+    row.appendChild(nameSpan);
+
+    const sizeSpan = document.createElement("span");
+    sizeSpan.className = "track-backup-track-size";
+    sizeSpan.textContent = formatFileSize(track.file && track.file.size);
+    row.appendChild(sizeSpan);
+
+    trackBackupTrackListEl.appendChild(row);
+  });
+}
+
+if (trackBackupSelectAllBtn) {
+  trackBackupSelectAllBtn.onclick = () => {
+    hapticTap();
+    trackBackupSelectedNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
+    renderTrackBackupTrackList();
+    updateTrackBackupSelectionSummary();
+  };
+}
+if (trackBackupSelectNoneBtn) {
+  trackBackupSelectNoneBtn.onclick = () => {
+    hapticTap();
+    trackBackupSelectedNames = new Set();
+    renderTrackBackupTrackList();
+    updateTrackBackupSelectionSummary();
+  };
+}
 
 function openBulkBackupModal() {
   if (!trackBackupModalOverlay) return;
 
-  if (trackBackupTargetNameEl) {
-    const count = Array.isArray(playlist) ? playlist.length : 0;
-    trackBackupTargetNameEl.textContent = `ライブラリ全曲（${count}曲）`;
-  }
-  if (trackBackupRunBtn) {
-    trackBackupRunBtn.disabled = false;
-    trackBackupRunBtn.textContent = "Download";
-  }
-
-  // 開くたびに全項目チェック済みの状態にリセットする（前回の選択を引き継がない）。
+  // 開くたびに全曲選択・全項目チェック済みの状態にリセットする
+  // （前回の選択を引き継がない）。
+  trackBackupSelectedNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
   Object.values(trackBackupCheckboxes).forEach(cb => { if (cb) cb.checked = true; });
 
-  resetImportState();
-  setTrackBackupTab("backup");
+  renderTrackBackupTrackList();
+  updateTrackBackupSelectionSummary();
+
+  if (trackBackupRunBtn) trackBackupRunBtn.textContent = "Download";
+  if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
 
   trackBackupModalOverlay.classList.add("open");
 }
@@ -97,9 +164,7 @@ function closeTrackBackupModal() {
 }
 
 if (trackBackupModalCloseBtn) trackBackupModalCloseBtn.onclick = closeTrackBackupModal;
-// trackBackupCancelBtnのonclickはCancel/Back兼用のため固定では割り当てず、
-// updateTrackBackupCancelBtnMode()（モーダルを開く/タブ切替/ZIP読み込み/
-// Backのたびに呼ばれる）に一任する。
+if (trackBackupCancelBtn) trackBackupCancelBtn.onclick = closeTrackBackupModal;
 if (trackBackupModalOverlay) {
   trackBackupModalOverlay.addEventListener("click", (e) => {
     if (e.target === trackBackupModalOverlay) closeTrackBackupModal();
@@ -130,8 +195,9 @@ function loadStoredNoteTextFor(fileName) {
 }
 
 async function runTrackBackup() {
-  if (!Array.isArray(playlist) || playlist.length === 0) {
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "バックアップ対象の曲がありません。";
+  const targetTracks = (Array.isArray(playlist) ? playlist : []).filter(t => trackBackupSelectedNames.has(t.name));
+  if (targetTracks.length === 0) {
+    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "曲を1つ以上選択してください。";
     return;
   }
 
@@ -164,7 +230,7 @@ async function runTrackBackup() {
   if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
 
   try {
-    const tracksForExport = playlist.map(track => {
+    const tracksForExport = targetTracks.map(track => {
       let markersForExport = [];
       if (opts.markerPos || opts.markerMemo) {
         const storedPins = loadStoredPinsFor(track.name);
@@ -207,7 +273,7 @@ async function runTrackBackup() {
       // ZIP形式で出力する（音声実体があるためテキストのみでは完結しない）。
       const zip = new JSZip();
       const audioFolder = zip.folder("audio");
-      playlist.forEach(track => audioFolder.file(track.name, track.file));
+      targetTracks.forEach(track => audioFolder.file(track.name, track.file));
       zip.file("markers.json", markersJsonText);
       downloadBlob = await zip.generateAsync({ type: "blob" });
       downloadName = `qnplayer_library_backup_${dateStr}.zip`;
@@ -243,8 +309,14 @@ async function runTrackBackup() {
 if (trackBackupRunBtn) trackBackupRunBtn.onclick = runTrackBackup;
 
 // ============================================================
-// Import（読み込み）
+// Importモーダル
 // ============================================================
+const trackImportModalOverlay = document.getElementById("trackImportModalOverlay");
+const trackImportModalCloseBtn = document.getElementById("trackImportModalCloseBtn");
+const trackImportCancelBtn = document.getElementById("trackImportCancelBtn");
+const trackImportRunBtn = document.getElementById("trackImportRunBtn");
+const trackImportStatusEl = document.getElementById("trackImportStatus");
+
 const trackImportDropZoneEl = document.getElementById("trackImportDropZone");
 const trackImportFileInputEl = document.getElementById("trackImportFileInput");
 const trackImportLoadedInfoEl = document.getElementById("trackImportLoadedInfo");
@@ -256,26 +328,67 @@ const trackImportSummaryEl = document.getElementById("trackImportSummary");
 const trackImportBulkToggle = document.getElementById("trackImportBulkToggle");
 const trackImportBulkToggleLabelEl = document.getElementById("trackImportBulkToggleLabel");
 
-// 選択されたZIPから読み取った内容。parsedData: markers.jsonの中身、
-// audioFiles: Map<fileName, Blob>（audio/フォルダの中身）。
+// 選択されたZIP/JSONから読み取った内容。parsedData: markers.jsonの中身、
+// audioFiles: Map<fileName, Blob>（audio/フォルダの中身、JSON単体の場合は空）。
 // duplicateChoices: Map<fileName, "overwrite"|"skip">（重複曲ごとの選択）。
 let trackImportParsedData = null;
 let trackImportAudioFiles = null;
 let trackImportDuplicateChoices = new Map();
 
-// Cancel/Backボタン(#trackBackupCancelBtn)は、ZIP読み込み前は
+// Cancel/Backボタン(#trackImportCancelBtn)は、ファイル読み込み前は
 // モーダルを閉じる「Cancel」、読み込み後は選び直すための「Back」に
 // なる（resetImportState()を呼んでドロップゾーン表示へ戻す）。
-function updateTrackBackupCancelBtnMode() {
-  if (!trackBackupCancelBtn) return;
-  const isImportTab = trackBackupTabImportBtn && trackBackupTabImportBtn.classList.contains("active");
-  if (isImportTab && trackImportParsedData) {
-    trackBackupCancelBtn.textContent = "Back";
-    trackBackupCancelBtn.onclick = resetImportState;
+function updateTrackImportCancelBtnMode() {
+  if (!trackImportCancelBtn) return;
+  if (trackImportParsedData) {
+    trackImportCancelBtn.textContent = "Back";
+    trackImportCancelBtn.onclick = resetImportState;
   } else {
-    trackBackupCancelBtn.textContent = "Cancel";
-    trackBackupCancelBtn.onclick = closeTrackBackupModal;
+    trackImportCancelBtn.textContent = "Cancel";
+    trackImportCancelBtn.onclick = closeTrackImportModal;
   }
+}
+
+// trackImportRunBtnの見た目と押した時の挙動をまとめて切り替える。
+// "import": 通常時、押すとrunTrackImportを実行する。
+// "importing": 実行中、無効化して待たせる。
+// "close": インポート完了後、押すとモーダルを閉じる（結果を確認して
+// そのまま終えられるようにするため、"Import"のまま無効化していた
+// 以前の挙動から変更した）。
+function setTrackImportRunBtnMode(mode) {
+  if (!trackImportRunBtn) return;
+  if (mode === "importing") {
+    trackImportRunBtn.disabled = true;
+    trackImportRunBtn.textContent = "Importing...";
+    trackImportRunBtn.onclick = null;
+  } else if (mode === "close") {
+    trackImportRunBtn.disabled = false;
+    trackImportRunBtn.textContent = "Close";
+    trackImportRunBtn.onclick = closeTrackImportModal;
+  } else {
+    trackImportRunBtn.disabled = !trackImportParsedData;
+    trackImportRunBtn.textContent = "Import";
+    trackImportRunBtn.onclick = runTrackImport;
+  }
+}
+
+function openBulkImportModal() {
+  if (!trackImportModalOverlay) return;
+  resetImportState();
+  if (trackImportStatusEl) trackImportStatusEl.textContent = "";
+  trackImportModalOverlay.classList.add("open");
+}
+
+function closeTrackImportModal() {
+  if (!trackImportModalOverlay) return;
+  trackImportModalOverlay.classList.remove("open");
+}
+
+if (trackImportModalCloseBtn) trackImportModalCloseBtn.onclick = closeTrackImportModal;
+if (trackImportModalOverlay) {
+  trackImportModalOverlay.addEventListener("click", (e) => {
+    if (e.target === trackImportModalOverlay) closeTrackImportModal();
+  });
 }
 
 function resetImportState() {
@@ -292,12 +405,9 @@ function resetImportState() {
     trackImportSummaryEl.style.display = "none";
     trackImportSummaryEl.textContent = "";
   }
-  if (trackImportRunBtn) {
-    trackImportRunBtn.disabled = true;
-    trackImportRunBtn.textContent = "Import";
-  }
   if (trackImportFileInputEl) trackImportFileInputEl.value = "";
-  updateTrackBackupCancelBtnMode();
+  setTrackImportRunBtnMode("import");
+  updateTrackImportCancelBtnMode();
 }
 
 if (trackImportDropZoneEl) {
@@ -333,16 +443,16 @@ async function handleTrackImportFileSelected(file) {
   const isZip = /\.zip$/i.test(file.name);
   const isJson = /\.json$/i.test(file.name);
   if (!isZip && !isJson) {
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ZIPまたはJSONファイルを選択してください。";
+    if (trackImportStatusEl) trackImportStatusEl.textContent = "ZIPまたはJSONファイルを選択してください。";
     return;
   }
   if (isZip && typeof JSZip === "undefined") {
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "JSZipが読み込まれていません。";
+    if (trackImportStatusEl) trackImportStatusEl.textContent = "JSZipが読み込まれていません。";
     return;
   }
 
   resetImportState();
-  if (trackBackupStatusEl) trackBackupStatusEl.textContent = "読み込み中...";
+  if (trackImportStatusEl) trackImportStatusEl.textContent = "読み込み中...";
 
   try {
     let parsed;
@@ -352,7 +462,7 @@ async function handleTrackImportFileSelected(file) {
       const zip = await JSZip.loadAsync(file);
       const markersEntry = zip.file("markers.json");
       if (!markersEntry) {
-        if (trackBackupStatusEl) trackBackupStatusEl.textContent = "markers.jsonが見つかりません。";
+        if (trackImportStatusEl) trackImportStatusEl.textContent = "markers.jsonが見つかりません。";
         return;
       }
       const markersText = await markersEntry.async("string");
@@ -375,14 +485,14 @@ async function handleTrackImportFileSelected(file) {
     }
 
     if (!parsed || !Array.isArray(parsed.tracks)) {
-      if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ファイルの内容を読み取れませんでした。";
+      if (trackImportStatusEl) trackImportStatusEl.textContent = "ファイルの内容を読み取れませんでした。";
       return;
     }
 
     trackImportParsedData = parsed;
     trackImportAudioFiles = audioMap;
 
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
+    if (trackImportStatusEl) trackImportStatusEl.textContent = "";
 
     // 読み込み後はドロップゾーンを隠し、代わりに読み込み済み情報を
     // 表示する（ドロップ位置によって「通常のファイル追加」と「ZIP/JSON
@@ -393,7 +503,8 @@ async function handleTrackImportFileSelected(file) {
     if (trackImportLoadedInfoEl) trackImportLoadedInfoEl.style.display = "flex";
     if (trackImportLoadedFileNameEl) trackImportLoadedFileNameEl.textContent = file.name;
     if (trackImportLoadedFileCountEl) trackImportLoadedFileCountEl.textContent = `${parsed.tracks.length}曲`;
-    updateTrackBackupCancelBtnMode();
+    setTrackImportRunBtnMode("import");
+    updateTrackImportCancelBtnMode();
 
     // 既存ライブラリとの重複を検出し、曲ごとの上書き/スキップ選択UIを出す。
     const existingNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
@@ -404,11 +515,9 @@ async function handleTrackImportFileSelected(file) {
       renderTrackImportDuplicateRows(duplicateNames);
       if (trackImportDuplicateListEl) trackImportDuplicateListEl.style.display = "flex";
     }
-
-    if (trackImportRunBtn) trackImportRunBtn.disabled = false;
   } catch (err) {
     console.warn("handleTrackImportFileSelected failed:", err);
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "ファイルの読み込みに失敗しました。";
+    if (trackImportStatusEl) trackImportStatusEl.textContent = "ファイルの読み込みに失敗しました。";
   }
 }
 
@@ -510,11 +619,8 @@ async function runTrackImport() {
   if (!trackImportParsedData) return;
 
   hapticTap();
-  if (trackImportRunBtn) {
-    trackImportRunBtn.disabled = true;
-    trackImportRunBtn.textContent = "Importing...";
-  }
-  if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
+  setTrackImportRunBtnMode("importing");
+  if (trackImportStatusEl) trackImportStatusEl.textContent = "";
 
   let addedCount = 0;
   let overwrittenCount = 0;
@@ -586,23 +692,20 @@ async function runTrackImport() {
       trackImportSummaryEl.textContent = summary;
       trackImportSummaryEl.style.display = "block";
     }
-    if (trackImportRunBtn) {
-      trackImportRunBtn.disabled = true;
-      trackImportRunBtn.textContent = "Import";
-    }
+    // インポート完了後は、ボタンを「Close」に切り替えてそのまま閉じられる
+    // ようにする（結果を確認したら、Backで別のファイルを選び直すか、この
+    // Closeでモーダルを閉じるかの2択になる）。
+    setTrackImportRunBtnMode("close");
     hapticSuccess();
   } catch (err) {
     console.warn("runTrackImport failed:", err);
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "インポートに失敗しました。";
-    if (trackImportRunBtn) {
-      trackImportRunBtn.disabled = false;
-      trackImportRunBtn.textContent = "Import";
-    }
+    if (trackImportStatusEl) trackImportStatusEl.textContent = "インポートに失敗しました。";
+    setTrackImportRunBtnMode("import");
   }
 }
 
 // マーカー(位置/メモ)・テキストメモをlocalStorageへ反映する。
-// trackData.markersが無ければマーカーには触れない（ZIP側でチェックを
+// trackData.markersが無ければマーカーには触れない（ZIP/JSON側でチェックを
 // 外してエクスポートされた場合、既存のマーカーを消さないようにするため）。
 // 同様にnoteTextがundefinedならテキストメモにも触れない。
 function applyImportedMarkersAndText(name, trackData) {
@@ -623,5 +726,3 @@ function applyImportedMarkersAndText(name, trackData) {
     } catch (e) {}
   }
 }
-
-if (trackImportRunBtn) trackImportRunBtn.onclick = runTrackImport;

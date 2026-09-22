@@ -41,7 +41,7 @@ function jumpToNextMarker() {
   let nextPin = activePins.find(p => p.t > ct + 0.05);
   if (!nextPin) nextPin = activePins[0];
 
-  isSeeking = true;
+  beginSeek();
   audio.currentTime = nextPin.t;
   prevTime = nextPin.t;
   audio.play();
@@ -78,7 +78,7 @@ function jumpToPrevMarker() {
     targetPin = activePins[activePins.length - 1];
   }
 
-  isSeeking = true;
+  beginSeek();
   audio.currentTime = targetPin.t;
   prevTime = targetPin.t;
   audio.play();
@@ -160,7 +160,7 @@ function renderPins() {
       // 以前はスマホだけMOVEモード（再タップで選択→別の位置をタップして移動）に
       // 分岐していたが、意図通りに動作しなかったため廃止し、PC/スマホ共通で
       // 直接ドラッグ（下のonmousedown/ontouchstart）で動かす方式に統一した。
-      isSeeking = true;
+      beginSeek();
       audio.currentTime = pinObj.t;
       prevTime = pinObj.t;
       audio.play();
@@ -232,7 +232,7 @@ function paintSegmentAcrossBars(barsInfo, rangeStart, rangeEnd, className, color
 
     if (onClickSeek !== undefined) {
       seg.onclick = () => {
-        isSeeking = true;
+        beginSeek();
         audio.currentTime = onClickSeek;
         prevTime = onClickSeek;
         audio.play();
@@ -298,7 +298,7 @@ function startDragPin(index) {
   return function(e) {
     e.stopPropagation();
     if (e.type === "touchstart") e.preventDefault();
-    isSeeking = true;
+    beginSeek();
     const dur = audio.duration;
     const { s1, s2, s3, s4, s5 } = getSegments(dur);
     const bounds = [0, s1, s2, s3, s4, s5, dur];
@@ -476,7 +476,7 @@ function renderPinList() {
         swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
         return;
       }
-      isSeeking = true;
+      beginSeek();
       audio.currentTime = pinObj.t; 
       prevTime = pinObj.t;
       audio.play(); 

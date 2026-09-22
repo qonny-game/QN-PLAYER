@@ -33,7 +33,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "2.11.0";
+  window.QN_APP_VERSION = "2.12.2";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -706,33 +706,38 @@
 <div class="top-controls-spacer" id="topControlsSpacer"></div>
 
 <!-- ============================================================
-     ライブラリ一括バックアップ／インポートモーダル。
+     ライブラリ一括バックアップモーダル。
      PC v2サイドメニュー(#pcV2IconBar)のBackupアイコン押下で開く。
-     上部タブ(Backup/Import)で中身を切り替える：
-     - Backup: チェックした項目だけを全曲分まとめてダウンロード。音声
-       データを含む場合はZIP、含めない場合はmarkers.json単体で出力する
-     - Import: ZIPまたはmarkers.json単体(D&D/選択)を読み込み、ライブラリ
-       に曲を追加・マーカー/メモを反映する。同名曲があれば1曲ずつ
-       上書き/スキップを選ぶ（JSON単体は音声を含まないため既存曲の
-       上書きにのみ使える）
+     フロー：曲を選択（全選/全解除＋個別チェック、選択中の合計サイズを
+     表示）→ 含める項目を選択 → Download。
+     音声データを含む場合はZIP、含めない場合はmarkers.json単体で出力する
      （player-track-backup.js側で組み立て）。
      ============================================================ -->
 <div id="trackBackupModalOverlay" class="export-modal-overlay">
   <div class="export-modal track-backup-modal">
     <div class="export-modal-header">
-      <span id="trackBackupModalTitle">Backup Library</span>
+      <span>Backup Library</span>
       <button id="trackBackupModalCloseBtn" class="export-modal-close" title="Close">✕</button>
     </div>
 
-    <div class="track-backup-tabs">
-      <button type="button" id="trackBackupTabBackup" class="track-backup-tab-btn active">Backup</button>
-      <button type="button" id="trackBackupTabImport" class="track-backup-tab-btn">Import</button>
-    </div>
-
     <div class="export-modal-body">
-      <!-- Backupタブの中身 -->
-      <div class="export-section" id="trackBackupPaneBackup">
-        <label class="export-section-label" id="trackBackupTargetName">-</label>
+      <div class="export-section">
+        <div class="track-backup-tracklist-header">
+          <label class="export-section-label">曲を選択</label>
+          <div class="track-backup-tracklist-actions">
+            <button type="button" id="trackBackupSelectAllBtn" class="track-backup-mini-btn">全選択</button>
+            <button type="button" id="trackBackupSelectNoneBtn" class="track-backup-mini-btn">全解除</button>
+          </div>
+        </div>
+        <div id="trackBackupTrackList" class="track-backup-tracklist"></div>
+        <div class="track-backup-size-row">
+          <span id="trackBackupSelectedCount">0曲選択中</span>
+          <span id="trackBackupTotalSize">0 MB</span>
+        </div>
+      </div>
+
+      <div class="export-section">
+        <label class="export-section-label">含める項目</label>
         <div class="track-backup-checklist">
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeAudio" checked>
@@ -760,14 +765,34 @@
           </label>
         </div>
       </div>
+    </div>
 
-      <!-- Importタブの中身（初期状態は非表示）。PC幅(640px以上)では常に
-           2列（左:ドロップゾーン/サマリー、右:重複リスト）で表示する。
-           Backup/Importタブ間、および重複の有無でモーダルのサイズが
-           変わりタブ切替のたびに位置が動くのを防ぐため、レイアウトの
-           列数・モーダル幅・本文の最小高さはCSS側で常に固定している
-           （style-export.css内の.track-backup-modal等を参照）。 -->
-      <div class="export-section" id="trackBackupPaneImport" style="display:none;">
+    <div class="export-modal-footer">
+      <div id="trackBackupStatus" class="export-status"></div>
+      <button id="trackBackupCancelBtn" class="export-cancel-btn" title="Close">Cancel</button>
+      <button id="trackBackupRunBtn" class="export-run-btn">Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ライブラリ一括インポートモーダル。
+     PC v2サイドメニュー(#pcV2IconBar)のImportアイコン押下で開く。
+     ZIPまたはmarkers.json単体(D&D/選択)を読み込み、ライブラリに曲を
+     追加・マーカー/メモを反映する。同名曲があれば1曲ずつ上書き/
+     スキップを選ぶ（JSON単体は音声を含まないため既存曲の上書きにのみ
+     使える）。インポート完了後はImportボタンがCloseに変わり、結果を
+     確認したらそのまま閉じられる（player-track-backup.js側で組み立て）。
+     ============================================================ -->
+<div id="trackImportModalOverlay" class="export-modal-overlay">
+  <div class="export-modal track-backup-modal">
+    <div class="export-modal-header">
+      <span>Import Library</span>
+      <button id="trackImportModalCloseBtn" class="export-modal-close" title="Close">✕</button>
+    </div>
+
+    <div class="export-modal-body">
+      <div class="export-section" id="trackBackupPaneImport">
         <div class="track-import-layout" id="trackImportLayout">
           <div class="track-import-col-main">
             <div id="trackImportDropZone" class="track-import-dropzone">
@@ -776,9 +801,9 @@
               <div class="track-import-dropzone-sub">またはクリックして選択</div>
               <input type="file" id="trackImportFileInput" accept=".zip,.json" style="display:none;">
             </div>
-            <!-- ZIP読み込み後はドロップゾーンの代わりにこちらを表示する
+            <!-- ファイル読み込み後はドロップゾーンの代わりにこちらを表示する
                  （player-track-backup.js側で表示/非表示を切り替える）。
-                 別のZIPを選び直したい場合はCancelボタンが「Back」に
+                 別のファイルを選び直したい場合はCancelボタンが「Back」に
                  変わり、それを押すとドロップゾーン表示へ戻る。 -->
             <div id="trackImportLoadedInfo" class="track-import-loaded-info" style="display:none;">
               <svg viewBox="0 0 24 24" class="track-import-loaded-info-icon"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
@@ -812,10 +837,9 @@
     </div>
 
     <div class="export-modal-footer">
-      <div id="trackBackupStatus" class="export-status"></div>
-      <button id="trackBackupCancelBtn" class="export-cancel-btn" title="Close">Cancel</button>
-      <button id="trackBackupRunBtn" class="export-run-btn">Download</button>
-      <button id="trackImportRunBtn" class="export-run-btn" style="display:none;">Import</button>
+      <div id="trackImportStatus" class="export-status"></div>
+      <button id="trackImportCancelBtn" class="export-cancel-btn" title="Close">Cancel</button>
+      <button id="trackImportRunBtn" class="export-run-btn">Import</button>
     </div>
   </div>
 </div>

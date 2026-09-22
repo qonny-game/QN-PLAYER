@@ -10,6 +10,7 @@
 let audio = new Audio();
 let pins = [];
 let loopEnabled = false;
+let isSeeking = false;
 
 // マーカー区間ループ折り返し判定用：現在ループ対象として固定している
 // マーカーペアのインデックス（activePins配列上のi、区間は[i, i+1]）。
@@ -22,6 +23,20 @@ let loopEnabled = false;
 // マーカーの追加/削除/色変更、シーク、ループON/OFF切替、曲切替時は
 // 必ずnullにリセットし、次回のupdateBarsで現在地から再計算させる。
 let loopActiveMarkerIndex = null;
+
+// isSeeking = trueにする箇所は必ずこの関数を経由すること（直接代入しない）。
+// シーク先がたまたま現在ループ中の区間のpre/post-roll範囲内に着地すると、
+// updateBars側の「区間外に出たかどうか」判定だけではシークが起きた
+// こと自体を検知できず、見た目は別の区間にいるのに裏では古い区間の
+// ループ判定が生き続けてしまうバグがあった（例：3秒プリロール設定で
+// マーカー3をループ中、タップでマーカー4の頭付近へシークすると、見た目は
+// 4を再生しているのに実際には3のpostroll範囲内として扱われ続け、4の
+// 3秒後に3へ戻ってしまう）。シークは常に「今いる区間の外に移動する
+// 操作」として扱い、ここで確実にloopActiveMarkerIndexを破棄する。
+function beginSeek() {
+  isSeeking = true;
+  loopActiveMarkerIndex = null;
+}
 
 // マーカーの色付けに使うカラーパレット。Colorパネル（player-theme.js側の
 // QN_THEMES配列）と全く同じ一覧をそのまま流用する。
@@ -78,7 +93,6 @@ function hexToRgba(hex, alpha) {
 
 // リピートモード: "off" -> "one"（1曲リピート） -> "all"（プレイリスト全体を繰り返し） -> "off" ...
 let repeatMode = "off";
-let isSeeking = false;
 let isJumping = false;
 let prevTime = 0;
 
@@ -96,8 +110,18 @@ const PLAYLIST_DB_NAME = "qnaudio_playlist_db";
 const PLAYLIST_DB_VERSION = 1;
 const PLAYLIST_STORE_NAME = "tracks";
 
+// 一度開いたDB接続を使い回す（呼ばれるたびに indexedDB.open() し直すと、
+// 曲数が多いときに接続のオープン自体がオーバーヘッドになり、iOS Safari
+// で特に不安定になりやすかったため）。同時に複数箇所から呼ばれた場合も
+// 同じPromiseを共有し、openを1回だけに抑える。
+let cachedPlaylistDB = null;
+let openPlaylistDBPromise = null;
+
 function openPlaylistDB() {
-  return new Promise((resolve, reject) => {
+  if (cachedPlaylistDB) return Promise.resolve(cachedPlaylistDB);
+  if (openPlaylistDBPromise) return openPlaylistDBPromise;
+
+  openPlaylistDBPromise = new Promise((resolve, reject) => {
     if (!window.indexedDB) { reject(new Error("IndexedDB not supported")); return; }
     const req = indexedDB.open(PLAYLIST_DB_NAME, PLAYLIST_DB_VERSION);
     req.onupgradeneeded = () => {
@@ -106,9 +130,20 @@ function openPlaylistDB() {
         db.createObjectStore(PLAYLIST_STORE_NAME, { keyPath: "name" });
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      cachedPlaylistDB = req.result;
+      // 他のタブ/ウィンドウでDBのバージョンが上がった場合など、接続が
+      // 予期せず閉じられることがあるため、そのときはキャッシュを破棄して
+      // 次回呼び出し時に再オープンできるようにする。
+      cachedPlaylistDB.onclose = () => { cachedPlaylistDB = null; };
+      resolve(cachedPlaylistDB);
+    };
     req.onerror = () => reject(req.error);
+  }).finally(() => {
+    openPlaylistDBPromise = null;
   });
+
+  return openPlaylistDBPromise;
 }
 
 // 曲を1件、実体(Blob)ごと保存する。同名ファイルは上書きする。
@@ -189,11 +224,17 @@ async function loadAllPlaylistTracks() {
 // （ドラッグ並び替え後、次回起動時にも並び替えた順序が復元されるようにするため）。
 // savedAtに単純増加の連番を振り直すことで、既存のsavedAt昇順ソートと矛盾なく順序を保てる。
 // 各トラックのON/OFF状態(enabled)・タイトル/アーティスト・お気に入り状態も同時に保存する。
+// 1曲ずつ直列に保存する（Promise.allで全曲を並行実行すると、曲数分の
+// IndexedDBトランザクション・大容量Blob書き込みが同時に走り、特にiOS
+// SafariのIndexedDBが不安定になって操作不能に近い状態（フリーズ、
+// 再生ボタンが効かない等）に陥ることがあった。インポート直後など
+// 曲数が急増した直後に症状が出やすかったのはこれが原因）。
 async function persistPlaylistOrder() {
   const base = Date.now();
-  await Promise.all(playlist.map((track, i) =>
-    savePlaylistTrack(track.file, base + i, track.enabled, track.title, track.artist, track.favorite)
-  ));
+  for (let i = 0; i < playlist.length; i++) {
+    const track = playlist[i];
+    await savePlaylistTrack(track.file, base + i, track.enabled, track.title, track.artist, track.favorite);
+  }
 }
 
 // タイトル/アーティスト/お気に入り状態を編集した直後など、並び順を変えずに

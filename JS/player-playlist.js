@@ -416,7 +416,6 @@ function playTrackAt(index, autoplay = true) {
   if (index < 0 || index >= playlist.length) return;
   currentPlaylistIndex = index;
   loadFile(playlist[index].file);
-  renderPlaylist();
   if (autoplay) {
     // audio.play()は、ここ（ユーザーのタップ/クリックのコールスタック内）で
     // 同期的に呼び出す。以前はloadFile側のonloadedmetadataを待ってから
@@ -427,8 +426,14 @@ function playTrackAt(index, autoplay = true) {
     // 再生される不具合の直接原因）。play()はロード中でも呼び出せ、ブラウザが
     // 内部で再生可能になり次第自動的に再生を開始するため、ここで直接呼べば
     // 常にユーザー操作起因として扱われ、1回のタップで確実に再生が始まる。
+    // renderPlaylist()（曲数が多いとDOM再構築に時間がかかる）より必ず先に
+    // 呼ぶこと。後に呼ぶと、曲数が多い状態（インポート直後など）では
+    // タップからplay()までの間隔が開いてしまい、同じ自動再生ブロックの
+    // 問題が再発する（SPで再生ボタンが効かない/操作全体が重く感じる
+    // 不具合の一因になっていた）。
     audio.play().catch(() => {});
   }
+  renderPlaylist();
 }
 
 // 指定したインデックスより後ろ（direction=1）または前（direction=-1）で、
@@ -455,7 +460,7 @@ function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
 function seekToTrackStart() {
   if (!audio.duration) return;
   hapticTap();
-  isSeeking = true;
+  beginSeek();
   audio.currentTime = 0;
   prevTime = 0;
   renderSegments(getActiveSegment(0));

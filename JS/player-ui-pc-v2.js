@@ -99,10 +99,15 @@
     },
     {
       id: "backup",
-      label: "Backup & Import",
-      shortLabel: "Backup",
+      label: "Backup",
       panelType: "backup",
       icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>'
+    },
+    {
+      id: "import",
+      label: "Import",
+      panelType: "import",
+      icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>'
     }
   ];
 
@@ -779,6 +784,13 @@
       return;
     }
 
+    if (item.panelType === "import") {
+      // Import: パネルを開かず、ライブラリ一括インポートの確認モーダルを開くだけ
+      // （player-track-backup.js側）。
+      if (typeof openBulkImportModal === "function") openBulkImportModal();
+      return;
+    }
+
     if (item.panelType === "close") {
       // Seekbar: パネルを開かず、開いていれば閉じるだけ（波形が見える
       // 基本画面に戻る）。PC幅ではパネルは常時表示のクラスを持たない
@@ -1234,7 +1246,7 @@
 
   // deleteSelectedItems()からフェードアウト分の待機を挟んで呼ばれる、
   // 実際のデータ削除本体。
-  function performDelete(panelId, indices) {
+  async function performDelete(panelId, indices) {
     if (panelId === "markers") {
       indices.forEach(i => pins.splice(i, 1));
       // マーカー構成が変わったため、ループ折り返し判定の対象区間
@@ -1253,7 +1265,12 @@
       // 消したはずの曲が復活してしまう不具合があった。
       const removedNames = indices.map(i => playlist[i] && playlist[i].name).filter(Boolean);
       indices.forEach(i => playlist.splice(i, 1));
-      removedNames.forEach(name => deletePlaylistTrack(name));
+      // 1曲ずつ直列に削除する（Promise.all相当の並行実行だと、複数曲を
+      // 一括削除したときにIndexedDBトランザクションが同時に走り、
+      // persistPlaylistOrder()と同様の不安定さにつながるため）。
+      for (const name of removedNames) {
+        await deletePlaylistTrack(name);
+      }
       if (typeof currentPlaylistIndex !== "undefined") {
         // 削除された項目より後ろの現在再生インデックスがずれないよう調整
         const removedBeforeCurrent = indices.filter(i => i < currentPlaylistIndex).length;
