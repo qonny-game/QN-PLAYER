@@ -826,6 +826,16 @@ body.pc-v2-active > .app-container {
   display: none;
 }
 
+/* --- PLAY/MARKERアンカータブ（#pcV2BottomBarAnchorTabs） ---
+   下段バー(#pcV2BottomBar)の直上に置く小さなタブ。押すと下段バーの
+   横スクロール位置を該当パート（PLAY=group1、MARKER=group2）の
+   先頭までジャンプさせる、アンカーリンク的なショートカット。
+   PC幅では下段バー自体が横スクロールしない（全項目が1画面に収まる）
+   ため常に非表示にし、SP幅（@media内）でのみ表示する。 */
+#pcV2BottomBarAnchorTabs {
+  display: none;
+}
+
 /* --- 下段：固定コントロールバー（モック準拠） --- */
 #pcV2BottomBar {
   border-top: 1px solid var(--border-subtle);
@@ -1478,6 +1488,41 @@ body.pc-v2-active #qnMenuMount {
     padding: 12px 16px;
   }
 
+  /* PLAY/MARKERアンカータブ：下段バー(#pcV2BottomBar、order:2)のすぐ
+     上に来るよう、波形エリア(order:1)・#pcV2TimeRow(order:1.5)より
+     後、下段バーより前のorderにする。 */
+  #pcV2BottomBarAnchorTabs {
+    display: flex;
+    order: 1.8;
+    flex-shrink: 0;
+    gap: 8px;
+    padding: 8px 16px 0;
+  }
+
+  .pcv2-anchor-tab {
+    padding: 6px 16px;
+    background: none;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--icon-muted);
+    cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+  }
+
+  .pcv2-anchor-tab:hover {
+    color: var(--text-bright);
+    border-color: rgba(255, 255, 255, 0.24);
+  }
+
+  .pcv2-anchor-tab:active {
+    transform: scale(0.94);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
   /* 下段コントロールバー：JS側でDOM上、アイコンバーの直前（つまり画面では
      アイコンバーのすぐ上）へ移動される。 */
   #pcV2BottomBar {
@@ -1528,6 +1573,39 @@ body.pc-v2-active #qnMenuMount {
 
   #pcV2BottomBar .pcv2-ctrl-btn span {
     font-size: 11px;
+  }
+
+  /* 下段バーに移植された#topControls（Track/Play/Track・Repeat・
+     Marker×3・Loop）も、.pcv2-ctrl-btnと同じ方針でSP幅ではタップ範囲を
+     大きく広げる。横に間延びしてもタップしやすさを優先し、アイコンも
+     サイドバー(.pcv2-icon-item svg、SP幅26px)と同程度まで拡大する。 */
+  #pcV2BottomBar .tripleNavBtn-third {
+    padding: 14px 18px;
+  }
+
+  #pcV2BottomBar .tripleNavBtn-third svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  #pcV2BottomBar .tripleNavBtn-center svg {
+    width: 38px;
+    height: 38px;
+  }
+
+  #pcV2BottomBar .tripleNavBtn-center,
+  #pcV2BottomBar .loopbtn {
+    min-height: 70px;
+  }
+
+  #pcV2BottomBar .loopbtn {
+    padding: 14px 16px;
+  }
+
+  #pcV2BottomBar .loopbtn svg {
+    width: 26px;
+    height: 26px;
+    margin: 4px auto;
   }
 
   /* アイコンバー：画面最下部に固定、縦並び→横並びに変更。

@@ -378,7 +378,7 @@
       appendShortcutToTitle(document.getElementById("prevMarkerBtn"), "Prev Marker");
 
       // グループ1：playbackTripleBtn(Start・Prev・Play・Next・Repeat一式)
-      const group1 = el('<div class="pcv2-ctrl-group"></div>');
+      const group1 = el('<div class="pcv2-ctrl-group" id="pcV2BottomBarGroupPlay"></div>');
       if (playbackTripleBtn) group1.appendChild(playbackTripleBtn);
 
       // 時刻表示(.time-controls-row)：PC幅ではここ(Repeatの右)に
@@ -392,7 +392,7 @@
       }
 
       // グループ2：markerNavBtn(Prev Mkr・+Marker・Next Mkr・Loop一式)
-      const group2 = el('<div class="pcv2-ctrl-group"></div>');
+      const group2 = el('<div class="pcv2-ctrl-group" id="pcV2BottomBarGroupMarker"></div>');
       if (markerNavBtn) group2.appendChild(markerNavBtn);
 
       const divider = el('<div class="pcv2-ctrl-divider"></div>');
@@ -478,6 +478,44 @@
     // --- pcV2Root：3カラム部分(layout)と下段バー(bottomBar)を縦に積む ---
     const root = el('<div id="pcV2Root"></div>');
     root.appendChild(layout);
+
+    // SP幅限定：下段バー(#pcV2BottomBar)の直上に置く、PLAY/MARKERの
+    // アンカータブ。下段バーはPLAY系(group1)とMARKER系(group2)が
+    // 1本の横に長い列としてつながっており（SP幅でアイコン・タップ領域を
+    // 大きくしたため、1画面に収まりきらず横スクロールが要る）、
+    // このタブを押すとその行の該当パート（PLAY=group1の先頭、
+    // MARKER=group2の先頭）まで#pcV2BottomBarの横スクロール位置を
+    // ジャンプさせる、アンカーリンク的なショートカット。
+    // PC幅では#pcV2BottomBar自体が横スクロールしない（全項目が収まる）
+    // ため、CSS側でこのタブ自体を非表示にする。
+    const anchorTabs = el('<div id="pcV2BottomBarAnchorTabs"></div>');
+    const anchorTabPlay = el('<button type="button" class="pcv2-anchor-tab" data-anchor-target="pcV2BottomBarGroupPlay">PLAY</button>');
+    const anchorTabMarker = el('<button type="button" class="pcv2-anchor-tab" data-anchor-target="pcV2BottomBarGroupMarker">MARKER</button>');
+    function scrollBottomBarToAnchor(targetId) {
+      const bar = document.getElementById("pcV2BottomBar");
+      const target = document.getElementById(targetId);
+      if (!bar || !target) return;
+      // target.offsetLeftは#pcV2BottomBarから見た絶対位置とは限らない
+      // （間に他の要素の余白が挟まる構造のため）ため、targetの
+      // getBoundingClientRect()とbar自身のそれの差分から、現在の
+      // scrollLeftに対する相対移動量を出す方が構造変化に強い。
+      const barRect = bar.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const delta = targetRect.left - barRect.left;
+      bar.scrollTo({ left: bar.scrollLeft + delta, behavior: "smooth" });
+    }
+    anchorTabPlay.addEventListener("click", () => {
+      if (typeof hapticTap === "function") hapticTap();
+      scrollBottomBarToAnchor("pcV2BottomBarGroupPlay");
+    });
+    anchorTabMarker.addEventListener("click", () => {
+      if (typeof hapticTap === "function") hapticTap();
+      scrollBottomBarToAnchor("pcV2BottomBarGroupMarker");
+    });
+    anchorTabs.appendChild(anchorTabPlay);
+    anchorTabs.appendChild(anchorTabMarker);
+    root.appendChild(anchorTabs);
+
     root.appendChild(bottomBar);
 
     // 既存の.app-container(#appHeaderの後)の直後にPC v2骨組みを挿入
@@ -678,6 +716,7 @@
   // またいだ時に呼ばれる。
   function syncBottomBarPosition() {
     const bottomBar = document.getElementById("pcV2BottomBar");
+    const anchorTabs = document.getElementById("pcV2BottomBarAnchorTabs");
     const layoutEl = document.getElementById("pcV2Layout");
     const iconBar = document.getElementById("pcV2IconBar");
     const rootEl = document.getElementById("pcV2Root");
@@ -685,12 +724,22 @@
 
     const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
     if (isSpWidth) {
+      // anchorTabs（PLAY/MARKERアンカータブ）はbottomBarの直前に置く
+      // ことで常に「バーのすぐ上」の位置を保つ。bottomBarを先に動かして
+      // からその直前にanchorTabsを挿すことで、1回のinsertBeforeの
+      // 連鎖で両方とも正しい順序に収まる。
       if (bottomBar.nextSibling !== iconBar || bottomBar.parentElement !== layoutEl) {
         layoutEl.insertBefore(bottomBar, iconBar);
+      }
+      if (anchorTabs && (anchorTabs.nextSibling !== bottomBar || anchorTabs.parentElement !== layoutEl)) {
+        layoutEl.insertBefore(anchorTabs, bottomBar);
       }
     } else {
       if (bottomBar.parentElement !== rootEl) {
         rootEl.appendChild(bottomBar);
+      }
+      if (anchorTabs && anchorTabs.parentElement !== rootEl) {
+        rootEl.insertBefore(anchorTabs, bottomBar);
       }
     }
   }
