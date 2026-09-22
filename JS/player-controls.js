@@ -379,9 +379,66 @@ if (loopToggleBtn) {
     // ループをONにする瞬間、AB間ループ回数カウンターをリセットする。
     if (typeof swAbLoopCount !== "undefined") swAbLoopCount = 0;
     if (typeof swUpdateLoopCounterUI === "function") swUpdateLoopCounterUI();
+    // ループ対象区間の固定インデックスもリセットし、ON時は現在地から
+    // 改めて対象区間を計算させる（OFF→ON時に古い区間を引きずらないため）。
+    loopActiveMarkerIndex = null;
     applyLoopButtonUI();
     renderSegments();
   };
+}
+
+// マーカー区間ループの前後プリロール秒数（開始マーカーの何秒前から再生を
+// 始めるか／終了マーカーの何秒後まで再生してから折り返すか、前後共通）。
+// 0〜5秒、1秒刻み。ブラウザを閉じても状態が残るようloopEnabledと同様
+// localStorageに保存する（曲ごとではなくアプリ全体の設定）。
+let loopPreRollSeconds = 0;
+const LOOP_PREROLL_STORAGE_KEY = "mp3player_loop_preroll_seconds";
+const LOOP_PREROLL_MIN = 0;
+const LOOP_PREROLL_MAX = 5;
+
+const loopPreRollControl = document.getElementById("loopPreRollControl");
+const loopPreRollMinusBtn = document.getElementById("loopPreRollMinus");
+const loopPreRollPlusBtn = document.getElementById("loopPreRollPlus");
+const loopPreRollValueEl = document.getElementById("loopPreRollValue");
+
+function applyLoopPreRollUI() {
+  if (loopPreRollValueEl) {
+    loopPreRollValueEl.firstChild.textContent = String(loopPreRollSeconds);
+  }
+  if (loopPreRollControl) {
+    loopPreRollControl.classList.toggle("is-active", loopPreRollSeconds > 0);
+  }
+  if (loopPreRollMinusBtn) loopPreRollMinusBtn.disabled = loopPreRollSeconds <= LOOP_PREROLL_MIN;
+  if (loopPreRollPlusBtn) loopPreRollPlusBtn.disabled = loopPreRollSeconds >= LOOP_PREROLL_MAX;
+}
+
+function setLoopPreRollSeconds(value) {
+  loopPreRollSeconds = Math.max(LOOP_PREROLL_MIN, Math.min(LOOP_PREROLL_MAX, value));
+  try { localStorage.setItem(LOOP_PREROLL_STORAGE_KEY, String(loopPreRollSeconds)); } catch (e) {}
+  applyLoopPreRollUI();
+  // 表示中のループ区間ハイライトにプリロール分の薄い表示を反映させる。
+  if (typeof renderSegments === "function") renderSegments();
+}
+
+if (loopPreRollControl) {
+  try {
+    const stored = parseInt(localStorage.getItem(LOOP_PREROLL_STORAGE_KEY), 10);
+    if (!isNaN(stored)) loopPreRollSeconds = Math.max(LOOP_PREROLL_MIN, Math.min(LOOP_PREROLL_MAX, stored));
+  } catch (e) {}
+  applyLoopPreRollUI();
+
+  if (loopPreRollMinusBtn) {
+    loopPreRollMinusBtn.onclick = () => {
+      hapticTap();
+      setLoopPreRollSeconds(loopPreRollSeconds - 1);
+    };
+  }
+  if (loopPreRollPlusBtn) {
+    loopPreRollPlusBtn.onclick = () => {
+      hapticTap();
+      setLoopPreRollSeconds(loopPreRollSeconds + 1);
+    };
+  }
 }
 
 const allRepeatToggleBtn = document.getElementById("allRepeatToggleBtn");

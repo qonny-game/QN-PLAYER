@@ -94,12 +94,15 @@
   flex-direction: column;
   gap: 22px;
   padding: 22px;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .export-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
 .export-section-label {
@@ -400,4 +403,408 @@
 
 .cancel-modal-confirm-btn:hover {
   background: #dc2626;
+}
+
+/* ============================================================
+   曲バックアップモーダル（#trackBackupModalOverlay）固有のスタイル。
+   モーダルの器自体(.export-modal-overlay/.export-modal/
+   .export-modal-header/.export-modal-body/.export-modal-footer)は
+   Export/EQモーダルと共通のものをそのまま使う。
+   チェックリスト部分(.track-backup-checklist)は.export-checkbox-row
+   （Speed/Key/EQ等、3項目の横並び中央寄せ前提）を継承せず独立させた
+   専用デザイン：縦1列、行幅は親に合わせて縮み、はみ出さない。
+   チェック状態も「行全体をベタ塗り」ではなく、背景はダークのまま
+   チェックマークと細い縁だけアクセントカラーにする控えめな表現にし、
+   チェックボックス自体もOS標準の四角ではなく丸いチェック円にする
+   （プレイヤー本体の他のトグル・アイコンと調子を合わせるため）。
+
+   Backup/Importタブ間でモーダルの幅・高さが変わると、タブを押すたびに
+   モーダルの位置がガクッと動いてしまうため、.track-backup-modal自体は
+   常に同じ幅(640px)・本文の最小高さ(.export-modal-body)を持たせ、
+   タブの中身が何であってもサイズが変わらないようにする
+   （Importタブの重複リストがある/なしでも同様）。
+   ============================================================ */
+.track-backup-modal {
+  max-width: 640px;
+}
+
+.track-backup-modal .export-modal-body {
+  min-height: 420px;
+}
+
+.track-backup-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.track-backup-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  background: #1c1c24;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background var(--dur-hover, 0.18s) var(--ease-snap, ease), border-color var(--dur-hover, 0.18s) var(--ease-snap, ease);
+}
+
+.track-backup-row:hover {
+  background: #22222c;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* チェック済みでも背景はダークのまま。縁だけごく薄くアクセントカラーを
+   にじませ、「選ばれている」ことを静かに示す（ベタ塗りにしない）。 */
+.track-backup-row:has(input:checked) {
+  border-color: color-mix(in srgb, var(--accent-primary, #3b82f6) 45%, var(--border-subtle));
+}
+
+.track-backup-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: border-color var(--dur-hover, 0.18s) var(--ease-snap, ease), background var(--dur-hover, 0.18s) var(--ease-snap, ease);
+}
+
+.track-backup-row input[type="checkbox"]:checked {
+  border-color: var(--accent-primary, #3b82f6);
+  background: var(--accent-primary, #3b82f6);
+}
+
+.track-backup-row input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border-right: 2px solid var(--text-pure-white, #fff);
+  border-bottom: 2px solid var(--text-pure-white, #fff);
+  transform: rotate(45deg);
+}
+
+.track-backup-row input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.track-backup-row-label {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #c8c8d0;
+  overflow-wrap: break-word;
+  transition: color var(--dur-hover, 0.18s) var(--ease-snap, ease);
+}
+
+.track-backup-row:has(input:checked) .track-backup-row-label {
+  color: var(--text-pure-white, #fff);
+}
+
+#trackBackupTargetName {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-bright);
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   Backup/Importタブ切り替え。モーダルヘッダーの直下、本文の直前に
+   横並びで配置する。選択中のタブは下線＋アクセントカラーで示す
+   （プレイヤー本体の他のタブUIと同じ「下線タブ」の調子に合わせる）。
+   ============================================================ */
+.track-backup-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.track-backup-tab-btn {
+  padding: 12px 4px;
+  margin-bottom: -1px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--icon-muted);
+  cursor: pointer;
+  transition: color var(--dur-hover, 0.18s) var(--ease-snap, ease), border-color var(--dur-hover, 0.18s) var(--ease-snap, ease);
+}
+
+.track-backup-tab-btn + .track-backup-tab-btn {
+  margin-left: 12px;
+}
+
+.track-backup-tab-btn:hover {
+  color: var(--text-bright);
+}
+
+.track-backup-tab-btn.active {
+  color: var(--accent-primary, #3b82f6);
+  border-bottom-color: var(--accent-primary, #3b82f6);
+}
+
+/* ============================================================
+   Importタブ全体のレイアウト。常に縦積み
+   （ドロップゾーン/読み込み済み情報 → 重複リストの順）。
+   以前はPC幅で2列（左:ドロップゾーン、右:重複リスト）にしていたが、
+   左列がリスト表示領域を圧迫するとの指摘を受け撤廃。重複リストは
+   常に横幅いっぱいを使えるようにし、曲名の表示スペースを最大化する。
+   Backup/Importタブ間でモーダルの幅・高さが変わるとタブを押すたびに
+   位置が動いてしまうため、幅は.track-backup-modal側で固定、高さは
+   .export-modal-body側でmin-heightを固定している。
+   ============================================================ */
+.track-import-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.track-import-col-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.track-import-layout #trackImportDuplicateRows {
+  max-height: 280px;
+}
+
+/* ============================================================
+   Importタブ：ドロップゾーン。ドラッグ中はアクセントカラーで
+   縁取りとほのかな背景変化を出す。
+   ============================================================ */
+.track-import-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 32px 16px;
+  min-height: 180px;
+  box-sizing: border-box;
+  border: 1.5px dashed var(--border-subtle);
+  border-radius: 14px;
+  background: #1c1c24;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--dur-hover, 0.18s) var(--ease-snap, ease), background var(--dur-hover, 0.18s) var(--ease-snap, ease);
+}
+
+.track-import-dropzone:hover,
+.track-import-dropzone.dragover {
+  border-color: var(--accent-primary, #3b82f6);
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 8%, #1c1c24);
+}
+
+.track-import-dropzone-icon {
+  width: 30px;
+  height: 30px;
+  fill: var(--icon-muted);
+  transform: rotate(180deg);
+}
+
+.track-import-dropzone.dragover .track-import-dropzone-icon {
+  fill: var(--accent-primary, #3b82f6);
+}
+
+.track-import-dropzone-text {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.track-import-dropzone-sub {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  color: var(--icon-muted);
+}
+
+/* ZIP読み込み後、ドロップゾーンの代わりに表示する「読み込み済み」の
+   帯。以前はドロップゾーンと同じ大きさ(min-height:180px)を保っていたが
+   縦に場所を取りすぎるとの指摘を受け、1行程度のコンパクトな帯に変更。
+   浮いた分の高さは重複リストの表示件数に回る。
+   選び直したい場合はCancelボタンが「Back」に変わり、それを押すと
+   resetImportState()でこちらは隠れ、ドロップゾーン表示に戻る。 */
+.track-import-loaded-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 12px;
+  background: #1c1c24;
+}
+
+.track-import-loaded-info-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  fill: var(--accent-primary, #3b82f6);
+}
+
+.track-import-loaded-info-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.track-import-loaded-info-name {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.track-import-loaded-info-count {
+  flex-shrink: 0;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  color: var(--icon-muted);
+}
+
+/* ============================================================
+   Importタブ：重複曲1件ごとの上書き/スキップ選択行、および
+   「すべて上書き/すべてスキップ」の一括操作ボタン。
+   ============================================================ */
+.track-import-duplicate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.track-import-duplicate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#trackImportDuplicateRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.track-import-duplicate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #1c1c24;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.track-import-duplicate-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #c8c8d0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   上書き/スキップの選択：EQのON/OFFトグル(.glow-switch、
+   style-controls.css)と同じ小さい丸ノブ型スイッチを流用し、左に
+   現在の状態を示す短いテキストラベル(.track-import-choice-label)を
+   添えるだけの最小構成にする。以前はカプセル内に「上書き」「スキップ」
+   両方のラベルを常時表示していたが、場所を取りすぎるとの指摘を受けて
+   1個のスイッチ+1個のラベルに絞り、曲名の表示スペース
+   (.track-import-duplicate-name)を広く取れるようにした。
+   「すべて上書き/すべてスキップ」の一括操作も同じ部品（ラベル文言と
+   スイッチ）を使う（HTML側で直接組んでいる）。
+   ============================================================ */
+.track-import-choice-wrap,
+.track-import-bulk-toggle-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.track-import-choice-label {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--icon-muted);
+  white-space: nowrap;
+  min-width: 42px;
+  text-align: right;
+  transition: color var(--dur-hover, 0.18s) var(--ease-snap, ease);
+}
+
+.track-import-choice-label.is-skip {
+  color: var(--danger, #ef4444);
+}
+
+#trackImportBulkToggleLabel {
+  min-width: 0;
+}
+
+/* 行ごとのスイッチ(.track-import-choice-switch)は.glow-switchのままで
+   ON(上書き)=アクセントカラーの配色を踏襲するが、OFF(スキップ)は
+   「消す・除外する」操作のため危険色(赤)にする（.glow-switchのデフォルト
+   OFF色はグレーのため、ここだけ個別に上書きする）。 */
+.track-import-choice-switch[aria-checked="false"],
+#trackImportBulkToggle[aria-checked="false"] {
+  background: var(--danger, #ef4444);
+}
+
+.track-import-summary {
+  padding: 12px 14px;
+  background: #1c1c24;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-bright);
+  white-space: pre-line;
 }

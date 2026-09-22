@@ -11,6 +11,18 @@ let audio = new Audio();
 let pins = [];
 let loopEnabled = false;
 
+// マーカー区間ループ折り返し判定用：現在ループ対象として固定している
+// マーカーペアのインデックス（activePins配列上のi、区間は[i, i+1]）。
+// nullの間は「まだ対象区間が決まっていない」状態で、updateBars側が
+// audio.currentTimeから最初に1回だけ計算してセットする。
+// これをジャンプのたびに再計算せず固定することで、プリロール(pre-roll)
+// によって現在地(ct)がジャンプ直後に前のマーカー区間側へ入り込んでも、
+// 折り返し判定の対象区間が「1個前のマーカー」にすり替わらないようにする
+// （プリロール機能追加時に発覚したバグの修正）。
+// マーカーの追加/削除/色変更、シーク、ループON/OFF切替、曲切替時は
+// 必ずnullにリセットし、次回のupdateBarsで現在地から再計算させる。
+let loopActiveMarkerIndex = null;
+
 // マーカーの色付けに使うカラーパレット。Colorパネル（player-theme.js側の
 // QN_THEMES配列）と全く同じ一覧をそのまま流用する。
 // 読み込み順の都合（このファイルはplayer-theme.jsより先に読み込まれるため、
@@ -101,10 +113,10 @@ function openPlaylistDB() {
 
 // 曲を1件、実体(Blob)ごと保存する。同名ファイルは上書きする。
 // savedAtを明示的に指定しない場合は現在時刻（＝新規追加として最後尾）になる。
-// title/artistは手動編集されたID3タグ相当の情報で、指定しなければ
-// 既存の保存値を変えない（undefinedの場合はputで上書きしないよう
-// 事前に既存レコードを読み、マージしてから保存する）。
-async function savePlaylistTrack(file, savedAt, enabled, title, artist) {
+// title/artist/favoriteは手動編集された値で、指定しなければ既存の保存値を
+// 変えない（undefinedの場合はputで上書きしないよう事前に既存レコードを
+// 読み、マージしてから保存する）。
+async function savePlaylistTrack(file, savedAt, enabled, title, artist, favorite) {
   try {
     const db = await openPlaylistDB();
     await new Promise((resolve, reject) => {
@@ -120,7 +132,8 @@ async function savePlaylistTrack(file, savedAt, enabled, title, artist) {
           savedAt: typeof savedAt === "number" ? savedAt : Date.now(),
           enabled: enabled !== false,
           title: title !== undefined ? title : existing.title,
-          artist: artist !== undefined ? artist : existing.artist
+          artist: artist !== undefined ? artist : existing.artist,
+          favorite: favorite !== undefined ? favorite : (existing.favorite || false)
         });
       };
       getReq.onerror = () => reject(getReq.error);
@@ -163,7 +176,8 @@ async function loadAllPlaylistTracks() {
       file: new File([r.blob], r.name, { type: r.type || r.blob.type }),
       enabled: r.enabled !== false,
       title: r.title || null,
-      artist: r.artist || null
+      artist: r.artist || null,
+      favorite: r.favorite === true
     }));
   } catch (err) {
     console.warn("loadAllPlaylistTracks failed:", err);
@@ -174,16 +188,16 @@ async function loadAllPlaylistTracks() {
 // 現在のplaylist配列の並び順を、IndexedDB側のsavedAtにも反映する
 // （ドラッグ並び替え後、次回起動時にも並び替えた順序が復元されるようにするため）。
 // savedAtに単純増加の連番を振り直すことで、既存のsavedAt昇順ソートと矛盾なく順序を保てる。
-// 各トラックのON/OFF状態(enabled)・タイトル/アーティストも同時に保存する。
+// 各トラックのON/OFF状態(enabled)・タイトル/アーティスト・お気に入り状態も同時に保存する。
 async function persistPlaylistOrder() {
   const base = Date.now();
   await Promise.all(playlist.map((track, i) =>
-    savePlaylistTrack(track.file, base + i, track.enabled, track.title, track.artist)
+    savePlaylistTrack(track.file, base + i, track.enabled, track.title, track.artist, track.favorite)
   ));
 }
 
-// タイトル/アーティストを編集した直後など、並び順を変えずに1曲分だけ
-// メタデータを保存したい場合に使う軽量版。savedAtは指定しないため
+// タイトル/アーティスト/お気に入り状態を編集した直後など、並び順を変えずに
+// 1曲分だけメタデータを保存したい場合に使う軽量版。savedAtは指定しないため
 // 既存のIndexedDB上の値（＝現在の並び順）がそのまま保たれる。
 async function savePlaylistMetadataFor(track) {
   const db = await openPlaylistDB().catch(() => null);
@@ -199,7 +213,8 @@ async function savePlaylistMetadataFor(track) {
     existing ? existing.savedAt : undefined,
     track.enabled,
     track.title,
-    track.artist
+    track.artist,
+    track.favorite
   );
 }
 

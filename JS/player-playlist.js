@@ -29,7 +29,7 @@ function addFilesToPlaylist(files) {
 
   const wasEmpty = playlist.length === 0;
   audioFiles.forEach(file => {
-    const track = { file, name: file.name, title: null, artist: null, duration: null, enabled: true };
+    const track = { file, name: file.name, title: null, artist: null, duration: null, enabled: true, favorite: false };
     playlist.push(track);
     // 実体ごとIndexedDBに自動保存する（次回起動時に自動復元するため）。
     // 保存自体は非同期・失敗しても再生には影響しないため、結果を待たずに進める。
@@ -247,6 +247,25 @@ function renderPlaylist() {
       durationSpan.className = "playlist-duration";
       durationSpan.textContent = formatTrackDuration(track.duration);
       item.appendChild(durationSpan);
+
+      // お気に入りピン：durationの右に配置。編集モード中は非表示にし
+      // （その分タイトル/アーティスト入力欄の幅を広げる：infoBlockが
+      // 1frのためグリッドの列が1つ減るだけで自動的に広がる）、
+      // 通常モードでのみ表示する。クリックでON/OFFをトグルし、ONの曲は
+      // renderPlaylist()の描画順で常にリスト上段に固定される
+      // （実データ側でtoggleTrackFavoriteがplaylist配列を並び替える。
+      // ドラッグ並び替え自体には手を加えない）。
+      const favoriteBtn = document.createElement("button");
+      favoriteBtn.type = "button";
+      favoriteBtn.className = "playlist-favorite-btn";
+      favoriteBtn.classList.toggle("is-favorite", !!track.favorite);
+      favoriteBtn.title = track.favorite ? "お気に入りから外す" : "お気に入りに追加（リスト上段に固定）";
+      favoriteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>';
+      favoriteBtn.onclick = (e) => {
+        e.stopPropagation();
+        toggleTrackFavorite(parseInt(item.dataset.index, 10));
+      };
+      item.appendChild(favoriteBtn);
     }
 
     if (editMode) {
@@ -295,6 +314,51 @@ function renderPlaylist() {
   });
 
   setupPlaylistDragReorder(box);
+}
+
+// お気に入りON/OFFを切り替える。ONにした曲は「お気に入りグループの末尾
+// （＝最初の非お気に入り曲の直前）」、OFFにした曲は「非お気に入り
+// グループの先頭（＝最後のお気に入り曲の直後）」へ実際に配列内を
+// 移動させる。これにより、リストの描画順（playlist配列そのものの順序）
+// で常にお気に入りが上段に固定される。ドラッグ並び替え自体のロジックは
+// 変更しない（お気に入り内・非お気に入り内はドラッグで自由に並び替え
+// 可能。グループを跨いだドラッグをした場合は、再度ピンを押せば
+// グループの境界に戻る）。
+function toggleTrackFavorite(index) {
+  if (index < 0 || index >= playlist.length) return;
+  hapticTap();
+
+  // 移動前に「現在再生中の曲オブジェクト」への参照を保持しておき、
+  // 配列を並び替えた後にindexOfで位置を再検索する（indexそのものでは
+  // 追従できないため、オブジェクト参照で追跡する）。
+  const currentTrackRef = currentPlaylistIndex !== -1 ? playlist[currentPlaylistIndex] : null;
+
+  const track = playlist[index];
+  track.favorite = !track.favorite;
+
+  // 一旦配列から取り除き、移動先を計算してから挿入し直す。
+  playlist.splice(index, 1);
+  let insertAt;
+  if (track.favorite) {
+    // 最初の非お気に入り曲の位置（＝お気に入りグループの末尾）に挿入。
+    insertAt = playlist.findIndex(t => !t.favorite);
+    if (insertAt === -1) insertAt = playlist.length;
+  } else {
+    // 最後のお気に入り曲の直後（＝非お気に入りグループの先頭）に挿入。
+    let lastFavoriteIndex = -1;
+    for (let i = 0; i < playlist.length; i++) {
+      if (playlist[i].favorite) lastFavoriteIndex = i;
+    }
+    insertAt = lastFavoriteIndex + 1;
+  }
+  playlist.splice(insertAt, 0, track);
+
+  if (currentTrackRef) {
+    currentPlaylistIndex = playlist.indexOf(currentTrackRef);
+  }
+
+  renderPlaylist();
+  persistPlaylistOrder();
 }
 
 function removeTrackAt(index) {

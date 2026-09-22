@@ -18,6 +18,9 @@ function addCurrentPin() {
   hapticSuccess();
   pins.push({ t: audio.currentTime, enabled: true, memo: "", color: null });
   pins.sort((a, b) => a.t - b.t);
+  // マーカー構成が変わったため、ループ折り返し判定の対象区間インデックスを
+  // 破棄し、次回のupdateBarsで現在地から計算し直させる。
+  loopActiveMarkerIndex = null;
   renderPins();
   renderSegments();
   renderPinList();
@@ -195,12 +198,60 @@ function renderPins() {
   }
 }
 
+// segmentHighlight(またはそのプリロール版)を、6分割された波形バーを
+// 跨いでいてもバーごとに分割して描画する共通処理。
+// className: 付与するCSSクラス名。onClickSeek: クリック時にシークする
+// 秒数（省略時はクリック不可にする＝プリロール部分の薄い帯はクリック対象外）。
+function paintSegmentAcrossBars(barsInfo, rangeStart, rangeEnd, className, colorHex, onClickSeek, colorKey) {
+  barsInfo.forEach(b => {
+    const overlapStart = Math.max(rangeStart, b.start);
+    const overlapEnd = Math.min(rangeEnd, b.end);
+    if (overlapStart >= overlapEnd) return;
+
+    const leftPct = ((overlapStart - b.start) / (b.end - b.start)) * 100;
+    const rightPct = ((overlapEnd - b.start) / (b.end - b.start)) * 100;
+    const widthPct = rightPct - leftPct;
+
+    const seg = document.createElement("div");
+    seg.className = className;
+    seg.style.left = leftPct + "%";
+    seg.style.width = widthPct + "%";
+    if (colorHex) {
+      if (className === "segmentHighlight") {
+        seg.style.background = hexToRgba(colorHex, 0.35);
+        seg.style.borderTop = `2px solid ${colorHex}`;
+        seg.style.borderBottom = `2px solid ${colorHex}`;
+      } else {
+        // プリロール/ポストロール部分は同系色をさらに薄くして「本編区間より前後に
+        // ちょっとだけはみ出して聴かせる」ことが一目でわかる見た目にする。
+        seg.style.background = hexToRgba(colorHex, 0.14);
+        seg.style.borderTop = `2px dashed ${hexToRgba(colorHex, 0.6)}`;
+        seg.style.borderBottom = `2px dashed ${hexToRgba(colorHex, 0.6)}`;
+      }
+    }
+
+    if (onClickSeek !== undefined) {
+      seg.onclick = () => {
+        isSeeking = true;
+        audio.currentTime = onClickSeek;
+        prevTime = onClickSeek;
+        audio.play();
+        updatePlayButtonState();
+        renderSegments({ start: rangeStart, end: rangeEnd, color: colorKey || null });
+        setTimeout(() => { isSeeking = false; }, 150);
+      };
+    }
+
+    b.el.appendChild(seg);
+  });
+}
+
 function renderSegments(overrideSegment) {
   const dur = audio.duration;
   if (!dur) return;
 
   document.querySelectorAll(".vbar").forEach(bar => {
-    bar.querySelectorAll(".segmentHighlight").forEach(s => s.remove());
+    bar.querySelectorAll(".segmentHighlight, .segmentHighlight-preroll").forEach(s => s.remove());
   });
 
   if (!loopEnabled) return;
@@ -220,41 +271,23 @@ function renderSegments(overrideSegment) {
     { el: document.getElementById("bar6"), start: s5, end: dur }
   ];
 
-  barsInfo.forEach(b => {
-    const overlapStart = Math.max(active.start, b.start);
-    const overlapEnd = Math.min(active.end, b.end);
+  const colorHex = active.color && MARKER_COLOR_PALETTE[active.color] ? MARKER_COLOR_PALETTE[active.color] : null;
 
-    if (overlapStart < overlapEnd) {
-      const leftPct = ((overlapStart - b.start) / (b.end - b.start)) * 100;
-      const rightPct = ((overlapEnd - b.start) / (b.end - b.start)) * 100;
-      const widthPct = rightPct - leftPct;
+  // マーカー本編区間（くっきり表示、クリックで先頭へシーク）
+  paintSegmentAcrossBars(barsInfo, active.start, active.end, "segmentHighlight", colorHex, active.start, active.color);
 
-      const seg = document.createElement("div");
-      seg.className = "segmentHighlight";
-      seg.style.left = leftPct + "%";
-      seg.style.width = widthPct + "%";
-      // マーカーに色が設定されていれば、その色をループエリアの背景・枠線に反映する。
-      // 未設定（null）ならCSS側のデフォルト(--accent-glow/--accent-primary)のまま。
-      if (active.color && MARKER_COLOR_PALETTE[active.color]) {
-        const hex = MARKER_COLOR_PALETTE[active.color];
-        seg.style.background = hexToRgba(hex, 0.35);
-        seg.style.borderTop = `2px solid ${hex}`;
-        seg.style.borderBottom = `2px solid ${hex}`;
-      }
-
-      seg.onclick = () => {
-        isSeeking = true;
-        audio.currentTime = active.start;
-        prevTime = active.start;
-        audio.play();
-        updatePlayButtonState();
-        renderSegments(active);
-        setTimeout(() => { isSeeking = false; }, 150);
-      };
-
-      b.el.appendChild(seg);
+  // プリロール/ポストロール分（薄い破線、Loopの秒数ステッパーが0の間は描画しない）
+  const preroll = typeof loopPreRollSeconds === "number" ? loopPreRollSeconds : 0;
+  if (preroll > 0) {
+    const prerollStart = Math.max(0, active.start - preroll);
+    const postrollEnd = Math.min(dur, active.end + preroll);
+    if (prerollStart < active.start) {
+      paintSegmentAcrossBars(barsInfo, prerollStart, active.start, "segmentHighlight-preroll", colorHex);
     }
-  });
+    if (active.end < postrollEnd) {
+      paintSegmentAcrossBars(barsInfo, active.end, postrollEnd, "segmentHighlight-preroll", colorHex);
+    }
+  }
 }
 
 // ドラッグでマーカーを直接動かせる。PC(mousedown)・スマホ(touchstart)共通で
@@ -340,6 +373,9 @@ function startDragPin(index) {
 
     function stop() {
       pins.sort((a, b) => a.t - b.t);
+      // マーカー位置が変わった（並び順が変わり得る）ため、ループ折り返し
+      // 判定の対象区間インデックスを破棄する。
+      loopActiveMarkerIndex = null;
 
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseup", stop);
@@ -477,6 +513,9 @@ function renderPinList() {
     toggleBtn.onclick = (e) => {
       e.stopPropagation();
       pinObj.enabled = !pinObj.enabled;
+      // 有効マーカーの構成(activePins)が変わるため、ループ折り返し判定の
+      // 対象区間インデックスを破棄する。
+      loopActiveMarkerIndex = null;
       renderPins();
       renderSegments();
       renderPinList();
@@ -493,6 +532,9 @@ function renderPinList() {
       if (delBtn.classList.contains("confirm")) {
         hapticWarning();
         pins.splice(i, 1);
+        // マーカーが1つ減って並び順のインデックスがズレるため、
+        // ループ折り返し判定の対象区間インデックスを破棄する。
+        loopActiveMarkerIndex = null;
         renderPins();
         renderSegments();
         renderPinList();

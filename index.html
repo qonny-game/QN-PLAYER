@@ -33,7 +33,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "2.3.0";
+  window.QN_APP_VERSION = "2.10.3";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -271,6 +271,11 @@
           <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
           <span class="top-controls-btn-label">Loop</span>
         </button>
+        <div id="loopPreRollControl" class="loop-preroll-control" title="Loop pre/post-roll seconds">
+          <button id="loopPreRollMinus" class="loop-preroll-btn" type="button" title="Decrease">−</button>
+          <span id="loopPreRollValue" class="loop-preroll-value">0<span class="loop-preroll-unit">s</span></span>
+          <button id="loopPreRollPlus" class="loop-preroll-btn" type="button" title="Increase">＋</button>
+        </div>
       </div>
     </div>
 
@@ -700,13 +705,127 @@
 <!-- スマホ幅でtop-controlsを画面下部に固定した際、ページ最下部（フッター前）に高さ分の余白を確保する -->
 <div class="top-controls-spacer" id="topControlsSpacer"></div>
 
+<!-- ============================================================
+     ライブラリ一括バックアップ／インポートモーダル。
+     PC v2サイドメニュー(#pcV2IconBar)のBackupアイコン押下で開く。
+     上部タブ(Backup/Import)で中身を切り替える：
+     - Backup: チェックした項目だけを全曲分まとめてZIPでダウンロード
+     - Import: ZIPファイル(D&D/選択)を読み込み、ライブラリに曲を追加
+       ・マーカー/メモを反映する。同名曲があれば1曲ずつ上書き/スキップを選ぶ
+     （player-track-backup.js側で組み立て）。
+     ============================================================ -->
+<div id="trackBackupModalOverlay" class="export-modal-overlay">
+  <div class="export-modal track-backup-modal">
+    <div class="export-modal-header">
+      <span id="trackBackupModalTitle">Backup Library</span>
+      <button id="trackBackupModalCloseBtn" class="export-modal-close" title="Close">✕</button>
+    </div>
 
+    <div class="track-backup-tabs">
+      <button type="button" id="trackBackupTabBackup" class="track-backup-tab-btn active">Backup</button>
+      <button type="button" id="trackBackupTabImport" class="track-backup-tab-btn">Import</button>
+    </div>
+
+    <div class="export-modal-body">
+      <!-- Backupタブの中身 -->
+      <div class="export-section" id="trackBackupPaneBackup">
+        <label class="export-section-label" id="trackBackupTargetName">-</label>
+        <div class="track-backup-checklist">
+          <label class="track-backup-row">
+            <input type="checkbox" id="trackBackupIncludeAudio" checked>
+            <span class="track-backup-row-label">音声データ</span>
+          </label>
+          <label class="track-backup-row">
+            <input type="checkbox" id="trackBackupIncludeTitle" checked>
+            <span class="track-backup-row-label">ライブラリ曲名</span>
+          </label>
+          <label class="track-backup-row">
+            <input type="checkbox" id="trackBackupIncludeArtist" checked>
+            <span class="track-backup-row-label">ライブラリ名（アーティスト）</span>
+          </label>
+          <label class="track-backup-row">
+            <input type="checkbox" id="trackBackupIncludeMarkerPos" checked>
+            <span class="track-backup-row-label">マーカー位置</span>
+          </label>
+          <label class="track-backup-row">
+            <input type="checkbox" id="trackBackupIncludeMarkerMemo" checked>
+            <span class="track-backup-row-label">マーカーメモ</span>
+          </label>
+          <label class="track-backup-row">
+            <input type="checkbox" id="trackBackupIncludeText" checked>
+            <span class="track-backup-row-label">テキストメモ</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Importタブの中身（初期状態は非表示）。PC幅(640px以上)では常に
+           2列（左:ドロップゾーン/サマリー、右:重複リスト）で表示する。
+           Backup/Importタブ間、および重複の有無でモーダルのサイズが
+           変わりタブ切替のたびに位置が動くのを防ぐため、レイアウトの
+           列数・モーダル幅・本文の最小高さはCSS側で常に固定している
+           （style-export.css内の.track-backup-modal等を参照）。 -->
+      <div class="export-section" id="trackBackupPaneImport" style="display:none;">
+        <div class="track-import-layout" id="trackImportLayout">
+          <div class="track-import-col-main">
+            <div id="trackImportDropZone" class="track-import-dropzone">
+              <svg viewBox="0 0 24 24" class="track-import-dropzone-icon"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
+              <div class="track-import-dropzone-text">ZIPファイルをドロップ</div>
+              <div class="track-import-dropzone-sub">またはクリックして選択</div>
+              <input type="file" id="trackImportFileInput" accept=".zip" style="display:none;">
+            </div>
+            <!-- ZIP読み込み後はドロップゾーンの代わりにこちらを表示する
+                 （player-track-backup.js側で表示/非表示を切り替える）。
+                 別のZIPを選び直したい場合はCancelボタンが「Back」に
+                 変わり、それを押すとドロップゾーン表示へ戻る。 -->
+            <div id="trackImportLoadedInfo" class="track-import-loaded-info" style="display:none;">
+              <svg viewBox="0 0 24 24" class="track-import-loaded-info-icon"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              <div class="track-import-loaded-info-text">
+                <div id="trackImportLoadedFileName" class="track-import-loaded-info-name">-</div>
+                <div id="trackImportLoadedFileCount" class="track-import-loaded-info-count"></div>
+              </div>
+            </div>
+            <div id="trackImportSummary" class="track-import-summary" style="display:none;"></div>
+          </div>
+
+          <!-- 重複曲の上書き/スキップ選択リスト（重複がある場合のみ表示）。
+               「すべて上書き/すべてスキップ」もカプセル形状のトグル1個。
+               各行の選択も同じデザインのトグル（player-track-backup.js側
+               createTrackImportChoiceToggleが生成）にして、2ボタン方式より
+               曲名の表示スペースを広く取れるようにしている。 -->
+          <div id="trackImportDuplicateList" class="track-import-duplicate-list" style="display:none;">
+            <div class="track-import-duplicate-header">
+              <label class="export-section-label">重複する曲</label>
+              <div class="track-import-bulk-toggle-wrap">
+                <span id="trackImportBulkToggleLabel" class="track-import-choice-label">すべて上書き</span>
+                <button type="button" id="trackImportBulkToggle" class="glow-switch track-import-choice-switch" role="switch" aria-checked="true" title="すべてスキップに切り替え">
+                  <span class="glow-switch-knob"></span>
+                </button>
+              </div>
+            </div>
+            <div id="trackImportDuplicateRows"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="export-modal-footer">
+      <div id="trackBackupStatus" class="export-status"></div>
+      <button id="trackBackupCancelBtn" class="export-cancel-btn" title="Close">Cancel</button>
+      <button id="trackBackupRunBtn" class="export-run-btn">Download</button>
+      <button id="trackImportRunBtn" class="export-run-btn" style="display:none;">Import</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="JS/jszip.min.js"></script>
 <script src="JS/lame_min.js"></script>
 <script src="JS/player-shareware.js"></script>
 <script src="JS/player-core.js"></script>
 <script src="JS/player-ui-shared.js"></script>
 <script src="JS/player-id3.js"></script>
 <script src="JS/player-playlist.js"></script>
+<script src="JS/player-track-backup.js"></script>
 <script src="JS/player-markers.js"></script>
 <script src="JS/player-control-eq.js"></script>
 <script src="JS/player-controls.js"></script>

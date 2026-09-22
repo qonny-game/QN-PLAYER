@@ -1125,6 +1125,39 @@ body.pc-v2-active #topControlsSpacer {
   display: block;
 }
 
+/* Loop横のプリロール秒数ステッパー：PC v2の枠なし・背景なしフラット
+   デザインに合わせて、SP版の箱型スタイル（背景・枠線・box-shadow）を
+   解除し、アイコン列に自然に溶け込むコンパクトな見た目にする。 */
+#pcV2BottomBar .loop-preroll-control {
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  gap: 0;
+}
+
+#pcV2BottomBar .loop-preroll-btn {
+  width: 20px;
+  height: 20px;
+  color: var(--icon-muted);
+  font-size: 13px;
+}
+
+#pcV2BottomBar .loop-preroll-btn:hover {
+  background: none;
+  color: var(--text-bright);
+}
+
+#pcV2BottomBar .loop-preroll-value {
+  min-width: 16px;
+  font-size: 11px;
+  color: var(--icon-muted);
+}
+
+#pcV2BottomBar .loop-preroll-control.is-active .loop-preroll-value {
+  color: var(--accent-primary, #3b82f6);
+}
+
 /* --- ヘッダー：モック準拠（52px高さ、下境界線、小さめロゴ＋QN Seriesドロップダウン） --- */
 body.pc-v2-active #appHeader {
   height: 52px;

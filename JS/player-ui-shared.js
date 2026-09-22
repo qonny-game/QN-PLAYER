@@ -194,6 +194,10 @@ function loadFile(file) {
   setAppTitle(file.name);
   hideWelcomeOverlay();
 
+  // 曲を切り替えるため、ループ折り返し判定の対象区間インデックスを破棄する
+  // （旧曲のpins配列に基づくインデックスを新曲へ引き継がないようにする）。
+  loopActiveMarkerIndex = null;
+
   // 前の曲のオブジェクトURLをここで解放する。audio.srcを新しいURLに差し替えた後だと
   // 再生中のデータを引き剥がすことになるため、差し替えの直前に解放しておく。
   if (currentObjectUrl) {
@@ -604,25 +608,64 @@ function updateBars() {
     const activePinObjs = pins.filter(p => p.enabled);
     const activePins = activePinObjs.map(p => p.t);
     if (activePins.length >= 2) {
-      for (let i = 0; i < activePins.length - 1; i++) {
-        const start = activePins[i];
-        const end = activePins[i+1];
+      const preroll = typeof loopPreRollSeconds === "number" ? loopPreRollSeconds : 0;
 
-        if (prevTime < end && ct >= end) {
-          // シェアウェア制限：無料版はAB間ループ5回で自動停止。
-          if (typeof isUnlocked === "function" && !isUnlocked()) {
-            swAbLoopCount++;
-            swUpdateLoopCounterUI();
-            if (swAbLoopCount >= SW_LIMITS.AB_LOOP_MAX_COUNT) {
-              loopEnabled = false;
-              swAbLoopCount = 0;
-              if (typeof applyLoopButtonUI === "function") applyLoopButtonUI();
-              swUpdateLoopCounterUI();
-              swShowUnlockToast(`無料版のAB間ループは${SW_LIMITS.AB_LOOP_MAX_COUNT}回で自動停止します。`);
-              break;
-            }
+      // 対象区間がまだ決まっていない、または現在地(ct)がその区間の
+      // 許容範囲(pre/post-roll込み)から外れている場合は、現在地から
+      // 改めてどのマーカーペアの内側にいるかを計算し直す。
+      // 「外れている」を判定に使うのは、マーカーの追加/削除/シーク/
+      // 曲切替など対象区間を無効化すべきあらゆる操作を個別に検知せずとも、
+      // 結果として区間外にいれば自動的に正しい区間へ追従できるようにするため。
+      const inCurrentRange = loopActiveMarkerIndex !== null &&
+        loopActiveMarkerIndex < activePins.length - 1 &&
+        ct >= Math.max(0, activePins[loopActiveMarkerIndex] - preroll) - 0.05 &&
+        ct <= Math.min(audio.duration || activePins[loopActiveMarkerIndex + 1], activePins[loopActiveMarkerIndex + 1] + preroll) + 0.05;
+
+      if (!inCurrentRange) {
+        let foundIndex = -1;
+        for (let i = 0; i < activePins.length - 1; i++) {
+          const s = activePins[i];
+          const e = activePins[i + 1];
+          if (i === activePins.length - 2) {
+            if (ct >= s && ct <= e) { foundIndex = i; break; }
+          } else {
+            if (ct >= s && ct < e) { foundIndex = i; break; }
           }
-          audio.currentTime = start;
+        }
+        if (foundIndex === -1) {
+          foundIndex = ct < activePins[0] ? 0 : activePins.length - 2;
+        }
+        loopActiveMarkerIndex = foundIndex;
+      }
+
+      const i = loopActiveMarkerIndex;
+      const start = activePins[i];
+      const end = activePins[i + 1];
+      // 折り返し判定自体は「マーカーの何秒後まで聴かせるか(postroll)」を
+      // 反映してendPlaybackより後ろにずらす。ジャンプ先(jumpTarget)は
+      // 「マーカーの何秒前から聴かせるか(preroll)」を反映してstartより
+      // 前にずらす。どちらも区間の外(前のマーカーより前・曲末尾より後)に
+      // はみ出さないようclampする。
+      const jumpTarget = Math.max(0, start - preroll);
+      const endPlayback = Math.min(audio.duration || end, end + preroll);
+
+      if (prevTime < endPlayback && ct >= endPlayback) {
+        // シェアウェア制限：無料版はAB間ループ5回で自動停止。
+        let stoppedByShareware = false;
+        if (typeof isUnlocked === "function" && !isUnlocked()) {
+          swAbLoopCount++;
+          swUpdateLoopCounterUI();
+          if (swAbLoopCount >= SW_LIMITS.AB_LOOP_MAX_COUNT) {
+            loopEnabled = false;
+            swAbLoopCount = 0;
+            if (typeof applyLoopButtonUI === "function") applyLoopButtonUI();
+            swUpdateLoopCounterUI();
+            swShowUnlockToast(`無料版のAB間ループは${SW_LIMITS.AB_LOOP_MAX_COUNT}回で自動停止します。`);
+            stoppedByShareware = true;
+          }
+        }
+        if (!stoppedByShareware) {
+          audio.currentTime = jumpTarget;
           isJumping = true;
           // このマーカー(区間の開始側)に設定された色をそのまま引き継ぐ。
           // {start, end}だけを渡すとcolorがundefinedになり、renderSegments
@@ -633,7 +676,6 @@ function updateBars() {
           setTimeout(() => {
             isJumping = false;
           }, 200);
-          break;
         }
       }
     }
@@ -869,8 +911,8 @@ async function restorePlaylistFromStorage() {
   const savedTracks = await loadAllPlaylistTracks();
   if (savedTracks.length === 0) return;
 
-  savedTracks.forEach(({ file, enabled, title, artist }) => {
-    playlist.push({ file, name: file.name, enabled, title: title || null, artist: artist || null, duration: null });
+  savedTracks.forEach(({ file, enabled, title, artist, favorite }) => {
+    playlist.push({ file, name: file.name, enabled, title: title || null, artist: artist || null, duration: null, favorite: !!favorite });
   });
   renderPlaylist();
 

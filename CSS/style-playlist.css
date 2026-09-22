@@ -156,6 +156,49 @@
   white-space: nowrap;
 }
 
+/* お気に入りピン：通常モードのみ、durationの右に表示する
+   （EDITモード中は非表示にし、その分タイトル/アーティスト入力欄
+   （.playlist-info-block、1fr列）の幅を広げる）。
+   OFF時はアウトラインのみの控えめな見た目、ONにすると塗りつぶし＋
+   アクセントカラーになる。クリックでtoggleTrackFavorite()を呼び、
+   playlist配列内で実際にリスト上段（お気に入りグループの末尾）へ
+   移動する。 */
+.playlist-favorite-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--icon-muted);
+  transition: background var(--dur-hover, 0.18s) var(--ease-snap, ease), color var(--dur-hover, 0.18s) var(--ease-snap, ease);
+}
+
+.playlist-favorite-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  transition: fill var(--dur-hover, 0.18s) var(--ease-snap, ease), opacity var(--dur-hover, 0.18s) var(--ease-snap, ease);
+}
+
+.playlist-favorite-btn:not(.is-favorite) svg {
+  opacity: 0.45;
+}
+
+.playlist-favorite-btn:hover {
+  background: var(--bg-hover-subtle);
+  color: var(--text-bright);
+}
+
+.playlist-favorite-btn.is-favorite {
+  color: var(--accent-primary, #3b82f6);
+}
+
 .playlistItem button {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 12px;

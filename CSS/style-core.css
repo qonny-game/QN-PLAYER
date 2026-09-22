@@ -935,6 +935,21 @@ body {
   z-index: 1;
 }
 
+/* マーカーループのプリロール/ポストロール範囲（開始マーカーの数秒前〜
+   終了マーカーの数秒後）。本編区間(.segmentHighlight)と同じ色調だが
+   より薄く、破線にすることで「本編の前後にちょっとだけはみ出して
+   聴かせる範囲」であることが一目でわかるようにする。 */
+.segmentHighlight-preroll {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  border-top: 2px dashed color-mix(in srgb, var(--accent-primary) 60%, transparent);
+  border-bottom: 2px dashed color-mix(in srgb, var(--accent-primary) 60%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .control-card {
   display: flex;
   flex-direction: column;

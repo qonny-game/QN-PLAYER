@@ -90,7 +90,19 @@
       id: "export",
       label: "Export",
       panelType: "export",
-      icon: '<path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>'
+      icon: '<path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>',
+      // 一旦サイドメニューから非表示にする（機能自体は温存：
+      // player-export.js側のロジック、panelType "export"の分岐処理、
+      // switchPanel内でのexportBody/exportFooter挿入は一切削らない）。
+      // 再度表示したくなったらこの行を削除するだけでよい。
+      hidden: true
+    },
+    {
+      id: "backup",
+      label: "Backup & Import",
+      shortLabel: "Backup",
+      panelType: "backup",
+      icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>'
     }
   ];
 
@@ -120,10 +132,12 @@
     panel.appendChild(panelBody);
 
     ICON_ITEMS.forEach(item => {
+      if (item.hidden) return;
+      const displayLabel = item.shortLabel || item.label;
       const btn = el(
         '<button type="button" class="pcv2-icon-item" data-panel-id="' + item.id + '" title="' + item.label + '">' +
           '<svg viewBox="0 0 24 24">' + item.icon + '</svg>' +
-          '<span>' + item.label + '</span>' +
+          '<span>' + displayLabel + '</span>' +
         '</button>'
       );
       btn.addEventListener("click", () => handleIconClick(item));
@@ -275,6 +289,7 @@
       const allRepeatToggleBtn = topControls.querySelector("#allRepeatToggleBtn");
       const markerNavBtn = topControls.querySelector("#markerNavBtn");
       const loopToggleBtn = topControls.querySelector("#loopToggleBtn");
+      const loopPreRollControl = topControls.querySelector("#loopPreRollControl");
 
       // allRepeatToggleBtn/loopToggleBtnの位置管理はplayer-ui-pc.js側の
       // restoreForSp()に完全に委ねる（PC v2側ではmarkAnchor/restoreAnchorを
@@ -333,6 +348,13 @@
       }
       if (markerNavBtn && loopToggleBtn) {
         markerNavBtn.appendChild(loopToggleBtn);
+      }
+      // loopPreRollControl(Loopの秒数±ステッパー)もloopToggleBtnと同じ単位で
+      // markerNavBtnの子に組み込む。こうすることでSP幅へ戻る際、
+      // player-ui-pc.js側のrestoreForSp()がmarkerNavBtnごとrow2へ
+      // 戻すだけで自動的についてくる（PC v2側で個別管理しない）。
+      if (markerNavBtn && loopPreRollControl) {
+        markerNavBtn.appendChild(loopPreRollControl);
       }
 
       // 各ボタンのtitle(ネイティブツールチップ)に対応するキーボード
@@ -750,6 +772,13 @@
       return;
     }
 
+    if (item.panelType === "backup") {
+      // Backup: パネルを開かず、ライブラリ一括バックアップの確認モーダルを開くだけ
+      // （player-track-backup.js側）。
+      if (typeof openBulkBackupModal === "function") openBulkBackupModal();
+      return;
+    }
+
     if (item.panelType === "close") {
       // Seekbar: パネルを開かず、開いていれば閉じるだけ（波形が見える
       // 基本画面に戻る）。PC幅ではパネルは常時表示のクラスを持たない
@@ -1150,6 +1179,9 @@
     hapticWarning();
     if (panelId === "markers") {
       indices.forEach(i => pins.splice(i, 1));
+      // マーカー構成が変わったため、ループ折り返し判定の対象区間
+      // インデックスを破棄する。
+      loopActiveMarkerIndex = null;
       renderPins();
       renderSegments();
       renderPinList();
@@ -1656,10 +1688,20 @@
 
 document.addEventListener("dragover", e => {
   e.preventDefault();
+  // Backup/Importモーダルが開いている間は、ページ全体のファイル追加用
+  // D&D（曲追加）の見た目・挙動を無効化する。モーダル内のドロップ位置に
+  // よって「曲が追加される」「ZIPがインポートされる」のどちらが起きるか
+  // 変わってしまう事故を防ぐため（Importタブのドロップゾーン自体は別途
+  // 専用のD&Dハンドラを持つ）。ブラウザ標準の「ファイルを開いてページ
+  //遷移してしまう」動作を防ぐためpreventDefault自体は常に呼ぶ。
+  const backupModalOverlay = document.getElementById("trackBackupModalOverlay");
+  if (backupModalOverlay && backupModalOverlay.classList.contains("open")) return;
   document.body.classList.add("dragover");
 });
 
 document.addEventListener("dragleave", e => {
+  const backupModalOverlay = document.getElementById("trackBackupModalOverlay");
+  if (backupModalOverlay && backupModalOverlay.classList.contains("open")) return;
   if (e.clientX === 0 && e.clientY === 0) {
     document.body.classList.remove("dragover");
   }
@@ -1667,6 +1709,8 @@ document.addEventListener("dragleave", e => {
 
 document.addEventListener("drop", e => {
   e.preventDefault();
+  const backupModalOverlay = document.getElementById("trackBackupModalOverlay");
+  if (backupModalOverlay && backupModalOverlay.classList.contains("open")) return;
   document.body.classList.remove("dragover");
   if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
     addFilesToPlaylist(Array.from(e.dataTransfer.files));
@@ -1701,6 +1745,7 @@ document.addEventListener("drop", e => {
   const allRepeatToggleBtn = document.getElementById("allRepeatToggleBtn");
   const markerNavBtn = document.getElementById("markerNavBtn");
   const loopToggleBtn = document.getElementById("loopToggleBtn");
+  const loopPreRollControl = document.getElementById("loopPreRollControl");
 
   if (!topControls || !row1 || !row2 || !playbackTripleBtn || !allRepeatToggleBtn || !markerNavBtn || !loopToggleBtn) {
     return;
@@ -1722,6 +1767,7 @@ document.addEventListener("drop", e => {
     topControls.appendChild(allRepeatToggleBtn);
     topControls.appendChild(markerNavBtn);
     topControls.appendChild(loopToggleBtn);
+    if (loopPreRollControl) topControls.appendChild(loopPreRollControl);
     row1.style.display = "none";
     row2.style.display = "none";
   }
@@ -1736,6 +1782,7 @@ document.addEventListener("drop", e => {
     row1.appendChild(allRepeatToggleBtn);
     row2.appendChild(markerNavBtn);
     row2.appendChild(loopToggleBtn);
+    if (loopPreRollControl) row2.appendChild(loopPreRollControl);
   }
 
   function syncTopControlsLayout() {
