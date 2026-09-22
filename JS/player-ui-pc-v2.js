@@ -1053,6 +1053,15 @@
   window.isPlaylistEditMode = () => editModeState.playlist;
   window.isMarkersEditMode = () => editModeState.markers;
   const selectedIndices = { markers: new Set(), playlist: new Set() };
+  // renderPlaylist()側（player-playlist.js）が「削除選択中は他の操作を
+  // 押せなくする」ための判定に使う。DELETE選択が1件でもある間にSKIP/PLAY
+  // トグルを押すと、renderPlaylist()がplaylistBoxのDOMを丸ごと作り直す
+  // ため、selectedIndices自体（インデックス番号）は残っていても、
+  // 選択を示す見た目(pcv2-selected)が新しいDOMに引き継がれず、ユーザー
+  // 視点では「選択が消えた」ように見えてしまっていた（実質のバグ報告）。
+  // 対策として、選択が1件でもある間はSKIP/PLAYを押せないようにし、
+  // renderPlaylist()自体が呼ばれる状況を作らないようにする。
+  window.playlistHasSelectedItems = () => selectedIndices.playlist.size > 0;
 
   function toggleEditMode(panelId) {
     if (!(panelId in editModeState)) return;
@@ -1156,6 +1165,18 @@
       }
       const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
       if (deleteBtn) deleteBtn.disabled = selectedIndices[panelId].size === 0;
+      // DELETE選択が1件でもある間はSKIP/PLAYトグルを押せないようにする。
+      // renderPlaylist()を呼ばず、既存のDOM上の各行トグルだけを直接
+      // 更新する（呼ぶと選択の見た目自体が失われてしまうため）。
+      if (panelId === "playlist") {
+        const hasSelection = selectedIndices.playlist.size > 0;
+        items.forEach(item => {
+          const toggle = item.querySelector(".playlist-skip-toggle");
+          if (!toggle) return;
+          toggle.disabled = hasSelection;
+          toggle.title = hasSelection ? "削除の選択中は切り替えられません" : toggle.dataset.baseTitle || toggle.title;
+        });
+      }
     };
     container.addEventListener("click", handler, true);
     selectionHandlers[panelId] = handler;
@@ -1187,7 +1208,15 @@
       renderPinList();
       savePins();
     } else {
+      // playlist.splice()で配列から取り除く前に、削除対象の実体を
+      // IndexedDBからも消すためファイル名を控えておく（spliceすると
+      // インデックスがずれるため、削除後にi番目を参照すると別の曲を
+      // 指してしまう）。以前はIndexedDB側の削除(deletePlaylistTrack)を
+      // 呼んでおらず、PCv2の一括削除UIで消してもアプリを再度開くと
+      // 消したはずの曲が復活してしまう不具合があった。
+      const removedNames = indices.map(i => playlist[i] && playlist[i].name).filter(Boolean);
       indices.forEach(i => playlist.splice(i, 1));
+      removedNames.forEach(name => deletePlaylistTrack(name));
       if (typeof currentPlaylistIndex !== "undefined") {
         // 削除された項目より後ろの現在再生インデックスがずれないよう調整
         const removedBeforeCurrent = indices.filter(i => i < currentPlaylistIndex).length;

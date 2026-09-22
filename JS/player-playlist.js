@@ -272,13 +272,23 @@ function renderPlaylist() {
       // 編集モード時：曲送り時スルーする/しないを一目で分かるトグルで表示する
       // （通常モードの「表示/非表示」アイコンに代わるもの。意味合いは
       // 「この曲を自動再生の順送りに含めるかどうか」）。
+      // DELETE用の選択(.del-btn)が1件でもある間は押せないようにする。
+      // renderPlaylist()はplaylistBoxのDOMを丸ごと作り直すため、押すと
+      // 選択中の見た目(pcv2-selected)が失われ「選択が中止された」ように
+      // 見えてしまうバグがあった（window.playlistHasSelectedItemsは
+      // player-ui-pc-v2.js側で公開）。
+      const hasSelection = typeof window.playlistHasSelectedItems === "function" && window.playlistHasSelectedItems();
       const skipToggle = document.createElement("button");
       skipToggle.className = "playlist-skip-toggle";
       skipToggle.classList.toggle("skip-off", track.enabled);
-      skipToggle.title = track.enabled ? "Included in auto-advance (click to skip)" : "Skipped during auto-advance (click to include)";
+      skipToggle.disabled = hasSelection;
+      const baseTitle = track.enabled ? "Included in auto-advance (click to skip)" : "Skipped during auto-advance (click to include)";
+      skipToggle.dataset.baseTitle = baseTitle;
+      skipToggle.title = hasSelection ? "削除の選択中は切り替えられません" : baseTitle;
       skipToggle.innerHTML = '<span class="playlist-skip-toggle-label">' + (track.enabled ? "PLAY" : "SKIP") + '</span>';
       skipToggle.onclick = (e) => {
         e.stopPropagation();
+        if (hasSelection) return;
         track.enabled = !track.enabled;
         renderPlaylist();
         persistPlaylistOrder();
@@ -397,13 +407,16 @@ function playTrackAt(index, autoplay = true) {
   loadFile(playlist[index].file);
   renderPlaylist();
   if (autoplay) {
-    // loadFile側のonloadedmetadataが発火してdurationやUIの準備が整うのを待ってから再生する。
-    // audio.currentSrcの変化を待つのではなく、onloadedmetadataに便乗して1回だけ再生する。
-    const playOnceReady = () => {
-      audio.removeEventListener("loadedmetadata", playOnceReady);
-      audio.play().catch(() => {});
-    };
-    audio.addEventListener("loadedmetadata", playOnceReady);
+    // audio.play()は、ここ（ユーザーのタップ/クリックのコールスタック内）で
+    // 同期的に呼び出す。以前はloadFile側のonloadedmetadataを待ってから
+    // play()していたが、loadedmetadataの発火はファイルのメタデータ解析
+    // 完了後という非同期タイミングになるため、多くのモバイルブラウザの
+    // 自動再生ポリシーが「ユーザー操作起因ではない」と判断してブロック
+    // していた（SPで1回目のタップでは再生されず、数回タップしてようやく
+    // 再生される不具合の直接原因）。play()はロード中でも呼び出せ、ブラウザが
+    // 内部で再生可能になり次第自動的に再生を開始するため、ここで直接呼べば
+    // 常にユーザー操作起因として扱われ、1回のタップで確実に再生が始まる。
+    audio.play().catch(() => {});
   }
 }
 

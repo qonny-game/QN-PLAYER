@@ -380,3 +380,12 @@ body.dragover #dropOverlay {
   color: var(--accent-primary);
   border-color: var(--accent-primary);
 }
+
+/* DELETE用チェックが1件でも選択されている間、隣のPLAY/SKIPトグルを
+   誤って押してしまうと選択が実質リセットされてしまう不具合があったため、
+   選択中はクリックできないようにする（player-ui-pc-v2.js /
+   player-playlist.js側でdisabled属性を切り替える）。 */
+.playlist-skip-toggle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
