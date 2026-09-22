@@ -629,6 +629,18 @@ async function runTrackImport() {
 
   try {
     const existingByName = new Map((Array.isArray(playlist) ? playlist : []).map(t => [t.name, t]));
+    // インポートで実際に変更された曲（新規追加/上書き）だけを、都度
+    // その場でIndexedDBへ直列保存する。以前はループ後にまとめて
+    // persistPlaylistOrder()を呼んでいたが、これは「並び順が変わった」
+    // 時のための処理で、ライブラリ全曲（インポートと無関係な曲も含む）の
+    // savedAtを振り直しながら音声Blobごと保存し直す重い処理になる。
+    // インポートでは並び順自体は変わらない（新規曲は末尾に追加される
+    // だけ、上書き曲は元の位置のまま）ため、変更された曲だけを保存すれば
+    // 十分。曲数が多いインポートほど、この違いが「保存が終わるまでの
+    // 時間」に直結し、その間に再生操作をすると音声のロードと
+    // IndexedDB書き込みがリソースを奪い合って再生できない/フリーズする
+    // という不具合（インポート後、アプリを再起動するまで不安定になる）
+    // につながっていた。
 
     for (const trackData of trackImportParsedData.tracks) {
       const name = trackData.name;
@@ -652,10 +664,11 @@ async function runTrackImport() {
         if (audioBlob) {
           existingTrack.file = new File([audioBlob], name, { type: audioBlob.type || "audio/mpeg" });
         }
-        // title/artist/file(音声実体)の実際のIndexedDB書き込みは、
-        // このループの後にまとめて呼ぶpersistPlaylistOrder()に任せる
-        // （playlist配列を直接書き換えているため、そこから改めて全曲分を
-        // 保存し直せば十分。savedAtも現在の並び順のまま振り直される）。
+        // 既存のsavedAt（＝現在の並び順）を保ったまま、この1曲分だけ
+        // 保存する。
+        if (typeof savePlaylistMetadataFor === "function") {
+          await savePlaylistMetadataFor(existingTrack);
+        }
         applyImportedMarkersAndText(name, trackData);
         overwrittenCount++;
       } else {
@@ -678,12 +691,17 @@ async function runTrackImport() {
           favorite: false
         };
         playlist.push(newTrack);
+        // savedAt未指定＝現在時刻として保存され、末尾（最新）扱いになる
+        // （playlist配列上もpushで末尾に追加済みのため、実際の並び順と
+        // 一致する）。
+        if (typeof savePlaylistTrack === "function") {
+          await savePlaylistTrack(newTrack.file, undefined, newTrack.enabled, newTrack.title, newTrack.artist, newTrack.favorite);
+        }
         applyImportedMarkersAndText(name, trackData);
         addedCount++;
       }
     }
 
-    if (typeof persistPlaylistOrder === "function") await persistPlaylistOrder();
     if (typeof renderPlaylist === "function") renderPlaylist();
 
     let summary = `新規追加: ${addedCount}件\n上書き: ${overwrittenCount}件\nスキップ: ${skippedCount}件`;

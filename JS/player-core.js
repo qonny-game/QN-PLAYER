@@ -224,16 +224,41 @@ async function loadAllPlaylistTracks() {
 // （ドラッグ並び替え後、次回起動時にも並び替えた順序が復元されるようにするため）。
 // savedAtに単純増加の連番を振り直すことで、既存のsavedAt昇順ソートと矛盾なく順序を保てる。
 // 各トラックのON/OFF状態(enabled)・タイトル/アーティスト・お気に入り状態も同時に保存する。
-// 1曲ずつ直列に保存する（Promise.allで全曲を並行実行すると、曲数分の
-// IndexedDBトランザクション・大容量Blob書き込みが同時に走り、特にiOS
-// SafariのIndexedDBが不安定になって操作不能に近い状態（フリーズ、
-// 再生ボタンが効かない等）に陥ることがあった。インポート直後など
-// 曲数が急増した直後に症状が出やすかったのはこれが原因）。
+//
+// 重要：savePlaylistTrack()は呼ぶたびに音声の実体(Blob)ごとレコードを
+// 書き直すため、全曲分をそれで保存し直すと、曲数分の大容量Blobを毎回
+// IndexedDBへ再書き込みすることになり、曲数が多いほど極めて重い処理に
+// なる。並び替え・お気に入り登録・インポートなど「並び順や一部の曲だけ
+// 変わった」場面でこれを行うと、その間ずっと音声のロード/再生と
+// IndexedDBの大容量書き込みがリソースを奪い合い、再生できない・
+// フリーズするといった不具合につながっていた（この関数を呼ぶ操作
+// すべてに共通する症状だったのはこれが原因）。
+// ここでは既存レコードのBlobには一切触れず、savedAt/enabled/title/
+// artist/favoriteだけを更新する軽量な書き込みに直列で回す。
 async function persistPlaylistOrder() {
+  const db = await openPlaylistDB().catch(() => null);
+  if (!db) return;
   const base = Date.now();
   for (let i = 0; i < playlist.length; i++) {
     const track = playlist[i];
-    await savePlaylistTrack(track.file, base + i, track.enabled, track.title, track.artist, track.favorite);
+    await new Promise((resolve) => {
+      const tx = db.transaction(PLAYLIST_STORE_NAME, "readwrite");
+      const store = tx.objectStore(PLAYLIST_STORE_NAME);
+      const getReq = store.get(track.file.name);
+      getReq.onsuccess = () => {
+        const existing = getReq.result;
+        if (!existing) { resolve(); return; }
+        existing.savedAt = base + i;
+        existing.enabled = track.enabled !== false;
+        existing.title = track.title;
+        existing.artist = track.artist;
+        existing.favorite = track.favorite || false;
+        store.put(existing);
+      };
+      getReq.onerror = () => resolve();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
   }
 }
 
