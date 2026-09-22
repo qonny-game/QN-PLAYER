@@ -518,6 +518,26 @@
 
     root.appendChild(bottomBar);
 
+    // PLAYタブの左位置を、実際のPlay/Pauseボタン(#playToggle)の真上に
+    // 来るよう動的に合わせる。ボタン構成・サイズが今後変わっても
+    // ズレないよう、固定pxではなくその都度実測する。#pcV2BottomBar側は
+    // 横スクロールしてもスクロール量に応じて中身ごと動くだけで、
+    // アンカータブ自体はスクロールしない別要素（#pcV2Layoutの直接の子）
+    // に位置しているため、初期表示（scrollLeft=0）時点のレイアウトを
+    // 基準に一度だけ計算すれば足りる。実際の呼び出し（初回計算）は
+    // syncBottomBarPosition()でDOM順序が確定した後に行う（下記）。
+    function alignPlayAnchorTab() {
+      const playBtn = document.getElementById("playToggle");
+      if (!playBtn || !anchorTabs) return;
+      const containerRect = anchorTabs.getBoundingClientRect();
+      const playRect = playBtn.getBoundingClientRect();
+      const containerPaddingLeft = parseFloat(getComputedStyle(anchorTabs).paddingLeft) || 0;
+      const playCenter = playRect.left + playRect.width / 2 - containerRect.left - containerPaddingLeft;
+      const tabWidth = anchorTabPlay.offsetWidth || 0;
+      const left = Math.max(0, playCenter - tabWidth / 2);
+      anchorTabPlay.style.marginLeft = left + "px";
+    }
+
     // 既存の.app-container(#appHeaderの後)の直後にPC v2骨組みを挿入
     appContainer.parentNode.insertBefore(root, appContainer.nextSibling);
 
@@ -532,6 +552,11 @@
     // 戻す。
     syncBottomBarPosition();
     window.addEventListener("resize", syncBottomBarPosition);
+
+    // レイアウト確定後（フォント読み込み等でサイズが変わる可能性がある
+    // ため）に計算する。requestAnimationFrameで1フレーム待ってから行う。
+    requestAnimationFrame(alignPlayAnchorTab);
+    window.addEventListener("resize", alignPlayAnchorTab);
 
     // アイコンバー右端の「まだ続きがある」ヒント矢印：スクロール位置に
     // 応じて表示/非表示を切り替える（最後までスクロールしたら消える）。

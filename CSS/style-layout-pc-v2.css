@@ -1488,12 +1488,17 @@ body.pc-v2-active #qnMenuMount {
     padding: 12px 16px;
   }
 
-  /* PLAY/MARKERアンカータブ：下段バー(#pcV2BottomBar、order:2)のすぐ
-     上に来るよう、波形エリア(order:1)・#pcV2TimeRow(order:1.5)より
-     後、下段バーより前のorderにする。 */
+  /* PLAY/MARKERアンカータブ：下段バー(#pcV2BottomBar)のすぐ上に来る
+     よう、波形エリア・#pcV2TimeRowより後、下段バーより前のorderにする。
+     CSSのorderは整数(<integer>)しか許容しない仕様のため、以前
+     1.8のような小数値を使っていたところ、ブラウザによっては無効な
+     値として無視され order:0 相当にフォールバックし、結果的に
+     波形エリアより前（ヘッダーのすぐ下）に表示されてしまう不具合が
+     あった。#pcV2WaveArea:1・#pcV2TimeRow:2・ここ:3・
+     #pcV2BottomBar:4・#pcV2IconBar:5と、全体を整数だけで採番し直す。 */
   #pcV2BottomBarAnchorTabs {
     display: flex;
-    order: 1.8;
+    order: 3;
     flex-shrink: 0;
     gap: 8px;
     padding: 8px 16px 0;
@@ -1524,16 +1529,20 @@ body.pc-v2-active #qnMenuMount {
   }
 
   /* 下段コントロールバー：JS側でDOM上、アイコンバーの直前（つまり画面では
-     アイコンバーのすぐ上）へ移動される。 */
+     アイコンバーのすぐ上）へ移動される。border-bottomでアイコンバーとの
+     境界に区切り線を入れ、下側のpaddingは少し詰める（アプリ切り替え
+     誤操作防止のマージン自体は#pcV2IconBar側のpadding-bottomでそのまま
+     確保しているため、線を入れて詰めるのはその「上」の余白だけ）。 */
   #pcV2BottomBar {
-    order: 2;
+    order: 4;
     flex-shrink: 0;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding: 14px 12px;
+    padding: 14px 12px 10px;
     scrollbar-width: none;
     border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   #pcV2BottomBar::-webkit-scrollbar {
@@ -1544,12 +1553,13 @@ body.pc-v2-active #qnMenuMount {
     flex-shrink: 0;
   }
 
-  /* #pcV2TimeRow：波形エリア(order:1)の直後、下部バー(order:2)の直前に
-     来るようにする。PC幅共通側ではdisplay:noneのため、SP幅ではここで
-     display:flexに戻して実際に表示する。 */
+  /* #pcV2TimeRow：波形エリア(order:1)の直後、PLAY/MARKERアンカータブ
+     (order:3)・下部バー(order:4)の前に来るようにする。PC幅共通側では
+     display:noneのため、SP幅ではここでdisplay:flexに戻して実際に
+     表示する。 */
   #pcV2TimeRow {
     display: flex;
-    order: 1.5;
+    order: 2;
     padding: 2px 16px 6px;
   }
 
@@ -1619,12 +1629,12 @@ body.pc-v2-active #qnMenuMount {
      誤操作扱いされてしまうため、実際に指が触れる領域をはっきり分かる
      程度に上げて誤スワイプを防ぐ。 */
   #pcV2IconBar {
-    order: 3;
+    order: 5;
     flex-direction: row;
     flex-shrink: 0;
     align-items: stretch;
     border-right: none;
-    padding: 10px 6px calc(24px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 6px calc(24px + env(safe-area-inset-bottom, 0px));
     gap: 2px;
     overflow-x: auto;
     overflow-y: hidden;
