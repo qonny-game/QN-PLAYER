@@ -468,6 +468,9 @@
     setupControlPanelEffectSync();
 
     bottomBar.appendChild(el('<div class="pcv2-ctrl-spacer"></div>'));
+    // 【v2.13.6】MARKERグループとVolume/Speed/Key/EQトグル群の間の仕切り線
+    // （SP幅のみ表示。PC幅はspacerで十分離れるためCSSで非表示）。
+    bottomBar.appendChild(el('<div class="pcv2-ctrl-divider pcv2-ctrl-divider-sp"></div>'));
     bottomBar.appendChild(rightGroup);
 
     // #pcV2TimeRow(空の入れ物)をlayout内、波形エリアの直後（アイコン
@@ -597,7 +600,21 @@
       const fileInputEl = document.getElementById("fileInput");
       if (fileInputEl) fileInputEl.click();
     });
-    waveArea.appendChild(waveAddAudioBtn);
+    // 【v2.13.6】ADD AUDIOの右隣にADD MARKERを並べる。2つを横並びの
+    // 入れ物(#pcV2WaveFabRow)に入れ、右下固定の絶対配置は入れ物側で行う。
+    const waveAddMarkerBtn = el(
+      '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddMarkerBtn" title="Add Marker">' +
+        '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
+        '<span>ADD MARKER</span>' +
+      '</button>'
+    );
+    waveAddMarkerBtn.addEventListener("click", () => {
+      if (typeof addCurrentPin === "function") addCurrentPin();
+    });
+    const waveFabRow = el('<div id="pcV2WaveFabRow"></div>');
+    waveFabRow.appendChild(waveAddAudioBtn);
+    waveFabRow.appendChild(waveAddMarkerBtn);
+    waveArea.appendChild(waveFabRow);
 
     // basic-panel-box（Exportボタン等、旧UI）はPC v2では使わないため隠す
     // （fileInput自体は中に残っているので参照は生き続ける）
@@ -641,11 +658,25 @@
     const thumb = document.getElementById("pcV2VolumeThumb");
     if (!btn || !popup || !track) return;
 
+    // 【v2.13.6】ポップアップをボタンの中からdocument.body直下へ移し、
+    // position: fixedで表示する。SP幅では#pcV2BottomBarが横スクロール
+    // (overflow-x: auto)のため、その中の絶対配置の子は上方向へはみ出せず
+    // 切り取られて見えなくなっていた（背面に隠れて操作できない不具合）。
+    document.body.appendChild(popup);
+
     function applyVisual(ratio) {
       const pct = Math.max(0, Math.min(1, ratio)) * 100;
       if (fill) fill.style.height = pct + "%";
       if (thumb) thumb.style.bottom = pct + "%";
     }
+
+    function positionPopup() {
+      const r = btn.getBoundingClientRect();
+      popup.style.left = (r.left + r.width / 2) + "px";
+      popup.style.top = (r.top - 10) + "px";
+    }
+
+    function closePopup() { popup.classList.remove("open"); }
 
     // 既存のcontrolVolume(0〜1)の現在値を初期表示に反映
     const controlVolumeEl = document.getElementById("controlVolume");
@@ -653,10 +684,20 @@
 
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      popup.classList.toggle("open");
+      if (popup.classList.contains("open")) {
+        closePopup();
+      } else {
+        applyVisual(typeof audio !== "undefined" ? audio.volume : 0.8);
+        positionPopup();
+        popup.classList.add("open");
+      }
     });
-    document.addEventListener("click", () => popup.classList.remove("open"));
+    document.addEventListener("click", closePopup);
     popup.addEventListener("click", (e) => e.stopPropagation());
+    // ボタン位置が動く操作（下段バーの横スクロール・画面回転等）では閉じる
+    window.addEventListener("resize", closePopup);
+    const bottomBarEl = document.getElementById("pcV2BottomBar");
+    if (bottomBarEl) bottomBarEl.addEventListener("scroll", closePopup, { passive: true });
 
     function setFromClientY(clientY) {
       const rect = track.getBoundingClientRect();
@@ -669,21 +710,33 @@
       }
     }
 
-    track.addEventListener("mousedown", (e) => {
+    // マウス・タッチ共通でPointer Eventsを使う（以前はmousedownのみで、
+    // SPではポップアップが見えてもドラッグ操作できなかった）。
+    // トラック自体が細い(4px)ため、ポップアップ上部の操作領域全体で受ける。
+    const dragArea = popup;
+    dragArea.style.touchAction = "none";
+    dragArea.addEventListener("pointerdown", (e) => {
+      if (e.target.closest(".pcv2-volume-popup-icon")) return;
       e.stopPropagation();
+      e.preventDefault();
       setFromClientY(e.clientY);
+      try { dragArea.setPointerCapture(e.pointerId); } catch (err) {}
       function move(ev) { setFromClientY(ev.clientY); }
-      function up() {
-        document.removeEventListener("mousemove", move);
-        document.removeEventListener("mouseup", up);
+      function up(ev) {
+        dragArea.removeEventListener("pointermove", move);
+        dragArea.removeEventListener("pointerup", up);
+        dragArea.removeEventListener("pointercancel", up);
+        try { dragArea.releasePointerCapture(ev.pointerId); } catch (err) {}
       }
-      document.addEventListener("mousemove", move);
-      document.addEventListener("mouseup", up);
+      dragArea.addEventListener("pointermove", move);
+      dragArea.addEventListener("pointerup", up);
+      dragArea.addEventListener("pointercancel", up);
     });
   }
 
   // 各パネル種別の中身要素への参照を保持
   let controlBody, markersBody, playlistBody, textBody, eqBody, exportBody, exportFooter;
+  let backupBody, backupFooter, importBody, importFooter;
 
   function initPanels() {
     // #sidebarSection内の各mobile-tab-panelはそのまま(親のsidebarSectionごと)
@@ -712,6 +765,20 @@
     markAnchor("eq", eqBody);
     markAnchor("export", exportBody);
     markAnchor("exportFooter", exportFooter);
+
+    // Backup/Import（v2.13.6〜パネル表示）。Exportと同じく、モーダルの
+    // 中身(body/footer)だけをパネルへ移して使う。モーダル外枠のヘッダー
+    // （タイトル・✕ボタン）はパネル側のヘッダーで代替するため移さない。
+    const backupModal = document.getElementById("trackBackupModalOverlay");
+    backupBody = backupModal ? backupModal.querySelector(".export-modal-body") : null;
+    backupFooter = backupModal ? backupModal.querySelector(".export-modal-footer") : null;
+    const importModal = document.getElementById("trackImportModalOverlay");
+    importBody = importModal ? importModal.querySelector(".export-modal-body") : null;
+    importFooter = importModal ? importModal.querySelector(".export-modal-footer") : null;
+    markAnchor("backup", backupBody);
+    markAnchor("backupFooter", backupFooter);
+    markAnchor("import", importBody);
+    markAnchor("importFooter", importFooter);
 
     // Textパネルのフルスクリーンボタン(#noteTextFullscreenBtn)は元々
     // .markers-heading-row(PC v2では非表示)の中にあり、そのままではPC v2
@@ -851,19 +918,9 @@
       return;
     }
 
-    if (item.panelType === "backup") {
-      // Backup: パネルを開かず、ライブラリ一括バックアップの確認モーダルを開くだけ
-      // （player-track-backup.js側）。
-      if (typeof openBulkBackupModal === "function") openBulkBackupModal();
-      return;
-    }
-
-    if (item.panelType === "import") {
-      // Import: パネルを開かず、ライブラリ一括インポートの確認モーダルを開くだけ
-      // （player-track-backup.js側）。
-      if (typeof openBulkImportModal === "function") openBulkImportModal();
-      return;
-    }
+    // Backup/Importは【v2.13.6】からモーダルではなく、Control/Markers等と
+    // 同じサイドメニューのパネル表示に統一した（switchPanel側で、Export
+    // パネルと同じ「モーダルの中身(body/footer)をパネルへ移す」方式）。
 
     if (item.panelType === "close") {
       // Seekbar: パネルを開かず、開いていれば閉じるだけ（波形が見える
@@ -937,6 +994,21 @@
       btn.classList.toggle("active", btn.getAttribute("data-panel-id") === "seekbar");
     });
   }
+
+  // Backup/Importパネルの「閉じる」（Cancel・Download完了・Import完了後の
+  // Close）用。player-track-backup.js側のcloseTrack*Modal()から呼ばれる。
+  // SP幅：オーバーレイを閉じて波形画面へ戻る。PC幅：パネルは常時表示の
+  // ため、Libraryパネルへ切り替える（バックアップ/インポート後に結果の
+  // ライブラリをそのまま確認できるように）。
+  window.qnPcv2DismissAuxPanel = function () {
+    if (currentPanel !== "backup" && currentPanel !== "import") return;
+    const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
+    if (isSpWidth) {
+      closePanelOverlay();
+    } else {
+      switchPanel("playlist");
+    }
+  };
 
   // Markers/Libraryパネル共通：画面右下に浮かぶフローティングアクション
   // ボタン群（縦2段。上段=Add系⇔Delete（編集モードで切り替え）、
@@ -1114,6 +1186,23 @@
       if (exportModalOverlay) exportModalOverlay.classList.remove("open");
       if (exportBody) panelBody.appendChild(exportBody);
       if (exportFooter) panelBody.appendChild(exportFooter);
+    } else if (item.panelType === "backup" || item.panelType === "import") {
+      // 開くたびの初期化（全曲選択・項目チェック/読み込み状態のリセット）は
+      // 既存のopenBulk*Modal()に任せ、開いてしまうモーダル外枠のopenだけ
+      // 直後に外す（Exportパネルと同じ方式）。
+      const isBackup = item.panelType === "backup";
+      const openFn = isBackup ? window.openBulkBackupModal : window.openBulkImportModal;
+      if (typeof openFn === "function") openFn();
+      const overlayEl = document.getElementById(isBackup ? "trackBackupModalOverlay" : "trackImportModalOverlay");
+      if (overlayEl) overlayEl.classList.remove("open");
+      const bodyEl = isBackup ? backupBody : importBody;
+      const footerEl = isBackup ? backupFooter : importFooter;
+      panelBody.classList.add("pcv2-panel-aux");
+      if (bodyEl) panelBody.appendChild(bodyEl);
+      if (footerEl) panelBody.appendChild(footerEl);
+    }
+    if (item.panelType !== "backup" && item.panelType !== "import") {
+      panelBody.classList.remove("pcv2-panel-aux");
     }
 
     // パネルの中身(.mobile-tab-panel)を.app-containerの外(#pcV2PanelBody)へ

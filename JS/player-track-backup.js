@@ -161,6 +161,9 @@ function openBulkBackupModal() {
 function closeTrackBackupModal() {
   if (!trackBackupModalOverlay) return;
   trackBackupModalOverlay.classList.remove("open");
+  // v2.13.6〜：PC v2のサイドメニューパネルとして表示している場合は、
+  // パネル側を閉じる（player-ui-pc-v2.js側）。
+  if (typeof window.qnPcv2DismissAuxPanel === "function") window.qnPcv2DismissAuxPanel();
 }
 
 if (trackBackupModalCloseBtn) trackBackupModalCloseBtn.onclick = closeTrackBackupModal;
@@ -343,9 +346,11 @@ function updateTrackImportCancelBtnMode() {
   if (trackImportParsedData) {
     trackImportCancelBtn.textContent = "Back";
     trackImportCancelBtn.onclick = resetImportState;
+    trackImportCancelBtn.dataset.mode = "back";
   } else {
     trackImportCancelBtn.textContent = "Cancel";
     trackImportCancelBtn.onclick = closeTrackImportModal;
+    trackImportCancelBtn.dataset.mode = "cancel";
   }
 }
 
@@ -382,6 +387,7 @@ function openBulkImportModal() {
 function closeTrackImportModal() {
   if (!trackImportModalOverlay) return;
   trackImportModalOverlay.classList.remove("open");
+  if (typeof window.qnPcv2DismissAuxPanel === "function") window.qnPcv2DismissAuxPanel();
 }
 
 if (trackImportModalCloseBtn) trackImportModalCloseBtn.onclick = closeTrackImportModal;

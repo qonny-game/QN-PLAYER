@@ -16,7 +16,9 @@ PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT
   タブを生成し、既存の`.app-container`直後に挿入する。**新しいサイドメニュー
   項目、新しい下段バーのボタンを追加する起点はここ。**
 - `el(html)` — HTML文字列から1個のDOM要素を作る小さなヘルパー。
-- `setupVolumeControl()` — 音量スライダーの初期化。
+- `setupVolumeControl()` — 音量スライダーの初期化。v2.14.0〜ポップアップを
+  `document.body`直下へ移して`position: fixed`で表示、Pointer Eventsで
+  マウス/タッチ両対応（§3-15）。
 - `initPanels()` — Control/Markers/Library/Text等、各パネルの中身の
   初期構築。
 
@@ -34,13 +36,17 @@ PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT
 
 ### パネル開閉・切り替え
 - `handleIconClick(item)` — サイドメニューのアイコンをクリックした時の
-  分岐（`panelType`が`"tab"` / `"action"`（Add File）/ `"backup"` /
-  `"import"` / `"close"`のどれかで処理が変わる）。**新しいサイドメニュー
+  分岐（`panelType`が`"action"`（Add File）/ `"close"`のみ特別扱い、
+  それ以外は`openPanelOverlay()`へ）。**新しいサイドメニュー
   項目のクリック挙動を足す/変えるのはここ。**
+- `window.qnPcv2DismissAuxPanel()` — Backup/Importパネルを閉じる
+  （SP幅：オーバーレイを閉じる、PC幅：Libraryパネルへ切替）。
+  `player-track-backup.js`の`closeTrack*Modal()`から呼ばれる（v2.14.0〜）。
 - `openPanelOverlay(panelId)` / `closePanelOverlay()` — パネルの
   開閉（SP幅ではオーバーレイ表示）。
 - `switchPanel(panelId)` — パネルの中身をControl/Markers/Library/Text/
-  Export等に切り替える。**このファイル最大の関数の1つ。新しいパネル
+  Export/Backup/Import等に切り替える（Backup/Importはv2.14.0〜、Exportと
+  同じく「モーダルを開く→外枠のopenを外す→body/footerをパネルへ移す」）。**このファイル最大の関数の1つ。新しいパネル
   種別を足す場合はここに分岐が要る。**
 
 ### 編集モード（EDIT）・削除選択

@@ -147,6 +147,22 @@ function renderPlaylist() {
     const isLockedTrack = typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.LIBRARY_MAX_TRACKS;
     if (isLockedTrack) item.classList.add("sw-locked");
 
+    // 【v2.13.6】通常モードでは、行のどこをタップしても再生する
+    // （以前はタイトル/アーティスト部分(infoBlock)だけが再生判定で、
+    // サムネイル・長さ表示・行の余白をタップしても何も起きなかった）。
+    // ボタン類・ドラッグハンドル・編集中の入力欄は除外する。
+    if (!editMode) {
+      item.addEventListener("click", (e) => {
+        if (e.target.closest("button, input, textarea, .playlist-drag-handle, .playlist-info-block")) return;
+        if (isLockedTrack) {
+          if (e.target.closest(".playlist-thumb")) return; // サムネイル側で案内済み
+          swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
+          return;
+        }
+        playTrackAt(parseInt(item.dataset.index, 10));
+      });
+    }
+
     // ドラッグ並び替え用のハンドル（この部分を掴んでドラッグする）
     const dragHandle = document.createElement("span");
     dragHandle.className = "playlist-drag-handle";

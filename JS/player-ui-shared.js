@@ -253,28 +253,37 @@ function loadFile(file) {
   waveformDecodeToken++;
   decodeWaveform(file, waveformDecodeToken);
 
+  // 【v2.13.6】マーカー・テキストメモの読み込みは、音声のメタデータ読み込み
+  // (loadedmetadata)を待たず、曲を切り替えた瞬間に同期で行う。
+  // 以前はonloadedmetadataの中で読んでいたため、読み込みが遅い・失敗した
+  // 場合（§3-11の不具合など）に、曲名(currentFileName)だけ新しい曲に
+  // 切り替わり、テキスト欄には前の曲の内容が残ったままになっていた。
+  // その状態で編集すると、前の曲のテキストが新しい曲名のキーで保存され、
+  // 「全曲で同じテキストが表示される」状態になってしまう（§3-13）。
+  const savedPins = localStorage.getItem("mp3_pins_" + file.name);
+  if (savedPins) {
+    try {
+      const raw = JSON.parse(savedPins);
+      pins = raw.map(p => typeof p === 'number' ? { t: p, enabled: true, memo: "", color: null } : { t: p.t, enabled: p.enabled !== false, memo: p.memo || "", color: p.color || null });
+    } catch (e) { pins = []; }
+  } else {
+    pins = [];
+  }
+  if (typeof renderPinList === "function") renderPinList();
+
+  // player-text.js側のトップレベル変数noteTextAreaElに依存すると、
+  // <script>の読み込み順に実行結果が左右されてしまうため、ここでは
+  // 都度DOM取得することでファイル間の初期化順序に依存しないようにする。
+  // フルスクリーン表示中なら、そちらの表示も新しい曲の内容に揃える。
+  const noteTextForLoad = localStorage.getItem("mp3_text_" + file.name) || "";
+  const noteTextAreaElForLoad = document.getElementById("noteTextArea");
+  if (noteTextAreaElForLoad) noteTextAreaElForLoad.value = noteTextForLoad;
+  const noteTextAreaFsForLoad = document.getElementById("noteTextAreaFullscreen");
+  if (noteTextAreaFsForLoad) noteTextAreaFsForLoad.value = noteTextForLoad;
+
   audio.onloadedmetadata = () => {
     prevTime = audio.currentTime;
     drawWaveform();
-    
-    const savedPins = localStorage.getItem("mp3_pins_" + file.name);
-    if (savedPins) {
-      try {
-        const raw = JSON.parse(savedPins);
-        pins = raw.map(p => typeof p === 'number' ? { t: p, enabled: true, memo: "", color: null } : { t: p.t, enabled: p.enabled !== false, memo: p.memo || "", color: p.color || null });
-      } catch (e) { pins = []; }
-    } else {
-      pins = [];
-    }
-
-    // Textタブのメモも曲ごとに読み込む（未保存なら空欄にする）。
-    // player-text.js側のトップレベル変数noteTextAreaElに依存すると、
-    // <script>の読み込み順に実行結果が左右されてしまうため、ここでは
-    // 都度DOM取得することでファイル間の初期化順序に依存しないようにする。
-    const noteTextAreaElForLoad = document.getElementById("noteTextArea");
-    if (noteTextAreaElForLoad) {
-      noteTextAreaElForLoad.value = localStorage.getItem("mp3_text_" + file.name) || "";
-    }
 
     renderPins();
     renderSegments();

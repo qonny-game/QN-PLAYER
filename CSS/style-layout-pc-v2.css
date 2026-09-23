@@ -425,6 +425,53 @@ body.pc-v2-active > .app-container {
   padding: 8px 0;
 }
 
+/* 【v2.13.6】右下のフローティングボタン(ADD AUDIO/ADD MARKER・EDIT)に
+   リスト末尾の行が隠れて押せないため、スクロールの終端をリスト約2行分
+   伸ばす（最後の行をボタンより上までスクロールできるようにする）。
+   #pcV2PanelFabはposition:absoluteでフローに影響しないため、この
+   擬似要素がリスト全体の最後の余白になる。 */
+#pcV2PanelBody.pcv2-panel-playlist::after,
+#pcV2PanelBody.pcv2-panel-markers::after {
+  content: "";
+  display: block;
+  height: 140px;
+}
+
+/* ============================================================
+   Backup/Importパネル（v2.13.6〜、旧モーダルの中身を移植）
+   ============================================================ */
+#pcV2PanelBody.pcv2-panel-backup .export-modal-footer,
+#pcV2PanelBody.pcv2-panel-import .export-modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0 24px;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .export-status,
+#pcV2PanelBody.pcv2-panel-import .export-status {
+  flex-basis: 100%;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .export-status:empty,
+#pcV2PanelBody.pcv2-panel-import .export-status:empty {
+  display: none;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .export-run-btn,
+#pcV2PanelBody.pcv2-panel-import .export-run-btn {
+  flex: 1;
+  width: auto;
+}
+
+/* パネルは他のメニューを押せば閉じられるため、「閉じるだけ」のCancelは
+   出さない。Import側はファイル読み込み後の「Back」（選び直し）だけ残す。 */
+#pcV2PanelBody.pcv2-panel-backup #trackBackupCancelBtn,
+#pcV2PanelBody.pcv2-panel-import #trackImportCancelBtn[data-mode="cancel"] {
+  display: none;
+}
+
 /* パネル内に移植されたmobile-tab-panel/export-modal中身は常時表示にする
    （タブ切替・モーダル開閉のCSSクラスに関わらず、パネルとして直接見せるため）。
    .mobile-tab-panel自体はSP版/旧PC版向けの独立した箱デザイン
@@ -656,11 +703,18 @@ body.pc-v2-active > .app-container {
    パネルのFAB(.panel-fab-btn)と同じ見た目・挙動（position: absolute、
    右下固定）で、Playlistパネルを開かなくてもここから直接ファイルを
    追加できる（初めて開いた人にも直感的に伝わるようにするための導線）。 */
-#pcV2WaveAddAudioBtn {
+/* 【v2.13.6】ADD AUDIO＋ADD MARKERを横並びにした入れ物。右下固定の
+   絶対配置はこの入れ物で行う（ボタン単体の見た目は.panel-fab-btn）。 */
+#pcV2WaveFabRow {
   position: absolute;
   right: 20px;
   bottom: 20px;
   z-index: 5;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
 }
 
 /* 移植された#appTitleは元々サイドバー幅前提のマージンを持つため、
@@ -898,6 +952,12 @@ body.pc-v2-active > .app-container {
   flex: 1;
 }
 
+/* MARKERグループとトグル群の間の仕切り線（v2.13.6〜）はSP幅専用。
+   PC幅ではspacerで十分に離れるため表示しない。 */
+#pcV2BottomBar .pcv2-ctrl-divider-sp {
+  display: none;
+}
+
 #pcV2BottomBar .pcv2-ctrl-btn {
   display: flex;
   flex-direction: column;
@@ -960,11 +1020,15 @@ body.pc-v2-active > .app-container {
 }
 
 /* Volumeポップアップ(縦スライダー) */
+/* 【v2.13.6】document.body直下へ移したうえでposition: fixed表示。
+   left/topはJS(setupVolumeControl)がボタン位置から都度設定し、
+   translateでボタン中央の真上に来るようにする。 */
 #pcV2VolumePopup {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
+  bottom: auto;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
   background: #101013;
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
@@ -974,7 +1038,8 @@ body.pc-v2-active > .app-container {
   align-items: center;
   gap: 10px;
   width: 56px;
-  z-index: 300;
+  z-index: 1000;
+  touch-action: none;
 }
 
 #pcV2VolumePopup.open {
@@ -1556,6 +1621,25 @@ body.pc-v2-active #qnMenuMount {
   }
 
   #pcV2BottomBar .pcv2-ctrl-group {
+    flex-shrink: 0;
+  }
+
+  /* シークバーエリアのADD AUDIO/ADD MARKER（2個横並び）がSP幅に
+     収まるよう、少しだけ小ぶりにする。 */
+  #pcV2WaveFabRow {
+    right: 14px;
+    bottom: 14px;
+    gap: 8px;
+  }
+
+  #pcV2WaveFabRow .panel-fab-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  /* MARKERグループとVolume/Speed/Key/EQトグル群の間の仕切り線 */
+  #pcV2BottomBar .pcv2-ctrl-divider-sp {
+    display: block;
     flex-shrink: 0;
   }
 

@@ -94,8 +94,22 @@
   transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
 }
 
-.pin-label-row:hover .pin-edit-btn {
-  display: flex;
+/* 【v2.13.6】playlist側(.playlist-hover-edit-btn)と同じ理由で、ホバーで
+   鉛筆を出すのは本当にホバーできる環境に限定する（iOSでマーカー名の
+   1回目のタップがジャンプせず「ホバーだけ」になるのを防ぐ）。
+   タッチ端末ではEDITモードから編集する。 */
+@media (hover: hover) and (pointer: fine) {
+  .pin-label-row:hover .pin-edit-btn {
+    display: flex;
+  }
+}
+
+/* タッチ端末：ホバーが無いため、EDITモード中は鉛筆を常時表示する
+   （通常モードはタップ＝ジャンプに専念させ、誤操作を防ぐ）。 */
+@media (hover: none), (pointer: coarse) {
+  #pcV2PanelBody.markers-edit-mode #pinList .pin-edit-btn {
+    display: flex;
+  }
 }
 
 .pin-edit-btn:hover {

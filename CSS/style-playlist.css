@@ -39,8 +39,10 @@
   text-decoration: line-through;
 }
 
-.playlistItem:hover {
-  background: rgba(255, 255, 255, 0.03);
+@media (hover: hover) and (pointer: fine) {
+  .playlistItem:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
 }
 
 .playlistItem.playing {
@@ -340,9 +342,19 @@ body.dragover #dropOverlay {
   background: var(--bg-hover-subtle);
 }
 
-.playlist-title-row:hover .playlist-hover-edit-btn,
-.playlist-artist-row:hover .playlist-hover-edit-btn {
-  display: flex;
+/* 【v2.13.6】ホバーで鉛筆を出す表示は、マウス等「本当にホバーできる」
+   環境に限定する。iOS Safariは、タップした要素の:hoverで他の要素の
+   display/visibilityが変わる（=中身が変化する）場合、1回目のタップを
+   「ホバーさせるだけ」として扱い、clickイベントを発火させない仕様がある。
+   このため、タイトル/アーティスト行をタップした時だけ再生されず
+   （行が:hoverでうっすら白くなるだけ）、それ以外の場所をタップすると
+   再生される、という「毎回ではない」ワンタップ再生失敗の原因になっていた。
+   タッチ端末では編集はEDITモードから行う。 */
+@media (hover: hover) and (pointer: fine) {
+  .playlist-title-row:hover .playlist-hover-edit-btn,
+  .playlist-artist-row:hover .playlist-hover-edit-btn {
+    display: flex;
+  }
 }
 
 .playlist-title-row,

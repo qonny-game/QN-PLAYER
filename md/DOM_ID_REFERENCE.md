@@ -10,6 +10,9 @@
 ## 静的ID（`index.html`に直接書かれている）
 
 ### Backupモーダル（`trackBackup*`、`player-track-backup.js`が制御）
+※v2.14.0〜、PC v2では外枠（Overlay/✕）は使わず、`.export-modal-body`と
+`.export-modal-footer`だけをサイドメニューの「Backup」パネルへ移して表示する
+（Exportパネルと同じ方式）。
 | ID | 役割 |
 |---|---|
 | `trackBackupModalOverlay` | モーダル全体のオーバーレイ |
@@ -24,6 +27,9 @@
 | `trackBackupIncludeAudio` / `trackBackupIncludeTitle` / `trackBackupIncludeArtist` / `trackBackupIncludeMarkerPos` / `trackBackupIncludeMarkerMemo` / `trackBackupIncludeText` | 含める項目チェックボックス6種 |
 
 ### Importモーダル（`trackImport*`、`player-track-backup.js`が制御）
+※v2.14.0〜、Backupと同様にサイドメニューの「Import」パネルとして表示。
+`trackImportCancelBtn`は`data-mode`（`cancel`/`back`）を持ち、パネル内では
+`cancel`の時だけ非表示になる。
 | ID | 役割 |
 |---|---|
 | `trackImportModalOverlay` | モーダル全体のオーバーレイ |
@@ -79,7 +85,7 @@ PC v2の骨組み要素は全てJSの`build()`関数（`PC_V2_FILE_INDEX.md`参�
 | `pcV2IconBar` | 左の縦アイコンバー（サイドメニュー） |
 | `pcV2IconBarScrollHint` / `pcV2IconBarSpacer` / `pcV2IconBarBottom` | アイコンバー付随要素 |
 | `pcV2Panel` / `pcV2PanelHeader` / `pcV2PanelBody` / `pcV2PanelFab` | 中央パネル一式 |
-| `pcV2WaveArea` / `pcV2WaveAddAudioBtn` | 波形エリア・+ADD AUDIOボタン |
+| `pcV2WaveArea` / `pcV2WaveFabRow` / `pcV2WaveAddAudioBtn` / `pcV2WaveAddMarkerBtn` | 波形エリア・右下ボタン列（v2.14.0〜横並び）・+ADD AUDIO・+ADD MARKER |
 | `pcV2TimeRow` | 時刻表示行（SP幅限定） |
 | `pcV2BottomBar` | 下段固定コントロールバー |
 | `pcV2BottomBarAnchorTabs` | PLAY/MARKERアンカータブ |
@@ -88,7 +94,7 @@ PC v2の骨組み要素は全てJSの`build()`関数（`PC_V2_FILE_INDEX.md`参�
 | `pcV2StartBtn` / `pcV2AddMarkerBtn` | Startボタン・+Markerボタン |
 | `pcV2LibraryAddFileBtn` | Libraryパネル内のADD FILEボタン |
 | `pcV2TextEditBtn` / `pcV2TextControlsHolder` | Textパネル関連 |
-| `pcV2VolumeBtn` / `pcV2VolumePopup` / `pcV2VolumeFill` / `pcV2VolumeThumb` | 音量ポップアップ一式 |
+| `pcV2VolumeBtn` / `pcV2VolumePopup` / `pcV2VolumeFill` / `pcV2VolumeThumb` | 音量ポップアップ一式（v2.14.0〜`pcV2VolumePopup`は`document.body`直下へ移動、`position: fixed`） |
 | `pcV2HeaderNav` / `pcV2HeaderNavTrigger` | ヘッダーのQN Seriesドロップダウン |
 
 ---

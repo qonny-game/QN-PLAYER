@@ -195,6 +195,11 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
 ---
 
 ### 3-8. モーダルの器（.export-modal-overlay）は使い回されている
+- **v2.14.0追記：** Export・Backup・Importは、PC v2ではモーダルとしてではなく
+  サイドメニューのパネルとして表示している（`switchPanel()`が
+  `.export-modal-body`/`.export-modal-footer`をパネルへ移す）。モーダルの
+  見た目を直しても、パネル側では`#pcV2PanelBody.pcv2-panel-backup`等の
+  上書きCSSが効く点に注意。
 - **背景：** Export/EQ/Backup/Importなど、モーダルは全て共通の器CSS
   （`.export-modal-overlay` / `.export-modal` / `.export-modal-header` /
   `.export-modal-body` / `.export-modal-footer`、`style-export.css`）を
@@ -285,6 +290,48 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
   `style-layout-pc-v2.css`のルールを変更するときは、両パネルのタップ判定の
   仕組みが違う（markers＝`.del-btn`、playlist＝`.playlist-del-zone`）ことを
   確認する。
+
+### 3-13. 曲切替時の読み込みを`loadedmetadata`待ちにすると、前の曲の状態が残る
+- **現象：** テキストメモが全曲共通のように見える（曲を切り替えても同じ
+  テキストが表示される）。
+- **原因：** `loadFile()`で曲名(`currentFileName`)は即座に切り替わるが、
+  テキスト・マーカーの読み込みは`audio.onloadedmetadata`の中だった。
+  読み込みが遅い/失敗すると（§3-11）前の曲のテキストが表示されたまま
+  残り、その状態で入力すると`saveNoteText()`が新しい曲名のキーで保存して
+  しまい、実データとしても「同じテキスト」が複製されていく。
+- **解決：** マーカー配列の読み込み＋`renderPinList()`、テキスト欄（本体・
+  フルスクリーン側とも）の読み込みを`loadFile()`内で同期的に行う。
+  duration依存の`renderPins()`/`renderSegments()`だけ`loadedmetadata`に残す。
+- **教訓：** 「曲名キーで保存するデータ」は、曲名の切り替えと同じ瞬間に
+  読み込む。非同期イベントを待つと、その間キーと表示内容がズレる。
+
+### 3-14. iOSでは`:hover`で中身が変わる要素の1回目のタップがclickにならない
+- **現象：** ライブラリのワンタップ再生が「効く時と効かない時がある」。
+  効かない時も行はうっすら白く（`:hover`背景）なる。
+- **原因：** `.playlist-title-row:hover .playlist-hover-edit-btn { display: flex }`
+  のように、ホバーで他要素の`display`が変わるCSSがあると、iOS Safariは
+  1回目のタップを「ホバーさせるだけ」として扱い`click`を発火しない
+  （コンテンツ変化検知の仕様）。タイトル/アーティスト行をタップした時だけ
+  失敗し、行内の他の場所では成功していた。
+- **解決：** ホバーで表示を変えるCSSを`@media (hover: hover) and (pointer: fine)`
+  で囲み、マウス環境限定にした（Library・Markers両方）。タッチ端末の
+  編集はEDITモードで行う（Markersの鉛筆はタッチ端末のEDITモード中だけ
+  常時表示）。あわせて通常モードのLibrary行はどこをタップしても再生する。
+- **教訓：** **タップして動く要素（またはその子孫）に、`:hover`で`display`/
+  `visibility`を変えるCSSを書かない。** 必要ならホバー可能環境に限定する。
+
+### 3-15. 横スクロールする入れ物の中の絶対配置ポップアップは切り取られる
+- **現象：** SPでVolumeアイコンを押しても、縦スライダーが背面に隠れて
+  見えない・操作できない。
+- **原因：** SP幅の`#pcV2BottomBar`は`overflow-x: auto`（横スクロール）。
+  `overflow`の片方をvisible以外にすると、もう片方もvisibleではなくなるため、
+  上方向へはみ出す`position: absolute`のポップアップが切り取られていた。
+  さらにドラッグは`mousedown`のみでタッチ非対応だった。
+- **解決：** ポップアップを`document.body`直下へ移し、`position: fixed`で
+  ボタンの位置から座標を計算して表示。Pointer Eventsでマウス/タッチ両対応。
+  下段バーのスクロール・resize時は閉じる。
+- **教訓：** 下段バー（横スクロール）の中にポップアップ・ツールチップを
+  足すときは、最初からbody直下＋fixedで作る。
 
 ## 4. データフロー・状態管理の要点
 
