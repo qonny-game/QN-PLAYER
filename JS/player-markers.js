@@ -29,6 +29,35 @@ function addCurrentPin() {
 
 document.getElementById("addPinBtn").onclick = addCurrentPin;
 
+// 【v2.16.6】前/次マーカーボタンが基準にする「現在地」。
+// 通常は再生位置そのものだが、マーカーループ中にプリロール/ポストロール
+// （Loop秒数ステッパーで設定した「区間の前後にはみ出して聴かせる」部分）を
+// 再生している間は、実際の位置は区間の外でも、聴いているのは「今ループ中の
+// 区間」なので、区間の内側にいるものとして扱う。
+// 例：1-2間をループ中、2を過ぎたポストロール中に「次」→ 以前は位置的に
+// 2より後ろなので3へ飛んでいたが、今は2（＝次の区間2-3の頭）へ飛ぶ。
+function getMarkerNavReferenceTime() {
+  const ct = audio.currentTime;
+  if (!loopEnabled || loopActiveMarkerIndex === null) return ct;
+  const preroll = typeof loopPreRollSeconds === "number" ? loopPreRollSeconds : 0;
+  if (preroll <= 0) return ct;
+  // loopActiveMarkerIndexはupdateBars()と同じ「ONのマーカーだけの並び」の番号
+  const activeTimes = pins.filter(p => p.enabled).map(p => p.t);
+  const i = loopActiveMarkerIndex;
+  if (i < 0 || i >= activeTimes.length - 1) return ct;
+  const start = activeTimes[i];
+  const end = activeTimes[i + 1];
+  if (ct > end && ct <= end + preroll + 0.05) {
+    // ポストロール中：区間の終わりの少し手前にいるものとみなす
+    return Math.max(start, end - 0.1);
+  }
+  if (ct < start && ct >= start - preroll - 0.05) {
+    // プリロール中：区間の頭にいるものとみなす
+    return start;
+  }
+  return ct;
+}
+
 function jumpToNextMarker() {
   const activePins = pins
     .map((p, i) => ({ p, i }))
@@ -37,7 +66,7 @@ function jumpToNextMarker() {
   if (activePins.length === 0) return;
   hapticTap();
 
-  const ct = audio.currentTime;
+  const ct = getMarkerNavReferenceTime();
   let nextPin = activePins.find(p => p.t > ct + 0.05);
   if (!nextPin) nextPin = activePins[0];
 
@@ -58,7 +87,7 @@ function jumpToPrevMarker() {
   if (activePins.length === 0) return;
   hapticTap();
 
-  const ct = audio.currentTime;
+  const ct = getMarkerNavReferenceTime();
 
   // 現在地より前（＝すでに通過した）マーカーのうち、一番近いものを「直近マーカー」とする
   let targetPin = [...activePins].reverse().find(p => p.t <= ct + 0.05);
