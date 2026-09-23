@@ -28,6 +28,7 @@
 | 「あのボタン」「あの画面」が指す場所が曖昧 | `UI_TERMINOLOGY.md` |
 | `player-ui-pc-v2.js`か`style-layout-pc-v2.css`のどこに書くか探す | `PC_V2_FILE_INDEX.md` |
 | 「前回どこまでやった？」 | `CHANGELOG.md` 末尾 |
+| PC v2のCSSをシェル/パネルの2ファイルに分割する作業 | `md/CSS_SPLIT_INSTRUCTIONS.md`（保留中タスク、別チャットで実施予定と本人から聞いている） |
 
 ## 2. 実装フロー
 
@@ -62,3 +63,5 @@
 - `DOM_ID_REFERENCE.md` — DOM要素IDの一覧（静的/動的）。
 - `UI_TERMINOLOGY.md` — ユーザーの言葉とUI要素の対応表。
 - `CHANGELOG.md` — バージョン変更履歴。
+- `CSS_SPLIT_INSTRUCTIONS.md` — 【保留中タスク】`style-layout-pc-v2.css`を
+  シェル/パネルの2ファイルに分割する作業の指示書。着手する時だけ読む。
