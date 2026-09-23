@@ -417,6 +417,9 @@ function startDragPin(index) {
 }
 
 function renderPinList() {
+  // リストを作り直すとメモ編集中の入力欄も消えるため、プリセットの
+  // ポップアップが取り残されないよう先に閉じる。
+  if (typeof closePinMemoPresetPopup === "function") closePinMemoPresetPopup();
   const list = document.getElementById("pinList");
   if (list) list.innerHTML = "";
 
@@ -510,8 +513,14 @@ function renderPinList() {
     toggleBtn.innerHTML = pinObj.enabled
       ? '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>'
       : '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
+    // 【v2.15.0】EDITモードでDELETE選択が1件でもある間は押せない
+    // （Libraryの PLAY/SKIP トグルと同じ仕様。押すとrenderPinList()で
+    // リストが作り直され、選択の見た目が消えてしまうため）。
+    const markersHasSelection = typeof window.markersHasSelectedItems === "function" && window.markersHasSelectedItems();
+    toggleBtn.disabled = markersHasSelection;
     toggleBtn.onclick = (e) => {
       e.stopPropagation();
+      if (typeof window.markersHasSelectedItems === "function" && window.markersHasSelectedItems()) return;
       pinObj.enabled = !pinObj.enabled;
       // 有効マーカーの構成(activePins)が変わるため、ループ折り返し判定の
       // 対象区間インデックスを破棄する。
@@ -550,7 +559,14 @@ function renderPinList() {
         }, 3000);
       }
     };
-    div.appendChild(delBtn);
+    // 【v2.15.0】削除チェック(.del-btn、20x20pxの丸)のタップ判定を、
+    // Libraryの.playlist-del-zoneと同じく「行の上下いっぱい・右端まで」の
+    // 広いゾーン(.pin-del-zone)で受ける（player-ui-pc-v2.jsの
+    // attachSelectionHandlersも判定対象を.pin-del-zoneにしている）。
+    const delZone = document.createElement("div");
+    delZone.className = "pin-del-zone";
+    delZone.appendChild(delBtn);
+    div.appendChild(delZone);
 
     if (list) {
       list.appendChild(div);
@@ -568,7 +584,11 @@ function closeMarkerColorPicker() {
   }
 }
 
-function openMarkerColorPicker(anchorBtn, pinObj, index) {
+// 色選択ポップアップ本体（汎用）。currentColorNameを選択中として表示し、
+// 色（または「色なし」=null）が選ばれたらonPick(colorName)を呼んで閉じる。
+// マーカーの色設定と、Colorパネルの「マーカーメモの自動カラー」設定
+// （v2.15.0〜）の両方で使う。
+function openColorChoicePopup(anchorBtn, currentColorName, onPick) {
   closeMarkerColorPicker();
 
   const popup = document.createElement("div");
@@ -579,15 +599,11 @@ function openMarkerColorPicker(anchorBtn, pinObj, index) {
   noneSwatch.type = "button";
   noneSwatch.className = "marker-color-swatch marker-color-none";
   noneSwatch.title = "No color";
-  if (!pinObj.color) noneSwatch.classList.add("active");
+  if (!currentColorName) noneSwatch.classList.add("active");
   noneSwatch.onclick = (e) => {
     e.stopPropagation();
-    pinObj.color = null;
-    savePins();
-    renderPins();
-    renderSegments();
-    renderPinList();
     closeMarkerColorPicker();
+    onPick(null);
   };
   popup.appendChild(noneSwatch);
 
@@ -597,15 +613,11 @@ function openMarkerColorPicker(anchorBtn, pinObj, index) {
     swatch.className = "marker-color-swatch";
     swatch.style.background = MARKER_COLOR_PALETTE[colorName];
     swatch.title = colorName;
-    if (pinObj.color === colorName) swatch.classList.add("active");
+    if (currentColorName === colorName) swatch.classList.add("active");
     swatch.onclick = (e) => {
       e.stopPropagation();
-      pinObj.color = colorName;
-      savePins();
-      renderPins();
-      renderSegments();
-      renderPinList();
       closeMarkerColorPicker();
+      onPick(colorName);
     };
     popup.appendChild(swatch);
   });
@@ -630,7 +642,7 @@ function openMarkerColorPicker(anchorBtn, pinObj, index) {
     }
     // 下端がはみ出す場合はボタンの上に開き直す
     if (popupRect.bottom > viewportHeight - 8) {
-      popup.style.top = `${rect.top - popupRect.height - 6}px`;
+      popup.style.top = `${Math.max(8, rect.top - popupRect.height - 6)}px`;
     }
   });
 
@@ -642,6 +654,16 @@ function openMarkerColorPicker(anchorBtn, pinObj, index) {
   popup.onclick = e => e.stopPropagation();
 }
 
+function openMarkerColorPicker(anchorBtn, pinObj, index) {
+  openColorChoicePopup(anchorBtn, pinObj.color || null, (colorName) => {
+    pinObj.color = colorName;
+    savePins();
+    renderPins();
+    renderSegments();
+    renderPinList();
+  });
+}
+
 // マーカーのメモ編集：infoSpanをその場でテキスト入力に差し替える。
 // Enterまたはフォーカスアウトで確定し、Escでキャンセルする。
 // マーカーメモでよく使われる曲構成のラベル。クイック選択チップとして
@@ -651,6 +673,97 @@ const MARKER_LABEL_PRESETS = [
   "Intro", "Verse", "Pre-chorus", "Chorus", "Last Chorus",
   "Bridge", "Solo", "Outro"
 ];
+
+// ============================================================
+// 【v2.15.0】マーカーメモのプリセットごとの自動カラー。
+// プリセット(チップ)を選んだ時、ここで設定された色をマーカーにも自動で付ける。
+// 設定はColorパネルの「Marker Memo Colors」から変更でき、localStorageの
+// MARKER_PRESET_COLORS_KEYに { プリセット名: 色キー|null } で保存する
+// （色キーはMARKER_COLOR_PALETTE＝QN_THEMESのname。nullは「色を付けない」）。
+// 初期値は色相が離れるように配色している。
+// ============================================================
+const MARKER_PRESET_COLORS_KEY = "qn_marker_preset_colors_v1";
+const MARKER_PRESET_COLOR_DEFAULTS = {
+  "Intro": "emerald",
+  "Verse": "sky",
+  "Pre-chorus": "violet",
+  "Chorus": "red",
+  "Last Chorus": "pink",
+  "Bridge": "lime",
+  "Solo": "amber",
+  "Outro": "indigo"
+};
+
+function getMarkerPresetColors() {
+  let saved = {};
+  try {
+    const raw = localStorage.getItem(MARKER_PRESET_COLORS_KEY);
+    if (raw) saved = JSON.parse(raw) || {};
+  } catch (e) { saved = {}; }
+  const result = {};
+  MARKER_LABEL_PRESETS.forEach(label => {
+    result[label] = Object.prototype.hasOwnProperty.call(saved, label)
+      ? saved[label]
+      : (MARKER_PRESET_COLOR_DEFAULTS[label] || null);
+  });
+  return result;
+}
+
+function setMarkerPresetColor(label, colorName) {
+  const current = getMarkerPresetColors();
+  current[label] = colorName || null;
+  try { localStorage.setItem(MARKER_PRESET_COLORS_KEY, JSON.stringify(current)); } catch (e) {}
+}
+
+// Colorパネル内の設定行（#qnMarkerPresetColorRows、index.html側）を組み立てる。
+function renderMarkerPresetColorSettings() {
+  const rowsEl = document.getElementById("qnMarkerPresetColorRows");
+  if (!rowsEl) return;
+  rowsEl.innerHTML = "";
+  const colors = getMarkerPresetColors();
+  MARKER_LABEL_PRESETS.forEach(label => {
+    const colorName = colors[label];
+    const hex = colorName && MARKER_COLOR_PALETTE[colorName] ? MARKER_COLOR_PALETTE[colorName] : null;
+
+    const row = document.createElement("div");
+    row.className = "qn-marker-preset-color-row";
+
+    const name = document.createElement("span");
+    name.className = "qn-marker-preset-color-name";
+    name.textContent = label;
+
+    const swatchBtn = document.createElement("button");
+    swatchBtn.type = "button";
+    swatchBtn.className = "marker-color-swatch qn-marker-preset-color-swatch" + (hex ? "" : " marker-color-none");
+    swatchBtn.title = hex ? colorName : "No color";
+    if (hex) swatchBtn.style.background = hex;
+    swatchBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof hapticTap === "function") hapticTap();
+      openColorChoicePopup(swatchBtn, colorName || null, (picked) => {
+        setMarkerPresetColor(label, picked);
+        renderMarkerPresetColorSettings();
+      });
+    };
+
+    row.appendChild(name);
+    row.appendChild(swatchBtn);
+    rowsEl.appendChild(row);
+  });
+}
+renderMarkerPresetColorSettings();
+document.addEventListener("DOMContentLoaded", renderMarkerPresetColorSettings);
+
+// メモ編集中のプリセット選択ポップアップ（1つだけ開く）。
+var activePinMemoPresetPopup = null; // renderPinList()から先に参照され得るためvar（TDZ回避）
+function closePinMemoPresetPopup() {
+  if (activePinMemoPresetPopup) {
+    activePinMemoPresetPopup.popup.remove();
+    window.removeEventListener("scroll", activePinMemoPresetPopup.reposition, true);
+    window.removeEventListener("resize", activePinMemoPresetPopup.reposition);
+    activePinMemoPresetPopup = null;
+  }
+}
 
 function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   if (itemDiv.querySelector(".pin-memo-input")) return; // 既に編集中なら何もしない
@@ -669,28 +782,21 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   input.focus();
   input.select();
 
-  const presetRow = document.createElement("div");
-  presetRow.className = "pin-memo-presets";
-  MARKER_LABEL_PRESETS.forEach(label => {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "pin-memo-preset-chip";
-    chip.textContent = label;
-    chip.onmousedown = (e) => {
-      // input側のblur(=commit)より先にpresetクリックが処理されるよう、
-      // mousedown時点でpreventDefaultしてinputのフォーカスを維持する。
-      e.preventDefault();
-      input.value = label;
-      input.focus();
-    };
-    presetRow.appendChild(chip);
-  });
-  itemDiv.appendChild(presetRow);
+  // 【v2.15.0】プリセットは行の中ではなく、入力欄の下に浮かぶポップアップで
+  // 表示する（以前は.pinItemの中に行として追加していたため、編集中だけ
+  // リストの行が縦に広がっていた）。チップを押したら、メモの確定・
+  // プリセットに設定された色の自動適用・ポップアップと編集モードの終了まで
+  // 一度に行う。
+  const presetPopup = document.createElement("div");
+  presetPopup.className = "pin-memo-preset-popup";
+  const presetColors = getMarkerPresetColors();
+  let presetPointerActive = false;
 
   let finished = false;
   function commit() {
     if (finished) return;
     finished = true;
+    closePinMemoPresetPopup();
     pinObj.memo = input.value.trim();
     savePins();
     renderPinList();
@@ -698,8 +804,90 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   function cancel() {
     if (finished) return;
     finished = true;
+    closePinMemoPresetPopup();
     renderPinList();
   }
+  function applyPreset(label) {
+    if (finished) return;
+    finished = true;
+    closePinMemoPresetPopup();
+    pinObj.memo = label;
+    const colorName = presetColors[label];
+    let colorChanged = false;
+    if (colorName && MARKER_COLOR_PALETTE[colorName]) {
+      pinObj.color = colorName;
+      colorChanged = true;
+    }
+    savePins();
+    renderPinList();
+    if (colorChanged) {
+      renderPins();
+      renderSegments();
+    }
+    if (typeof hapticTap === "function") hapticTap();
+  }
+
+  MARKER_LABEL_PRESETS.forEach(label => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "pin-memo-preset-chip";
+    const colorName = presetColors[label];
+    const hex = colorName && MARKER_COLOR_PALETTE[colorName] ? MARKER_COLOR_PALETTE[colorName] : null;
+    if (hex) {
+      const dot = document.createElement("span");
+      dot.className = "pin-memo-preset-dot";
+      dot.style.background = hex;
+      chip.appendChild(dot);
+    }
+    chip.appendChild(document.createTextNode(label));
+    // pointerdownでpreventDefaultして入力欄のフォーカス（=編集状態）を
+    // 保ち、実際の適用はclickで行う。pointerdown時点で適用・ポップアップを
+    // 消すと、その後のclickが下にあるリスト行（マーカーへジャンプ等）に
+    // 落ちてしまうため。
+    chip.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      presetPointerActive = true;
+      // チップを押したまま外へ指を離した（clickにならなかった）場合の後始末：
+      // 押下フラグを戻し、入力欄からフォーカスが外れていれば通常どおり確定する。
+      window.addEventListener("pointerup", () => {
+        setTimeout(() => {
+          if (!presetPointerActive) return;
+          presetPointerActive = false;
+          if (!finished && document.activeElement !== input) commit();
+        }, 80);
+      }, { once: true });
+    });
+    chip.addEventListener("click", (e) => {
+      e.stopPropagation();
+      presetPointerActive = false;
+      applyPreset(label);
+    });
+    presetPopup.appendChild(chip);
+  });
+  presetPopup.addEventListener("click", e => e.stopPropagation());
+
+  function reposition() {
+    if (!input.isConnected) { closePinMemoPresetPopup(); return; }
+    const r = input.getBoundingClientRect();
+    const popupRect = presetPopup.getBoundingClientRect();
+    let top = r.bottom + 6;
+    if (top + popupRect.height > window.innerHeight - 8) {
+      top = Math.max(8, r.top - popupRect.height - 6);
+    }
+    let left = r.left;
+    if (left + popupRect.width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - popupRect.width - 8);
+    }
+    presetPopup.style.top = top + "px";
+    presetPopup.style.left = left + "px";
+  }
+
+  closePinMemoPresetPopup();
+  document.body.appendChild(presetPopup);
+  activePinMemoPresetPopup = { popup: presetPopup, reposition };
+  reposition();
+  window.addEventListener("scroll", reposition, true);
+  window.addEventListener("resize", reposition);
 
   input.addEventListener("keydown", e => {
     if (e.key === "Enter") {
@@ -711,11 +899,13 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
     }
   });
   input.addEventListener("blur", () => {
-    // プリセットチップのクリック(mousedown)によるフォーカス外れではなく、
-    // 実際に編集領域の外に出た場合だけ確定する。mousedownでpreventDefault
-    // しているため、チップクリックではblurが発火しない前提だが、念のため
-    // 少し遅延させてから確定する。
-    setTimeout(commit, 0);
+    // プリセットチップを押している最中のフォーカス外れ（iOS等でpointerdownの
+    // preventDefaultが効かない場合）では確定しない。チップのclick側で
+    // applyPreset()が確定まで行う。
+    setTimeout(() => {
+      if (presetPointerActive) return;
+      commit();
+    }, 0);
   });
   input.addEventListener("click", e => e.stopPropagation());
 }

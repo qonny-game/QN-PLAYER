@@ -33,7 +33,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "2.14.2";
+  window.QN_APP_VERSION = "2.15.0";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -112,6 +112,14 @@
             <button id="qnGlowToggleBtn" class="qn-glow-switch" role="switch" aria-checked="false" title="Fade the current color in and out">
               <span class="qn-glow-switch-knob"></span>
             </button>
+          </div>
+          <!-- 【v2.15.0】マーカーメモのプリセットを選んだ時に自動で付く色の設定。
+               行はplayer-markers.js側のrenderMarkerPresetColorSettings()が
+               MARKER_LABEL_PRESETSから組み立てる。 -->
+          <div class="qn-marker-preset-colors">
+            <div class="qn-marker-preset-colors-title">Marker Memo Colors</div>
+            <div class="qn-marker-preset-colors-desc">メモのプリセットを選んだ時、マーカーに自動で付く色</div>
+            <div class="qn-marker-preset-color-rows" id="qnMarkerPresetColorRows"></div>
           </div>
         </div>
 

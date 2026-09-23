@@ -310,14 +310,32 @@ body.pc-v2-active > .app-container {
    削除用のチェックは編集モード時のみ表示する。markersパネルは.del-btn
    自体がグリッドセル、playlistパネルは.playlist-del-zone（.del-btnを
    包む広いタップ判定エリア）がグリッドセルになる。 */
-#pcV2PanelBody #pinList .del-btn,
+#pcV2PanelBody #pinList .pin-del-zone,
 #pcV2PanelBody #playlistBox .playlist-del-zone {
   display: none;
 }
 
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn,
+#pcV2PanelBody.markers-edit-mode #pinList .pin-del-zone,
 #pcV2PanelBody.playlist-edit-mode #playlistBox .playlist-del-zone {
   display: flex;
+}
+
+/* 【v2.15.0】Markers版の広い削除タップ判定ゾーン。.pinItemのpadding
+   (10px 12px)を負のマージンで打ち消して行の上下いっぱい・右端まで広げ、
+   paddingで内側に戻して●の見た目位置を保つ（.playlist-del-zoneと同じ）。 */
+#pcV2PanelBody.markers-edit-mode #pinList .pin-del-zone {
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  flex-shrink: 0;
+  margin: -10px -12px -10px 0;
+  padding: 10px 16px 10px 8px;
+  cursor: pointer;
+}
+
+#pcV2PanelBody.markers-edit-mode #pinList .toggle-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 #pcV2PanelBody #pinList .toggle-btn,
@@ -354,6 +372,7 @@ body.pc-v2-active > .app-container {
    選択状態を丸チェックボックスの見た目で示す。 */
 #pcV2PanelBody.markers-edit-mode #pinList .del-btn,
 #pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn {
+  display: flex;
   width: 20px;
   height: 20px;
   align-items: center;
@@ -367,12 +386,17 @@ body.pc-v2-active > .app-container {
   flex-shrink: 0;
 }
 
-/* 【v2.13.5】pointer-events:noneはplaylistパネル専用。playlistは外側の
+/* 【v2.13.5】pointer-events:noneは当初playlistパネル専用にしていた。playlistは外側の
    .playlist-del-zoneでタップを受けるため●自体は透過させてよいが、markers
    パネルは.del-btn自体がタップ判定なので、ここを透過させると●を押しても
    e.target.closest(".del-btn")が見つからず、削除選択が一切できなかった
-   （v2.10.6でplaylist側の判定を広げた際、markers側まで巻き込んでいた）。 */
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn {
+   （v2.10.6でplaylist側の判定を広げた際、markers側まで巻き込んでいた）。
+   v2.15.0でmarkersにも広いゾーン(.pin-del-zone)を設けたため、現在は両方とも
+   ●自体を透過させ、外側のゾーンでタップを受ける。 */
+#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn,
+#pcV2PanelBody.markers-edit-mode #pinList .del-btn {
+  /* v2.15.0〜markersも外側のゾーン(.pin-del-zone)でタップを受けるため、
+     ●自体は透過させてよい。 */
   pointer-events: none;
 }
 

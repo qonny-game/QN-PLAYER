@@ -217,29 +217,58 @@
 /* メモ編集中に出すクイック選択プリセット。.pinItemはgrid構造のため、
    grid-column: 1 / -1で全列にまたがる形にし、既存のgrid配置(色マーク・
    本文・編集・トグル・削除の5列)を崩さない新しい行として追加する。 */
-.pin-memo-presets {
-  grid-column: 1 / -1;
+/* 【v2.15.0】メモ編集中のプリセット選択：行の中ではなく、入力欄の下に
+   浮かぶポップアップで表示する（リストの行が広がらないように）。
+   JS側(startPinMemoEdit)がdocument.body直下へ置き、position: fixedで
+   入力欄の位置に合わせる。チップの先頭の丸は、そのプリセットで自動的に
+   付く色（Colorパネルの「Marker Memo Colors」で設定）。 */
+.pin-memo-preset-popup {
+  position: fixed;
+  z-index: 500;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
+  max-width: min(340px, calc(100vw - 16px));
+  padding: 10px;
+  background: #16161b;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
 .pin-memo-preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--icon-muted);
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  padding: 4px 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-bright);
+  background: #1f1f26;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  padding: 8px 11px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.pin-memo-preset-chip:hover {
-  color: var(--text-bright);
-  border-color: var(--accent-primary);
+.pin-memo-preset-chip:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pin-memo-preset-chip:hover {
+    border-color: var(--accent-primary);
+  }
+}
+
+.pin-memo-preset-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .pinItem button {

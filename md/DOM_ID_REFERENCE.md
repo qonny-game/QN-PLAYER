@@ -72,6 +72,11 @@
 
 ---
 
+### Colorパネル内：マーカーメモの自動カラー設定（v2.15.0〜）
+| ID | 役割 |
+|---|---|
+| `qnMarkerPresetColorRows` | プリセットごとの色設定行の入れ物（`renderMarkerPresetColorSettings()`、player-markers.jsが中身を生成） |
+
 ## 動的ID（`player-ui-pc-v2.js`が実行時に生成、`index.html`には存在しない）
 
 PC v2の骨組み要素は全てJSの`build()`関数（`PC_V2_FILE_INDEX.md`参照）内で

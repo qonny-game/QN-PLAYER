@@ -1237,6 +1237,7 @@
   // 対策として、選択が1件でもある間はSKIP/PLAYを押せないようにし、
   // renderPlaylist()自体が呼ばれる状況を作らないようにする。
   window.playlistHasSelectedItems = () => selectedIndices.playlist.size > 0;
+  window.markersHasSelectedItems = () => selectedIndices.markers.size > 0;
 
   function toggleEditMode(panelId) {
     if (!(panelId in editModeState)) return;
@@ -1331,10 +1332,11 @@
       // 削除選択だけ広い判定エリアを別途設けた）。見た目の丸自体は
       // .playlist-del-zoneの中の.del-btnなので、選択状態の表示
       // （pcv2-selectedクラス）は引き続きそちらへ付け外しする。
-      const zoneSelector = panelId === "playlist" ? ".playlist-del-zone" : ".del-btn";
+      // v2.15.0〜markersも広い判定ゾーン(.pin-del-zone)で受ける。
+      const zoneSelector = panelId === "playlist" ? ".playlist-del-zone" : ".pin-del-zone";
       const zone = e.target.closest(zoneSelector);
       if (!zone || !container.contains(zone)) return;
-      const delBtn = panelId === "playlist" ? zone.querySelector(".del-btn") : zone;
+      const delBtn = zone.querySelector(".del-btn");
       if (!delBtn) return;
       e.stopPropagation();
       e.preventDefault();
@@ -1360,6 +1362,16 @@
           if (!toggle) return;
           toggle.disabled = hasSelection;
           toggle.title = hasSelection ? "削除の選択中は切り替えられません" : toggle.dataset.baseTitle || toggle.title;
+        });
+      } else if (panelId === "markers") {
+        // Markersも同じ仕様：選択中は表示/非表示(目)アイコンを押せない。
+        const hasSelection = selectedIndices.markers.size > 0;
+        items.forEach(item => {
+          const toggle = item.querySelector(".toggle-btn");
+          if (!toggle) return;
+          if (!toggle.dataset.baseTitle) toggle.dataset.baseTitle = toggle.title;
+          toggle.disabled = hasSelection;
+          toggle.title = hasSelection ? "削除の選択中は切り替えられません" : toggle.dataset.baseTitle;
         });
       }
     };
