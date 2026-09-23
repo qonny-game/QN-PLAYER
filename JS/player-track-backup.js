@@ -73,6 +73,49 @@ function formatFileSize(bytes) {
   return `${mb.toFixed(mb < 10 ? 1 : 1)} MB`;
 }
 
+// 【v2.15.1】「含める項目」の各行の右端に出す推定サイズ用。音声以外は
+// 数KB未満がほとんどなので、小さい値は「< 1 KB」のように丸めて表示する。
+function formatSmallSize(bytes) {
+  if (!bytes || bytes <= 0) return "0 KB";
+  if (bytes < 1024) return "< 1 KB";
+  return formatFileSize(bytes);
+}
+
+const trackBackupTextEncoder = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
+function utf8Bytes(str) {
+  if (!str) return 0;
+  return trackBackupTextEncoder ? trackBackupTextEncoder.encode(str).length : str.length;
+}
+
+// 選択中の曲について、項目ごとの推定サイズ（バイト）を求める。音声は
+// 実ファイルサイズ、それ以外はバックアップ(markers.json)に書き出される
+// JSON文字列のおおよそのバイト数。
+function estimateTrackBackupItemSizes(selectedTracks) {
+  const sizes = { audio: 0, title: 0, artist: 0, markerPos: 0, markerMemo: 0, text: 0 };
+  selectedTracks.forEach(track => {
+    sizes.audio += track.file && track.file.size ? track.file.size : 0;
+    sizes.title += utf8Bytes(JSON.stringify(track.title || null)) + 10;
+    sizes.artist += utf8Bytes(JSON.stringify(track.artist || null)) + 11;
+    const pins = loadStoredPinsFor(track.name);
+    pins.forEach(p => {
+      sizes.markerPos += utf8Bytes(JSON.stringify({ time: p.t, enabled: p.enabled !== false, color: p.color || null }));
+      sizes.markerMemo += utf8Bytes(JSON.stringify(p.memo || "")) + 8;
+    });
+    sizes.text += utf8Bytes(JSON.stringify(loadStoredNoteTextFor(track.name))) + 12;
+  });
+  return sizes;
+}
+
+const trackBackupSizeEls = {
+  audio: document.getElementById("trackBackupSizeAudio"),
+  title: document.getElementById("trackBackupSizeTitle"),
+  artist: document.getElementById("trackBackupSizeArtist"),
+  markerPos: document.getElementById("trackBackupSizeMarkerPos"),
+  markerMemo: document.getElementById("trackBackupSizeMarkerMemo"),
+  text: document.getElementById("trackBackupSizeText")
+};
+const trackBackupOptionsSummaryEl = document.getElementById("trackBackupOptionsSummary");
+
 function updateTrackBackupSelectionSummary() {
   if (!Array.isArray(playlist)) return;
   const selectedTracks = playlist.filter(t => trackBackupSelectedNames.has(t.name));
@@ -83,9 +126,49 @@ function updateTrackBackupSelectionSummary() {
     const totalBytes = selectedTracks.reduce((sum, t) => sum + (t.file && t.file.size ? t.file.size : 0), 0);
     trackBackupTotalSizeEl.textContent = formatFileSize(totalBytes);
   }
-  if (trackBackupRunBtn) {
-    trackBackupRunBtn.disabled = selectedTracks.length === 0;
+
+  // 含める項目：各行の推定サイズと、見出し行の「N項目・約◯MB」。
+  const sizes = estimateTrackBackupItemSizes(selectedTracks);
+  let checkedCount = 0;
+  let checkedBytes = 0;
+  Object.keys(trackBackupSizeEls).forEach(key => {
+    const el = trackBackupSizeEls[key];
+    if (el) el.textContent = key === "audio" ? formatFileSize(sizes[key]) : formatSmallSize(sizes[key]);
+    const cb = trackBackupCheckboxes[key];
+    if (cb && cb.checked) {
+      checkedCount++;
+      checkedBytes += sizes[key];
+    }
+  });
+  if (trackBackupOptionsSummaryEl) {
+    const total = Object.keys(trackBackupCheckboxes).length;
+    trackBackupOptionsSummaryEl.textContent = checkedCount === 0
+      ? "未選択"
+      : `${checkedCount}/${total}項目・${checkedBytes < 1024 ? "< 1 KB" : "約" + formatFileSize(checkedBytes)}`;
   }
+
+  if (trackBackupRunBtn) {
+    trackBackupRunBtn.disabled = selectedTracks.length === 0 || checkedCount === 0;
+  }
+}
+
+// 含める項目のチェック変更でも見出しの集計・Downloadの可否を更新する。
+Object.values(trackBackupCheckboxes).forEach(cb => {
+  if (cb) cb.addEventListener("change", () => updateTrackBackupSelectionSummary());
+});
+
+// 含める項目の折りたたみ（v2.15.1〜）。開くたびの初期状態は「閉じる」。
+const trackBackupOptionsSectionEl = document.getElementById("trackBackupOptionsSection");
+const trackBackupOptionsToggleEl = document.getElementById("trackBackupOptionsToggle");
+function setTrackBackupOptionsOpen(open) {
+  if (trackBackupOptionsSectionEl) trackBackupOptionsSectionEl.classList.toggle("is-open", open);
+  if (trackBackupOptionsToggleEl) trackBackupOptionsToggleEl.setAttribute("aria-expanded", open ? "true" : "false");
+}
+if (trackBackupOptionsToggleEl) {
+  trackBackupOptionsToggleEl.addEventListener("click", () => {
+    if (typeof hapticTap === "function") hapticTap();
+    setTrackBackupOptionsOpen(!trackBackupOptionsSectionEl.classList.contains("is-open"));
+  });
 }
 
 function renderTrackBackupTrackList() {
@@ -150,6 +233,7 @@ function openBulkBackupModal() {
   Object.values(trackBackupCheckboxes).forEach(cb => { if (cb) cb.checked = true; });
 
   renderTrackBackupTrackList();
+  setTrackBackupOptionsOpen(false);
   updateTrackBackupSelectionSummary();
 
   if (trackBackupRunBtn) trackBackupRunBtn.textContent = "Download";

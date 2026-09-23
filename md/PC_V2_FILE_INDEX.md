@@ -44,6 +44,9 @@ PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT
   `player-track-backup.js`の`closeTrack*Modal()`から呼ばれる（v2.14.0〜）。
 - `openPanelOverlay(panelId)` / `closePanelOverlay()` — パネルの
   開閉（SP幅ではオーバーレイ表示）。
+- `getPanelStash()` / `stashPanelContents(panelBody)` — パネル切替時、
+  使い回す中身を`#pcV2PanelStash`（document内の非表示div）へ退避する
+  （v2.15.1〜、§3-19）。**パネルに新しい実体を足したら対象リストに追加。**
 - `switchPanel(panelId)` — パネルの中身をControl/Markers/Library/Text/
   Export/Backup/Import等に切り替える（Backup/Importはv2.14.0〜、Exportと
   同じく「モーダルを開く→外枠のopenを外す→body/footerをパネルへ移す」）。**このファイル最大の関数の1つ。新しいパネル

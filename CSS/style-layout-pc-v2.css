@@ -471,6 +471,7 @@ body.pc-v2-active > .app-container {
   align-items: center;
   gap: 10px;
   padding: 16px 0 24px;
+  flex-shrink: 0;
 }
 
 #pcV2PanelBody.pcv2-panel-backup .export-status,
@@ -487,6 +488,191 @@ body.pc-v2-active > .app-container {
 #pcV2PanelBody.pcv2-panel-import .export-run-btn {
   flex: 1;
   width: auto;
+}
+
+/* ------------------------------------------------------------
+   【v2.15.1】Backupパネルのレイアウト：
+   - パネルの高さいっぱいを使い、曲選択リストが残りの高さを全部もらう
+     （含める項目・合計・Downloadは下にコンパクトに並ぶ）。
+   - 含める項目は折りたたみ（.is-openで展開）。見出し行に項目数と推定サイズ。
+   - 角丸の枠は使わず、行は細い線で区切るだけのシンプルな見た目にする。
+   ------------------------------------------------------------ */
+#pcV2PanelBody.pcv2-panel-backup {
+  display: flex;
+  flex-direction: column;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .export-modal-body {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .export-section {
+  padding: 18px 0;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .export-section:first-child {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding-top: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-options {
+  flex-shrink: 0;
+  border-bottom: none;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist-header {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist-header .export-section-label {
+  margin-bottom: 0;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-mini-btn {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: none;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist {
+  flex: 1;
+  min-height: 160px;
+  max-height: none;
+  gap: 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row,
+#pcV2PanelBody.pcv2-panel-backup .track-backup-row {
+  gap: 12px;
+  padding: 12px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row:last-child,
+#pcV2PanelBody.pcv2-panel-backup .track-backup-row:last-child {
+  border-bottom: none;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-row:hover,
+#pcV2PanelBody.pcv2-panel-backup .track-backup-row:has(input:checked) {
+  background: none;
+  border-color: var(--border-subtle);
+}
+
+/* 曲の行のチェックも、含める項目と同じ丸いチェックに揃える */
+#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  position: relative;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"]:checked {
+  border-color: var(--accent-primary, #3b82f6);
+  background: var(--accent-primary, #3b82f6);
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border-right: 2px solid var(--text-pure-white, #fff);
+  border-bottom: 2px solid var(--text-pure-white, #fff);
+  transform: rotate(45deg);
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-track-name {
+  font-size: 13.5px;
+}
+
+#pcV2PanelBody.pcv2-panel-backup .track-backup-size-row {
+  flex-shrink: 0;
+  padding: 12px 4px 0;
+}
+
+/* 含める項目：見出し行（折りたたみトグル） */
+.track-backup-options-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+
+#pcV2PanelBody .track-backup-options-toggle .export-section-label {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.track-backup-options-summary {
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--icon-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.track-backup-options-chevron {
+  width: 20px;
+  height: 20px;
+  fill: var(--icon-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.track-backup-options.is-open .track-backup-options-chevron {
+  transform: rotate(180deg);
+}
+
+#pcV2PanelBody .track-backup-options .track-backup-checklist {
+  display: none;
+  gap: 0;
+  margin-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+#pcV2PanelBody .track-backup-options.is-open .track-backup-checklist {
+  display: flex;
+}
+
+/* 含める項目の各行の右端：推定サイズ（音声データは選択曲の合計サイズ） */
+.track-backup-row-size {
+  flex-shrink: 0;
+  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--icon-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+#trackBackupSizeAudio {
+  color: var(--accent-primary);
 }
 
 /* パネルは他のメニューを押せば閉じられるため、「閉じるだけ」のCancelは
@@ -557,10 +743,16 @@ body.pc-v2-active > .app-container {
 /* Exportボタンをモック準拠の単色・幅いっぱいのフラットボタンに変更 */
 #pcV2PanelBody .export-run-btn {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   background: var(--accent-primary);
-  border-radius: 8px;
+  /* 【v2.15.1】他のボタン（ADD AUDIO等の.panel-fab-btn）に合わせ、左右を
+     完全な半円にする。 */
+  border-radius: 999px;
   box-shadow: none;
+}
+
+#pcV2PanelBody .export-cancel-btn {
+  border-radius: 999px;
 }
 
 #pcV2PanelBody .export-run-btn:hover:not(:disabled) {

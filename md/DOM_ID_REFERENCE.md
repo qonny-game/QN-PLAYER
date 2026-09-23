@@ -24,6 +24,8 @@
 | `trackBackupSelectAllBtn` / `trackBackupSelectNoneBtn` | 全選択/全解除 |
 | `trackBackupSelectedCount` | 「N曲選択中」表示 |
 | `trackBackupTotalSize` | 合計ファイルサイズ表示 |
+| `trackBackupOptionsSection` / `trackBackupOptionsToggle` / `trackBackupOptionsSummary` / `trackBackupOptionsBody` | 含める項目の折りたたみ一式（v2.15.1〜、`.is-open`で展開） |
+| `trackBackupSizeAudio` / `…Title` / `…Artist` / `…MarkerPos` / `…MarkerMemo` / `…Text` | 含める項目の各行右端の推定サイズ（v2.15.1〜） |
 | `trackBackupIncludeAudio` / `trackBackupIncludeTitle` / `trackBackupIncludeArtist` / `trackBackupIncludeMarkerPos` / `trackBackupIncludeMarkerMemo` / `trackBackupIncludeText` | 含める項目チェックボックス6種 |
 
 ### Importモーダル（`trackImport*`、`player-track-backup.js`が制御）
@@ -90,6 +92,7 @@ PC v2の骨組み要素は全てJSの`build()`関数（`PC_V2_FILE_INDEX.md`参�
 | `pcV2IconBar` | 左の縦アイコンバー（サイドメニュー） |
 | `pcV2IconBarScrollHint` / `pcV2IconBarSpacer` / `pcV2IconBarBottom` | アイコンバー付随要素 |
 | `pcV2Panel` / `pcV2PanelHeader` / `pcV2PanelBody` / `pcV2PanelFab` | 中央パネル一式 |
+| `pcV2PanelStash` | 非表示中のパネルの中身の退避場所（body直下、display:none。v2.15.1〜） |
 | `pcV2WaveArea` / `pcV2WaveFabRow` / `pcV2WaveAddAudioBtn` / `pcV2WaveAddMarkerBtn` | 波形エリア・右下ボタン列（v2.14.0〜横並び）・+ADD AUDIO・+ADD MARKER |
 | `pcV2TimeRow` | 時刻表示行（SP幅限定） |
 | `pcV2BottomBar` | 下段固定コントロールバー |

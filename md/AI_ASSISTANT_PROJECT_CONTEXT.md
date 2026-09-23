@@ -120,6 +120,8 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
 | ポップアップ・スライダーが背面に隠れて見えない | 3-15 |
 | PC版が全体的にもっさり、他タブまでカクつく | 3-16, 3-10 |
 | Speed/Key/EQを初めて使う瞬間に音が途切れる | 3-17 |
+| マーカーメモ編集中に行が広がる | 3-18 |
+| 別パネル表示中に曲を変えると、戻った時に前の曲の内容が残っている | 3-19, 3-13 |
 
 ### 3-1. ループのプリロール機能：「1個前のマーカー」に化ける
 - **現象：** マーカー区間ループにpre/post-roll秒数を設定すると、ジャンプ先が
@@ -403,6 +405,25 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
   Markersに導入し、Libraryの`.playlist-del-zone`と同じ仕組み・同じ
   「選択中は表示/非表示トグル不可」仕様に揃えた（3-7, 3-12参照）。
 
+### 3-19. パネル切替で中身をdocumentから切り離すと、裏での更新が空振りする
+- **現象：** 別のパネル（Control等）を表示したまま次の曲へ進み、その後
+  Markersパネルを開くと、前の曲のマーカーリストが表示されている。
+  波形上のマーカーやショートカットは新しい曲で正常に動く。
+- **原因：** `switchPanel()`が`panelBody.innerHTML = ""`でパネルの中身
+  （`markersBody`等の実体）をdocumentから切り離していた。切り離された
+  要素の中の`#pinList`・`#playlistBox`・`#noteTextArea`等は
+  `document.getElementById()`で見つからない（nullになる）ため、その間の
+  `renderPinList()`・`renderPlaylist()`・テキスト読み込みは何もせずに
+  終わり、古い内容のまま再表示されていた。
+- **解決（v2.15.1）：** `innerHTML = ""`の直前に`stashPanelContents()`で、
+  再利用する実体（各パネルの中身・EQ見出し・QNメニューのセクション・
+  Backup/Import/Exportの中身）をdocument内の非表示の退避場所
+  `#pcV2PanelStash`へ移す。常にdocument内にいるので、どのパネルを
+  表示していても裏で正しく更新される。
+- **教訓：** **`getElementById`で更新する要素は、非表示の時もdocument内に
+  置いておく**（`display: none`の入れ物に移す）。パネルに新しい実体を
+  追加したら、`stashPanelContents()`の対象リストにも必ず加える。
+
 ## 4. データフロー・状態管理の要点
 
 - **`playlist`配列**（`player-core.js`）: `{ file, name, title, artist,
@@ -584,6 +605,9 @@ grep -o 'id="[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort -u
   高さを変えていないか。ポップアップにする（3-18）。
 - [ ] ドラッグ・スライダーはPointer Events（マウス/タッチ両対応）か。
   `mousedown`だけになっていないか（3-15）。
+- [ ] パネルに新しい実体（使い回す中身）を追加したら、`stashPanelContents()`
+  の対象にも加えたか。非表示中もdocument内に置かないと、裏での更新が
+  空振りする（3-19）。
 - [ ] markers/playlist共通セレクタのCSSを変えるとき、両パネルのタップ判定
   （`.pin-del-zone`/`.playlist-del-zone`）を壊していないか（3-12）。
 

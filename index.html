@@ -33,7 +33,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "2.15.0";
+  window.QN_APP_VERSION = "2.15.1";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -744,32 +744,44 @@
         </div>
       </div>
 
-      <div class="export-section">
-        <label class="export-section-label">含める項目</label>
-        <div class="track-backup-checklist">
+      <!-- 【v2.15.1】含める項目は折りたたみ式（初期は閉じた状態）。見出し行に
+           選択中の項目数と推定合計サイズを表示し、タップで項目一覧を開閉する。 -->
+      <div class="export-section track-backup-options" id="trackBackupOptionsSection">
+        <button type="button" class="track-backup-options-toggle" id="trackBackupOptionsToggle" aria-expanded="false" aria-controls="trackBackupOptionsBody">
+          <span class="export-section-label">含める項目</span>
+          <span class="track-backup-options-summary" id="trackBackupOptionsSummary"></span>
+          <svg class="track-backup-options-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        </button>
+        <div class="track-backup-checklist" id="trackBackupOptionsBody">
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeAudio" checked>
             <span class="track-backup-row-label">音声データ</span>
+            <span class="track-backup-row-size" id="trackBackupSizeAudio"></span>
           </label>
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeTitle" checked>
             <span class="track-backup-row-label">ライブラリ曲名</span>
+            <span class="track-backup-row-size" id="trackBackupSizeTitle"></span>
           </label>
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeArtist" checked>
             <span class="track-backup-row-label">ライブラリ名（アーティスト）</span>
+            <span class="track-backup-row-size" id="trackBackupSizeArtist"></span>
           </label>
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeMarkerPos" checked>
             <span class="track-backup-row-label">マーカー位置</span>
+            <span class="track-backup-row-size" id="trackBackupSizeMarkerPos"></span>
           </label>
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeMarkerMemo" checked>
             <span class="track-backup-row-label">マーカーメモ</span>
+            <span class="track-backup-row-size" id="trackBackupSizeMarkerMemo"></span>
           </label>
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeText" checked>
             <span class="track-backup-row-label">テキストメモ</span>
+            <span class="track-backup-row-size" id="trackBackupSizeText"></span>
           </label>
         </div>
       </div>

@@ -1082,6 +1082,31 @@
     return fab;
   }
 
+  // パネルの中身の退避場所。document.body直下の非表示div。
+  function getPanelStash() {
+    let stash = document.getElementById("pcV2PanelStash");
+    if (!stash) {
+      stash = el('<div id="pcV2PanelStash" style="display:none;" aria-hidden="true"></div>');
+      document.body.appendChild(stash);
+    }
+    return stash;
+  }
+
+  // panelBody内の再利用する実体（各パネルの中身・QNメニューのセクション）を
+  // 退避場所へ移す。FAB等、パネルを開くたびに作り直す使い捨て要素は
+  // 対象外（innerHTML=""でそのまま破棄してよい）。
+  function stashPanelContents(panelBody) {
+    const stash = getPanelStash();
+    const keep = [
+      controlBody, eqDividerEl, markersBody, playlistBody, textBody, eqBody,
+      exportBody, exportFooter, backupBody, backupFooter, importBody, importFooter,
+      pcv2QnSections.color, pcv2QnSections.keyboard
+    ];
+    keep.forEach(node => {
+      if (node && node.parentNode === panelBody) stash.appendChild(node);
+    });
+  }
+
   function switchPanel(panelId) {
     currentPanel = panelId;
 
@@ -1119,7 +1144,15 @@
       }
     }
 
-    // 前回の中身を退避してから、今回の中身を挿入する
+    // 前回の中身を退避してから、今回の中身を挿入する。
+    // 【v2.15.1】パネルの中身（Markers/Library/Text/Control等の実体）は、
+    // innerHTML=""で「どこにも属さない」状態にせず、document内の非表示の
+    // 退避場所(#pcV2PanelStash)へ移す。以前はinnerHTML=""で切り離していた
+    // ため、別パネルを表示中は#pinList・#playlistBox・#noteTextArea等が
+    // document上に存在せず、document.getElementById()がnullを返していた。
+    // その間に曲が切り替わると、renderPinList()等の更新が空振りし、
+    // 次にそのパネルを開いた時に前の曲の内容が表示されていた（§3-19）。
+    stashPanelContents(panelBody);
     panelBody.innerHTML = "";
     panelHeader.innerHTML = "";
     // パネル種別ごとのクラス(pcv2-panel-*)だけ入れ替える。markers-edit-mode等、
