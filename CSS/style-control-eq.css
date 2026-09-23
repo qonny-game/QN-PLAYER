@@ -11,7 +11,7 @@
 .eq-hint {
   margin: 0 0 14px;
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
+  font-size: var(--fs-small);
   color: #6b6b7b;
 }
 
@@ -37,14 +37,15 @@
 }
 
 .eq-preset-btn {
+  height: var(--btn-h);
   flex: 1 1 auto;
-  padding: 5px 10px;
+  padding: 0 12px;
   background: none;
   color: var(--icon-muted);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 11px;
+  font-size: var(--fs-btn);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -82,7 +83,7 @@
 
 .eq-band-gain {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 10px;
+  font-size: var(--fs-micro);
   font-weight: 600;
   color: var(--accent-primary);
   white-space: nowrap;
@@ -145,7 +146,7 @@
 
 .eq-band-freq {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 10px;
+  font-size: var(--fs-micro);
   font-weight: 500;
   color: #6b6b7b;
   white-space: nowrap;
@@ -185,18 +186,19 @@
 
 /* 現在のEQ設定を新しいカスタムプリセットとして保存するボタン。 */
 .eq-preset-save-btn {
+  height: var(--btn-h);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   margin-top: 8px;
-  padding: 7px 10px;
+  padding: 0 var(--btn-pad-x);
   background: none;
   border: 1px dashed rgba(255, 255, 255, 0.18);
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 11px;
+  font-size: var(--fs-btn);
   font-weight: 600;
   cursor: pointer;
 }

@@ -23,7 +23,7 @@
   border: none;
   border-bottom: 1px solid var(--border-subtle);
   border-radius: 0;
-  font-size: 13px;
+  font-size: var(--fs-body);
   transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s ease-out;
   position: relative;
 }
@@ -123,7 +123,7 @@
   cursor: text;
   outline: none;
   background: var(--bg-hover-subtle);
-  border-radius: 3px;
+  border-radius: var(--radius-field);
   padding: 1px 4px;
   margin: -1px -4px;
 }
@@ -133,7 +133,7 @@
 }
 
 .playlist-title {
-  font-size: 13px;
+  font-size: var(--fs-body);
   font-weight: 500;
   color: var(--text-bright);
 }
@@ -145,13 +145,13 @@
 }
 
 .playlist-artist {
-  font-size: 11px;
+  font-size: var(--fs-small);
   font-weight: 400;
   color: var(--icon-muted);
 }
 
 .playlist-duration {
-  font-size: 11px;
+  font-size: var(--fs-small);
   color: var(--icon-muted);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
@@ -175,7 +175,7 @@
   padding: 0;
   background: none;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-round);
   cursor: pointer;
   color: var(--icon-muted);
   transition: background var(--dur-hover, 0.18s) var(--ease-snap, ease), color var(--dur-hover, 0.18s) var(--ease-snap, ease);
@@ -203,12 +203,12 @@
 
 .playlistItem button {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
+  font-size: var(--fs-btn);
   cursor: pointer;
   background: none;
   color: var(--danger);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-round);
   font-weight: 600;
   padding: 5px 9px;
   transition: background 0.2s;
@@ -240,9 +240,9 @@
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: var(--text-pure-white);
   text-align: center;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 15px;
+  font-size: var(--fs-btn-primary);
   font-weight: 600;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -328,7 +328,7 @@ body.dragover #dropOverlay {
   border: none;
   color: var(--icon-muted);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-round);
 }
 
 .playlist-hover-edit-btn svg {
@@ -371,24 +371,25 @@ body.dragover #dropOverlay {
 
 /* 編集モード時の「曲送り時スルーON/OFF」トグル。PLAY=順送りに含める、
    SKIP=順送りで飛ばす、を文字で明示する。 */
-.playlist-skip-toggle {
+/* .playlistItem button（丸ボタン用の汎用指定）より優先させるため、.playlistItemを前置する（v2.16.0） */
+.playlistItem .playlist-skip-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 5px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: none;
   color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 10px;
+  font-size: var(--fs-micro);
   font-weight: 700;
   letter-spacing: 0.5px;
   cursor: pointer;
   flex-shrink: 0;
 }
 
-.playlist-skip-toggle.skip-off {
+.playlistItem .playlist-skip-toggle.skip-off {
   color: var(--accent-primary);
   border-color: var(--accent-primary);
 }
@@ -397,7 +398,7 @@ body.dragover #dropOverlay {
    誤って押してしまうと選択が実質リセットされてしまう不具合があったため、
    選択中はクリックできないようにする（player-ui-pc-v2.js /
    player-playlist.js側でdisabled属性を切り替える）。 */
-.playlist-skip-toggle:disabled {
+.playlistItem .playlist-skip-toggle:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }

@@ -205,7 +205,7 @@
 
 .auto-speed-header span {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 15px;
+  font-size: var(--fs-heading);
   font-weight: 600;
   color: var(--icon-muted);
   text-transform: none;
@@ -256,14 +256,14 @@
 
 .auto-speed-unit {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 11px;
+  font-size: var(--fs-small);
   color: var(--icon-muted);
   white-space: nowrap;
 }
 
 .auto-speed-row-label {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
+  font-size: var(--fs-small);
   color: var(--icon-muted);
   white-space: nowrap;
 }
@@ -273,10 +273,10 @@
   padding: 6px 8px;
   background: #1c1c24;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-field);
   color: var(--text-bright);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 13px;
+  font-size: var(--fs-body);
   font-weight: 600;
   text-align: center;
   box-sizing: border-box;
@@ -295,7 +295,7 @@
   display: flex;
   width: 100%;
   gap: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   border: 1px solid var(--border-subtle);
 }
@@ -308,7 +308,7 @@
   border-left: 1px solid var(--border-subtle);
   color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 11px;
+  font-size: var(--fs-btn);
   font-weight: 600;
   letter-spacing: 0.3px;
   text-transform: uppercase;
@@ -327,7 +327,7 @@
 
 .auto-speed-status {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 11px;
+  font-size: var(--fs-small);
   color: #6b6b7b;
   text-align: center;
 }
@@ -337,16 +337,16 @@
   /* 元は↺記号1文字だけの26x26正方形だったが、"RESET"という文言に変更した
      ため、幅を可変にしてテキストに合わせて広げる。高さは既存の26pxを維持。 */
   width: auto;
-  height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  height: var(--btn-h);
+  padding: 0 var(--btn-pad-x);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--icon-muted);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 10px;
+  font-size: var(--fs-btn);
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -372,13 +372,13 @@
 
 .key-disabled-badge {
   flex-shrink: 0;
-  font-size: 9px;
+  font-size: var(--fs-micro);
   font-weight: 700;
   letter-spacing: 0.5px;
   color: #f59e0b;
   background: rgba(245, 158, 11, 0.15);
   border: 1px solid rgba(245, 158, 11, 0.35);
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
   padding: 1px 5px;
   text-transform: uppercase;
 }
@@ -393,8 +393,8 @@
   flex-shrink: 0;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-round);
+  border: 1px solid var(--border-strong);
   background: none;
   color: var(--icon-muted);
   font-size: 15px;
@@ -456,7 +456,7 @@
   position: relative;
   width: 40px;
   height: 22px;
-  border-radius: 11px;
+  border-radius: var(--radius-pill);
   background: #2a2a35;
   border: 1px solid var(--border-subtle);
   cursor: pointer;

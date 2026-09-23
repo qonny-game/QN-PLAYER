@@ -43,6 +43,38 @@
   --danger: #ef4444;
 
   /* ============================================================
+     【v2.16.0】UIの統一ルール（角丸・文字サイズ・ボタン）
+     下部コントロールバー(#pcV2BottomBar)・アイコンバーのラベル・ロゴ/
+     スプラッシュ・波形上のラベル・料金モーダルの大見出しは、よく使う/
+     アイコンだけでは分かりにくい等の理由で意図的に例外扱い。
+     それ以外（パネル内・ポップアップ・ボタン・入力欄）は必ず下の
+     トークンを使い、個別のpx値を直書きしない。
+     ============================================================ */
+  /* 角丸：ボタン・チップ・トグル・ステッパー＝pill（左右が完全な半円）、
+     アイコンだけの丸ボタン＝round、入力欄＝field、浮かぶ箱（ポップアップ・
+     ドロップダウン）＝popup、モーダル＝modal。リストの行・パネル内の
+     区切りは角丸の枠を使わず、線(--border-subtle)で区切る。 */
+  --radius-pill: 999px;
+  --radius-round: 50%;
+  --radius-field: 10px;
+  --radius-popup: 14px;
+  --radius-modal: 20px;
+
+  /* 文字サイズ：5段階＋ボタン2種。 */
+  --fs-title: 20px;    /* パネル見出し（#pcV2PanelHeader） */
+  --fs-heading: 15px;  /* セクション見出し（SPEED/KEY/EQUALIZER、含める項目 等） */
+  --fs-body: 14px;     /* リストの主テキスト・入力欄・行ラベル */
+  --fs-small: 12px;    /* 補足・説明・サイズ表示・アーティスト名 等 */
+  --fs-micro: 11px;    /* EQの目盛り数値・バッジ等の極小表示 */
+  --fs-btn: 12px;      /* 二次ボタン（RESET・プリセット・全選択 等） */
+  --fs-btn-primary: 14px; /* 主ボタン（DOWNLOAD/IMPORT/ADD AUDIO 等） */
+
+  /* 二次ボタンの共通寸法・枠線 */
+  --btn-h: 30px;
+  --btn-pad-x: 14px;
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* ============================================================
      モーション設計トークン（docs/ui-motion-haptics-design.md 参照）
      4種のイージングを動作の意味ごとに使い分ける。
      ============================================================ */
@@ -367,7 +399,7 @@ body {
 
 .sidebar-section h3 {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 15px;
+  font-size: var(--fs-heading);
   margin: 0;
   color: var(--icon-muted);
   letter-spacing: 1px;
@@ -808,14 +840,14 @@ body {
 #loopInfo,
 #playlistInfo {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 11px;
+  font-size: var(--fs-micro);
   color: var(--accent-primary);
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   background: var(--accent-glow);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
 }
 
 #vbarContainer {
@@ -961,7 +993,7 @@ body {
 
 .control-card label {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 15px;
+  font-size: var(--fs-heading);
   font-weight: 600;
   letter-spacing: 0.5px;
   color: var(--icon-muted);

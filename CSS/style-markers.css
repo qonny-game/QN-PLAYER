@@ -27,7 +27,7 @@
   border: none;
   border-bottom: 1px solid var(--border-subtle);
   border-radius: 0;
-  font-size: 13px;
+  font-size: var(--fs-body);
   transition: background 0.2s;
 }
 
@@ -48,7 +48,7 @@
 
 .pinItem .pin-info {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 15px;
+  font-size: var(--fs-body);
   letter-spacing: 0.5px;
   cursor: pointer;
   font-weight: 500;
@@ -89,7 +89,7 @@
   background: none;
   color: var(--icon-muted);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-round);
   cursor: pointer;
   transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
 }
@@ -152,7 +152,7 @@
   padding: 12px;
   background: #16161b;
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-popup);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -201,12 +201,12 @@
 
 .pin-memo-input {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: 500;
   color: var(--text-bright);
   background: #14141a;
   border: 1px solid var(--accent-primary);
-  border-radius: 6px;
+  border-radius: var(--radius-field);
   padding: 5px 8px;
   min-width: 0;
   width: 100%;
@@ -232,7 +232,7 @@
   padding: 10px;
   background: #16161b;
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-popup);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
 }
@@ -242,12 +242,12 @@
   align-items: center;
   gap: 6px;
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 13px;
+  font-size: var(--fs-btn);
   font-weight: 600;
   color: var(--text-bright);
   background: #1f1f26;
   border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   padding: 8px 11px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -273,14 +273,14 @@
 
 .pinItem button {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
+  font-size: var(--fs-btn);
   letter-spacing: 0.5px;
   padding: 7px;
   cursor: pointer;
   background: none;
   color: var(--text-pure-white);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-round);
   font-weight: 600;
   transition: background 0.2s;
   text-align: center;
@@ -342,7 +342,7 @@
   padding: 0;
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-round);
   cursor: pointer;
   transition: background 0.2s;
 }

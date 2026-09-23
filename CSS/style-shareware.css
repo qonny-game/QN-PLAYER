@@ -30,7 +30,7 @@
   overflow-y: auto;
   background: #16161a;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: var(--radius-modal);
 }
 
 .sw-unlock-modal-header {
@@ -80,11 +80,11 @@
   display: inline-block;
   margin: 0 auto 18px;
   padding: 6px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text-bright, #f5f5f7);
-  font-size: 12.5px;
+  font-size: var(--fs-small);
   font-weight: 600;
   text-align: center;
   white-space: nowrap;
@@ -117,7 +117,7 @@
   display: flex;
   flex-direction: column;
   padding: 20px 16px;
-  border-radius: 16px;
+  border-radius: var(--radius-popup);
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-bright);
@@ -191,7 +191,7 @@
   box-sizing: border-box;
   width: 100%;
   padding: 11px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-primary, #3b82f6);
   color: var(--text-pure-white);
   font-size: 12px;
@@ -221,7 +221,7 @@
   top: -11px;
   left: 20px;
   padding: 3px 11px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-primary, #3b82f6);
   color: var(--text-pure-white);
   font-size: 11px;
@@ -235,7 +235,7 @@
   top: -11px;
   right: 20px;
   padding: 3px 11px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: linear-gradient(135deg, #f59e0b, #f43f5e);
   color: var(--text-pure-white);
   font-size: 10.5px;
@@ -340,10 +340,10 @@
   top: 8px;
   right: 8px;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  font-size: 11px;
+  font-size: var(--fs-micro);
   font-weight: 600;
   color: var(--text-bright);
   letter-spacing: 0.3px;
@@ -410,12 +410,12 @@
   max-width: calc(100vw - 24px);
   box-sizing: border-box;
   padding: 10px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-popup);
   background: rgba(20, 20, 24, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 12.5px;
+  font-size: var(--fs-small);
   color: #d8d8de;
   white-space: nowrap;
   opacity: 0;
@@ -450,7 +450,7 @@
     flex-wrap: wrap;
     justify-content: center;
     text-align: center;
-    border-radius: 16px;
+    border-radius: var(--radius-popup);
     bottom: 16px;
   }
 }
@@ -467,11 +467,11 @@
   padding: 8px 16px;
   margin-bottom: 8px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   background: linear-gradient(135deg, #f59e0b, #f43f5e);
   color: var(--text-pure-white);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
+  font-size: var(--fs-btn);
   font-weight: 800;
   letter-spacing: 0.6px;
   cursor: pointer;
@@ -500,11 +500,11 @@
   justify-content: center;
   padding: 8px;
   margin-bottom: 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
   color: #b8b8c2;
-  font-size: 12px;
+  font-size: var(--fs-btn);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease;
@@ -535,7 +535,7 @@
   background: linear-gradient(135deg, var(--accent-primary, #3b82f6), var(--accent-secondary, #3b82f6));
   color: var(--text-pure-white, #fff);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 13px;
+  font-size: var(--fs-small);
   font-weight: 600;
   text-align: center;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);

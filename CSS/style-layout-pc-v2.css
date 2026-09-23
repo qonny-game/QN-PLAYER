@@ -185,7 +185,7 @@ body.pc-v2-active > .app-container {
   padding: 14px 16px 14px 20px;
   border-bottom: 1px solid var(--border-subtle);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 20px;
+  font-size: var(--fs-title);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -247,14 +247,14 @@ body.pc-v2-active > .app-container {
   justify-content: center;
   gap: 8px;
   padding: 12px 22px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-pure-white, #fff);
   cursor: pointer;
   background: #1c1c1e;
   border: none;
   flex-shrink: 0;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 14px;
+  font-size: var(--fs-btn-primary);
   font-weight: 700;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
@@ -537,8 +537,8 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2PanelBody.pcv2-panel-backup .track-backup-mini-btn {
-  padding: 7px 14px;
-  border-radius: 999px;
+  padding: 0 var(--btn-pad-x);
+  border-radius: var(--radius-pill);
   background: none;
 }
 
@@ -603,7 +603,7 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2PanelBody.pcv2-panel-backup .track-backup-track-name {
-  font-size: 13.5px;
+  font-size: var(--fs-body);
 }
 
 #pcV2PanelBody.pcv2-panel-backup .track-backup-size-row {
@@ -632,7 +632,7 @@ body.pc-v2-active > .app-container {
 
 .track-backup-options-summary {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
+  font-size: var(--fs-small);
   font-weight: 600;
   color: var(--icon-muted);
   font-variant-numeric: tabular-nums;
@@ -665,7 +665,7 @@ body.pc-v2-active > .app-container {
 .track-backup-row-size {
   flex-shrink: 0;
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 12px;
+  font-size: var(--fs-small);
   font-weight: 600;
   color: var(--icon-muted);
   font-variant-numeric: tabular-nums;
@@ -726,7 +726,7 @@ body.pc-v2-active > .app-container {
 #pcV2PanelBody .export-section-label {
   display: block;
   margin-bottom: 10px;
-  font-size: 15px;
+  font-size: var(--fs-heading);
 }
 
 #pcV2PanelBody .export-modal-footer {
@@ -747,12 +747,12 @@ body.pc-v2-active > .app-container {
   background: var(--accent-primary);
   /* 【v2.15.1】他のボタン（ADD AUDIO等の.panel-fab-btn）に合わせ、左右を
      完全な半円にする。 */
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   box-shadow: none;
 }
 
 #pcV2PanelBody .export-cancel-btn {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 #pcV2PanelBody .export-run-btn:hover:not(:disabled) {
@@ -770,7 +770,7 @@ body.pc-v2-active > .app-container {
   gap: 0;
   flex-wrap: nowrap;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 
@@ -784,7 +784,7 @@ body.pc-v2-active > .app-container {
   border-radius: 0;
   border-right: 1px solid var(--border-subtle);
   color: var(--icon-muted);
-  font-size: 12px;
+  font-size: var(--fs-small);
 }
 
 #pcV2PanelBody .export-radio-row:last-child,
@@ -874,7 +874,7 @@ body.pc-v2-active > .app-container {
   align-items: center;
   min-height: 26px;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 15px;
+  font-size: var(--fs-heading);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -1247,7 +1247,7 @@ body.pc-v2-active > .app-container {
   transform: translate(-50%, -100%);
   background: #101013;
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-popup);
   padding: 16px 12px 14px;
   display: none;
   flex-direction: column;
@@ -1542,7 +1542,7 @@ body.pc-v2-active #qnMenuMount {
   padding: 0;
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   transition: color 120ms ease, background 120ms ease;
 }
 
@@ -1574,7 +1574,7 @@ body.pc-v2-active #qnMenuMount {
   left: 0;
   background: #101013;
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-popup);
   padding: 8px;
   min-width: 320px;
   max-width: 360px;
@@ -1593,7 +1593,7 @@ body.pc-v2-active #qnMenuMount {
   align-items: baseline;
   gap: 12px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-field);
   text-decoration: none;
 }
 
@@ -1642,7 +1642,7 @@ body.pc-v2-active #qnMenuMount {
    余白だけ馴染ませる。 */
 .pcv2-qn-loading {
   color: #6b6b7b;
-  font-size: 13px;
+  font-size: var(--fs-small);
   padding: 8px 0;
 }
 

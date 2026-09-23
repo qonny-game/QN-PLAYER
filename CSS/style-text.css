@@ -17,11 +17,11 @@
   box-sizing: border-box;
   background: #1c1c24;
   border: 1px solid var(--border-subtle);
-  border-radius: 14px;
+  border-radius: var(--radius-field);
   padding: 14px 16px;
   color: var(--text-bright);
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 14px;
+  font-size: var(--fs-body);
   line-height: 1.6;
   /* 上下方向のみ手動リサイズ可能にする。左右方向にはみ出す/縮む伸縮は
      レイアウトが崩れるため不可にする。 */
@@ -42,7 +42,7 @@
   flex-shrink: 0;
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: var(--radius-round);
   border: 1px solid var(--border-subtle);
   background: #1c1c24;
   color: var(--icon-muted);
