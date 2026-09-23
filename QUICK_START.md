@@ -26,9 +26,8 @@
 | レイアウト・表示順がおかしい | §3-6（CSSの`order`は整数のみ）、`PC_V2_FILE_INDEX.md` |
 | 新しいモーダル/パネルを作る | §3-8（モーダル共通化）、`DOM_ID_REFERENCE.md`（命名を揃える） |
 | 「あのボタン」「あの画面」が指す場所が曖昧 | `UI_TERMINOLOGY.md` |
-| `player-ui-pc-v2.js`か`style-layout-pc-v2.css`のどこに書くか探す | `PC_V2_FILE_INDEX.md` |
+| `player-ui-pc-v2.js`かCSS（`style-layout-pc-v2.css`＝シェル/`style-pcv2-panels.css`＝パネル）のどこに書くか探す | `PC_V2_FILE_INDEX.md` |
 | 「前回どこまでやった？」 | `CHANGELOG.md` 末尾 |
-| PC v2のCSSをシェル/パネルの2ファイルに分割する作業 | `md/CSS_SPLIT_INSTRUCTIONS.md`（保留中タスク、別チャットで実施予定と本人から聞いている） |
 
 ## 2. 実装フロー
 
@@ -59,9 +58,9 @@
 - `AI_ASSISTANT_PROJECT_CONTEXT.md` — ファイル構成・設計事実・バグ履歴・
   データフロー・運用ルール・検証コマンド。
 - `PC_V2_FILE_INDEX.md` — `player-ui-pc-v2.js` / `style-layout-pc-v2.css`
-  の処理内容目次。
+  （シェル）/ `style-pcv2-panels.css`（パネルの中身）の処理内容目次。
 - `DOM_ID_REFERENCE.md` — DOM要素IDの一覧（静的/動的）。
 - `UI_TERMINOLOGY.md` — ユーザーの言葉とUI要素の対応表。
 - `CHANGELOG.md` — バージョン変更履歴。
-- `CSS_SPLIT_INSTRUCTIONS.md` — 【保留中タスク】`style-layout-pc-v2.css`を
-  シェル/パネルの2ファイルに分割する作業の指示書。着手する時だけ読む。
+- `CSS_SPLIT_INSTRUCTIONS.md` — 【実施済み・v2.16.10】`style-layout-pc-v2.css`を
+  シェル/パネルの2ファイルに分割した作業の記録。参照用（役目は終了）。

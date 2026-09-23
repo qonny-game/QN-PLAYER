@@ -1019,7 +1019,7 @@
   // ボタン群（縦2段。上段=Add系⇔Delete（編集モードで切り替え）、
   // 下段=EDIT⇔OK）を組み立てて返す。
   // panelBody（リスト本体）の末尾に追加することで、position: absoluteで
-  // panelBody基準の右下に固定表示される（CSS側、style-layout-pc-v2.css参照）。
+  // panelBody基準の右下に固定表示される（CSS側、style-pcv2-panels.css参照）。
   // Add Marker / Add Audioのように panelId で内容を出し分ける以外は
   // markers/playlist共通のため、この関数1つで両方をまかなう。
   //

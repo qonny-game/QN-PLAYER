@@ -7,8 +7,8 @@ QN-PLAYER（QNシリーズのブラウザ完結型MP3プレイヤー）の開発
 **関連ファイル（このドキュメントと一緒に渡す/参照する）：**
 - `QUICK_START.md` — **作業開始時、まずこれを読む。** 依頼の種類ごとに
   どのファイルを見るべきかの早見表と、実装〜ドキュメント更新までの手順。
-- `PC_V2_FILE_INDEX.md` — 最大2ファイル（`player-ui-pc-v2.js` /
-  `style-layout-pc-v2.css`）の処理内容目次。
+- `PC_V2_FILE_INDEX.md` — 最大3ファイル（`player-ui-pc-v2.js` /
+  `style-layout-pc-v2.css` / `style-pcv2-panels.css`）の処理内容目次。
 - `DOM_ID_REFERENCE.md` — HTML静的ID・JS動的生成IDの一覧
   （特にBackup/Importモーダルの`trackBackup*` / `trackImport*`）。
 - `UI_TERMINOLOGY.md` — ユーザーの言葉とDOM要素・コード上の名前の対応表。
@@ -44,8 +44,13 @@ QNPLAYER/
 │   ├── jszip.min.js / lame_min.js  # 外部ライブラリ（ZIP圧縮／MP3エンコード）
 ├── CSS/
 │   ├── style-core.css          # PC版デフォルトレイアウト＋PC/SP共通デザイン
-│   ├── style-layout-pc-v2.css  # 【最重要・最大】現在の唯一のレイアウト実装（詳細は§2、
-│   │                           #   セクション一覧は別ファイルPC_V2_FILE_INDEX.md）
+│   ├── style-layout-pc-v2.css  # 【最重要】PC v2のシェル（外枠）実装：アイコンバー・
+│   │                           #   波形エリア・下部バー・Volumeポップアップ・
+│   │                           #   ヘッダーナビ・3カラムグリッド・SP幅の縦積み
+│   │                           #   レイアウト（詳細は§2、セクション一覧はPC_V2_FILE_INDEX.md）
+│   ├── style-pcv2-panels.css   # PC v2の中央パネル（#pcV2PanelBody）の中身の実装：
+│   │                           #   Control/EQ・Markers・Library・Text・Backup/Import・
+│   │                           #   Color/Keyboard、パネル見出し・右下FABボタン
 │   ├── style-layout-sp.css     # 旧SP版上書き（現在は実質未使用、詳細は§2）
 │   ├── style-playlist.css / style-markers.css / style-controls.css /
 │   │   style-control-eq.css / style-export.css / style-shareware.css /
@@ -320,7 +325,7 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
   `e.target.closest(".del-btn")`が見つからなくなっていた。
 - **解決：** `pointer-events: none`をplaylistパネル限定のセレクタに分離。
 - **教訓：** markers/playlistを1つのセレクタで同時に指定している
-  `style-layout-pc-v2.css`のルールを変更するときは、両パネルのタップ判定の
+  `style-pcv2-panels.css`のルールを変更するときは、両パネルのタップ判定の
   仕組みが違う（markers＝`.del-btn`、playlist＝`.playlist-del-zone`）ことを
   確認する。
 
@@ -663,10 +668,10 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
      得られた場合
    - §6（確認コマンド）: 毎回の検証手順に新しいチェック項目を
      加えるべきだと分かった場合
-   - `PC_V2_FILE_INDEX.md`: `player-ui-pc-v2.js`や`style-layout-pc-v2.css`
-     に新しい関数・セクションを追加/変更/削除した場合（同ファイル末尾の
-     「目次の更新ルール」参照）。他のファイルが1000行を超えて育った
-     場合は、同じ形式でセクションを追加してよい。
+   - `PC_V2_FILE_INDEX.md`: `player-ui-pc-v2.js`・`style-layout-pc-v2.css`・
+     `style-pcv2-panels.css`に新しい関数・セクションを追加/変更/削除した場合
+     （同ファイル末尾の「目次の更新ルール」参照）。他のファイルが1000行を
+     超えて育った場合は、同じ形式でセクションを追加してよい。
    - `DOM_ID_REFERENCE.md`: 新しいモーダル/パネル/機能ブロックのID群を
      追加した場合、該当グループに追記する。
    - `UI_TERMINOLOGY.md`: ユーザーの言葉とUI要素の対応で行き違いが

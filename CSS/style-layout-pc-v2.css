@@ -17,11 +17,37 @@
 
    【統合済み】旧style-core-pc.css（ファイル分割整理により統合）の
    scrollbar-gutter指定はこのファイル末尾に残している。
+
+
+   【CSS分割済み】パネルの中身のスタイルは style-pcv2-panels.css 側
+   （詳細は md/CSS_SPLIT_INSTRUCTIONS.md）。
+   ============================================================ */
+
+/* ============================================================
+   style-layout-pc-v2.css
+   QNPLAYER 2.0：左アイコンバー＋中央パネル＋右波形の3カラムレイアウト。
+   画面幅を問わず常時有効（player-ui-pc-v2.js側で常時activate）。
+   SP幅（900px以下）ではこのファイル末尾の@media(max-width:900px)ブロックで、
+   同じDOM構造のままアイコンバー最下部固定＋パネル全面オーバーレイの
+   縦積みレイアウトに切り替える。
+
+   【方針】
+   既存の #sidebarSection 以下のDOM（Control/Markers/Playlist/Text/EQ/Export
+   の中身）はロジック（player-core.js等）がid依存で動いているため一切変更せず、
+   player-ui-pc-v2.js がこの骨組み(#pcV2Layout)を組み立てて、既存要素を
+   JSで中に移動する。
+
+   このファイル自体は@mediaクエリで囲まれていない部分が大半のため、
+   #pcV2Layout 配下のみを対象にスコープしている（他要素に影響しない）。
+
+   【統合済み】旧style-core-pc.css（ファイル分割整理により統合）の
+   scrollbar-gutter指定はこのファイル末尾に残している。
    ============================================================ */
 
 #pcV2Root {
   display: none;
 }
+
 
 /* PC v2は「1画面に収まる固定レイアウト」（モック準拠）。中身のパネルや
    波形エリアだけがスクロールし、ページ全体はスクロールしない。
@@ -31,6 +57,7 @@ html.pc-v2-active-html {
   height: 100%;
   overflow: hidden;
 }
+
 
 body.pc-v2-active {
   height: 100vh; /* dvh未対応ブラウザ向けフォールバック */
@@ -48,6 +75,7 @@ body.pc-v2-active {
   padding: 0;
 }
 
+
 /* PC幅かつレイアウトが有効化された時だけ表示。有効化はJS側で
    body.pc-v2-active を付与することで行う。
    #pcV2Root は「3カラム部分(#pcV2Layout)」と「下段固定コントロールバー
@@ -59,6 +87,7 @@ body.pc-v2-active #pcV2Root {
   min-height: 0;
   flex: 1;
 }
+
 
 #pcV2Layout {
   display: grid;
@@ -74,6 +103,7 @@ body.pc-v2-active #pcV2Root {
   flex: 1;
 }
 
+
 /* #pcV2TimeRow（時刻表示専用行）はSP幅限定。PC幅では時刻表示は
    group1(#topControls内、Repeatボタンの右)に表示されるため、
    この行自体は非表示にする（syncTimeRowPosition()が中身を移動する）。 */
@@ -81,10 +111,12 @@ body.pc-v2-active #pcV2Root {
   display: none;
 }
 
+
 /* 移植元の.app-containerはPC v2有効時は非表示にする */
 body.pc-v2-active > .app-container {
   display: none;
 }
+
 
 /* --- 左：縦アイコンバー --- */
 #pcV2IconBar {
@@ -97,12 +129,14 @@ body.pc-v2-active > .app-container {
   min-height: 0;
 }
 
+
 /* アイコンバー右端「まだ続きがある」ヒント矢印。
    PC幅ではアイコンバーは縦並び固定表示で横スクロール自体が存在しない
    ため、常に非表示にする（SP幅側のメディアクエリで表示に切り替える）。 */
 #pcV2IconBarScrollHint {
   display: none;
 }
+
 
 .pcv2-icon-item {
   display: flex;
@@ -119,14 +153,17 @@ body.pc-v2-active > .app-container {
   transition: color 120ms ease, background 120ms ease;
 }
 
+
 .pcv2-icon-item:hover {
   color: var(--text-bright);
   background: rgba(255, 255, 255, 0.03);
 }
 
+
 .pcv2-icon-item.active {
   color: var(--accent-primary);
 }
+
 
 .pcv2-icon-item.active::before {
   content: "";
@@ -138,17 +175,20 @@ body.pc-v2-active > .app-container {
   background: var(--accent-primary);
 }
 
+
 .pcv2-icon-item svg {
   width: 20px;
   height: 20px;
   fill: currentColor;
 }
 
+
 .pcv2-icon-item span {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.3px;
 }
+
 
 /* Seekbarボタン（波形が見える基本画面に戻るショートカット）は、
    SP幅（パネルがオーバーレイ表示される画面幅）でのみ意味を持つ。
@@ -158,9 +198,11 @@ body.pc-v2-active > .app-container {
   display: none;
 }
 
+
 #pcV2IconBarSpacer {
   flex: 1;
 }
+
 
 #pcV2IconBarBottom {
   display: flex;
@@ -169,6 +211,7 @@ body.pc-v2-active > .app-container {
   border-top: 1px solid var(--border-subtle);
   padding-top: 8px;
 }
+
 
 /* --- 中央：選択中パネル --- */
 #pcV2Panel {
@@ -181,733 +224,6 @@ body.pc-v2-active > .app-container {
   position: relative;
 }
 
-#pcV2PanelHeader {
-  padding: 14px 16px 14px 20px;
-  border-bottom: 1px solid var(--border-subtle);
-  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: var(--fs-title);
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--icon-muted);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* 【v2.16.4】パネル見出し（CONTROL/MARKERS/LIBRARY/TEXT等）の文字は、
-   Colorパネルで選んだテーマ色（--accent-primary）にする。 */
-.pcv2-panel-header-title {
-  display: block;
-  color: var(--accent-primary);
-}
-
-/* ============================================================
-   フローティングアクションボタン(#pcV2PanelFab)共通スタイル。
-   Markers/Library/Textパネルの右下に、縦2段で固定表示する
-   （上段=Add系ボタン(Add Marker/Add Audio/Fullscreen)、下段=EDIT）。
-   Claudeアプリの「新規チャット」ボタン（画面右下、黒い丸本ピル型、
-   アイコン＋テキスト）のデザイン・配置に合わせたもので、旧デザイン
-   （ヘッダー内の小さいボタン）は実際のユーザーテストで「何のボタンか
-   直感的に分からない」「押せることに気づかない」という指摘があった
-   ための変更。
-   個別のボタン用クラス(.panel-edit-btn/.panel-addfile-btn)は、
-   JS側のdocument.getElementById等による個別制御（EDIT⇔OKの文字
-   切り替え、activeクラスの付け外し等）のフックとしてのみ残し、
-   見た目のスタイルは一切持たせない（全てここに集約）。
-   ============================================================ */
-#pcV2PanelFab {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  z-index: 5;
-  pointer-events: none;
-}
-
-/* 上段：Add系ボタンのグループ。Markers/Library/Textいずれも中身は
-   ボタン1個だが、編集モード中はこのグループごと非表示にしてDeleteと
-   排他表示するため、まとめて開閉できるようdivでラップしている。 */
-#pcV2PanelFab .pcv2-fab-addgroup {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-/* ボタン単体の見た目は#pcV2PanelFabの子孫に限定せず、.panel-fab-btn
-   クラス単体で効くようにする（シークバーエリア右下の+ADD AUDIO
-   ボタン(#pcV2WaveAddAudioBtn)のように、#pcV2PanelFabの外でも同じ
-   見た目を使うボタンがあるため）。 */
-.panel-fab-btn {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 22px;
-  border-radius: var(--radius-pill);
-  color: var(--text-pure-white, #fff);
-  cursor: pointer;
-  /* 【v2.16.4】ADD AUDIO/ADD MARKER/EDIT/Fullscreen等のフローティング
-     ボタンは、Colorパネルで選んだテーマ色で塗る。 */
-  background: var(--accent-primary);
-  border: none;
-  flex-shrink: 0;
-  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: var(--fs-btn-primary);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.panel-fab-btn svg {
-  width: 17px;
-  height: 17px;
-  fill: currentColor;
-  flex-shrink: 0;
-}
-
-.panel-fab-btn:hover {
-  background: var(--accent-hover-1);
-}
-
-.panel-fab-btn:active {
-  transform: scale(0.96);
-}
-
-/* EDITボタンのみ、編集モード中(.active、表示はOK)は見分けがつくよう
-   「白地＋テーマ色の文字」に反転する（v2.16.4〜、通常時がテーマ色の
-   塗りになったため。Add系・Fullscreenボタンはactive状態を持たないので、
-   実質panel-edit-btnにしか適用されない）。 */
-.panel-fab-btn.active,
-.panel-fab-btn.active:hover {
-  background: var(--text-pure-white, #fff);
-  color: var(--accent-primary);
-}
-
-/* Deleteボタン（上段、編集モード中のみ表示・JS側のtoggleEditModeが
-   display制御）。危険操作のため他のFABボタンとは異なる赤系にする。
-   初期状態はdisabled（何も選択していない）ため、そのグレーアウトの
-   見た目も合わせて定義する。 */
-.panel-fab-delete-btn {
-  display: none;
-  background: var(--danger, #ef4444);
-}
-
-.panel-fab-delete-btn:hover {
-  background: #dc2626;
-}
-
-.panel-fab-delete-btn:disabled {
-  background: rgba(239, 68, 68, 0.35);
-  cursor: not-allowed;
-}
-
-/* Markers/Playlistの操作ボタン：カラー設定・表示非表示トグル・鉛筆(メモ/
-   タイトル編集)・ドラッグハンドルは常時表示するが、誤操作防止のため
-   Editボタンを押した編集モード時でなければクリックしても反応しない
-   （見た目もdisabled風に薄くする）。実際のクリック無効化は
-   player-ui-pc-v2.js側でキャプチャフェーズのイベントを止めて実現し、
-   player-markers.js/player-playlist.js側のロジックには手を入れない。
-   削除用のチェックは編集モード時のみ表示する。markersパネルは.del-btn
-   自体がグリッドセル、playlistパネルは.playlist-del-zone（.del-btnを
-   包む広いタップ判定エリア）がグリッドセルになる。 */
-#pcV2PanelBody #pinList .pin-del-zone,
-#pcV2PanelBody #playlistBox .playlist-del-zone {
-  display: none;
-}
-
-#pcV2PanelBody.markers-edit-mode #pinList .pin-del-zone,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .playlist-del-zone {
-  display: flex;
-}
-
-/* 【v2.15.0】Markers版の広い削除タップ判定ゾーン。.pinItemのpadding
-   (10px 12px)を負のマージンで打ち消して行の上下いっぱい・右端まで広げ、
-   paddingで内側に戻して●の見た目位置を保つ（.playlist-del-zoneと同じ）。 */
-#pcV2PanelBody.markers-edit-mode #pinList .pin-del-zone {
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  flex-shrink: 0;
-  margin: -10px -12px -10px 0;
-  padding: 10px 16px 10px 8px;
-  cursor: pointer;
-}
-
-#pcV2PanelBody.markers-edit-mode #pinList .toggle-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-#pcV2PanelBody #pinList .toggle-btn,
-#pcV2PanelBody #pinList .pin-edit-btn,
-#pcV2PanelBody #playlistBox .toggle-btn,
-#pcV2PanelBody #playlistBox .pin-edit-btn {
-  cursor: default;
-}
-
-#pcV2PanelBody.markers-edit-mode #pinList .toggle-btn,
-#pcV2PanelBody.markers-edit-mode #pinList .pin-edit-btn,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .toggle-btn,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .pin-edit-btn {
-  opacity: 1;
-  cursor: pointer;
-}
-
-/* .playlist-del-zone：削除チェック(.del-btn)の物理サイズ(20x20px)より
-   広いタップ判定エリア。行の上下いっぱい・右端まで広げるため、
-   .playlistItemのpadding(9px 12px)を打ち消す向きに負のマージンを取り、
-   その分をpaddingで内側に押し戻して.del-btnの見た目位置を保つ
-   （「●そのものしかタップできずシビア」との指摘を受けた対応）。
-   左方向（PLAY/SKIPトグル側）へは広げない。 */
-#pcV2PanelBody.playlist-edit-mode #playlistBox .playlist-del-zone {
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin: -9px -12px -9px 0;
-  padding: 9px 16px 9px 8px;
-  cursor: pointer;
-}
-
-/* 削除チェックボックス化した.del-btn：通常の"✕"テキストではなく、
-   選択状態を丸チェックボックスの見た目で示す。 */
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn {
-  display: flex;
-  width: 20px;
-  height: 20px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.24);
-  background: none;
-  color: transparent;
-  font-size: 0;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-/* 【v2.13.5】pointer-events:noneは当初playlistパネル専用にしていた。playlistは外側の
-   .playlist-del-zoneでタップを受けるため●自体は透過させてよいが、markers
-   パネルは.del-btn自体がタップ判定なので、ここを透過させると●を押しても
-   e.target.closest(".del-btn")が見つからず、削除選択が一切できなかった
-   （v2.10.6でplaylist側の判定を広げた際、markers側まで巻き込んでいた）。
-   v2.15.0でmarkersにも広いゾーン(.pin-del-zone)を設けたため、現在は両方とも
-   ●自体を透過させ、外側のゾーンでタップを受ける。 */
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn,
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn {
-  /* v2.15.0〜markersも外側のゾーン(.pin-del-zone)でタップを受けるため、
-     ●自体は透過させてよい。 */
-  pointer-events: none;
-}
-
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn.pcv2-selected,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn.pcv2-selected {
-  background: var(--danger);
-  border-color: var(--danger);
-}
-
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn.pcv2-selected::after,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn.pcv2-selected::after {
-  content: "";
-  display: block;
-  width: 5px;
-  height: 9px;
-  border-right: 2px solid var(--text-pure-white);
-  border-bottom: 2px solid var(--text-pure-white);
-  transform: rotate(45deg) translate(-1px, -1px);
-}
-
-/* 一括削除確定時、実際にデータを消す前にこのクラスを付けて一瞬
-   フェードアウト＋わずかに縮小させる（削除ボタンを押した瞬間に即座に
-   消えると「消された」感が薄いとの指摘を受けた対応）。
-   player-ui-pc-v2.js側のdeleteSelectedItems()がこのクラスを付けてから
-   FADE_MS(260ms)待ち、実データの削除・再描画(performDelete)を行う。 */
-.pcv2-row-deleting {
-  opacity: 0;
-  transform: scale(0.97);
-  transition: opacity 0.26s ease, transform 0.26s ease;
-  pointer-events: none;
-}
-
-/* ヘッダー内の「選択項目を削除」ボタン。編集モード中のみ表示する。
-   表示制御はtoggleEditMode()側でJSから直接style.displayを設定する
-   （#pcV2PanelHeaderは#pcV2PanelBodyより前にあるDOM順序のため、
-   CSSの兄弟結合子では実現できない）。 */
-#pcV2PanelBody {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 16px 20px;
-}
-
-/* Playlist/Markersパネルは行(.playlistItem/.pinItem)側が左右の余白を持つ
-   モックの設計(.side-panel-body { padding: 8px 0 })に合わせ、パネル本体の
-   左右paddingを外す。これによりhover時の背景がパネル幅いっぱいに広がる。
-   pcv2-panel-*クラスはplayer-ui-pc-v2.js側でパネル切替時に付与される。 */
-#pcV2PanelBody.pcv2-panel-playlist,
-#pcV2PanelBody.pcv2-panel-markers {
-  padding: 8px 0;
-}
-
-/* 【v2.13.6】右下のフローティングボタン(ADD AUDIO/ADD MARKER・EDIT)に
-   リスト末尾の行が隠れて押せないため、スクロールの終端をリスト約2行分
-   伸ばす（最後の行をボタンより上までスクロールできるようにする）。
-   #pcV2PanelFabはposition:absoluteでフローに影響しないため、この
-   擬似要素がリスト全体の最後の余白になる。 */
-#pcV2PanelBody.pcv2-panel-playlist::after,
-#pcV2PanelBody.pcv2-panel-markers::after {
-  content: "";
-  display: block;
-  height: 140px;
-}
-
-/* ============================================================
-   Backup/Importパネル（v2.13.6〜、旧モーダルの中身を移植）
-   ============================================================ */
-#pcV2PanelBody.pcv2-panel-backup .export-modal-footer,
-#pcV2PanelBody.pcv2-panel-import .export-modal-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 0 24px;
-  flex-shrink: 0;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .export-status,
-#pcV2PanelBody.pcv2-panel-import .export-status {
-  flex-basis: 100%;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .export-status:empty,
-#pcV2PanelBody.pcv2-panel-import .export-status:empty {
-  display: none;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .export-run-btn,
-#pcV2PanelBody.pcv2-panel-import .export-run-btn {
-  flex: 1;
-  width: auto;
-}
-
-/* ------------------------------------------------------------
-   【v2.15.1】Backupパネルのレイアウト：
-   - 曲選択リストを広めに、含める項目はコンパクトに（折りたたみ）。
-   - 含める項目は折りたたみ（.is-openで展開）。見出し行に項目数と推定サイズ。
-   - 角丸の枠は使わず、行は細い線で区切るだけのシンプルな見た目にする。
-
-   【v2.16.7 修正】曲選択リストを「パネルの残り高さを全部もらう」ために
-   #pcV2PanelBody自体をflex:1で埋める入れ子にしていたが、#pcV2PanelBody
-   は元々overflow-y: autoでそれ自体がスクロールする要素（基本ルール）。
-   「overflow-y: autoの要素の中でflex: 1を何段にも重ねて高さを埋めさせる」
-   構成は、iOS Safariで曲リストの内容が確定するタイミングによって、
-   後続セクション（含める項目・合計・DOWNLOAD）がリストの高さ計算前の
-   位置のまま重なって描画される既知の不具合を踏みやすい（§3-23）。
-   flex:1での「埋める」のをやめ、曲選択リストは固定の上限つき高さ
-   （max-height、その中だけoverflow-y: auto）にして、パネル全体は他の
-   パネルと同じく#pcV2PanelBody側の1箇所だけでスクロールさせる。
-   ------------------------------------------------------------ */
-#pcV2PanelBody.pcv2-panel-backup .export-section {
-  padding: 18px 0;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .export-section:first-child {
-  padding-top: 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-options {
-  border-bottom: none;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist-header {
-  margin-bottom: 12px;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist-header .export-section-label {
-  margin-bottom: 0;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-mini-btn {
-  padding: 0 var(--btn-pad-x);
-  border-radius: var(--radius-pill);
-  background: none;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist {
-  /* 元の220pxよりは広く、かつ画面の高さに応じて縮む上限つきの値。
-     曲数が少なければ内容ぶんの高さで収まる（min-heightは指定しない）。
-     【v2.16.9】58vh/520pxだと、SPでは初期状態（含める項目が閉じている時）
-     でリスト自体がほぼ画面を埋めてしまい、「含める項目」まで到達するのに
-     リスト内部のスクロールを先に最後まで終わらせる必要があった。内側の
-     リストと外側のパネル、2つのスクロール領域が両方とも指の動きに反応
-     しようとするため、外側へスクロールを渡すには指を一度離して境界の
-     外側からもう一度スワイプするような、シビアな操作が必要になっていた。
-     リストの上限を下げて、「含める項目」がリストのすぐ下、通常の
-     スクロールで自然に見える範囲に来るようにした。 */
-  max-height: min(38vh, 340px);
-  gap: 0;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row,
-#pcV2PanelBody.pcv2-panel-backup .track-backup-row {
-  gap: 12px;
-  padding: 12px 4px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--border-subtle);
-  border-radius: 0;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row:last-child,
-#pcV2PanelBody.pcv2-panel-backup .track-backup-row:last-child {
-  border-bottom: none;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-row:hover,
-#pcV2PanelBody.pcv2-panel-backup .track-backup-row:has(input:checked) {
-  background: none;
-  border-color: var(--border-subtle);
-}
-
-/* 曲の行のチェックも、含める項目と同じ丸いチェックに揃える */
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  margin: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.28);
-  background: transparent;
-  position: relative;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"]:checked {
-  border-color: var(--accent-primary, #3b82f6);
-  background: var(--accent-primary, #3b82f6);
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"]:checked::after {
-  content: "";
-  position: absolute;
-  left: 6px;
-  top: 2px;
-  width: 5px;
-  height: 9px;
-  border-right: 2px solid var(--text-pure-white, #fff);
-  border-bottom: 2px solid var(--text-pure-white, #fff);
-  transform: rotate(45deg);
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-name {
-  font-size: var(--fs-body);
-}
-
-#pcV2PanelBody.pcv2-panel-backup .track-backup-size-row {
-  flex-shrink: 0;
-  padding: 12px 4px 0;
-}
-
-/* 含める項目：見出し行（折りたたみトグル） */
-.track-backup-options-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: inherit;
-  text-align: left;
-}
-
-#pcV2PanelBody .track-backup-options-toggle .export-section-label {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-.track-backup-options-summary {
-  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: var(--fs-small);
-  font-weight: 600;
-  color: var(--icon-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.track-backup-options-chevron {
-  width: 20px;
-  height: 20px;
-  fill: var(--icon-muted);
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-.track-backup-options.is-open .track-backup-options-chevron {
-  transform: rotate(180deg);
-}
-
-#pcV2PanelBody .track-backup-options .track-backup-checklist {
-  display: none;
-  gap: 0;
-  margin-top: 10px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-#pcV2PanelBody .track-backup-options.is-open .track-backup-checklist {
-  display: flex;
-}
-
-/* 含める項目の各行の右端：推定サイズ（音声データは選択曲の合計サイズ） */
-.track-backup-row-size {
-  flex-shrink: 0;
-  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: var(--fs-small);
-  font-weight: 600;
-  color: var(--icon-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-#trackBackupSizeAudio {
-  color: var(--accent-primary);
-}
-
-/* パネルは他のメニューを押せば閉じられるため、「閉じるだけ」のCancelは
-   出さない。Import側はファイル読み込み後の「Back」（選び直し）だけ残す。 */
-#pcV2PanelBody.pcv2-panel-backup #trackBackupCancelBtn,
-#pcV2PanelBody.pcv2-panel-import #trackImportCancelBtn[data-mode="cancel"] {
-  display: none;
-}
-
-/* パネル内に移植されたmobile-tab-panel/export-modal中身は常時表示にする
-   （タブ切替・モーダル開閉のCSSクラスに関わらず、パネルとして直接見せるため）。
-   .mobile-tab-panel自体はSP版/旧PC版向けの独立した箱デザイン
-   （背景色・枠線・角丸・padding）を持つため、PC v2ではパネル本体
-   (#pcV2PanelBody)側のpaddingをそのまま活かすようすべてリセットする。 */
-#pcV2PanelBody .mobile-tab-panel,
-#pcV2PanelBody .export-modal-body {
-  display: block !important;
-  width: auto;
-  background: none;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-}
-
-#pcV2PanelBody .markers-heading-row {
-  display: none !important;
-}
-
-/* Exportパネル：モーダル用のflex/gap/paddingをリセットし、
-   見出し付きの箱＋罫線区切りのデザインに変える（Rangeの箱、Effectsの箱…と
-   セクションごとに区切り線で分ける方針）。padding/gapはモーダル時の値を
-   打ち消して、#pcV2PanelBody側のpadding(16px 20px)をそのまま活かす。 */
-#pcV2PanelBody .export-modal-body {
-  padding: 0;
-}
-
-#pcV2PanelBody .export-section {
-  display: block;
-  padding: 26px 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-#pcV2PanelBody .export-section:first-child {
-  padding-top: 0;
-}
-
-#pcV2PanelBody .export-section:last-of-type {
-  border-bottom: none;
-}
-
-#pcV2PanelBody .export-section-label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: var(--fs-heading);
-}
-
-#pcV2PanelBody .export-modal-footer {
-  display: block;
-  padding: 16px 0 0;
-  border-top: none;
-}
-
-/* PC v2では常時表示パネルのため「閉じる」概念のCancelボタンは不要 */
-#pcV2PanelBody #exportCancelBtn {
-  display: none;
-}
-
-/* Exportボタンをモック準拠の単色・幅いっぱいのフラットボタンに変更 */
-#pcV2PanelBody .export-run-btn {
-  width: 100%;
-  padding: 12px;
-  background: var(--accent-primary);
-  /* 【v2.15.1】他のボタン（ADD AUDIO等の.panel-fab-btn）に合わせ、左右を
-     完全な半円にする。 */
-  border-radius: var(--radius-pill);
-  box-shadow: none;
-}
-
-#pcV2PanelBody .export-cancel-btn {
-  border-radius: var(--radius-pill);
-}
-
-#pcV2PanelBody .export-run-btn:hover:not(:disabled) {
-  background: var(--accent-hover-1);
-  box-shadow: none;
-  transform: none;
-}
-
-/* Range/Effects/Formatの選択肢を、モック準拠の横並び罵線区切り
-   （背景なし、選択時はaccentカラーの文字色のみで示す）デザインに変更 */
-#pcV2PanelBody .export-range-options,
-#pcV2PanelBody .export-format-options,
-#pcV2PanelBody .export-effect-options {
-  display: flex;
-  gap: 0;
-  flex-wrap: nowrap;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-}
-
-#pcV2PanelBody .export-radio-row,
-#pcV2PanelBody .export-checkbox-row {
-  flex: 1;
-  justify-content: center;
-  padding: 9px 4px;
-  background: none;
-  border: none;
-  border-radius: 0;
-  border-right: 1px solid var(--border-subtle);
-  color: var(--icon-muted);
-  font-size: var(--fs-small);
-}
-
-#pcV2PanelBody .export-radio-row:last-child,
-#pcV2PanelBody .export-checkbox-row:last-child {
-  border-right: none;
-}
-
-#pcV2PanelBody .export-radio-row:hover,
-#pcV2PanelBody .export-checkbox-row:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: var(--border-subtle);
-}
-
-#pcV2PanelBody .export-radio-row:has(input:checked),
-#pcV2PanelBody .export-checkbox-row:has(input:checked) {
-  background: var(--accent-primary);
-  color: var(--text-pure-white);
-  font-weight: 600;
-}
-
-/* ネイティブのラジオ/チェックボックスは非表示にし、モック同様
-   テキストの色・太さだけで選択状態を示すシンプルな見た目にする */
-#pcV2PanelBody .export-radio-row input,
-#pcV2PanelBody .export-checkbox-row input {
-  display: none;
-}
-
-/* Start/Endのマーカー選択欄は、モック同様Marker Range選択時のみ表示する
-   （All選択時は完全に隠す）。#exportRangeAllがcheckedの間は
-   #exportMarkerRangeSelects自体を非表示にする。 */
-#pcV2PanelBody:has(#exportRangeAll:checked) #exportMarkerRangeSelects {
-  display: none;
-}
-
-#pcV2PanelBody .export-marker-select {
-  background: none;
-  border: 1px solid var(--border-subtle);
-}
-
-#pcV2PanelBody .export-filename-input {
-  background: none;
-  border: 1px solid var(--border-subtle);
-}
-
-#pcV2PanelBody .export-filename-input:focus {
-  background: none;
-}
-
-/* Controlパネル内の数値入力もモック準拠のフラットな見た目（背景なし、
-   枠線のみ）に統一する。Speed Up/Downの選択状態を示すグラデーションは
-   モックに対応する要素がないため、視認性を優先しそのまま残す。 */
-#pcV2PanelBody .auto-speed-number {
-  background: none;
-}
-
-/* Controlパネル内：Speed/Key（既存controlBody）とEQ（既存eqBody）を
-   1パネルにまとめる際の区切り線・見出し */
-.pcv2-control-eq-heading {
-  margin-top: 20px;
-}
-
-.pcv2-section-divider {
-  height: 1px;
-  background: var(--border-subtle);
-  margin: 0 0 16px;
-}
-
-.pcv2-eq-heading-row {
-  display: flex;
-  align-items: center;
-  min-height: 26px;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-
-/* flex:1でタイトルを伸ばし、RESET・トグルをSPEED/KEYと同じ右端位置に
-   押し出す（元はgapだけで左詰めになっており、SPEED/KEY行より左寄りに
-   見えるズレがあった）。
-   縦位置は.pcv2-eq-heading-rowのalign-items:centerに加えて、タイトル
-   自身にもSPEED/KEYの.control-card labelと同じ26px相当の高さを持たせる
-   （<h3>は<label>と違いdisplay:blockでテキストの自然な高さ(19px)のまま
-   になり、親のalign-items:centerだけでは上端が右のRESETボタン・トグルの
-   上端と揃わずズレて見えていたため）。 */
-.pcv2-eq-heading-title {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  min-height: 26px;
-  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: var(--fs-heading);
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--icon-muted);
-  margin: 0;
-}
-
-.pcv2-eq-heading-row .control-effect-toggle {
-  width: 30px;
-  height: 17px;
-  flex-shrink: 0;
-}
-
-.pcv2-eq-heading-row .mini-reset-btn {
-  margin: 0;
-}
-
-.pcv2-eq-heading-row .control-effect-toggle .glow-switch-knob {
-  width: 11px;
-  height: 11px;
-}
-
-.pcv2-eq-heading-row .control-effect-toggle[aria-checked="true"] .glow-switch-knob {
-  transform: translateX(13px);
-}
 
 /* --- 右：波形エリア --- */
 #pcV2WaveArea {
@@ -925,6 +241,7 @@ body.pc-v2-active > .app-container {
      絶対配置の基準。 */
   position: relative;
 }
+
 
 /* シークバーエリア右下、常設の+ADD AUDIOボタン。Markers/Library/Text
    パネルのFAB(.panel-fab-btn)と同じ見た目・挙動（position: absolute、
@@ -944,6 +261,7 @@ body.pc-v2-active > .app-container {
   pointer-events: none;
 }
 
+
 /* 移植された#appTitleは元々サイドバー幅前提のマージンを持つため、
    波形エリア幅いっぱいで見やすいよう上下の余白だけ揃える */
 #pcV2WaveArea #appTitle {
@@ -957,6 +275,7 @@ body.pc-v2-active > .app-container {
      見切れることがある。1行分の高さを必ず確保する。 */
   flex-shrink: 0;
 }
+
 
 /* 波形の見た目をモックの本格ビジュアライザー風（背景・枠なし、細い縦棒、
    行間を広めに取る）に寄せる。ロジック(6行構造・シーク座標計算・マーカー
@@ -979,6 +298,7 @@ body.pc-v2-active > .app-container {
   justify-content: center;
 }
 
+
 /* 時刻表示：シークバー下から専用行(#pcV2TimeRow、波形エリアの直後・
    下部バーの直前)へ移設。右寄せで表示する。SP幅限定
    （display:flexへの切り替えはSP幅の@media側で行う。PC幅では
@@ -992,11 +312,13 @@ body.pc-v2-active > .app-container {
   flex-shrink: 0;
 }
 
+
 #pcV2TimeRow .time-controls-row {
   padding: 0;
   margin-left: 0;
   flex-shrink: 0;
 }
+
 
 #pcV2TimeRow #timeDisplay {
   justify-content: flex-start;
@@ -1005,22 +327,26 @@ body.pc-v2-active > .app-container {
   font-weight: 400;
 }
 
+
 #pcV2TimeRow #timeDisplay .time-val {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-bright);
 }
 
+
 #pcV2TimeRow #timeDisplay .time-sep {
   font-size: 11px;
   color: #55555f;
 }
+
 
 #pcV2TimeRow #timeDisplay .time-dur {
   font-size: 12px;
   font-weight: 400;
   color: var(--icon-muted);
 }
+
 
 #pcV2WaveArea .vbar {
   flex: 1 1 0;
@@ -1033,9 +359,11 @@ body.pc-v2-active > .app-container {
   overflow: visible;
 }
 
+
 #pcV2WaveArea .vbar:hover {
   border-color: transparent;
 }
+
 
 /* マーカーの見た目をモック風（細いaccentライン＋線の上にシンプルな
    テキストラベル、黒背景バッジではない）に寄せる。ドラッグ操作の
@@ -1050,6 +378,7 @@ body.pc-v2-active > .app-container {
   touch-action: none;
 }
 
+
 /* 【v2.16.2】見た目の線(::before、2px)より広い、透明なつかみ判定。
    要素本体(6px)だけだとSPで指に当たりにくいため、左右に広げる。 */
 #pcV2WaveArea .vbar-line::after {
@@ -1061,9 +390,11 @@ body.pc-v2-active > .app-container {
   right: -9px;
 }
 
+
 #pcV2WaveArea .vbar-label {
   touch-action: none;
 }
+
 
 #pcV2WaveArea .vbar-line::before {
   content: "";
@@ -1076,14 +407,17 @@ body.pc-v2-active > .app-container {
   background-color: var(--marker-color, var(--accent-primary));
 }
 
+
 #pcV2WaveArea .vbar-line:hover::before {
   background-color: var(--accent-hover-1);
 }
+
 
 #pcV2WaveArea .vbar-line.disabled::before {
   background-color: #6b6b7b;
   opacity: 0.5;
 }
+
 
 /* 数字(vbar-label-num)は常にマーカーラインの真上に来るよう、ラベル全体を
    中央揃え(left:50%; transform:translateX(-50%))で線に固定する。
@@ -1106,6 +440,7 @@ body.pc-v2-active > .app-container {
   white-space: nowrap;
 }
 
+
 #pcV2WaveArea .vbar-label-num {
   display: block;
   font-size: 16px;
@@ -1113,6 +448,7 @@ body.pc-v2-active > .app-container {
   color: var(--marker-color, var(--accent-primary));
   text-align: center;
 }
+
 
 #pcV2WaveArea .vbar-label-memo {
   position: absolute;
@@ -1126,6 +462,7 @@ body.pc-v2-active > .app-container {
   top: 4px;
 }
 
+
 #pcV2WaveArea .vbar-label.pcv2-label-flip .vbar-label-memo {
   left: auto;
   right: 100%;
@@ -1133,10 +470,12 @@ body.pc-v2-active > .app-container {
   margin-right: 6px;
 }
 
+
 #pcV2WaveArea .vbar-line.disabled .vbar-label-num,
 #pcV2WaveArea .vbar-line.disabled .vbar-label-memo {
   color: var(--icon-muted);
 }
+
 
 /* PC v2では再生位置の表現をcanvas自体の色分け(player-ui-pc-v2.js側の
    pcv2DrawWaveform)で行うため、既存のオーバーレイ(.vfill)は使わない。
@@ -1145,6 +484,7 @@ body.pc-v2-active > .app-container {
 #pcV2WaveArea .vfill {
   display: none;
 }
+
 
 /* --- PLAY/MARKERアンカータブ（#pcV2BottomBarAnchorTabs） ---
    下段バー(#pcV2BottomBar)の直上に置く小さなタブ。押すと下段バーの
@@ -1156,6 +496,7 @@ body.pc-v2-active > .app-container {
   display: none;
 }
 
+
 /* --- 下段：固定コントロールバー（モック準拠） --- */
 #pcV2BottomBar {
   border-top: 1px solid var(--border-subtle);
@@ -1165,6 +506,7 @@ body.pc-v2-active > .app-container {
   gap: 4px;
   flex-shrink: 0;
 }
+
 
 /* #topControls自体（.top-controls）は、style-core.css側のデフォルトが
    SP版の2段積み(flex-direction: column、position: fixedで画面下部に浮く)
@@ -1193,11 +535,13 @@ body.pc-v2-active > .app-container {
   flex-shrink: 0;
 }
 
+
 #pcV2BottomBar .pcv2-ctrl-group {
   display: flex;
   align-items: center;
   gap: 0;
 }
+
 
 #pcV2BottomBar .pcv2-ctrl-divider {
   width: 1px;
@@ -1206,15 +550,18 @@ body.pc-v2-active > .app-container {
   margin: 0 10px;
 }
 
+
 #pcV2BottomBar .pcv2-ctrl-spacer {
   flex: 1;
 }
+
 
 /* MARKERグループとトグル群の間の仕切り線（v2.13.6〜）はSP幅専用。
    PC幅ではspacerで十分に離れるため表示しない。 */
 #pcV2BottomBar .pcv2-ctrl-divider-sp {
   display: none;
 }
+
 
 #pcV2BottomBar .pcv2-ctrl-btn {
   display: flex;
@@ -1234,6 +581,7 @@ body.pc-v2-active > .app-container {
   transition: transform var(--dur-press) var(--ease-snap);
 }
 
+
 /* ホバーで明るくするのはマウス環境だけ（タッチ端末では押した後に
    ホバー色が残り、OFFなのに白っぽく見えてしまうため）。 */
 @media (hover: hover) and (pointer: fine) {
@@ -1242,11 +590,13 @@ body.pc-v2-active > .app-container {
   }
 }
 
+
 /* LOOP/REPEAT等の .tripleNavBtn-third:active / .loopbtn:active と揃え、
    クリック時に少し縮んで「押した感」が出るようにする。 */
 #pcV2BottomBar .pcv2-ctrl-btn:active {
   transform: scale(0.94);
 }
+
 
 /* Speed/Key/EQのON/OFFトグル：ONの間だけテーマ色（OFFは上の通常色）。
    Volume：縦スライダーのポップアップを表示している間だけテーマ色
@@ -1261,6 +611,7 @@ body.pc-v2-active > .app-container {
   color: var(--accent-primary);
 }
 
+
 /* 【v2.16.5】アイコンの塗り(fill)も文字色(currentColor)に揃える。
    以前はfillだけ固定のグレー(--icon-muted)で、線(stroke=currentColor)は
    ボタンの文字色になっていたため、線と塗りが混在するSpeed/Key/EQの
@@ -1272,10 +623,12 @@ body.pc-v2-active > .app-container {
   fill: currentColor;
 }
 
+
 #pcV2BottomBar .pcv2-ctrl-btn.primary svg {
   width: 26px;
   height: 26px;
 }
+
 
 #pcV2BottomBar .pcv2-ctrl-btn span {
   font-size: 9px;
@@ -1283,6 +636,7 @@ body.pc-v2-active > .app-container {
   letter-spacing: 0.3px;
   display: none;
 }
+
 
 /* Volumeポップアップ(縦スライダー) */
 /* 【v2.13.6】document.body直下へ移したうえでposition: fixed表示。
@@ -1307,9 +661,11 @@ body.pc-v2-active > .app-container {
   touch-action: none;
 }
 
+
 #pcV2VolumePopup.open {
   display: flex;
 }
+
 
 #pcV2VolumePopup .pcv2-volume-slider-track {
   position: relative;
@@ -1319,6 +675,7 @@ body.pc-v2-active > .app-container {
   border-radius: 2px;
 }
 
+
 #pcV2VolumePopup .pcv2-volume-slider-fill {
   position: absolute;
   bottom: 0;
@@ -1327,6 +684,7 @@ body.pc-v2-active > .app-container {
   background: var(--accent-primary);
   border-radius: 2px;
 }
+
 
 #pcV2VolumePopup .pcv2-volume-slider-thumb {
   position: absolute;
@@ -1339,16 +697,19 @@ body.pc-v2-active > .app-container {
   cursor: pointer;
 }
 
+
 #pcV2VolumePopup .pcv2-volume-popup-icon {
   color: var(--icon-muted);
   display: flex;
 }
+
 
 #pcV2VolumePopup .pcv2-volume-popup-icon svg {
   width: 18px;
   height: 18px;
   fill: currentColor;
 }
+
 
 /* 下段バーに移植された#topControls(Track/Play/Track・Repeat・
    Marker×3・Loop)は、既存の箱型デザイン(.tripleNavBtn等)のままだと
@@ -1368,12 +729,14 @@ body.pc-v2-active > .app-container {
   z-index: auto;
 }
 
+
 /* #topControlsSpacerは#topControlsがposition:fixedであることを前提にした
    余白補正だが、PC v2では#topControlsをposition:staticに変えて通常のflex
    配置にしたため、この補正自体が不要になる。 */
 body.pc-v2-active #topControlsSpacer {
   display: none;
 }
+
 
 #pcV2BottomBar .tripleNavBtn {
   flex: 0 0 auto;
@@ -1388,6 +751,7 @@ body.pc-v2-active #topControlsSpacer {
   overflow: visible;
 }
 
+
 #pcV2BottomBar .tripleNavBtn-third {
   padding: 8px 7px;
   color: var(--icon-muted);
@@ -1395,15 +759,18 @@ body.pc-v2-active #topControlsSpacer {
   flex: 0 0 auto;
 }
 
+
 #pcV2BottomBar .tripleNavBtn-third:hover {
   background: none;
   color: var(--text-bright);
 }
 
+
 #pcV2BottomBar .tripleNavBtn-third:active {
   background: none;
   transform: scale(0.94);
 }
+
 
 #pcV2BottomBar .tripleNavBtn-center {
   color: var(--accent-primary);
@@ -1411,16 +778,19 @@ body.pc-v2-active #topControlsSpacer {
   box-shadow: none !important;
 }
 
+
 #pcV2BottomBar .tripleNavBtn-center:hover {
   background: none !important;
   box-shadow: none !important;
   color: var(--accent-primary);
 }
 
+
 #pcV2BottomBar .tripleNavBtn-third svg {
   width: 20px;
   height: 20px;
 }
+
 
 /* +Marker(中央、大きめアイコン)とLoopボタンのラベル("MARKER"/"LOOP")の
    上下位置を揃えるため、アイコン自体が確保する表示領域の高さを
@@ -1434,6 +804,7 @@ body.pc-v2-active #topControlsSpacer {
   display: block;
 }
 
+
 #pcV2BottomBar .loopbtn svg {
   width: 20px;
   height: 20px;
@@ -1442,14 +813,17 @@ body.pc-v2-active #topControlsSpacer {
   box-sizing: content-box;
 }
 
+
 #pcV2BottomBar .tripleNavBtn-center,
 #pcV2BottomBar .loopbtn {
   min-height: 57px;
 }
 
+
 #pcV2BottomBar .tripleNavBtn-divider {
   display: none;
 }
+
 
 #pcV2BottomBar .loopbtn {
   flex: 0 0 auto;
@@ -1464,6 +838,7 @@ body.pc-v2-active #topControlsSpacer {
   gap: 0;
 }
 
+
 #pcV2BottomBar .loopbtn:hover {
   background: none;
   color: var(--text-bright);
@@ -1471,10 +846,12 @@ body.pc-v2-active #topControlsSpacer {
   box-shadow: none;
 }
 
+
 #pcV2BottomBar .loopbtn:active {
   transform: scale(0.94);
   box-shadow: none;
 }
+
 
 /* ON状態（Repeat All/One、Loop有効時）：PC版レイアウトのIDセレクタが
    通常の .loopbtn.is-active より詳細度が高く上書きしてしまうため、
@@ -1483,9 +860,11 @@ body.pc-v2-active #topControlsSpacer {
   color: var(--accent-primary, #3b82f6);
 }
 
+
 #pcV2BottomBar .loopbtn.is-active:hover {
   color: var(--accent-primary, #3b82f6);
 }
+
 
 /* ボタン内ラベルはモックのctrl-btn同様、デフォルト非表示
    （Marker系だけ表示する。詳細はMARKER/LOOPの個別ルール参照） */
@@ -1495,6 +874,7 @@ body.pc-v2-active #topControlsSpacer {
   opacity: 1;
 }
 
+
 /* Track(前後の曲送り)・Repeat・Prev/Next Markerはアイコンのみのデザイン
    (ラベル無し)にする。+Marker(MARKER)とLoop(LOOP)だけラベル付きにして
    文字の上下位置を揃える。 */
@@ -1502,6 +882,7 @@ body.pc-v2-active #topControlsSpacer {
 #pcV2BottomBar #loopToggleBtn .top-controls-btn-label {
   display: block;
 }
+
 
 /* Loop横のプリロール秒数ステッパー：PC v2の枠なし・背景なしフラット
    デザインに合わせて、SP版の箱型スタイル（背景・枠線・box-shadow）を
@@ -1514,6 +895,7 @@ body.pc-v2-active #topControlsSpacer {
   gap: 0;
 }
 
+
 #pcV2BottomBar .loop-preroll-btn {
   width: 20px;
   height: 20px;
@@ -1521,10 +903,12 @@ body.pc-v2-active #topControlsSpacer {
   font-size: 13px;
 }
 
+
 #pcV2BottomBar .loop-preroll-btn:hover {
   background: none;
   color: var(--text-bright);
 }
+
 
 #pcV2BottomBar .loop-preroll-value {
   min-width: 16px;
@@ -1533,9 +917,11 @@ body.pc-v2-active #topControlsSpacer {
   color: var(--icon-muted);
 }
 
+
 #pcV2BottomBar .loop-preroll-control.is-active .loop-preroll-value {
   color: var(--accent-primary, #3b82f6);
 }
+
 
 /* --- ヘッダー：モック準拠（52px高さ、下境界線、小さめロゴ＋QN Seriesドロップダウン） --- */
 body.pc-v2-active #appHeader {
@@ -1548,11 +934,13 @@ body.pc-v2-active #appHeader {
   box-sizing: border-box;
 }
 
+
 body.pc-v2-active #appLogo {
   font-size: 30px;
   font-weight: 700;
   letter-spacing: 0.3px;
 }
+
 
 body.pc-v2-active #appVersion {
   display: inline-block;
@@ -1564,6 +952,7 @@ body.pc-v2-active #appVersion {
   margin-left: 6px;
 }
 
+
 /* ハンバーガーメニュー(#qnMenuMount)自体はPC v2では非表示。
    中身の機能(Theme/Shortcuts)はアイコンバー下段のKeyboard/Colorボタンに
    移設済み。ポップアップ本体(#qnMenuPopup)は引き続きDOM上に存在し、
@@ -1573,11 +962,13 @@ body.pc-v2-active #qnMenuMount {
   display: none;
 }
 
+
 #pcV2HeaderNav {
   position: relative;
   display: flex;
   align-items: center;
 }
+
 
 /* ▼のみのトリガー(テキストラベル無し)。ロゴのすぐ右に置く。 */
 .pcv2-header-nav-trigger {
@@ -1595,11 +986,13 @@ body.pc-v2-active #qnMenuMount {
   transition: color 120ms ease, background 120ms ease;
 }
 
+
 .pcv2-header-nav-trigger:hover,
 #pcV2HeaderNav.open .pcv2-header-nav-trigger {
   color: var(--text-bright);
   background: var(--bg-hover-subtle);
 }
+
 
 .pcv2-header-nav-trigger svg {
   width: 16px;
@@ -1608,9 +1001,11 @@ body.pc-v2-active #qnMenuMount {
   transition: transform 120ms ease;
 }
 
+
 #pcV2HeaderNav.open .pcv2-header-nav-trigger svg {
   transform: rotate(180deg);
 }
+
 
 /* ドロップダウン：ロゴと同じ大きさでアプリ名を縦に並べ、
    アプリ名の右に機能説明を添える。
@@ -1633,9 +1028,11 @@ body.pc-v2-active #qnMenuMount {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
+
 #pcV2HeaderNav.open .pcv2-header-nav-dropdown {
   display: flex;
 }
+
 
 .pcv2-header-nav-link {
   display: flex;
@@ -1646,9 +1043,11 @@ body.pc-v2-active #qnMenuMount {
   text-decoration: none;
 }
 
+
 .pcv2-header-nav-link:hover {
   background: var(--bg-hover-subtle);
 }
+
 
 .pcv2-header-nav-link-name {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
@@ -1659,6 +1058,7 @@ body.pc-v2-active #qnMenuMount {
   flex-shrink: 0;
 }
 
+
 /* 先頭の"QN"だけヘッダーロゴ(#appLogoQN)と同じアクセントカラーにする。
    残り(PLAYER/PITCH等)は常に白のまま——currentクラス(選択中のアプリ)が
    付いても、この白は変えない。以前はアプリ名全体をcurrent時に
@@ -1667,6 +1067,7 @@ body.pc-v2-active #qnMenuMount {
 .pcv2-header-nav-link-name-qn {
   color: var(--accent-primary);
 }
+
 
 .pcv2-header-nav-link-desc {
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
@@ -1678,12 +1079,14 @@ body.pc-v2-active #qnMenuMount {
   word-break: break-word;
 }
 
+
 /* トップコントロール(Track/Play/Track・Repeat・Marker×3・Loop)は
    PC幅で1行フラット化される(player-ui-pc.js)ため、波形の下に
    自然な余白で収める */
 #pcV2WaveArea #topControls {
   margin-top: 4px;
 }
+
 
 /* Keyboard/Colorパネル：#qnMenuMount内（player-theme.js/style-theme.css
    が担当）のTheme/Shortcutsセクションをそのままパネル内に表示する。
@@ -1695,76 +1098,6 @@ body.pc-v2-active #qnMenuMount {
   padding: 8px 0;
 }
 
-#pcV2PanelBody.pcv2-panel-keyboard .qn-menu-section,
-#pcV2PanelBody.pcv2-panel-color .qn-menu-section {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-#pcV2PanelBody.pcv2-panel-keyboard .qn-menu-section-label,
-#pcV2PanelBody.pcv2-panel-color .qn-menu-section-label {
-  display: none;
-}
-
-/* パネル内のリストが増えて縦スクロールが発生した場合、ブラウザ既定の
-   スクロールバーではなく、ダークテーマに馴染む細いスクロールバーに
-   する（Webkit系）。Firefox向けはscrollbar-color/scrollbar-widthで
-   同様の見た目に揃える。 */
-#pcV2PanelBody {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
-}
-
-#pcV2PanelBody::-webkit-scrollbar {
-  width: 8px;
-}
-
-#pcV2PanelBody::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-#pcV2PanelBody::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 4px;
-}
-
-#pcV2PanelBody::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.24);
-}
-
-/* Textパネル：入力欄をパネルの表示限界(残り高さ)いっぱいまで広げる。
-   #pcV2PanelBody自体をflexコンテナにし、.mobile-tab-panel(textBody)と
-   その中のtextareaを両方flex:1で伸ばす。 */
-#pcV2PanelBody.pcv2-panel-text {
-  display: flex;
-  flex-direction: column;
-}
-
-#pcV2PanelBody.pcv2-panel-text .mobile-tab-panel[data-tab-panel="text"] {
-  display: flex !important;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-#pcV2PanelBody.pcv2-panel-text .note-textarea {
-  flex: 1;
-  min-height: 0;
-  height: auto;
-}
-
-/* 通常モード(readonly)時は背景・枠線を出さず、テキストだけが見える
-   状態にする。EDITを押して編集可能(read-write)になった時だけ、
-   入力欄であることが分かる背景・枠線を表示する。 */
-#pcV2PanelBody.pcv2-panel-text .note-textarea:read-only {
-  background: none;
-  border-color: transparent;
-}
-
-#pcV2PanelBody.pcv2-panel-text .note-textarea:read-write {
-  background: #1c1c24;
-  border-color: var(--border-subtle);
-}
 
 /* Text見出しのEDIT・フルスクリーンボタンは、画面右下の
    フローティングアクションボタン(#pcV2PanelFab、.panel-fab-btn)に
@@ -2152,6 +1485,7 @@ body.pc-v2-active #qnMenuMount {
     background: #0a0a0c;
   }
 }
+
 
 /* ============================================================
    【旧style-core-pc.cssより統合】

@@ -1,7 +1,9 @@
 # QN-PLAYER 大型ファイル目次
 
-`player-ui-pc-v2.js`（約2000行）と`style-layout-pc-v2.css`（約1800行）は、
-PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT.md`§2参照）。
+`player-ui-pc-v2.js`（約2200行）・`style-layout-pc-v2.css`（約1500行、
+PC v2のシェル＝外枠）・`style-pcv2-panels.css`（約910行、PC v2の中央パネルの
+中身）は、PC v2 UIの全てを担う最大の3ファイル
+（`AI_ASSISTANT_PROJECT_CONTEXT.md`§2参照）。
 中身を探すたびにスクロールして迷子にならないよう、処理のまとまりごとに
 行番号の目安をリストにしておく。**行番号はファイルが編集されるたびにズレるので、
 目安として使い、まず`grep -n`で見出しのキーワードを検索して実際の行を確認すること。**
@@ -106,11 +108,16 @@ PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT
 
 ---
 
-## CSS/style-layout-pc-v2.css
+## CSS/style-layout-pc-v2.css（シェル＝外枠）
+
+PC v2の外枠（アイコンバー・波形エリア・下部バー・Volumeポップアップ・
+ヘッダーナビ・3カラムグリッド・SP幅の縦積みレイアウト）専用。
+中央パネル（`#pcV2PanelBody`）の中身は`style-pcv2-panels.css`側
+（分割の経緯は`CSS_SPLIT_INSTRUCTIONS.md`）。
 
 このファイルは**メディアクエリを含まない基本ブロック（PC幅想定、
-0〜1442行付近）**と、**ファイル末尾の`@media screen and (max-width: 900px)`
-ブロック（1443行以降、SP幅上書き）**の2部構成。同じセレクタが両方に
+0〜1140行付近）**と、**ファイル末尾の`@media screen and (max-width: 900px)`
+ブロック（1140行以降、SP幅上書き）**の2部構成。同じセレクタが両方に
 出てくることが多く（例: `#pcV2BottomBar`）、SP幅での見た目を変えたい
 ときは末尾ブロック側を探すこと。
 
@@ -120,12 +127,7 @@ PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT
   に切り替わる（§2の3カラム⇔縦積みの要）。
 - `#pcV2TimeRow` — 時刻表示行。PC幅では`display: none`（SP幅でのみ表示）。
 - `#pcV2IconBar` / `.pcv2-icon-item` — 左の縦アイコンバー（サイドメニュー）。
-- `#pcV2Panel` / `#pcV2PanelHeader` / `#pcV2PanelFab` — 中央パネルの
-  ヘッダー・FAB（＋ボタン）。
-- `#pcV2PanelBody` 配下 — Markers/Playlistの削除選択UI
-  （`.del-btn` / `.playlist-del-zone` / `.pcv2-selected` /
-  `.pcv2-row-deleting`、§3-4・3-7・フェードアウト演出関連）、
-  Export系モーダルの共通スタイル（`.export-*`、§3-8のモーダル共通化）。
+- `#pcV2Panel`（外枠単体。ヘッダー・FABは`style-pcv2-panels.css`側）。
 - `#pcV2WaveArea` — 右の波形エリア。`#pcV2WaveAddAudioBtn`（+ADD AUDIO）
   もこの中。
 - `#pcV2BottomBarAnchorTabs` / `.pcv2-anchor-tab` — PLAY/MARKERアンカー
@@ -143,6 +145,8 @@ PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT
   `waveArea:1 → timeRow:2 → anchorTabs:3 → bottomBar:4 → iconBar:5`。
   間に新しい要素を挟みたい場合は、既存の番号をずらすか、初めから
   10刻み等の余裕を持った採番に変更することを検討する。
+  （このSP幅ブロックの中身はシェル関連のセレクタのみ。パネルの中身に
+  関するセレクタは1つも含まれないことを分割時に確認済み。）
 - `.tripleNavBtn-third` / `.tripleNavBtn-center` / `.loopbtn` の
   SP幅での拡大（タップ領域・アイコンサイズ、アイコンバーと揃える調整）。
 - `#pcV2BottomBar` と `#pcV2IconBar` の境界線・余白（アプリ切り替え
@@ -152,11 +156,40 @@ PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT
 
 ---
 
+## CSS/style-pcv2-panels.css（中央パネルの中身）
+
+PC v2の中央パネル（`#pcV2PanelBody`）に表示される中身専用。
+`@media`は不要（SP幅でもパネルの中身自体のCSSは変わらないため）。
+パネルの種類によって表示・非表示が切り替わる/中身が変わる要素は
+基本的にこちら（判定基準は`CSS_SPLIT_INSTRUCTIONS.md`§2参照）。
+
+- `#pcV2PanelHeader` / `.pcv2-panel-header-title` — パネル見出し
+  （CONTROL/MARKERS/LIBRARY/TEXT等の文字、テーマ色に連動、§v2.16.4）。
+- `#pcV2PanelFab` / `.panel-fab-btn` / `.panel-fab-delete-btn` — 右下
+  フローティングアクションボタン（ADD AUDIO/ADD MARKER/EDIT等）。
+- `#pcV2PanelBody` 配下 — Markers/Playlistの削除選択UI
+  （`.del-btn` / `.playlist-del-zone` / `.pin-del-zone` / `.pin-edit-btn` /
+  `.pcv2-selected` / `.pcv2-row-deleting`、§3-4・3-7・フェードアウト
+  演出関連）。
+- `#pcV2PanelBody.pcv2-panel-markers` / `.pcv2-panel-import` /
+  `.pcv2-panel-backup` / `.pcv2-panel-text` / `.pcv2-panel-color` —
+  各パネル種別ごとのコンテンツスタイル。
+- Export/Import/Backup系モーダルの共通スタイル（`.export-*` /
+  `.track-backup-*` / `#trackBackupSizeAudio` / `#trackImportCancelBtn`、
+  §3-8のモーダル共通化）。
+- `.pcv2-control-eq-heading` / `.pcv2-section-divider` /
+  `.pcv2-eq-heading-row` — Control/EQパネルの見出し・区切り線。
+- `#pcV2PanelBody`の基本ルール（`overflow-y: auto`等）とスクロールバー
+  カスタマイズ（`::-webkit-scrollbar*`）。
+
+---
+
 ## 目次の更新ルール
 
 `AI_ASSISTANT_PROJECT_CONTEXT.md`と同様、この目次も更新対象。
-- `player-ui-pc-v2.js` / `style-layout-pc-v2.css` に新しい関数・
-  新しいセクションを追加した場合は、該当する見出しの下に一行追記する。
+- `player-ui-pc-v2.js` / `style-layout-pc-v2.css` / `style-pcv2-panels.css`
+  に新しい関数・新しいセクションを追加した場合は、該当する見出しの下に
+  一行追記する。
 - 既存の関数名・セレクタ名を変更/削除した場合は、該当行を修正する
   （放置すると目次自体が誤誘導になるため、これは他ファイルより優先度高）。
 - 他のファイルが同程度の規模（1000行超）に育った場合は、同じ形式で
