@@ -316,8 +316,13 @@ body {
 }
 
 /* ファイル名が長くコンテナに収まらない場合のみ付与されるマーキー（電光掲示板）表示 */
+/* 【v2.16.3】曲を読み込んだ時に3周だけ流して止める（止まった位置は
+   流し始めと同じ見た目）。無限ループのアニメーションは、表示中ずっと
+   毎フレームのスタイル再計算を発生させ得るため（§3-21）。
+   タイトルにマウスを乗せる/タップすると、もう一度3周流れる
+   （player-core.js側のreplayAppTitleMarquee）。 */
 #appTitle.marquee #appTitleInner {
-  animation: appTitleMarquee var(--marquee-duration, 12s) linear infinite;
+  animation: appTitleMarquee var(--marquee-duration, 12s) linear 3;
 }
 
 #appTitle.marquee #appTitleText.marquee-clone {

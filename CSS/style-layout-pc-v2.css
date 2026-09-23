@@ -196,8 +196,11 @@ body.pc-v2-active > .app-container {
   justify-content: space-between;
 }
 
+/* 【v2.16.4】パネル見出し（CONTROL/MARKERS/LIBRARY/TEXT等）の文字は、
+   Colorパネルで選んだテーマ色（--accent-primary）にする。 */
 .pcv2-panel-header-title {
   display: block;
+  color: var(--accent-primary);
 }
 
 /* ============================================================
@@ -250,7 +253,9 @@ body.pc-v2-active > .app-container {
   border-radius: var(--radius-pill);
   color: var(--text-pure-white, #fff);
   cursor: pointer;
-  background: #1c1c1e;
+  /* 【v2.16.4】ADD AUDIO/ADD MARKER/EDIT/Fullscreen等のフローティング
+     ボタンは、Colorパネルで選んだテーマ色で塗る。 */
+  background: var(--accent-primary);
   border: none;
   flex-shrink: 0;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
@@ -269,18 +274,21 @@ body.pc-v2-active > .app-container {
 }
 
 .panel-fab-btn:hover {
-  background: #2c2c2e;
+  background: var(--accent-hover-1);
 }
 
 .panel-fab-btn:active {
   transform: scale(0.96);
 }
 
-/* EDITボタンのみ、編集モード中(.active)はアクセントカラーに変わる
-   （Add系・Fullscreenボタンは常時アクション実行のみでactive状態を
-   持たないため、このルールは実質panel-edit-btnにしか適用されない）。 */
-.panel-fab-btn.active {
-  background: var(--accent-primary);
+/* EDITボタンのみ、編集モード中(.active、表示はOK)は見分けがつくよう
+   「白地＋テーマ色の文字」に反転する（v2.16.4〜、通常時がテーマ色の
+   塗りになったため。Add系・Fullscreenボタンはactive状態を持たないので、
+   実質panel-edit-btnにしか適用されない）。 */
+.panel-fab-btn.active,
+.panel-fab-btn.active:hover {
+  background: var(--text-pure-white, #fff);
+  color: var(--accent-primary);
 }
 
 /* Deleteボタン（上段、編集モード中のみ表示・JS側のtoggleEditModeが
@@ -1037,6 +1045,24 @@ body.pc-v2-active > .app-container {
    ::afterで細く見せる形にする。 */
 #pcV2WaveArea .vbar-line {
   background-color: transparent;
+  /* 【v2.16.2】マーカー線をつかんだ指の動きをブラウザのスクロール等に
+     取られないようにする（ドラッグ専用の要素）。 */
+  touch-action: none;
+}
+
+/* 【v2.16.2】見た目の線(::before、2px)より広い、透明なつかみ判定。
+   要素本体(6px)だけだとSPで指に当たりにくいため、左右に広げる。 */
+#pcV2WaveArea .vbar-line::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: -9px;
+  right: -9px;
+}
+
+#pcV2WaveArea .vbar-label {
+  touch-action: none;
 }
 
 #pcV2WaveArea .vbar-line::before {
@@ -2021,7 +2047,9 @@ body.pc-v2-active #qnMenuMount {
     width: 20px;
     height: 20px;
     fill: var(--icon-muted, #8b8b9e);
-    animation: pcv2-scroll-hint-nudge 1.6s ease-in-out infinite;
+    /* 【v2.16.3】無限ループは表示中ずっとスタイル再計算を招くため、
+       気づかせる目的の数回だけ動かして止める（§3-21）。 */
+    animation: pcv2-scroll-hint-nudge 1.6s ease-in-out 3;
   }
 
   @keyframes pcv2-scroll-hint-nudge {

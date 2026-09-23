@@ -467,12 +467,32 @@
 
 .glow-switch[aria-checked="true"] {
   background: var(--accent-primary, #3b82f6);
-  animation: glow-switch-pulse 3s ease-in-out infinite;
+}
+
+/* 【v2.16.3 負荷対策】ONの間のほんのり明滅する光。以前はbox-shadow自体を
+   アニメーションさせていたが、box-shadowはGPUだけで動かせない性質の
+   ため、表示中は毎フレーム（60〜120回/秒）スタイル再計算と再描画が
+   走っていた（Controlパネルを開いている間だけ「スタイル再計算/秒」が
+   約100になる原因、§3-21）。光(box-shadow)は固定の擬似要素に持たせ、
+   その不透明度(opacity)だけを動かす。さらに、無限に動き続ける
+   アニメーションは（opacityであっても）表示中ずっとスタイル再計算を
+   発生させ得るため、明滅は2回で止める。 */
+.glow-switch[aria-checked="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow: 0 0 12px var(--accent-glow, rgba(59, 130, 246, 0.35));
+  opacity: 0.6;
+  pointer-events: none;
+  /* 無限ループにはせず、表示された時(パネルを開いた時・ONにした時)に
+     2回だけ明滅して、あとは柔らかく光ったまま止まる（§3-21）。 */
+  animation: glow-switch-pulse 3s ease-in-out 2;
 }
 
 @keyframes glow-switch-pulse {
-  0%, 100% { box-shadow: 0 0 4px var(--accent-glow, rgba(59, 130, 246, 0.35)); }
-  50% { box-shadow: 0 0 12px var(--accent-glow, rgba(59, 130, 246, 0.35)); }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 .glow-switch-knob {

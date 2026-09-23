@@ -201,11 +201,24 @@
 }
 .qn-glow-switch[aria-checked="true"] {
   background: var(--accent-primary, #3b82f6);
-  animation: qn-glow-switch-pulse 3s ease-in-out infinite;
+}
+/* 【v2.16.3】style-controls.cssの.glow-switchと同じ理由で、box-shadowは
+   固定の擬似要素に持たせてopacityだけをアニメーションする（§3-21）。 */
+.qn-glow-switch[aria-checked="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow: 0 0 12px var(--accent-glow, rgba(59, 130, 246, 0.35));
+  opacity: 0.6;
+  pointer-events: none;
+  /* 無限ループにはせず、表示された時(パネルを開いた時・ONにした時)に
+     2回だけ明滅して、あとは柔らかく光ったまま止まる（§3-21）。 */
+  animation: qn-glow-switch-pulse 3s ease-in-out 2;
 }
 @keyframes qn-glow-switch-pulse {
-  0%, 100% { box-shadow: 0 0 4px var(--accent-glow, rgba(59, 130, 246, 0.35)); }
-  50% { box-shadow: 0 0 12px var(--accent-glow, rgba(59, 130, 246, 0.35)); }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 .qn-glow-switch-knob {
   position: absolute;

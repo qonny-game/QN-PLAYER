@@ -432,6 +432,26 @@ function setAppTitle(name) {
   });
 }
 
+// 【v2.16.3】曲名のマーキー（長い曲名の横スクロール）は3周で止まる。
+// タイトルにマウスを乗せた時・タップした時に、もう一度最初から流す。
+function replayAppTitleMarquee() {
+  const appTitle = document.getElementById("appTitle");
+  const inner = document.getElementById("appTitleInner");
+  if (!appTitle || !inner || !appTitle.classList.contains("marquee")) return;
+  // 既に流れている最中なら何もしない（途中から巻き戻さない）
+  const running = inner.getAnimations ? inner.getAnimations().some(a => a.playState === "running") : false;
+  if (running) return;
+  inner.style.animation = "none";
+  void inner.offsetWidth; // アニメーションを確実にリセットする
+  inner.style.animation = "";
+}
+(function setupAppTitleMarqueeReplay() {
+  const appTitle = document.getElementById("appTitle");
+  if (!appTitle) return;
+  appTitle.addEventListener("pointerenter", replayAppTitleMarquee);
+  appTitle.addEventListener("click", replayAppTitleMarquee);
+})();
+
 function getAudioCtx() {
   if (!window.__qnAudioCtx) {
     window.__qnAudioCtx = new (window.AudioContext || window.webkitAudioContext)();

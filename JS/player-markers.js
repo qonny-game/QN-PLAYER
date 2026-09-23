@@ -297,20 +297,37 @@ function renderSegments(overrideSegment) {
 function startDragPin(index) {
   return function(e) {
     e.stopPropagation();
-    if (e.type === "touchstart") e.preventDefault();
+    const isTouch = e.type === "touchstart";
+    if (isTouch) e.preventDefault();
     beginSeek();
     const dur = audio.duration;
     const { s1, s2, s3, s4, s5 } = getSegments(dur);
     const bounds = [0, s1, s2, s3, s4, s5, dur];
+
+    // 【v2.16.2】ドラッグ中に動かすのは「今つかんでいるマーカー線の要素そのもの」。
+    // 以前は指が動くたびにrenderPins()で全マーカー線を削除→作り直していた。
+    // iOS Safari等では、タッチを始めた要素(=つかんだマーカー線)がDOMから
+    // 取り除かれると、以降のtouchmove/touchendはその「切り離された要素」に
+    // 届くだけでdocumentまで伝わらない。documentに付けていたtouchmoveが
+    // 最初の1回（=ちょこっと動く）しか呼ばれず、そこでドラッグが止まって
+    // いた（§3-20）。対策として、
+    //  (1) ドラッグ中は要素を作り直さず、位置(left)と所属する行(bar)だけを
+    //      その場で更新する（renderPinList等の重い再描画も指を離すまで保留）
+    //  (2) タッチのイベントは、タッチを始めた要素自身に付ける（タッチイベントは
+    //      常にタッチ開始要素へ届くため、万一どこかで再描画されても取りこぼさない）
+    const dragTarget = e.currentTarget;
+    const lineEl = dragTarget && dragTarget.closest ? dragTarget.closest(".vbar-line") : null;
+    const labelEl = lineEl ? lineEl.querySelector(".vbar-label") : null;
 
     // touchstartでpreventDefault()するとブラウザは以降の合成click/mousedown
     // イベントを発火しなくなる。そのため「タップ（動かさない）＝そのマーカーへ
     // シーク＆再生」「ドラッグ（動かす）＝マーカー移動」を、ここで実際の移動量から
     // 判定して両立させる。DRAG_THRESHOLD_PXより動いたらドラッグとみなす。
     const DRAG_THRESHOLD_PX = 6;
-    const startClientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
-    const startClientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+    const startClientX = isTouch ? e.touches[0].clientX : e.clientX;
+    const startClientY = isTouch ? e.touches[0].clientY : e.clientY;
     let hasDragged = false;
+    let finished = false;
 
     const bars = [
       document.getElementById("bar1"),
@@ -320,6 +337,19 @@ function startDragPin(index) {
       document.getElementById("bar5"),
       document.getElementById("bar6")
     ];
+
+    // つかんでいるマーカー線を、新しい時刻の位置へその場で移動する。
+    function placeLineAt(t) {
+      if (!lineEl) return;
+      const row = getPinRow(t, dur);
+      const x = timeToPercentInRow(t, dur);
+      const targetBar = document.getElementById(`bar${row}`);
+      // 別の行へ移る時だけ付け替える（appendChildによる移動は要素を
+      // 作り直さないので、タッチの対象は保たれる）。
+      if (targetBar && lineEl.parentNode !== targetBar) targetBar.appendChild(lineEl);
+      lineEl.style.left = `${x}%`;
+      if (labelEl) labelEl.classList.toggle("pcv2-label-flip", x >= 80);
+    }
 
     function moveAt(clientX, clientY) {
       let targetBarIndex = 0;
@@ -349,16 +379,19 @@ function startDragPin(index) {
 
       pins[index].t = Math.max(0, Math.min(dur, t));
 
-      renderPins();
+      if (lineEl) {
+        placeLineAt(pins[index].t);
+      } else {
+        renderPins(); // 念のためのフォールバック（通常は通らない）
+      }
       renderSegments();
-      renderPinList();
     }
 
     function move(ev) {
       if (Math.abs(ev.clientX - startClientX) > DRAG_THRESHOLD_PX || Math.abs(ev.clientY - startClientY) > DRAG_THRESHOLD_PX) {
         hasDragged = true;
       }
-      moveAt(ev.clientX, ev.clientY);
+      if (hasDragged) moveAt(ev.clientX, ev.clientY);
     }
 
     function moveTouch(ev) {
@@ -368,10 +401,14 @@ function startDragPin(index) {
       if (Math.abs(t.clientX - startClientX) > DRAG_THRESHOLD_PX || Math.abs(t.clientY - startClientY) > DRAG_THRESHOLD_PX) {
         hasDragged = true;
       }
-      moveAt(t.clientX, t.clientY);
+      // しきい値を超えるまでは動かさない（タップのつもりの小さなブレで
+      // マーカーがずれないように）。
+      if (hasDragged) moveAt(t.clientX, t.clientY);
     }
 
     function stop() {
+      if (finished) return;
+      finished = true;
       pins.sort((a, b) => a.t - b.t);
       // マーカー位置が変わった（並び順が変わり得る）ため、ループ折り返し
       // 判定の対象区間インデックスを破棄する。
@@ -379,11 +416,13 @@ function startDragPin(index) {
 
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseup", stop);
-      document.removeEventListener("touchmove", moveTouch);
-      document.removeEventListener("touchend", stop);
-      document.removeEventListener("touchcancel", stop);
+      if (dragTarget) {
+        dragTarget.removeEventListener("touchmove", moveTouch);
+        dragTarget.removeEventListener("touchend", stop);
+        dragTarget.removeEventListener("touchcancel", stop);
+      }
 
-      if (!hasDragged && e.type === "touchstart") {
+      if (!hasDragged && isTouch) {
         // 実質的にタップだった（touchstartのpreventDefaultでclickが発火しないため、
         // ここでタップ時と同じ処理＝そのマーカーへシーク＆再生を行う）。
         const pinObj = pins[index];
@@ -399,16 +438,17 @@ function startDragPin(index) {
       }
       setTimeout(() => { isSeeking = false; }, 150);
 
+      // 指を離した時点で初めて、番号の振り直し(並び替え)・リスト・保存を行う。
       renderPins();
       renderSegments();
       renderPinList();
       savePins();
     }
 
-    if (e.type === "touchstart") {
-      document.addEventListener("touchmove", moveTouch, { passive: false });
-      document.addEventListener("touchend", stop);
-      document.addEventListener("touchcancel", stop);
+    if (isTouch) {
+      dragTarget.addEventListener("touchmove", moveTouch, { passive: false });
+      dragTarget.addEventListener("touchend", stop);
+      dragTarget.addEventListener("touchcancel", stop);
     } else {
       document.addEventListener("mousemove", move);
       document.addEventListener("mouseup", stop);
