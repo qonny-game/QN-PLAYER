@@ -653,6 +653,10 @@ grep -o 'id="[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort -u
   ラベル、ロゴ・スプラッシュ、波形上のマーカーラベル、テキストのフルスクリーン
   表示、料金モーダルの大見出し、スライダーのトラックやスクロールバー等の
   2〜4pxの細部。
+- **シークバー（`#pcV2WaveArea .vbar`）の高さは固定値・vhで指定しない。**
+  `#vbarContainer`が波形エリアの残り高さを受け取り、6本で等分する（flex、
+  min/max-heightで上下限のみ指定）。高さ変化時のcanvas再描画は
+  `player-ui-pc-v2.js`のResizeObserverが担当（v2.16.1〜）。
 - 汎用セレクタ（`.playlistItem button`・`.pinItem button`は丸ボタン指定）より
   個別のボタンを優先させたい時は、`.playlistItem .playlist-skip-toggle`のように
   親クラスを前置して詳細度を上げる。

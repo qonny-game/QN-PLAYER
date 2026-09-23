@@ -2035,6 +2035,27 @@
     pcv2SizeDirty = true;
     if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform(true);
   });
+
+  // 【v2.16.1】シークバーの高さは波形エリアの残り高さから決まる(flex)ため、
+  // ウインドウのresize以外（パネル開閉・時刻行の出入り・フォント読込等）でも
+  // バーの大きさが変わる。バーの入れ物をResizeObserverで監視し、大きさが
+  // 変わったらcanvasの解像度を合わせて描き直す（伸びた波形がぼやけない
+  // ように）。連続して発火しても1フレームに1回だけ処理する。
+  if (typeof ResizeObserver === "function") {
+    let pcv2ResizeRaf = null;
+    const vbarContainerEl = document.getElementById("vbarContainer");
+    if (vbarContainerEl) {
+      new ResizeObserver(() => {
+        if (pcv2ResizeRaf) return;
+        pcv2ResizeRaf = requestAnimationFrame(() => {
+          pcv2ResizeRaf = null;
+          pcv2SizeDirty = true;
+          if (typeof drawWaveform === "function" && typeof waveformPeaks !== "undefined" && waveformPeaks) drawWaveform();
+          if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform(true);
+        });
+      }).observe(vbarContainerEl);
+    }
+  }
   // 曲の読み込み完了時・シーク時も、間引き待ちせず即座に反映する
   if (typeof audio !== "undefined" && audio) {
     audio.addEventListener("loadedmetadata", () => { pcv2SizeDirty = true; });
