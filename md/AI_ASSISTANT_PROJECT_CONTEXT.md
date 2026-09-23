@@ -350,6 +350,21 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
   要素は、非表示時に**必ず`none`へ戻す**（0px・透明度0で「見えないだけ」に
   しない）。`display: none`か`visibility: hidden`＋`none`をセットで使う。
 
+### 3-17. `createMediaElementSource()`の後に`await`を挟むと、その間だけ無音になる
+- **現象：** Controlパネル（Speed/Key/EQ）を初めて開いた瞬間だけ、再生が
+  一瞬（0.1〜0.2秒）ぷつんと途切れる。2回目以降・再読み込み後の2回目は
+  起きない。
+- **原因：** `setupAudioGraph()`が最初に`createMediaElementSource(audio)`を
+  呼んでいた。この瞬間から`<audio>`の音は通常出力を離れてWeb Audioの
+  グラフへ回されるが、`destination`への接続はSoundTouchJSのCDN読み込みと
+  AudioWorklet登録を`await`した後だったため、その待ち時間が無音になっていた。
+- **解決：** フィルター作成・SoundTouch準備・`ctx.resume()`を全て先に
+  終わらせ、最後に`createMediaElementSource()`→各ノード→`destination`の
+  接続を`await`なしの同期処理で一気に行う。
+- **教訓：** 再生中の音声経路を差し替える処理は「重い準備を全部先に、
+  切り替えは最後に一瞬で」。切り替え開始から完了までの間に非同期処理を
+  挟まない。
+
 ## 4. データフロー・状態管理の要点
 
 - **`playlist`配列**（`player-core.js`）: `{ file, name, title, artist,

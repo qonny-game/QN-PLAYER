@@ -496,16 +496,16 @@ async function setupAudioGraph() {
   if (audioGraphSetupDone) return;
   audioGraphSetupDone = true;
 
+  // 【v2.14.2】「準備を全部終えてから、最後に一瞬で差し替える」順序に変更（§3-17）。
+  // 以前は最初にcreateMediaElementSource(audio)を呼んでいた。この瞬間から
+  // <audio>の音は通常の出力経路を離れてWeb Audioのグラフ側へ回されるが、
+  // 出力先(destination)への接続は、SoundTouchJSのCDN読み込み・AudioWorklet
+  // 登録を待った後だった。その待ち時間（初回はネットワーク込みで0.1〜0.2秒程度）
+  // だけ音がどこにも出力されず、Controlパネルを初めて開いた時に再生が
+  // 「ぷつん」と途切れていた（2回目以降はaudioGraphSetupDoneで何もしない）。
   const ctx = getAudioCtx();
-  let source;
-  try {
-    source = ctx.createMediaElementSource(audio);
-  } catch (err) {
-    console.warn("Audio graph setup failed:", err);
-    return;
-  }
 
-  eqFilters = EQ_FREQS.map(freq => {
+  const filters = EQ_FREQS.map(freq => {
     const filter = ctx.createBiquadFilter();
     filter.type = "peaking";
     filter.frequency.value = freq;
@@ -514,22 +514,42 @@ async function setupAudioGraph() {
     return filter;
   });
 
-  // SoundTouchJS（Speed/Keyの本格処理）の初期化を試みる。
+  // SoundTouchJS（Speed/Keyの本格処理）の初期化を試みる（この間、音は
+  // まだ通常の経路で鳴り続けている）。
   // setupAudioGraph自体、EQボタンまたはSPEED/KEY操作のいずれかが実際に行われた
   // タイミングで初めて呼ばれる設計になっているため、呼ばれた時点で常に接続を試みてよい
   // （呼ばれるまでは<audio>要素がWeb Audio APIに一切接続されないため、EQ・Speed・Keyの
   // どれも使わない通常再生では、Safari固有の不具合を避けられる）。
+  let stNode = null;
   try {
     if (!ctx.audioWorklet) throw new Error("AudioWorklet is not supported in this browser");
     const { SoundTouchNode } = await loadSoundTouchModule();
     await ensureSoundTouchWorklet(ctx, SoundTouchNode);
-    soundTouchNode = new SoundTouchNode({ context: ctx });
-    pitchShiftAvailable = true;
+    stNode = new SoundTouchNode({ context: ctx });
   } catch (err) {
     console.warn("SoundTouchJS unavailable, Speed/Key features disabled:", err);
-    pitchShiftAvailable = false;
-    soundTouchNode = null;
+    stNode = null;
   }
+
+  // AudioContextが動き出す前に差し替えると、動き出すまでの間が無音になる
+  // ため、先に確実にrunning状態にしておく。
+  if (ctx.state !== "running") {
+    try { await ctx.resume(); } catch (err) {}
+  }
+
+  // ここから先は同期処理だけ：音声要素の出力をグラフへ回し、出力先まで
+  // 一気につなぐ（途中にawaitを挟まないので、無音の隙間ができない）。
+  let source;
+  try {
+    source = ctx.createMediaElementSource(audio);
+  } catch (err) {
+    console.warn("Audio graph setup failed:", err);
+    return;
+  }
+
+  eqFilters = filters;
+  soundTouchNode = stNode;
+  pitchShiftAvailable = !!stNode;
 
   let node = source;
   if (pitchShiftAvailable && soundTouchNode) {
@@ -541,6 +561,12 @@ async function setupAudioGraph() {
     node = filter;
   });
   node.connect(ctx.destination);
+
+  // 準備中（await中）にEQスライダーが操作されていても取りこぼさないよう、
+  // 接続した時点のスライダー値・EQ ON/OFFをフィルターへ反映し直す。
+  if (typeof setEqEffectEnabled === "function" && typeof eqEffectEnabled !== "undefined") {
+    setEqEffectEnabled(eqEffectEnabled);
+  }
 
   // 音声グラフが確定してからKey/Speedの現在値を反映する
   updatePlaybackRate();

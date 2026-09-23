@@ -166,3 +166,11 @@
   ＋`visibility: hidden`に変更。
 - 時刻表示・シークバー進捗のDOM書き込みを「値が変わった時だけ」に。
 - PC v2波形のアクセント色読み取り(getComputedStyle)を0.5秒に1回までに。
+
+## 2.14.2 — Controlパネル初回表示時の再生途切れを修正
+- （§3-17）`setupAudioGraph()`の順序を変更。SoundTouchJSの読み込み・
+  AudioWorklet登録・EQフィルター作成・AudioContextのresumeを全て済ませて
+  から、最後に`createMediaElementSource()`〜出力先への接続を同期的に一気に
+  行う。以前は先に音声要素をグラフへ回してから準備を待っていたため、
+  その間（初回0.1〜0.2秒）無音になっていた。
+- 準備中に操作されたEQスライダー値も、接続時にフィルターへ反映し直す。
