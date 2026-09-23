@@ -1223,7 +1223,10 @@ body.pc-v2-active > .app-container {
   gap: 0;
   padding: 8px 7px;
   cursor: pointer;
-  color: var(--accent-primary);
+  /* 【v2.16.5】通常時は下段バーの他のアイコンボタン（前/次・Repeat等の
+     .tripleNavBtn-third）と同じグレー。テーマ色になるのは下の「ON/表示中」
+     の時だけ。 */
+  color: var(--icon-muted);
   background: none;
   border: none;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
@@ -1231,8 +1234,12 @@ body.pc-v2-active > .app-container {
   transition: transform var(--dur-press) var(--ease-snap);
 }
 
-#pcV2BottomBar .pcv2-ctrl-btn:hover {
-  color: var(--accent-primary);
+/* ホバーで明るくするのはマウス環境だけ（タッチ端末では押した後に
+   ホバー色が残り、OFFなのに白っぽく見えてしまうため）。 */
+@media (hover: hover) and (pointer: fine) {
+  #pcV2BottomBar .pcv2-ctrl-btn:hover {
+    color: var(--text-bright);
+  }
 }
 
 /* LOOP/REPEAT等の .tripleNavBtn-third:active / .loopbtn:active と揃え、
@@ -1241,28 +1248,28 @@ body.pc-v2-active > .app-container {
   transform: scale(0.94);
 }
 
-/* Speed/Key/EQのON/OFFトグルボタン：OFF時は白、ONの間はアクセントカラーにして
-   「効果が今かかっている」ことを一目でわかるようにする（LOOP/REPEATと統一）。 */
-#pcV2BottomBar .pcv2-ctrl-btn.effect-off {
-  color: var(--icon-muted);
-}
-
-#pcV2BottomBar .pcv2-ctrl-btn.effect-off:hover {
-  color: var(--text-bright);
-}
-
-#pcV2BottomBar .pcv2-ctrl-btn.primary {
-  color: var(--accent-primary);
-}
-
+/* Speed/Key/EQのON/OFFトグル：ONの間だけテーマ色（OFFは上の通常色）。
+   Volume：縦スライダーのポップアップを表示している間だけテーマ色
+   （.is-open、player-ui-pc-v2.jsのsetupVolumeControlが付け外し）。
+   ON/表示中はホバーしてもテーマ色のまま。 */
+#pcV2BottomBar #pcV2BottomSpeedToggle:not(.effect-off),
+#pcV2BottomBar #pcV2BottomKeyToggle:not(.effect-off),
+#pcV2BottomBar #pcV2BottomEqToggle:not(.effect-off),
+#pcV2BottomBar #pcV2VolumeBtn.is-open,
+#pcV2BottomBar .pcv2-ctrl-btn.primary,
 #pcV2BottomBar .pcv2-ctrl-btn.active {
   color: var(--accent-primary);
 }
 
+/* 【v2.16.5】アイコンの塗り(fill)も文字色(currentColor)に揃える。
+   以前はfillだけ固定のグレー(--icon-muted)で、線(stroke=currentColor)は
+   ボタンの文字色になっていたため、線と塗りが混在するSpeed/Key/EQの
+   アイコン（Speedの針の軸の丸、EQのつまみの丸等）だけ、テーマ色・白・
+   グレーが1つのアイコン内で混ざって見えていた。 */
 #pcV2BottomBar .pcv2-ctrl-btn svg {
   width: 20px;
   height: 20px;
-  fill: var(--icon-muted);
+  fill: currentColor;
 }
 
 #pcV2BottomBar .pcv2-ctrl-btn.primary svg {

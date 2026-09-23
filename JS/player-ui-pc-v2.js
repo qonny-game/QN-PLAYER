@@ -676,7 +676,11 @@
       popup.style.top = (r.top - 10) + "px";
     }
 
-    function closePopup() { popup.classList.remove("open"); }
+    // 表示中だけボタンをテーマ色にする（.is-open、v2.16.5〜）。
+    function closePopup() {
+      popup.classList.remove("open");
+      btn.classList.remove("is-open");
+    }
 
     // 既存のcontrolVolume(0〜1)の現在値を初期表示に反映
     const controlVolumeEl = document.getElementById("controlVolume");
@@ -690,6 +694,7 @@
         applyVisual(typeof audio !== "undefined" ? audio.volume : 0.8);
         positionPopup();
         popup.classList.add("open");
+        btn.classList.add("is-open");
       }
     });
     document.addEventListener("click", closePopup);

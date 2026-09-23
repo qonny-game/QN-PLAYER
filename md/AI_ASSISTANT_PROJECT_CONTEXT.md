@@ -701,6 +701,11 @@ grep -o 'id="[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort -u
   ボタン（`.panel-fab-btn`＝ADD AUDIO/ADD MARKER/EDIT/Fullscreen等）の背景と、
   パネル見出し（`.pcv2-panel-header-title`）の文字。EDITの編集中(OK、`.active`)は
   「白地＋テーマ色の文字」に反転して区別する。Deleteは常に赤（`--danger`）。
+- **アイコンボタンの色（v2.16.5〜）：** SVGは`fill: currentColor`にして、線と塗りを
+  同じ色（ボタンの`color`）で決める（fillだけ固定色にすると、線と塗りを併用する
+  アイコンで色が混ざる）。下段バーの状態を持つボタンは「通常＝`--icon-muted`、
+  ON/表示中＝`--accent-primary`」で統一（Speed/Key/EQは`:not(.effect-off)`、
+  Volumeは`.is-open`）。ホバーの明色化はマウス環境限定。
 - **シークバー（`#pcV2WaveArea .vbar`）の高さは固定値・vhで指定しない。**
   `#vbarContainer`が波形エリアの残り高さを受け取り、6本で等分する（flex、
   min/max-heightで上下限のみ指定）。高さ変化時のcanvas再描画は
