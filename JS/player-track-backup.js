@@ -666,7 +666,12 @@ async function runTrackImport() {
         }
         // 既存のsavedAt（＝現在の並び順）を保ったまま、この1曲分だけ
         // 保存する。
-        if (typeof savePlaylistMetadataFor === "function") {
+        // 【v2.13.5】音声ごと差し替えた場合だけIndexedDBの音声レコードも
+        // 書き直す（新しいBlobはメモリ上のデータなので安全）。メタデータだけの
+        // 上書きならIndexedDBには触れない（§3-11）。
+        if (audioBlob && typeof savePlaylistTrackAudioKeepingOrder === "function") {
+          await savePlaylistTrackAudioKeepingOrder(existingTrack);
+        } else if (typeof savePlaylistMetadataFor === "function") {
           await savePlaylistMetadataFor(existingTrack);
         }
         applyImportedMarkersAndText(name, trackData);

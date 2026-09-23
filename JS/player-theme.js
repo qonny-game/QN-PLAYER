@@ -230,6 +230,7 @@
   let glowEnabled = false;
 
   function stopGlow() {
+    window.__qnGlowBaseAccent = null;
     if (glowAnimId) {
       cancelAnimationFrame(glowAnimId);
       glowAnimId = null;
@@ -243,6 +244,10 @@
     if (glowAnimId) cancelAnimationFrame(glowAnimId);
     const baseColor = getComputedStyle(document.body).getPropertyValue('--accent-primary').trim() || '#3b82f6';
     const fixedHue = hexToHue(baseColor);
+    // 【v2.13.5】波形(シークバー)はGlowの明滅対象外にする。波形側は
+    // この「明滅前の元のアクセント色」を固定で使うため、Glow中でも色が
+    // 変わらず、再描画も走らない（停止中の波形描画がゼロになる）。
+    window.__qnGlowBaseAccent = baseColor;
     // 【v2.13.4 負荷対策】body上のCSS変数を書き換えると画面全体のスタイル再計算が
     // 走るため、毎フレームではなく約15回/秒に間引く。明滅の速さは経過時間ベースで
     // 計算するので、間引いても以前（0.008/フレーム@60fps）と同じ速さになる。

@@ -365,6 +365,14 @@ body.pc-v2-active > .app-container {
   font-size: 0;
   padding: 0;
   flex-shrink: 0;
+}
+
+/* 【v2.13.5】pointer-events:noneはplaylistパネル専用。playlistは外側の
+   .playlist-del-zoneでタップを受けるため●自体は透過させてよいが、markers
+   パネルは.del-btn自体がタップ判定なので、ここを透過させると●を押しても
+   e.target.closest(".del-btn")が見つからず、削除選択が一切できなかった
+   （v2.10.6でplaylist側の判定を広げた際、markers側まで巻き込んでいた）。 */
+#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn {
   pointer-events: none;
 }
 

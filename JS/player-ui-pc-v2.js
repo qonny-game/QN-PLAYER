@@ -1796,8 +1796,10 @@
         .sort((a, b) => a.t - b.t);
     }
 
-    // getComputedStyleは1回の描画につき1回だけ（以前は行ごとに6回）
-    const accentColor = getComputedStyle(document.body).getPropertyValue("--accent-primary").trim() || "#3b82f6";
+    // Glow中は明滅前の元の色で固定する（v2.13.5〜、波形はGlow対象外）。
+    // それ以外はgetComputedStyleを1回の描画につき1回だけ（以前は行ごとに6回）。
+    const accentColor = window.__qnGlowBaseAccent ||
+      getComputedStyle(document.body).getPropertyValue("--accent-primary").trim() || "#3b82f6";
 
     // 何も変わっていなければ描画しない。再生位置は「波形バー1本分」の
     // 解像度で比較する（それ未満の変化では見た目が一切変わらないため）。

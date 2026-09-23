@@ -151,7 +151,68 @@ function openPlaylistDB() {
 // title/artist/favoriteは手動編集された値で、指定しなければ既存の保存値を
 // 変えない（undefinedの場合はputで上書きしないよう事前に既存レコードを
 // 読み、マージしてから保存する）。
+// ============================================================
+// 【v2.13.5】曲のメタデータ（並び順savedAt・ON/OFF・タイトル・アーティスト・
+// お気に入り）は、音声Blobを持つIndexedDBレコードとは別に、localStorageの
+// PLAYLIST_META_KEYへ保存する。
+//
+// 理由（§3-11）：iOS Safari(WebKit)のIndexedDBでは、Blobを含むレコードを
+// get→putし直すと、たとえBlobの中身を変えていなくてもBlobの実体ファイルが
+// 作り直され、古い実体が削除される。すると、起動時に読み込んでplaylist配列に
+// 持っている各曲のFile(=古い実体を指している)が「中身の無い死んだBlob」になり、
+// その曲を再生しようとしても読み込めない（曲名だけ切り替わり、シークバー・
+// 波形・マーカーは前の曲のまま、再生もされない）。v2.13.3の
+// persistPlaylistOrder()は「Blobに触れない」つもりでget→putしていたため、
+// 並び替えのたびに全曲のBlobが死んでいた。
+// メタデータをIndexedDBの外に出すことで、並び替え・お気に入り・タイトル編集では
+// 音声レコードに一切書き込まないようにする。
+// ============================================================
+const PLAYLIST_META_KEY = "qn_playlist_meta_v1";
+
+function readPlaylistMeta() {
+  try {
+    const raw = localStorage.getItem(PLAYLIST_META_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === "object" ? obj : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function writePlaylistMeta(meta) {
+  try {
+    localStorage.setItem(PLAYLIST_META_KEY, JSON.stringify(meta));
+  } catch (e) {
+    console.warn("writePlaylistMeta failed:", e);
+  }
+}
+
+// 1曲分のメタデータを更新する（指定されたフィールドだけ上書き）。
+function updatePlaylistMetaEntry(name, fields) {
+  const meta = readPlaylistMeta();
+  const cur = meta[name] || {};
+  Object.keys(fields).forEach(k => {
+    if (fields[k] !== undefined) cur[k] = fields[k];
+  });
+  meta[name] = cur;
+  writePlaylistMeta(meta);
+}
+
+function removePlaylistMetaEntry(name) {
+  const meta = readPlaylistMeta();
+  if (name in meta) {
+    delete meta[name];
+    writePlaylistMeta(meta);
+  }
+}
+
+function getPlaylistMetaSavedAt(name) {
+  const entry = readPlaylistMeta()[name];
+  return entry && typeof entry.savedAt === "number" ? entry.savedAt : undefined;
+}
+
 async function savePlaylistTrack(file, savedAt, enabled, title, artist, favorite) {
+  const effectiveSavedAt = typeof savedAt === "number" ? savedAt : Date.now();
   try {
     const db = await openPlaylistDB();
     await new Promise((resolve, reject) => {
@@ -164,7 +225,7 @@ async function savePlaylistTrack(file, savedAt, enabled, title, artist, favorite
           name: file.name,
           type: file.type,
           blob: file,
-          savedAt: typeof savedAt === "number" ? savedAt : Date.now(),
+          savedAt: effectiveSavedAt,
           enabled: enabled !== false,
           title: title !== undefined ? title : existing.title,
           artist: artist !== undefined ? artist : existing.artist,
@@ -178,6 +239,14 @@ async function savePlaylistTrack(file, savedAt, enabled, title, artist, favorite
   } catch (err) {
     console.warn("savePlaylistTrack failed:", err);
   }
+  // メタデータ側にも同じ内容を記録する（読み込み時はこちらが優先される）。
+  updatePlaylistMetaEntry(file.name, {
+    savedAt: effectiveSavedAt,
+    enabled: enabled !== false,
+    title: title,
+    artist: artist,
+    favorite: favorite
+  });
 }
 
 // 指定ファイル名の曲をストレージから削除する。
@@ -193,6 +262,7 @@ async function deletePlaylistTrack(name) {
   } catch (err) {
     console.warn("deletePlaylistTrack failed:", err);
   }
+  removePlaylistMetaEntry(name);
 }
 
 // 保存されている全曲を読み込む。{ file: File, enabled: boolean } の配列を返す。
@@ -205,14 +275,29 @@ async function loadAllPlaylistTracks() {
       req.onsuccess = () => resolve(req.result || []);
       req.onerror = () => reject(req.error);
     });
+    // メタデータ(localStorage)があればそちらを優先し、無い項目だけ
+    // IndexedDBレコード側の値（v2.13.4以前に保存されたもの）を使う。
+    const meta = readPlaylistMeta();
+    const pick = (m, key, fallback) => (m && m[key] !== undefined ? m[key] : fallback);
+    const merged = records.map(r => {
+      const m = meta[r.name];
+      return {
+        r,
+        savedAt: pick(m, "savedAt", r.savedAt || 0),
+        enabled: pick(m, "enabled", r.enabled) !== false,
+        title: pick(m, "title", r.title) || null,
+        artist: pick(m, "artist", r.artist) || null,
+        favorite: pick(m, "favorite", r.favorite) === true
+      };
+    });
     // savedAt昇順（保存された順）に並べ、BlobをFile相当のオブジェクトに復元する
-    records.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
-    return records.map(r => ({
-      file: new File([r.blob], r.name, { type: r.type || r.blob.type }),
-      enabled: r.enabled !== false,
-      title: r.title || null,
-      artist: r.artist || null,
-      favorite: r.favorite === true
+    merged.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
+    return merged.map(x => ({
+      file: new File([x.r.blob], x.r.name, { type: x.r.type || x.r.blob.type }),
+      enabled: x.enabled,
+      title: x.title,
+      artist: x.artist,
+      favorite: x.favorite
     }));
   } catch (err) {
     console.warn("loadAllPlaylistTracks failed:", err);
@@ -236,52 +321,72 @@ async function loadAllPlaylistTracks() {
 // ここでは既存レコードのBlobには一切触れず、savedAt/enabled/title/
 // artist/favoriteだけを更新する軽量な書き込みに直列で回す。
 async function persistPlaylistOrder() {
-  const db = await openPlaylistDB().catch(() => null);
-  if (!db) return;
+  // 【v2.13.5】IndexedDBには一切書き込まない（§3-11）。並び順・状態は
+  // localStorageのメタデータにだけ保存する。
+  const meta = readPlaylistMeta();
   const base = Date.now();
   for (let i = 0; i < playlist.length; i++) {
     const track = playlist[i];
-    await new Promise((resolve) => {
-      const tx = db.transaction(PLAYLIST_STORE_NAME, "readwrite");
-      const store = tx.objectStore(PLAYLIST_STORE_NAME);
-      const getReq = store.get(track.file.name);
-      getReq.onsuccess = () => {
-        const existing = getReq.result;
-        if (!existing) { resolve(); return; }
-        existing.savedAt = base + i;
-        existing.enabled = track.enabled !== false;
-        existing.title = track.title;
-        existing.artist = track.artist;
-        existing.favorite = track.favorite || false;
-        store.put(existing);
-      };
-      getReq.onerror = () => resolve();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    });
+    const name = track.file ? track.file.name : track.name;
+    if (!name) continue;
+    const cur = meta[name] || {};
+    cur.savedAt = base + i;
+    cur.enabled = track.enabled !== false;
+    cur.title = track.title;
+    cur.artist = track.artist;
+    cur.favorite = track.favorite || false;
+    meta[name] = cur;
   }
+  writePlaylistMeta(meta);
 }
 
 // タイトル/アーティスト/お気に入り状態を編集した直後など、並び順を変えずに
 // 1曲分だけメタデータを保存したい場合に使う軽量版。savedAtは指定しないため
 // 既存のIndexedDB上の値（＝現在の並び順）がそのまま保たれる。
 async function savePlaylistMetadataFor(track) {
-  const db = await openPlaylistDB().catch(() => null);
-  if (!db) return;
-  const existing = await new Promise((resolve) => {
-    const tx = db.transaction(PLAYLIST_STORE_NAME, "readonly");
-    const req = tx.objectStore(PLAYLIST_STORE_NAME).get(track.file.name);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => resolve(null);
+  // 【v2.13.5】IndexedDB（音声Blobを持つレコード）には書き込まない（§3-11）。
+  const name = track.file ? track.file.name : track.name;
+  if (!name) return;
+  updatePlaylistMetaEntry(name, {
+    enabled: track.enabled !== false,
+    title: track.title,
+    artist: track.artist,
+    favorite: track.favorite || false
   });
-  await savePlaylistTrack(
-    track.file,
-    existing ? existing.savedAt : undefined,
-    track.enabled,
-    track.title,
-    track.artist,
-    track.favorite
-  );
+}
+
+// 音声データそのものを差し替えた曲（インポートでの上書き等）を、並び順を
+// 保ったまま保存する。新しいBlobはユーザーが与えたメモリ上のデータなので、
+// 書き込んでもplaylist配列側のFileが死ぬことはない。
+async function savePlaylistTrackAudioKeepingOrder(track) {
+  const name = track.file.name;
+  let keepSavedAt = getPlaylistMetaSavedAt(name);
+  if (keepSavedAt === undefined) {
+    // メタデータ未作成（v2.13.4以前のデータ）の場合、先に現在の並び順を
+    // メタデータへ書き出してから、その値を使う（末尾に飛ばないように）。
+    await persistPlaylistOrder();
+    keepSavedAt = getPlaylistMetaSavedAt(name);
+  }
+  await savePlaylistTrack(track.file, keepSavedAt, track.enabled, track.title, track.artist, track.favorite);
+}
+
+// 保険：playlist配列が持っているFile（Blob）が何らかの理由で読めなくなって
+// いた場合に、IndexedDBから同じ曲の音声を読み直して新しいFileを返す。
+// 見つからなければnull。
+async function reloadTrackFileFromDB(name) {
+  try {
+    const db = await openPlaylistDB();
+    const rec = await new Promise((resolve) => {
+      const tx = db.transaction(PLAYLIST_STORE_NAME, "readonly");
+      const req = tx.objectStore(PLAYLIST_STORE_NAME).get(name);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+    if (!rec || !rec.blob) return null;
+    return new File([rec.blob], rec.name, { type: rec.type || rec.blob.type });
+  } catch (e) {
+    return null;
+  }
 }
 
 // 波形解析用

@@ -248,6 +248,44 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
   忘れない（§2）。また`getAudioCtx()`は「再生用のリアルタイム
   AudioContextを生成する」関数なので、デコード目的だけで呼ばない。
 
+### 3-11. iOS SafariでBlob入りIndexedDBレコードを書き直すとメモリ上のFileが死ぬ【最重要】
+- **現象：** ライブラリを並び替えると、ほぼ100%再生できなくなる
+  （一時停止アイコンのまま、シークバーも進まない）。前/次を押すと曲名だけ
+  切り替わり、シークバー・波形・マーカーは直前の曲のまま。
+- **原因：** v2.13.3で軽量化した`persistPlaylistOrder()`も、実際には
+  音声Blobを含むレコードを`get`→`put`し直していた。WebKitのIndexedDBでは
+  Blobの中身を変えなくてもputのたびに実体ファイルが作り直され、古い実体が
+  削除されるため、起動時に読み込んでplaylist配列が持っている各曲のFileが
+  「中身の読めないBlob」になる。loadFile()は曲名表示(setAppTitle)までは
+  進むが、音声が読み込めないため`loadedmetadata`が発火せず、波形・
+  マーカーが更新されない。§3-5の本当の根本原因はこちらだった。
+- **解決：** メタデータ（savedAt/enabled/title/artist/favorite）を
+  localStorageの`qn_playlist_meta_v1`（`{ファイル名: {...}}`）へ分離。
+  `persistPlaylistOrder()`・`savePlaylistMetadataFor()`はIndexedDBに
+  一切書き込まない。IndexedDBへ書くのは「ユーザーが新しく与えた音声」
+  （新規追加・インポート新規・インポートでの音声上書き＝
+  `savePlaylistTrackAudioKeepingOrder()`）の時だけ。読み込み時
+  (`loadAllPlaylistTracks()`)はメタデータ優先、無い項目はレコード側の値。
+  保険として`audio`の`error`時に`reloadTrackFileFromDB()`で読み直して
+  1回だけ再試行する。
+- **教訓：** **IndexedDBの音声レコードは「書いたら二度と書き直さない」。**
+  並び順・フラグ・表示名など頻繁に変わる情報は、Blobとは別の場所
+  （localStorageや別ストア）に置く。「Blobの中身を変えなければ安全」
+  という前提はiOSでは成り立たない。
+
+### 3-12. 共通CSSの修正が別パネルを巻き込む（マーカー削除●が押せない）
+- **現象：** MarkersパネルのEDITモードで削除●にチェックが入らない（削除不可）。
+- **原因：** v2.10.6でPlaylistの削除タップ範囲を`.playlist-del-zone`に
+  広げた際、`.del-btn`へ`pointer-events: none`を付けたが、セレクタが
+  markers/playlist共通だった。Markersは`.del-btn`自体がタップ判定
+  （`attachSelectionHandlers`の`zoneSelector`）のため、クリックが素通りして
+  `e.target.closest(".del-btn")`が見つからなくなっていた。
+- **解決：** `pointer-events: none`をplaylistパネル限定のセレクタに分離。
+- **教訓：** markers/playlistを1つのセレクタで同時に指定している
+  `style-layout-pc-v2.css`のルールを変更するときは、両パネルのタップ判定の
+  仕組みが違う（markers＝`.del-btn`、playlist＝`.playlist-del-zone`）ことを
+  確認する。
+
 ## 4. データフロー・状態管理の要点
 
 - **`playlist`配列**（`player-core.js`）: `{ file, name, title, artist,
@@ -258,6 +296,11 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
   title, artist, favorite }`。`savedAt`の昇順が読み込み時の並び順になる
   （`loadAllPlaylistTracks()`）。**`blob`フィールドは音声実体そのもので
   重い**（§3-5参照、書き込み時は要注意）。
+- **プレイリストのメタデータ（v2.13.5〜）**: `localStorage`のキー
+  `qn_playlist_meta_v1`に`{ ファイル名: { savedAt, enabled, title, artist,
+  favorite } }`で保存。並び順・ON/OFF・表示名・お気に入りの変更はここだけに
+  書き、IndexedDBのレコードは書き直さない（§3-11）。読み込み時はこちらが
+  優先され、無い項目はIndexedDBレコード側の値（旧データ）を使う。
 - **`openPlaylistDB()`**: DB接続はキャッシュされ使い回される
   （呼ぶたびに`indexedDB.open()`し直さない）。
 - **`pins`配列**（`player-core.js`）: 現在再生中の曲のマーカー一覧。

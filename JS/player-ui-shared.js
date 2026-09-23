@@ -435,6 +435,25 @@ audio.onended = () => {
   }
 };
 
+// 【v2.13.5 保険】曲の読み込みに失敗した（playlist側のFileが読めなくなって
+// いた）場合、IndexedDBから音声を読み直して1回だけ再試行する（§3-11）。
+let lastAudioRecoveryName = null;
+audio.addEventListener("error", async () => {
+  if (typeof currentPlaylistIndex === "undefined" || currentPlaylistIndex < 0) return;
+  const track = playlist[currentPlaylistIndex];
+  if (!track || !track.file) return;
+  const name = track.file.name;
+  if (lastAudioRecoveryName === name) return; // 同じ曲で無限に再試行しない
+  lastAudioRecoveryName = name;
+  console.warn("Audio load failed — reloading track data from storage:", name);
+  const fresh = typeof reloadTrackFileFromDB === "function" ? await reloadTrackFileFromDB(name) : null;
+  if (!fresh || playlist[currentPlaylistIndex] !== track) return;
+  track.file = fresh;
+  loadFile(fresh);
+  audio.play().catch(() => {});
+});
+audio.addEventListener("loadedmetadata", () => { lastAudioRecoveryName = null; });
+
 document.getElementById("playToggle").onclick = togglePlay;
 
 
