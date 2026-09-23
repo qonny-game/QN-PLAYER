@@ -222,6 +222,32 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
   `SW_LIMITS` / `swShowUnlockToast()`のパターンを踏襲するか、
   意図的に制限しないかを毎回明示的に決める。
 
+### 3-10. 毎フレームのrequestAnimationFrameループでSPが強制再読み込みされる【最重要】
+- **現象：** SP（特にiOS）で普通に1曲再生しているだけで、3分以内に
+  ほぼ100%ページが落ちてスプラッシュ（ロゴ）から再読み込みされる。
+  ループ・Bluetoothの有無と無関係。アプリ再起動直後でも再現。
+- **原因：** `player-ui-pc-v2.js`の`pcv2WaveLoop`が、`PC_BREAKPOINT`が
+  `(min-width: 0px)`＝SPでも常に有効な状態で、毎フレーム（60〜120回/秒、
+  一時停止中も）6本のcanvasに波形バー約4000本を全部描き直していた。
+  しかも1フレームごとに`getBoundingClientRect()`×6（強制レイアウト）・
+  `getComputedStyle()`×6・pinsのfilter/sort・バー1本ごとの色文字列生成
+  （`hexToRgbaLocal`）を行っており、CPU/GPU・GCが飽和してiOSにプロセスを
+  強制終了されていた。加えて波形デコードが共有AudioContext（`getAudioCtx()`）
+  を使っていたため、EQ未使用の通常再生でもリアルタイムAudioContextが常駐していた。
+- **解決：** 描画を約10回/秒に間引き、「再生位置（バー1本単位）・波形・
+  マーカー・アクセント色・サイズ」の署名が変わらなければ描画をスキップ。
+  サイズ計測はresize時のみ、`fillStyle`は色が変わる時だけ代入。
+  共有の`drawWaveform()`は`window.__qnWaveformDrawCount`を進め、PC v2側に
+  描き直しが必要なことを知らせる。波形デコードは`decodeForWaveform()`で
+  低サンプルレートの`OfflineAudioContext`を使用。スライダー同期ループ・
+  Glowテーマのループも間引いた。
+- **教訓：** `requestAnimationFrame`ループを新しく書くときは、
+  **(1)毎フレーム本当に必要か（間引けないか）、(2)変化が無い時にスキップ
+  しているか、(3)ループ内でレイアウト計測・getComputedStyle・配列/文字列の
+  新規生成をしていないか**を必ず確認する。SPでは「PC v2＝常に動く」ことを
+  忘れない（§2）。また`getAudioCtx()`は「再生用のリアルタイム
+  AudioContextを生成する」関数なので、デコード目的だけで呼ばない。
+
 ## 4. データフロー・状態管理の要点
 
 - **`playlist`配列**（`player-core.js`）: `{ file, name, title, artist,

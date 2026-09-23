@@ -79,10 +79,13 @@ PC v2 UIの全てを担う最大の2ファイル（`AI_ASSISTANT_PROJECT_CONTEXT
   （§2参照）。
 
 ### 波形描画
-- `pcv2DrawWaveform()` — PC v2波形エリアでの波形バー描画本体。
+- `pcv2DrawWaveform(force)` — PC v2波形エリアでの波形バー描画本体。
+  状態の署名が前回と同じなら描画をスキップする（v2.13.4〜、§3-10）。
+- `pcv2MeasureRows()` — 6行分のcanvasサイズ計測（resize/曲読込時のみ）。
+- `pcv2MarkersSig()` / `pcv2RgbaFor()` — 変化検知用署名・色文字列キャッシュ。
 - `hexToRgbaLocal(hex, alpha)` — 色変換の小さなヘルパー。
 - `pcv2WaveLoop()` — 波形の再生位置ハイライトを更新する
-  `requestAnimationFrame`ループ。
+  `requestAnimationFrame`ループ。`PCV2_WAVE_INTERVAL_MS`（100ms）間隔に間引き。
 
 ### 旧SP→PC v2フラット化（大手術の名残）
 - `flattenForPc()` / `restoreForSp()` / `syncTopControlsLayout()` —

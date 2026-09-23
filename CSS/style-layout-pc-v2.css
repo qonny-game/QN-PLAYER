@@ -1190,7 +1190,8 @@ body.pc-v2-active #topControlsSpacer {
 
 #pcV2BottomBar .loop-preroll-value {
   min-width: 16px;
-  font-size: 11px;
+  font-size: 22px;
+  font-weight: 400;
   color: var(--icon-muted);
 }
 
@@ -1500,15 +1501,12 @@ body.pc-v2-active #qnMenuMount {
     display: flex;
     order: 3;
     flex-shrink: 0;
-    gap: 8px;
-    padding: 8px 16px 0;
   }
 
   .pcv2-anchor-tab {
-    padding: 6px 16px;
+    padding: 10px 20px;
     background: none;
     border: 1px solid var(--border-subtle);
-    border-radius: 999px;
     font-family: var(--font-display, 'Instrument Sans'), sans-serif;
     font-size: 11px;
     font-weight: 700;
@@ -1539,7 +1537,7 @@ body.pc-v2-active #qnMenuMount {
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding: 14px 12px 10px;
+    padding: 0px 25px;
     scrollbar-width: none;
     border-top: 1px solid var(--border-subtle);
     border-bottom: 1px solid var(--border-subtle);
@@ -1590,7 +1588,7 @@ body.pc-v2-active #qnMenuMount {
      大きく広げる。横に間延びしてもタップしやすさを優先し、アイコンも
      サイドバー(.pcv2-icon-item svg、SP幅26px)と同程度まで拡大する。 */
   #pcV2BottomBar .tripleNavBtn-third {
-    padding: 14px 18px;
+    padding: 10px 6px;
   }
 
   #pcV2BottomBar .tripleNavBtn-third svg {

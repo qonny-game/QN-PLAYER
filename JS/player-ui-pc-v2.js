@@ -1723,63 +1723,110 @@
   // ============================================================
   let pcv2WaveRafId = null;
 
-  function pcv2DrawWaveform() {
+  // ------------------------------------------------------------
+  // 【v2.13.4 負荷対策】この描画は以前、requestAnimationFrameで毎フレーム
+  // （60〜120回/秒、一時停止中も含めて常時）6本のcanvasへ波形バー約4000本を
+  // 全部描き直していた。さらに1フレームごとに getBoundingClientRect()×6
+  // （強制レイアウト）・getComputedStyle()×6・pins配列のfilter/sort・
+  // バー1本ごとの色文字列生成まで行っており、SP（PC v2が唯一のUIのため
+  // 常にこのループが動く）ではCPU/GPU・GC負荷が飽和し、iOSが数分で
+  // ページを強制終了→再読み込み（スプラッシュが出る）する原因になっていた。
+  // 対策：
+  //   1. 描画は最大 PCV2_WAVE_INTERVAL_MS 間隔に間引く
+  //   2. 「再生位置・波形・マーカー・色・サイズ」のどれも変わっていなければ
+  //      描画自体をスキップ（一時停止中はほぼゼロ負荷）
+  //   3. バー矩形サイズはresize時のみ再計測、色文字列はキャッシュ
+  //   4. マーカー色の判定はバーを左から順に走査しつつポインタを進める方式
+  //      （バー1本ごとに全マーカーを舐めない）
+  // ------------------------------------------------------------
+  const PCV2_WAVE_INTERVAL_MS = 100; // 10回/秒。見た目上は十分滑らか
+  let pcv2LastDrawAt = 0;
+  let pcv2LastSig = "";
+  let pcv2SizeDirty = true;
+  let pcv2LastPeaksRef = null;
+  const pcv2RowSizes = [null, null, null, null, null, null];
+  const pcv2RgbaCache = new Map();
+
+  function pcv2RgbaFor(hex, alpha) {
+    const key = hex + "|" + alpha;
+    let v = pcv2RgbaCache.get(key);
+    if (v === undefined) {
+      v = hexToRgbaLocal(hex, alpha);
+      pcv2RgbaCache.set(key, v);
+    }
+    return v;
+  }
+
+  function pcv2MeasureRows() {
+    const dpr = window.devicePixelRatio || 1;
+    for (let row = 0; row < 6; row++) {
+      const canvas = document.getElementById(`wave${row + 1}`);
+      const bar = document.getElementById(`bar${row + 1}`);
+      if (!canvas || !bar) { pcv2RowSizes[row] = null; continue; }
+      const rect = bar.getBoundingClientRect();
+      const w = Math.max(1, Math.floor(rect.width * dpr));
+      const h = Math.max(1, Math.floor(rect.height * dpr));
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
+      pcv2RowSizes[row] = { canvas, ctx2d: canvas.getContext("2d"), dpr };
+    }
+    pcv2SizeDirty = false;
+  }
+
+  // マーカーの状態を安い文字列にまとめる（変化検知用）
+  function pcv2MarkersSig(markers) {
+    let s = "";
+    for (let i = 0; i < markers.length; i++) {
+      s += markers[i].t + ":" + (markers[i].color || "") + ",";
+    }
+    return s;
+  }
+
+  function pcv2DrawWaveform(force) {
     if (typeof waveformPeaks === "undefined" || !waveformPeaks || typeof audio === "undefined" || !audio.duration) return;
     if (typeof getSegments !== "function") return;
 
     const dur = audio.duration;
     const ct = audio.currentTime;
-    const { s1, s2, s3, s4, s5 } = getSegments(dur);
-    const bounds = [0, s1, s2, s3, s4, s5, dur];
 
-    // マーカーに色が設定されていれば、そのマーカーから次のマーカーまでの
-    // 区間の波形をその色で塗る（「このマーカーから始まる区間」という
-    // 意味合い）。次のマーカーに色が無い場合はそこでデフォルトカラーに
-    // 戻る（色の有無に関わらず全マーカーを時刻順に見て、barTimeが属する
-    // 区間の開始マーカー自体に色があるかどうかで判定する。色付き
-    // マーカーだけを抜き出して探索すると、間にある色無しマーカーの
-    // 存在が無視され、次の色付きマーカーまで前の色が伸び続けてしまう
-    // バグがあった）。
-    // MARKER_COLOR_PALETTE/pinsはplayer-core.js/player-markers.js側の
-    // グローバルなので、存在チェックしてから使う。
     let allMarkers = [];
     if (typeof pins !== "undefined" && typeof MARKER_COLOR_PALETTE !== "undefined") {
       allMarkers = pins
         .filter(p => p.enabled)
-        .slice()
         .sort((a, b) => a.t - b.t);
     }
-    function colorForTime(barTime) {
-      // barTime以下の最後のマーカー(=barTimeが属する区間の開始マーカー)
-      // を探し、そのマーカー自体に色があればその色、無ければ
-      // デフォルト(null=accentColor)を返す。
-      let found = null;
-      for (let i = 0; i < allMarkers.length; i++) {
-        if (allMarkers[i].t <= barTime) found = allMarkers[i];
-        else break;
-      }
-      if (!found || !found.color || !MARKER_COLOR_PALETTE[found.color]) return null;
-      return MARKER_COLOR_PALETTE[found.color];
-    }
+
+    // getComputedStyleは1回の描画につき1回だけ（以前は行ごとに6回）
+    const accentColor = getComputedStyle(document.body).getPropertyValue("--accent-primary").trim() || "#3b82f6";
+
+    // 何も変わっていなければ描画しない。再生位置は「波形バー1本分」の
+    // 解像度で比較する（それ未満の変化では見た目が一切変わらないため）。
+    const totalSamples = waveformPeaks.length;
+    const ctBucket = Math.floor((ct / dur) * totalSamples);
+    const sig = ctBucket + "|" + dur + "|" + totalSamples + "|" + accentColor + "|" +
+      (window.__qnWaveformDrawCount || 0) + "|" + pcv2MarkersSig(allMarkers);
+    const peaksChanged = waveformPeaks !== pcv2LastPeaksRef;
+    if (!force && !pcv2SizeDirty && !peaksChanged && sig === pcv2LastSig) return;
+    pcv2LastPeaksRef = waveformPeaks;
+    pcv2LastSig = sig;
+
+    if (pcv2SizeDirty) pcv2MeasureRows();
+
+    const { s1, s2, s3, s4, s5 } = getSegments(dur);
+    const bounds = [0, s1, s2, s3, s4, s5, dur];
+    const unplayedDefault = "rgba(255, 255, 255, 0.16)";
+
+    // マーカー走査用ポインタ（全行を通して時刻は単調増加なので使い回せる）
+    let markerPtr = -1;
 
     for (let row = 0; row < 6; row++) {
-      const canvas = document.getElementById(`wave${row + 1}`);
-      const bar = document.getElementById(`bar${row + 1}`);
-      if (!canvas || !bar) continue;
-
-      const rect = bar.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      const w = Math.max(1, Math.floor(rect.width * dpr));
-      const h = Math.max(1, Math.floor(rect.height * dpr));
-      if (canvas.width !== w) canvas.width = w;
-      if (canvas.height !== h) canvas.height = h;
-
-      const ctx2d = canvas.getContext("2d");
+      const info = pcv2RowSizes[row];
+      if (!info) continue;
+      const { canvas, ctx2d, dpr } = info;
       ctx2d.clearRect(0, 0, canvas.width, canvas.height);
 
       const rowStart = bounds[row];
       const rowEnd = bounds[row + 1];
-      const totalSamples = waveformPeaks.length;
 
       const startIdx = Math.floor((rowStart / dur) * totalSamples);
       const endIdx = Math.max(startIdx + 1, Math.floor((rowEnd / dur) * totalSamples));
@@ -1787,24 +1834,34 @@
       if (sliceCount <= 0) continue;
 
       const barGap = 1 * dpr;
-      const barWidth = Math.max(1, canvas.width / sliceCount - barGap);
-      const accentColor = getComputedStyle(document.body).getPropertyValue("--accent-primary").trim() || "#3b82f6";
+      const step = canvas.width / sliceCount;
+      const barWidth = Math.max(1, step - barGap);
+      let currentFill = null;
 
       for (let i = 0; i < sliceCount; i++) {
         const peak = waveformPeaks[startIdx + i] || 0;
         const barHeight = Math.max(2 * dpr, peak * canvas.height * 0.85);
-        const x = i * (canvas.width / sliceCount);
-        // このバーが表す時刻が再生済みかどうかで色を決める。
-        // マーカー区間に色が設定されていれば、再生済み/未再生どちらの
-        // 状態でもその色をベースにする（未再生は薄く、再生済みは
-        // そのままの濃さで表示し、区間を判別しやすくする）。
+        const x = i * step;
         const barTime = rowStart + (rowEnd - rowStart) * (i / sliceCount);
-        const markerColor = colorForTime(barTime);
+
+        // barTime以下の最後のマーカーまでポインタを進める
+        while (markerPtr + 1 < allMarkers.length && allMarkers[markerPtr + 1].t <= barTime) {
+          markerPtr++;
+        }
+        const found = markerPtr >= 0 ? allMarkers[markerPtr] : null;
+        const markerColor = (found && found.color && MARKER_COLOR_PALETTE[found.color]) || null;
         const isPlayed = barTime <= ct;
+
+        let fill;
         if (markerColor) {
-          ctx2d.fillStyle = isPlayed ? markerColor : hexToRgbaLocal(markerColor, 0.35);
+          fill = isPlayed ? markerColor : pcv2RgbaFor(markerColor, 0.35);
         } else {
-          ctx2d.fillStyle = isPlayed ? accentColor : "rgba(255, 255, 255, 0.16)";
+          fill = isPlayed ? accentColor : unplayedDefault;
+        }
+        // fillStyleへの代入は文字列パースが走るため、色が変わる時だけ行う
+        if (fill !== currentFill) {
+          ctx2d.fillStyle = fill;
+          currentFill = fill;
         }
         ctx2d.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
       }
@@ -1820,17 +1877,27 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
-  function pcv2WaveLoop() {
+  function pcv2WaveLoop(now) {
     pcv2WaveRafId = requestAnimationFrame(pcv2WaveLoop);
-    if (document.body.classList.contains("pc-v2-active")) {
-      pcv2DrawWaveform();
-    }
+    if (document.hidden) return;
+    if (!document.body.classList.contains("pc-v2-active")) return;
+    if (now - pcv2LastDrawAt < PCV2_WAVE_INTERVAL_MS) return;
+    pcv2LastDrawAt = now;
+    pcv2DrawWaveform(false);
   }
-  pcv2WaveLoop();
+  pcv2WaveRafId = requestAnimationFrame(pcv2WaveLoop);
 
   window.addEventListener("resize", () => {
-    if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform();
+    pcv2SizeDirty = true;
+    if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform(true);
   });
+  // 曲の読み込み完了時・シーク時も、間引き待ちせず即座に反映する
+  if (typeof audio !== "undefined" && audio) {
+    audio.addEventListener("loadedmetadata", () => { pcv2SizeDirty = true; });
+    audio.addEventListener("seeked", () => {
+      if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform(false);
+    });
+  }
 })();
 
 // ============================================================

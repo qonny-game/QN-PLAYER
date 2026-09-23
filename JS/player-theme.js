@@ -243,9 +243,17 @@
     if (glowAnimId) cancelAnimationFrame(glowAnimId);
     const baseColor = getComputedStyle(document.body).getPropertyValue('--accent-primary').trim() || '#3b82f6';
     const fixedHue = hexToHue(baseColor);
-    let t = 0;
-    function stepGlow() {
-      t += 0.008;
+    // 【v2.13.4 負荷対策】body上のCSS変数を書き換えると画面全体のスタイル再計算が
+    // 走るため、毎フレームではなく約15回/秒に間引く。明滅の速さは経過時間ベースで
+    // 計算するので、間引いても以前（0.008/フレーム@60fps）と同じ速さになる。
+    const glowStart = performance.now();
+    let lastGlowAt = 0;
+    function stepGlow(now) {
+      glowAnimId = requestAnimationFrame(stepGlow);
+      now = now || performance.now();
+      if (document.hidden || (now - lastGlowAt) < 66) return;
+      lastGlowAt = now;
+      const t = (now - glowStart) * 0.00048;
       const lightness = 50 + Math.sin(t) * 15;
       const primary = hslToHex(fixedHue, 75, lightness);
       const secondary = hslToHex(fixedHue, 75, Math.max(20, lightness - 20));
@@ -256,9 +264,8 @@
       document.body.style.setProperty('--accent-glow', primary + '59');
       document.body.style.setProperty('--accent-hover-1', hoverA);
       document.body.style.setProperty('--accent-hover-2', hoverB);
-      glowAnimId = requestAnimationFrame(stepGlow);
     }
-    stepGlow();
+    stepGlow(performance.now());
   }
 
   function setGlowEnabled(enabled) {

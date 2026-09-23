@@ -24,11 +24,37 @@ function hideWelcomeOverlay() {
 
 
 
+// 波形表示専用のデコード。低サンプルレートのOfflineAudioContextを使い、
+// 対応していない環境では従来通り共有AudioContextにフォールバックする。
+async function decodeForWaveform(arrayBuffer) {
+  const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (OfflineCtx) {
+    for (const rate of [8000, 22050]) {
+      try {
+        const offline = new OfflineCtx(1, 1, rate);
+        return await offline.decodeAudioData(arrayBuffer.slice(0));
+      } catch (err) {
+        // このサンプルレートが非対応なら次の候補へ
+      }
+    }
+  }
+  const ctx = getAudioCtx();
+  return await ctx.decodeAudioData(arrayBuffer.slice(0));
+}
+
 async function decodeWaveform(file, token) {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const ctx = getAudioCtx();
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    if (token !== waveformDecodeToken) return;
+    // 【v2.13.4 負荷対策】以前はgetAudioCtx()（再生用の共有AudioContext）で
+    // デコードしていたため、EQ等を一切使わない通常再生でも曲を読み込んだ瞬間に
+    // リアルタイムのAudioContextが生成・常駐し（しかも再生中は2秒ごとの監視で
+    // resumeされ続け）、iOS Safariで「Web Audioに触れない」設計が崩れていた。
+    // また44.1/48kHzのままデコードすると、3分のステレオ曲で約60MBのPCMが
+    // 一時的に確保される。波形表示は4000本のピークしか使わないため、
+    // 低サンプルレートのOfflineAudioContext（音は出ない・常駐しない）で
+    // デコードしてメモリ量を1/5程度に抑える。
+    const audioBuffer = await decodeForWaveform(arrayBuffer);
 
     if (token !== waveformDecodeToken) return; // 別ファイルが読み込まれていたら破棄
 
@@ -80,6 +106,10 @@ async function decodeWaveform(file, token) {
 
 function drawWaveform() {
   if (!waveformPeaks || !audio.duration) return;
+  // PC v2側(player-ui-pc-v2.js)の上書き描画は「変化がなければ描き直さない」
+  // 方式のため、ここでcanvasを描き直したことを知らせるカウンタを進める
+  // （これが無いと、この関数の灰色描画でPC v2の色付き波形が消えたままになる）。
+  window.__qnWaveformDrawCount = (window.__qnWaveformDrawCount || 0) + 1;
   const dur = audio.duration;
   const { s1, s2, s3, s4, s5 } = getSegments(dur);
   const bounds = [0, s1, s2, s3, s4, s5, dur];
@@ -974,7 +1004,13 @@ function hapticWarning() {
 (function syncRangeProgressLoop() {
   const targets = Array.from(document.querySelectorAll(".control-card input[type=\"range\"], .eq-vslider"));
   const lastValues = new Map();
-  function tick() {
+  // 【v2.13.4 負荷対策】毎フレーム(60〜120回/秒)の常時監視は不要なため、
+  // 約5回/秒に間引く（値の変化に対する見た目の追従はこれで十分）。
+  let lastTickAt = 0;
+  function tick(now) {
+    requestAnimationFrame(tick);
+    if (document.hidden || (now - lastTickAt) < 200) return;
+    lastTickAt = now;
     targets.forEach(input => {
       if (lastValues.get(input) !== input.value) {
         lastValues.set(input, input.value);
@@ -985,7 +1021,6 @@ function hapticWarning() {
         input.style.setProperty("--range-progress", String(pct));
       }
     });
-    requestAnimationFrame(tick);
   }
-  if (targets.length > 0) tick();
+  if (targets.length > 0) requestAnimationFrame(tick);
 })();
