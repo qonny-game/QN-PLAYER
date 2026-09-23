@@ -16,16 +16,31 @@
   padding: 24px;
   box-sizing: border-box;
   background: rgba(5, 5, 7, 0);
-  backdrop-filter: blur(0px);
+  /* 【v2.14.1 負荷対策】閉じている間はbackdrop-filterを完全に外し
+     (none)、visibility:hiddenで描画対象からも外す。
+     以前は閉じている間も`backdrop-filter: blur(0px)`が付いていたが、
+     blur(0px)でも「none以外」である限りブラウザは画面全体を覆う
+     背景フィルター用の合成レイヤーを作り続ける。この器は
+     EQ/Export/解約/Backup/Importの5つ分、常に画面全体に重なって
+     存在していたため、画面のどこかが少しでも動く（曲名マーキー、
+     時刻表示、波形の再描画、スライダー操作など）たびに、画面全体の
+     ぼかし処理×5枚分の合成が毎フレーム走っていた。PC版Chromeで
+     操作がコンマ数秒遅れる・他タブのfaviconのくるくるまでカクつく、
+     という「ブラウザごと重くなる」症状の原因（§3-16）。
+     閉じるアニメーション中は背景を見せ続けるため、visibilityの
+     切り替えだけ0.25s遅らせる。 */
+  backdrop-filter: none;
+  visibility: hidden;
   pointer-events: none;
-  transition: background 0.25s cubic-bezier(0.4, 0, 1, 1), backdrop-filter 0.25s cubic-bezier(0.4, 0, 1, 1);
+  transition: background 0.25s cubic-bezier(0.4, 0, 1, 1), backdrop-filter 0.25s cubic-bezier(0.4, 0, 1, 1), visibility 0s linear 0.25s;
 }
 
 .export-modal-overlay.open {
   background: rgba(5, 5, 7, 0.72);
   backdrop-filter: blur(4px);
+  visibility: visible;
   pointer-events: auto;
-  transition: background 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), backdrop-filter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: background 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), backdrop-filter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s linear 0s;
 }
 
 .export-modal {

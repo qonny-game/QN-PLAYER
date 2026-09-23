@@ -158,3 +158,11 @@
 - Markers/Libraryリストのスクロール終端を約2行分延長（右下ボタンに
   隠れた行も押せるように）。
 - SP：下段バーのMARKERグループとVolume/Speed/Key/EQの間に仕切り線を追加。
+
+## 2.14.1 — 【重要】PC版Chromeで全体がもっさりする不具合の対策
+- （§3-16）閉じているモーダルの器（`.export-modal-overlay`、5個）に
+  `backdrop-filter: blur(0px)`が常時付いており、画面全体の背景フィルター
+  合成レイヤーが5枚重なり続けていた。閉じている間は`backdrop-filter: none`
+  ＋`visibility: hidden`に変更。
+- 時刻表示・シークバー進捗のDOM書き込みを「値が変わった時だけ」に。
+- PC v2波形のアクセント色読み取り(getComputedStyle)を0.5秒に1回までに。

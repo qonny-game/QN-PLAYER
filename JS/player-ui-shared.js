@@ -617,6 +617,9 @@ const updateBarsP = [0, 0, 0, 0, 0, 0];
 const updateBarsThresholds = [0, 0, 0, 0, 0, 0, 0];
 const UPDATE_BARS_VISUAL_INTERVAL_MS = 100; // 10回/秒程度
 let lastVisualUpdateTime = 0;
+let lastCurrentTimeText = null;
+let lastDurationText = null;
+const updateBarsLastP = [-1, -1, -1, -1, -1, -1];
 
 function updateBars() {
   requestAnimationFrame(updateBars);
@@ -629,9 +632,20 @@ function updateBars() {
   if (now - lastVisualUpdateTime >= UPDATE_BARS_VISUAL_INTERVAL_MS) {
     lastVisualUpdateTime = now;
 
+    // 【v2.14.1】値が変わった時だけDOMへ書く。textContentへの代入は同じ
+    // 文字列でもテキストノードを作り直してレイアウト/再描画を発生させる
+    // ため、停止中も10回/秒ずっと再描画が起きていた。
     if (updateBarsCurrentValEl && updateBarsDurationValEl) {
-      updateBarsCurrentValEl.textContent = formatTime(ct);
-      updateBarsDurationValEl.textContent = formatTime(dur);
+      const ctText = formatTime(ct);
+      const durText = formatTime(dur);
+      if (ctText !== lastCurrentTimeText) {
+        updateBarsCurrentValEl.textContent = ctText;
+        lastCurrentTimeText = ctText;
+      }
+      if (durText !== lastDurationText) {
+        updateBarsDurationValEl.textContent = durText;
+        lastDurationText = durText;
+      }
     }
 
     const step = dur / 6;
@@ -655,7 +669,10 @@ function updateBars() {
     }
 
     for (let i = 0; i < 6; i++) {
-      if (updateBarsFillEls[i]) updateBarsFillEls[i].style.width = updateBarsP[i] + "%";
+      if (updateBarsFillEls[i] && updateBarsP[i] !== updateBarsLastP[i]) {
+        updateBarsFillEls[i].style.width = updateBarsP[i] + "%";
+        updateBarsLastP[i] = updateBarsP[i];
+      }
     }
   }
 

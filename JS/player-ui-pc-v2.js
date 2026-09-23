@@ -1833,6 +1833,8 @@
   let pcv2LastSig = "";
   let pcv2SizeDirty = true;
   let pcv2LastPeaksRef = null;
+  let pcv2AccentCache = null;
+  let pcv2AccentCacheAt = 0;
   const pcv2RowSizes = [null, null, null, null, null, null];
   const pcv2RgbaCache = new Map();
 
@@ -1887,8 +1889,14 @@
 
     // Glow中は明滅前の元の色で固定する（v2.13.5〜、波形はGlow対象外）。
     // それ以外はgetComputedStyleを1回の描画につき1回だけ（以前は行ごとに6回）。
-    const accentColor = window.__qnGlowBaseAccent ||
-      getComputedStyle(document.body).getPropertyValue("--accent-primary").trim() || "#3b82f6";
+    // 【v2.14.1】getComputedStyleはスタイル再計算を強制するため、テーマ色の
+    // 読み直しは0.5秒に1回までにする（テーマ切替の反映はその程度の遅れで十分）。
+    const nowMs = performance.now();
+    if (!pcv2AccentCache || nowMs - pcv2AccentCacheAt > 500) {
+      pcv2AccentCache = getComputedStyle(document.body).getPropertyValue("--accent-primary").trim() || "#3b82f6";
+      pcv2AccentCacheAt = nowMs;
+    }
+    const accentColor = window.__qnGlowBaseAccent || pcv2AccentCache;
 
     // 何も変わっていなければ描画しない。再生位置は「波形バー1本分」の
     // 解像度で比較する（それ未満の変化では見た目が一切変わらないため）。

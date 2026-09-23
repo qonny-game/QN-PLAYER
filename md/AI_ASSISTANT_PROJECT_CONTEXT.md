@@ -333,6 +333,23 @@ player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
 - **教訓：** 下段バー（横スクロール）の中にポップアップ・ツールチップを
   足すときは、最初からbody直下＋fixedで作る。
 
+### 3-16. 閉じているオーバーレイの`backdrop-filter: blur(0px)`がブラウザごと重くする
+- **現象：** PC版Chrome（Windows）で、停止中・Glow/Speed/Key/EQ全OFFでも
+  ボタンやスライダーの反応がコンマ数秒遅れる。QNPのタブを開くと、
+  他のタブのfaviconの読み込みくるくるまでカクつく。
+- **原因：** `.export-modal-overlay`（EQ/Export/解約/Backup/Importの5個、
+  `position: fixed; inset: 0`で常に画面全体に存在）が、閉じている間も
+  `backdrop-filter: blur(0px)`を持っていた。blur(0px)でも`none`以外なら
+  ブラウザは背景フィルター用の合成処理を用意し続けるため、画面全体を
+  覆うぼかし合成が5枚重なった状態になり、曲名マーキー・時刻表示・波形など
+  画面のどこかが動くたびにGPU合成が重くなっていた。
+- **解決：** 閉じている間は`backdrop-filter: none; visibility: hidden`。
+  開閉アニメーションのためvisibilityだけ遅延切り替え。あわせて停止中にも
+  10回/秒走っていた時刻表示・進捗バーのDOM書き込みを変化時のみに。
+- **教訓：** `backdrop-filter`・`filter`・大きな`box-shadow`を持つ全画面
+  要素は、非表示時に**必ず`none`へ戻す**（0px・透明度0で「見えないだけ」に
+  しない）。`display: none`か`visibility: hidden`＋`none`をセットで使う。
+
 ## 4. データフロー・状態管理の要点
 
 - **`playlist`配列**（`player-core.js`）: `{ file, name, title, artist,
