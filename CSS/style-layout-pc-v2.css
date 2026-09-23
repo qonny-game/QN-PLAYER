@@ -500,43 +500,35 @@ body.pc-v2-active > .app-container {
 
 /* ------------------------------------------------------------
    【v2.15.1】Backupパネルのレイアウト：
-   - パネルの高さいっぱいを使い、曲選択リストが残りの高さを全部もらう
-     （含める項目・合計・Downloadは下にコンパクトに並ぶ）。
+   - 曲選択リストを広めに、含める項目はコンパクトに（折りたたみ）。
    - 含める項目は折りたたみ（.is-openで展開）。見出し行に項目数と推定サイズ。
    - 角丸の枠は使わず、行は細い線で区切るだけのシンプルな見た目にする。
+
+   【v2.16.7 修正】曲選択リストを「パネルの残り高さを全部もらう」ために
+   #pcV2PanelBody自体をflex:1で埋める入れ子にしていたが、#pcV2PanelBody
+   は元々overflow-y: autoでそれ自体がスクロールする要素（基本ルール）。
+   「overflow-y: autoの要素の中でflex: 1を何段にも重ねて高さを埋めさせる」
+   構成は、iOS Safariで曲リストの内容が確定するタイミングによって、
+   後続セクション（含める項目・合計・DOWNLOAD）がリストの高さ計算前の
+   位置のまま重なって描画される既知の不具合を踏みやすい（§3-23）。
+   flex:1での「埋める」のをやめ、曲選択リストは固定の上限つき高さ
+   （max-height、その中だけoverflow-y: auto）にして、パネル全体は他の
+   パネルと同じく#pcV2PanelBody側の1箇所だけでスクロールさせる。
    ------------------------------------------------------------ */
-#pcV2PanelBody.pcv2-panel-backup {
-  display: flex;
-  flex-direction: column;
-}
-
-#pcV2PanelBody.pcv2-panel-backup .export-modal-body {
-  display: flex !important;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
 #pcV2PanelBody.pcv2-panel-backup .export-section {
   padding: 18px 0;
 }
 
 #pcV2PanelBody.pcv2-panel-backup .export-section:first-child {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
   padding-top: 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 #pcV2PanelBody.pcv2-panel-backup .track-backup-options {
-  flex-shrink: 0;
   border-bottom: none;
 }
 
 #pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist-header {
-  flex-shrink: 0;
   margin-bottom: 12px;
 }
 
@@ -551,9 +543,9 @@ body.pc-v2-active > .app-container {
 }
 
 #pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist {
-  flex: 1;
-  min-height: 160px;
-  max-height: none;
+  /* 元の220pxよりだいぶ広く、かつ画面の高さに応じて縮む上限つきの値。
+     曲数が少なければ内容ぶんの高さで収まる（min-heightは指定しない）。 */
+  max-height: min(58vh, 520px);
   gap: 0;
   border-top: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);

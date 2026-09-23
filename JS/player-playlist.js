@@ -430,6 +430,23 @@ function removeTrackAt(index) {
 
 function playTrackAt(index, autoplay = true) {
   if (index < 0 || index >= playlist.length) return;
+  // 【v2.16.8】シェアウェア制限の最終防衛ライン（§3-25）。無料版で
+  // ロック対象(index >= LIBRARY_MAX_TRACKS)の曲を再生させないための
+  // チェックが、以前は「行をクリックした時」「サムネイルをクリックした
+  // 時」の2箇所にしかなく、playTrackAt()自体はどこからでも無条件に
+  // 再生できてしまっていた。下部コントローラーの前/次ボタン
+  // （playPrevTrack/playNextTrack）・ロック画面/通知のメディアコントロール
+  // （mediaSessionのpreviestrack/nexttrack）・曲が終わった時の自動送り
+  // （audio.onended）は、いずれもplayTrackAt()を直接呼ぶだけでこの
+  // チェックを経由しておらず、次へ送りを繰り返すだけで無料版の曲数
+  // 制限（LIBRARY_MAX_TRACKS）を素通りできてしまっていた。
+  // playTrackAt()自体をチェックの最終防衛ラインにすることで、呼び出し元が
+  // 何であっても一律にブロックされるようにする。
+  const isLockedTrack = typeof isUnlocked === "function" && !isUnlocked() && index >= SW_LIMITS.LIBRARY_MAX_TRACKS;
+  if (isLockedTrack) {
+    swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
+    return;
+  }
   currentPlaylistIndex = index;
   loadFile(playlist[index].file);
   if (autoplay) {

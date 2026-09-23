@@ -518,14 +518,27 @@ function renderPinList() {
       }
       openMarkerColorPicker(colorMark, pinObj, i);
     };
+    // 【v2.16.8】.pinItemはdisplay: gridで、列は
+    // 「auto(先頭セル) / 1fr(ラベル) / auto(目) / auto(削除)」の4列固定
+    // （renderPinListが必ずこの4つを順にappendする前提）。ロック中の鍵
+    // アイコンを、以前はcolorMarkの前に別要素として直接divへappendして
+    // いたため、子要素が5個になり、5個目(delZone)が4列を使い切った次の
+    // 暗黙の行へ折り返され、後続の要素が丸ごと1列ずつズレていた
+    // （鍵→1列目、色の丸→2列目(1fr、本来ラベル用)、ラベル→3列目(auto)…と
+    // ズレ、時刻の文字が右寄りに、削除チェックは次の行へ消えていた。
+    // これがマーカーの無料版ロック表示が崩れていた原因、§3-24）。
+    // 鍵アイコンは単独のグリッド項目にせず、colorMarkと同じ1列目に収まる
+    // 入れ物(.pin-leading-cell)へまとめ、grid子要素の数を常に4個に保つ。
+    const leadingCell = document.createElement("div");
+    leadingCell.className = "pin-leading-cell";
     if (isLockedMarker) {
       const lockIcon = document.createElement("span");
       lockIcon.className = "sw-lock-icon";
-      lockIcon.style.marginRight = "4px";
       lockIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2h1M12 3a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg>';
-      div.appendChild(lockIcon);
+      leadingCell.appendChild(lockIcon);
     }
-    div.appendChild(colorMark);
+    leadingCell.appendChild(colorMark);
+    div.appendChild(leadingCell);
 
     // ラベル行：テキスト(infoSpan)と鉛筆ボタン(editBtn)をまとめて包む。
     // Libraryパネルの曲名/アーティスト行(.playlist-title-row等)と同じ
