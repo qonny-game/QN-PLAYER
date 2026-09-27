@@ -5,11 +5,14 @@
 // #trackImportModalOverlay)として独立している。
 //
 // - Backup: フローは「曲を選択（全選/全解除＋個別チェック、選択中の
-//   合計ファイルサイズを表示）→ 含める項目を選択 → Download」。
+//   合計ファイルサイズを表示）→ 含める項目（音声データ / マーカー・
+//   テキストなどの設定）を選択 → Download」。
 //   「音声データ」にチェックが入っていればJSZipでZIP化(markers.json +
 //   audio/フォルダ)、チェックが外れていれば音声実体を含まないため
 //   ZIP化せずmarkers.json単体をそのまま出力する（曲名/マーカー/メモ
-//   だけを軽量に共有したい用途）。
+//   だけを軽量に共有したい用途）。「マーカー・テキストなどの設定」を
+//   オフにすると、markers.json側には曲名(name)のみが入り、タイトル/
+//   アーティスト/マーカー/テキストメモは含まれない。
 // - Import: Backupで書き出したZIPまたはmarkers.json単体を読み込み、
 //   ライブラリに曲を追加し、マーカー・メタデータ・テキストメモを反映
 //   する。同名の曲が既にライブラリにある場合は、曲ごとに「上書き」か
@@ -48,14 +51,12 @@ const trackBackupSelectNoneBtn = document.getElementById("trackBackupSelectNoneB
 const trackBackupSelectedCountEl = document.getElementById("trackBackupSelectedCount");
 const trackBackupTotalSizeEl = document.getElementById("trackBackupTotalSize");
 
-const trackBackupCheckboxes = {
-  audio: document.getElementById("trackBackupIncludeAudio"),
-  title: document.getElementById("trackBackupIncludeTitle"),
-  artist: document.getElementById("trackBackupIncludeArtist"),
-  markerPos: document.getElementById("trackBackupIncludeMarkerPos"),
-  markerMemo: document.getElementById("trackBackupIncludeMarkerMemo"),
-  text: document.getElementById("trackBackupIncludeText")
-};
+// 【v2.15.2】「含める項目」は音声データ / マーカー・テキストなどの
+// 設定、の2択に簡略化（以前は6項目を個別チェック＋推定サイズ表示＋
+// 折りたたみだったが、選択の手間が多く分かりにくいとの指摘を受けて
+// 統合した）。
+const trackBackupIncludeAudioEl = document.getElementById("trackBackupIncludeAudio");
+const trackBackupIncludeSettingsEl = document.getElementById("trackBackupIncludeSettings");
 
 // 曲一覧のチェック状態。キーはtrack.name。開くたびに全曲trueでリセットする。
 let trackBackupSelectedNames = new Set();
@@ -73,49 +74,6 @@ function formatFileSize(bytes) {
   return `${mb.toFixed(mb < 10 ? 1 : 1)} MB`;
 }
 
-// 【v2.15.1】「含める項目」の各行の右端に出す推定サイズ用。音声以外は
-// 数KB未満がほとんどなので、小さい値は「< 1 KB」のように丸めて表示する。
-function formatSmallSize(bytes) {
-  if (!bytes || bytes <= 0) return "0 KB";
-  if (bytes < 1024) return "< 1 KB";
-  return formatFileSize(bytes);
-}
-
-const trackBackupTextEncoder = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
-function utf8Bytes(str) {
-  if (!str) return 0;
-  return trackBackupTextEncoder ? trackBackupTextEncoder.encode(str).length : str.length;
-}
-
-// 選択中の曲について、項目ごとの推定サイズ（バイト）を求める。音声は
-// 実ファイルサイズ、それ以外はバックアップ(markers.json)に書き出される
-// JSON文字列のおおよそのバイト数。
-function estimateTrackBackupItemSizes(selectedTracks) {
-  const sizes = { audio: 0, title: 0, artist: 0, markerPos: 0, markerMemo: 0, text: 0 };
-  selectedTracks.forEach(track => {
-    sizes.audio += track.file && track.file.size ? track.file.size : 0;
-    sizes.title += utf8Bytes(JSON.stringify(track.title || null)) + 10;
-    sizes.artist += utf8Bytes(JSON.stringify(track.artist || null)) + 11;
-    const pins = loadStoredPinsFor(track.name);
-    pins.forEach(p => {
-      sizes.markerPos += utf8Bytes(JSON.stringify({ time: p.t, enabled: p.enabled !== false, color: p.color || null }));
-      sizes.markerMemo += utf8Bytes(JSON.stringify(p.memo || "")) + 8;
-    });
-    sizes.text += utf8Bytes(JSON.stringify(loadStoredNoteTextFor(track.name))) + 12;
-  });
-  return sizes;
-}
-
-const trackBackupSizeEls = {
-  audio: document.getElementById("trackBackupSizeAudio"),
-  title: document.getElementById("trackBackupSizeTitle"),
-  artist: document.getElementById("trackBackupSizeArtist"),
-  markerPos: document.getElementById("trackBackupSizeMarkerPos"),
-  markerMemo: document.getElementById("trackBackupSizeMarkerMemo"),
-  text: document.getElementById("trackBackupSizeText")
-};
-const trackBackupOptionsSummaryEl = document.getElementById("trackBackupOptionsSummary");
-
 function updateTrackBackupSelectionSummary() {
   if (!Array.isArray(playlist)) return;
   const selectedTracks = playlist.filter(t => trackBackupSelectedNames.has(t.name));
@@ -126,49 +84,9 @@ function updateTrackBackupSelectionSummary() {
     const totalBytes = selectedTracks.reduce((sum, t) => sum + (t.file && t.file.size ? t.file.size : 0), 0);
     trackBackupTotalSizeEl.textContent = formatFileSize(totalBytes);
   }
-
-  // 含める項目：各行の推定サイズと、見出し行の「N項目・約◯MB」。
-  const sizes = estimateTrackBackupItemSizes(selectedTracks);
-  let checkedCount = 0;
-  let checkedBytes = 0;
-  Object.keys(trackBackupSizeEls).forEach(key => {
-    const el = trackBackupSizeEls[key];
-    if (el) el.textContent = key === "audio" ? formatFileSize(sizes[key]) : formatSmallSize(sizes[key]);
-    const cb = trackBackupCheckboxes[key];
-    if (cb && cb.checked) {
-      checkedCount++;
-      checkedBytes += sizes[key];
-    }
-  });
-  if (trackBackupOptionsSummaryEl) {
-    const total = Object.keys(trackBackupCheckboxes).length;
-    trackBackupOptionsSummaryEl.textContent = checkedCount === 0
-      ? "未選択"
-      : `${checkedCount}/${total}項目・${checkedBytes < 1024 ? "< 1 KB" : "約" + formatFileSize(checkedBytes)}`;
-  }
-
   if (trackBackupRunBtn) {
-    trackBackupRunBtn.disabled = selectedTracks.length === 0 || checkedCount === 0;
+    trackBackupRunBtn.disabled = selectedTracks.length === 0;
   }
-}
-
-// 含める項目のチェック変更でも見出しの集計・Downloadの可否を更新する。
-Object.values(trackBackupCheckboxes).forEach(cb => {
-  if (cb) cb.addEventListener("change", () => updateTrackBackupSelectionSummary());
-});
-
-// 含める項目の折りたたみ（v2.15.1〜）。開くたびの初期状態は「閉じる」。
-const trackBackupOptionsSectionEl = document.getElementById("trackBackupOptionsSection");
-const trackBackupOptionsToggleEl = document.getElementById("trackBackupOptionsToggle");
-function setTrackBackupOptionsOpen(open) {
-  if (trackBackupOptionsSectionEl) trackBackupOptionsSectionEl.classList.toggle("is-open", open);
-  if (trackBackupOptionsToggleEl) trackBackupOptionsToggleEl.setAttribute("aria-expanded", open ? "true" : "false");
-}
-if (trackBackupOptionsToggleEl) {
-  trackBackupOptionsToggleEl.addEventListener("click", () => {
-    if (typeof hapticTap === "function") hapticTap();
-    setTrackBackupOptionsOpen(!trackBackupOptionsSectionEl.classList.contains("is-open"));
-  });
 }
 
 function renderTrackBackupTrackList() {
@@ -227,13 +145,13 @@ if (trackBackupSelectNoneBtn) {
 function openBulkBackupModal() {
   if (!trackBackupModalOverlay) return;
 
-  // 開くたびに全曲選択・全項目チェック済みの状態にリセットする
+  // 開くたびに全曲選択・含める項目チェック済みの状態にリセットする
   // （前回の選択を引き継がない）。
   trackBackupSelectedNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
-  Object.values(trackBackupCheckboxes).forEach(cb => { if (cb) cb.checked = true; });
+  if (trackBackupIncludeAudioEl) trackBackupIncludeAudioEl.checked = true;
+  if (trackBackupIncludeSettingsEl) trackBackupIncludeSettingsEl.checked = true;
 
   renderTrackBackupTrackList();
-  setTrackBackupOptionsOpen(false);
   updateTrackBackupSelectionSummary();
 
   if (trackBackupRunBtn) trackBackupRunBtn.textContent = "Download";
@@ -289,15 +207,11 @@ async function runTrackBackup() {
   }
 
   const opts = {
-    audio: trackBackupCheckboxes.audio ? trackBackupCheckboxes.audio.checked : false,
-    title: trackBackupCheckboxes.title ? trackBackupCheckboxes.title.checked : false,
-    artist: trackBackupCheckboxes.artist ? trackBackupCheckboxes.artist.checked : false,
-    markerPos: trackBackupCheckboxes.markerPos ? trackBackupCheckboxes.markerPos.checked : false,
-    markerMemo: trackBackupCheckboxes.markerMemo ? trackBackupCheckboxes.markerMemo.checked : false,
-    text: trackBackupCheckboxes.text ? trackBackupCheckboxes.text.checked : false
+    audio: trackBackupIncludeAudioEl ? trackBackupIncludeAudioEl.checked : false,
+    settings: trackBackupIncludeSettingsEl ? trackBackupIncludeSettingsEl.checked : false
   };
 
-  if (!Object.values(opts).some(Boolean)) {
+  if (!opts.audio && !opts.settings) {
     if (trackBackupStatusEl) trackBackupStatusEl.textContent = "少なくとも1項目を選択してください。";
     return;
   }
@@ -318,28 +232,20 @@ async function runTrackBackup() {
 
   try {
     const tracksForExport = targetTracks.map(track => {
-      let markersForExport = [];
-      if (opts.markerPos || opts.markerMemo) {
-        const storedPins = loadStoredPinsFor(track.name);
-        markersForExport = storedPins.map(p => {
-          const m = {};
-          if (opts.markerPos) {
-            m.time = p.t;
-            m.enabled = p.enabled !== false;
-            m.color = p.color || null;
-          }
-          if (opts.markerMemo) {
-            m.memo = p.memo || "";
-          }
-          return m;
-        });
-      }
-
       const trackData = { name: track.name };
-      if (opts.title) trackData.title = track.title || null;
-      if (opts.artist) trackData.artist = track.artist || null;
-      if (opts.markerPos || opts.markerMemo) trackData.markers = markersForExport;
-      if (opts.text) trackData.noteText = loadStoredNoteTextFor(track.name);
+
+      if (opts.settings) {
+        const storedPins = loadStoredPinsFor(track.name);
+        trackData.title = track.title || null;
+        trackData.artist = track.artist || null;
+        trackData.markers = storedPins.map(p => ({
+          time: p.t,
+          enabled: p.enabled !== false,
+          color: p.color || null,
+          memo: p.memo || ""
+        }));
+        trackData.noteText = loadStoredNoteTextFor(track.name);
+      }
 
       return trackData;
     });

@@ -745,44 +745,20 @@
         </div>
       </div>
 
-      <!-- 【v2.15.1】含める項目は折りたたみ式（初期は閉じた状態）。見出し行に
-           選択中の項目数と推定合計サイズを表示し、タップで項目一覧を開閉する。 -->
+      <!-- 【v2.15.2】含める項目は「音声データ」「設定ファイル（マーカー・
+           タイトルなど全部）」の2択に簡略化。折りたたみ・個別サイズ表示は
+           廃止し、常時2行を表示する（player-track-backup.js側の
+           trackBackupIncludeAudioEl / trackBackupIncludeSettingsElに対応）。 -->
       <div class="export-section track-backup-options" id="trackBackupOptionsSection">
-        <button type="button" class="track-backup-options-toggle" id="trackBackupOptionsToggle" aria-expanded="false" aria-controls="trackBackupOptionsBody">
-          <span class="export-section-label">含める項目</span>
-          <span class="track-backup-options-summary" id="trackBackupOptionsSummary"></span>
-          <svg class="track-backup-options-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
-        </button>
+        <label class="export-section-label">含める項目</label>
         <div class="track-backup-checklist" id="trackBackupOptionsBody">
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeAudio" checked>
             <span class="track-backup-row-label">音声データ</span>
-            <span class="track-backup-row-size" id="trackBackupSizeAudio"></span>
           </label>
           <label class="track-backup-row">
-            <input type="checkbox" id="trackBackupIncludeTitle" checked>
-            <span class="track-backup-row-label">ライブラリ曲名</span>
-            <span class="track-backup-row-size" id="trackBackupSizeTitle"></span>
-          </label>
-          <label class="track-backup-row">
-            <input type="checkbox" id="trackBackupIncludeArtist" checked>
-            <span class="track-backup-row-label">ライブラリ名（アーティスト）</span>
-            <span class="track-backup-row-size" id="trackBackupSizeArtist"></span>
-          </label>
-          <label class="track-backup-row">
-            <input type="checkbox" id="trackBackupIncludeMarkerPos" checked>
-            <span class="track-backup-row-label">マーカー位置</span>
-            <span class="track-backup-row-size" id="trackBackupSizeMarkerPos"></span>
-          </label>
-          <label class="track-backup-row">
-            <input type="checkbox" id="trackBackupIncludeMarkerMemo" checked>
-            <span class="track-backup-row-label">マーカーメモ</span>
-            <span class="track-backup-row-size" id="trackBackupSizeMarkerMemo"></span>
-          </label>
-          <label class="track-backup-row">
-            <input type="checkbox" id="trackBackupIncludeText" checked>
-            <span class="track-backup-row-label">テキストメモ</span>
-            <span class="track-backup-row-size" id="trackBackupSizeText"></span>
+            <input type="checkbox" id="trackBackupIncludeSettings" checked>
+            <span class="track-backup-row-label">設定データ</span>
           </label>
         </div>
       </div>

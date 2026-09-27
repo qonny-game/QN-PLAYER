@@ -362,8 +362,7 @@
 
 /* ------------------------------------------------------------
    【v2.15.1】Backupパネルのレイアウト：
-   - 曲選択リストを広めに、含める項目はコンパクトに（折りたたみ）。
-   - 含める項目は折りたたみ（.is-openで展開）。見出し行に項目数と推定サイズ。
+   - 曲選択リストを広めに、含める項目はコンパクトに。
    - 角丸の枠は使わず、行は細い線で区切るだけのシンプルな見た目にする。
 
    【v2.16.7 修正】曲選択リストを「パネルの残り高さを全部もらう」ために
@@ -413,12 +412,12 @@
 #pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist {
   /* 元の220pxよりは広く、かつ画面の高さに応じて縮む上限つきの値。
      曲数が少なければ内容ぶんの高さで収まる（min-heightは指定しない）。
-     【v2.16.9】58vh/520pxだと、SPでは初期状態（含める項目が閉じている時）
-     でリスト自体がほぼ画面を埋めてしまい、「含める項目」まで到達するのに
-     リスト内部のスクロールを先に最後まで終わらせる必要があった。内側の
-     リストと外側のパネル、2つのスクロール領域が両方とも指の動きに反応
-     しようとするため、外側へスクロールを渡すには指を一度離して境界の
-     外側からもう一度スワイプするような、シビアな操作が必要になっていた。
+     【v2.16.9】58vh/520pxだと、SPでは初期状態でリスト自体がほぼ画面を
+     埋めてしまい、「含める項目」まで到達するのにリスト内部のスクロールを
+     先に最後まで終わらせる必要があった。内側のリストと外側のパネル、
+     2つのスクロール領域が両方とも指の動きに反応しようとするため、
+     外側へスクロールを渡すには指を一度離して境界の外側からもう一度
+     スワイプするような、シビアな操作が必要になっていた。
      リストの上限を下げて、「含める項目」がリストのすぐ下、通常の
      スクロールで自然に見える範囲に来るようにした。 */
   max-height: min(38vh, 340px);
@@ -496,60 +495,16 @@
 }
 
 
-/* 含める項目：見出し行（折りたたみトグル） */
-.track-backup-options-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: inherit;
-  text-align: left;
-}
-
-
-#pcV2PanelBody .track-backup-options-toggle .export-section-label {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-
-.track-backup-options-summary {
-  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: var(--fs-small);
-  font-weight: 600;
-  color: var(--icon-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-
-.track-backup-options-chevron {
-  width: 20px;
-  height: 20px;
-  fill: var(--icon-muted);
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-
-.track-backup-options.is-open .track-backup-options-chevron {
-  transform: rotate(180deg);
-}
-
-
+/* 【v2.15.2】含める項目は「音声データ」「設定ファイル（マーカー・タイトル
+   など全部）」の2択に簡略化し、折りたたみ自体を廃止したため常時表示する。
+   （以前はここで.track-backup-checklistを.is-openクラスが付くまで
+   display: noneにしていたが、開閉トグル自体をHTMLから削除したため、
+   is-openを付けるきっかけが無くなり永久に非表示になっていた。） */
 #pcV2PanelBody .track-backup-options .track-backup-checklist {
-  display: none;
+  display: flex;
   gap: 0;
   margin-top: 10px;
   border-top: 1px solid var(--border-subtle);
-}
-
-
-#pcV2PanelBody .track-backup-options.is-open .track-backup-checklist {
-  display: flex;
 }
 
 
