@@ -311,3 +311,24 @@
 .qn-marker-preset-color-swatch {
   flex-shrink: 0;
 }
+
+/* ---------- 【v2.21.0】カスタムメモ行（Marker Memo Colors 末尾の入力欄＋色） ---------- */
+.qn-marker-custom-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: var(--fs-body);
+  color: var(--text-bright, #f0f0f3);
+  background: transparent;
+  border: 1px dashed #3a3a48;
+  border-radius: 6px;
+  user-select: text;
+}
+.qn-marker-custom-input::placeholder { color: #6b6b7b; }
+.qn-marker-custom-input:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--accent-primary);
+}

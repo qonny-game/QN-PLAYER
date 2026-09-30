@@ -776,6 +776,54 @@ const MARKER_PRESET_COLOR_DEFAULTS = {
   "Outro": "indigo"
 };
 
+// ============================================================
+// 【v2.21.0】カスタムプリセット。ユーザーが自由に追加するメモ(+色)。
+// localStorageのMARKER_CUSTOM_PRESETS_KEYに [{label, color}] で保存する。
+// Colorパネルでは常に末尾へ「空欄の行」が1つ付き、入力すると次の空欄行が増える。
+// 組み込みプリセットと同名(大文字小文字無視)・重複は無効として扱う。
+// ============================================================
+const MARKER_CUSTOM_PRESETS_KEY = "qn_marker_custom_presets_v1";
+const MARKER_CUSTOM_PRESET_MAX = 30;
+const MARKER_CUSTOM_LABEL_MAXLEN = 30;
+
+function loadMarkerCustomPresets() {
+  let arr = [];
+  try {
+    const raw = localStorage.getItem(MARKER_CUSTOM_PRESETS_KEY);
+    if (raw) arr = JSON.parse(raw);
+  } catch (e) { arr = []; }
+  if (!Array.isArray(arr)) arr = [];
+  return arr
+    .filter(x => x && typeof x.label === "string" && x.label.trim())
+    .map(x => ({ label: x.label.trim().slice(0, MARKER_CUSTOM_LABEL_MAXLEN), color: x.color || null }))
+    .slice(0, MARKER_CUSTOM_PRESET_MAX);
+}
+
+function saveMarkerCustomPresets(list) {
+  const clean = list
+    .filter(x => x && x.label && x.label.trim())
+    .map(x => ({ label: x.label.trim(), color: x.color || null }));
+  try { localStorage.setItem(MARKER_CUSTOM_PRESETS_KEY, JSON.stringify(clean)); } catch (e) {}
+}
+
+// 実際にチップとして使うカスタム(重複・組み込みと同名を除く)
+function getValidMarkerCustomPresets() {
+  const seen = new Set(MARKER_LABEL_PRESETS.map(l => l.toLowerCase()));
+  const out = [];
+  loadMarkerCustomPresets().forEach(x => {
+    const k = x.label.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(x);
+  });
+  return out;
+}
+
+// 組み込み＋カスタムのラベル一覧（チップの並び順）
+function getAllMarkerPresetLabels() {
+  return MARKER_LABEL_PRESETS.concat(getValidMarkerCustomPresets().map(x => x.label));
+}
+
 function getMarkerPresetColors() {
   let saved = {};
   try {
@@ -788,6 +836,7 @@ function getMarkerPresetColors() {
       ? saved[label]
       : (MARKER_PRESET_COLOR_DEFAULTS[label] || null);
   });
+  getValidMarkerCustomPresets().forEach(x => { result[x.label] = x.color || null; });
   return result;
 }
 
@@ -832,6 +881,74 @@ function renderMarkerPresetColorSettings() {
     row.appendChild(swatchBtn);
     rowsEl.appendChild(row);
   });
+
+  // ---- カスタム行（入力欄＋色）。末尾には常に空欄の行を1つ置く ----
+  const customs = loadMarkerCustomPresets();
+  customs.push({ label: "", color: null }); // 末尾の空欄
+  const state = customs; // 編集中の配列（入力のたびに更新）
+
+  function persist() { saveMarkerCustomPresets(state); }
+
+  function buildCustomRow(entry) {
+    const row = document.createElement("div");
+    row.className = "qn-marker-preset-color-row qn-marker-custom-row";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "qn-marker-custom-input";
+    input.placeholder = "Custom memo";
+    input.maxLength = MARKER_CUSTOM_LABEL_MAXLEN;
+    input.value = entry.label;
+    input.setAttribute("aria-label", "Custom memo text");
+
+    const swatchBtn = document.createElement("button");
+    swatchBtn.type = "button";
+    swatchBtn.className = "marker-color-swatch qn-marker-preset-color-swatch";
+    function paint() {
+      const hex = entry.color && MARKER_COLOR_PALETTE[entry.color] ? MARKER_COLOR_PALETTE[entry.color] : null;
+      swatchBtn.classList.toggle("marker-color-none", !hex);
+      swatchBtn.style.background = hex || "";
+      swatchBtn.title = hex ? entry.color : "No color";
+    }
+    paint();
+    swatchBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof hapticTap === "function") hapticTap();
+      openColorChoicePopup(swatchBtn, entry.color || null, (picked) => {
+        entry.color = picked || null;
+        paint();
+        persist();
+        // 空欄行に色だけ先に選んだ場合も、行は残す（テキスト入力待ち）
+      });
+    };
+
+    input.addEventListener("input", () => {
+      entry.label = input.value;
+      persist();
+      // 一番下の行に文字が入ったら、次の空欄行を足す
+      if (entry === state[state.length - 1] && entry.label.trim() && state.length < MARKER_CUSTOM_PRESET_MAX + 1) {
+        const blank = { label: "", color: null };
+        state.push(blank);
+        rowsEl.appendChild(buildCustomRow(blank));
+      }
+    });
+    // 確定(フォーカスアウト/Enter)時：中間の空欄行は詰めて整える
+    input.addEventListener("change", () => {
+      const last = state[state.length - 1];
+      const hasEmptyMiddle = state.some((x, i) => i < state.length - 1 && !x.label.trim());
+      if (hasEmptyMiddle || (last && last.label.trim())) renderMarkerPresetColorSettings();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+      e.stopPropagation(); // 画面のショートカットに奪われないように
+    });
+
+    row.appendChild(input);
+    row.appendChild(swatchBtn);
+    return row;
+  }
+
+  customs.forEach(entry => rowsEl.appendChild(buildCustomRow(entry)));
 }
 renderMarkerPresetColorSettings();
 document.addEventListener("DOMContentLoaded", renderMarkerPresetColorSettings);
@@ -909,7 +1026,7 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
     if (typeof hapticTap === "function") hapticTap();
   }
 
-  MARKER_LABEL_PRESETS.forEach(label => {
+  getAllMarkerPresetLabels().forEach(label => {
     const chip = document.createElement("button");
     chip.type = "button";
     chip.className = "pin-memo-preset-chip";

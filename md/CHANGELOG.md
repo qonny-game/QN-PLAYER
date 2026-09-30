@@ -352,3 +352,9 @@
   PLAYER本体では従来通りColorパネルを開き、アプリ側ではテーマ切替セクションをポップオーバー
   (#qnColorPop)へ借りて表示し、閉じたら元の場所へ戻す。外側クリック/Escで閉じる。
   Keyboardはアプリ側では引き続き非表示。実装: JS/qn-apps.js(initColorKeeper)、CSS/style-apps.css。
+- 【2.21.0】マーカーメモのカスタムプリセット。Colorパネル「Marker Memo Colors」の末尾に
+  「テキスト＋色」の入力行を追加。入力すると次の空欄行が自動で増える。追加したメモは
+  マーカー編集時のプリセットチップにも組み込みの後ろへ並び、選ぶと色も自動で付く。
+  保存: localStorage `qn_marker_custom_presets_v1` ([{label,color}])。最大30件、
+  組み込み/他と同名(大文字小文字無視)は無視、テキストを消すと行は削除。
+  実装: JS/player-markers.js(getAllMarkerPresetLabels 他)、CSS/style-theme.css。
