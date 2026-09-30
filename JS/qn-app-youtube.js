@@ -1745,6 +1745,19 @@
     if (typeof player.getCurrentTime !== "function") return;
     var t = player.getCurrentTime();
     if (current && current.looping) {
+      // 区間ループは再生位置に追従：区間の外へシーク(または別区間へ移動)したら、その位置の区間に切り替える。
+      // 区間の終わりに達した時は従来どおり先頭へ戻る(プリロール分の余裕を見て判定)。
+      if (current.loopMode === "sec" && current.secRange) {
+        var sr = current.secRange;
+        if (t < sr.start - preRoll - 1 || t > sr.end + preRoll + 1) {
+          var nr = sectionRangeAt(t);
+          if (nr && (nr.start !== sr.start || nr.end !== sr.end)) {
+            current.secRange = nr;
+            updateLoopUI();
+            ytToast("Section " + fmt(nr.start) + " - " + fmt(nr.end));
+          }
+        }
+      }
       var range = activeLoopRange();
       // 区間の終わりが動画の終わりの時は、終了(ended)になる前に少し手前で戻す
       // プリロール/ポストロール：区間の「終わりの何秒後まで」再生してから「開始の何秒前」へ戻る
