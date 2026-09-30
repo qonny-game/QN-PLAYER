@@ -756,15 +756,23 @@ body.qn-app-open #pcV2TimeRow {
   pointer-events: none;
 }
 
-/* マーカー区間：そのマーカーの色で塗る */
+/* マーカー区間：未再生は薄く、再生済みはマーカー色で進む */
 .qn-yt-range {
   position: absolute;
   top: 0;
   bottom: 0;
-  opacity: 0.55;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
+.qn-yt-range-bg,
+.qn-yt-range-on {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+.qn-yt-range-bg { width: 100%; opacity: 0.22; }
+.qn-yt-range-on { width: 0; opacity: 0.95; }
 
 /* 現在位置：細い白線 */
 .qn-yt-head {

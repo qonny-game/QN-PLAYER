@@ -1124,6 +1124,7 @@
   // マーカー区間(そのマーカー〜次の表示中マーカー、最後は動画の終わりまで)を、マーカーの色でシークバーに塗る
   function paintMarkerRanges(ms) {
     var old = refs.seekTracks.querySelectorAll(".qn-yt-range");
+    setTimeout(function () { paintPlayed(lastT); }, 0);
     for (var k = 0; k < old.length; k++) old[k].parentNode.removeChild(old[k]);
     if (!duration) return;
     var vis = ms.filter(function (m) { return m.enabled !== false; });
@@ -1140,10 +1141,25 @@
         band.className = "qn-yt-range";
         band.style.left = ((a - i * len) / len * 100) + "%";
         band.style.width = ((z - a) / len * 100) + "%";
-        band.style.background = hex;
+        var bg = document.createElement("div"); bg.className = "qn-yt-range-bg"; bg.style.background = hex;
+        var on = document.createElement("div"); on.className = "qn-yt-range-on"; on.style.background = hex;
+        band.appendChild(bg); band.appendChild(on);
+        band._a = a; band._z = z;
         tracks[i].insertBefore(band, loopRanges[i]);
       }
     });
+  }
+
+  // 再生済みの部分だけ、区間の色を濃く(選んだカラーで進む)
+  var lastT = 0;
+  function paintPlayed(t) {
+    lastT = t;
+    if (!root) return;
+    var bands = refs.seekTracks.querySelectorAll(".qn-yt-range");
+    for (var k = 0; k < bands.length; k++) {
+      var b = bands[k], r = (t - b._a) / (b._z - b._a);
+      b.lastChild.style.width = (Math.max(0, Math.min(1, r)) * 100) + "%";
+    }
   }
 
   function renderMarkers() {
@@ -1419,6 +1435,7 @@
       heads[i].style.display = (i === active) ? "" : "none";
       heads[i].style.left = p;
     }
+    paintPlayed(t);
   }
 
   // 現在位置のポーリング(ドラッグ中は更新しない)。ABループ中はB点到達でA点へseekTo()。
