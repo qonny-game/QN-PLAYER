@@ -1096,3 +1096,21 @@ body.qn-app-open #pcV2TimeRow {
 .qn-yt-fab-add { display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
 .qn-yt[data-panel="markers"]:not([data-edit]) .qn-yt-fab-add { display: flex; }
 .qn-yt[data-edit] .panel-fab-delete-btn { display: flex; }
+
+/* チャプター貼り付け（Markersパネルの上部） */
+.qn-yt-chapter { padding: 16px 16px 8px 20px; }
+.qn-yt-chapter-box { margin-top: 10px; }
+.qn-yt-chapter-box[hidden] { display: none; }
+.qn-yt-chapter-text {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 110px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.qn-yt-chapter-text::placeholder { color: rgba(255, 255, 255, 0.28); }
+.qn-yt-chapter .qn-yt-hint { margin: 8px 0; }

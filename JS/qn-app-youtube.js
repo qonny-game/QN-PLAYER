@@ -133,6 +133,21 @@
           '</section>' +
           '<section class="qn-yt-sec qn-yt-sec-markers">' +
             '<div class="qn-yt-sec-head"><h3>Markers</h3><span class="qn-yt-count" data-yt="markerCount">0</span></div>' +
+            // YouTubeの説明欄からコピーしたチャプターを、利用者が貼り付けてマーカーにする
+            // （YouTubeからは何も取得しない。入力されたテキストを解析するだけ）
+            '<div class="qn-yt-chapter">' +
+              '<button type="button" class="qn-yt-btn" data-yt="chapToggle">チャプターを貼り付け</button>' +
+              '<div class="qn-yt-chapter-box" data-yt="chapBox" hidden>' +
+                '<textarea class="qn-yt-input qn-yt-chapter-text" data-yt="chapText" rows="6" spellcheck="false" autocomplete="off" ' +
+                  'placeholder="0:00 チャプタータイトル&#10;1:23 チャプタータイトル&#10;2:45 チャプタータイトル"></textarea>' +
+                '<p class="qn-yt-hint">動画の説明欄のチャプターをコピーして貼り付けてください。「時間 タイトル」を1行ずつ読み取り、現在の動画のマーカーに追加します。</p>' +
+                '<div class="qn-yt-row">' +
+                  '<button type="button" class="qn-yt-btn primary" data-yt="chapAdd">マーカーに追加</button>' +
+                  '<button type="button" class="qn-yt-btn" data-yt="chapClose">閉じる</button>' +
+                '</div>' +
+                '<div class="qn-yt-message" data-yt="chapMsg" role="status"></div>' +
+              '</div>' +
+            '</div>' +
             '<div class="qn-yt-pinbox" data-yt="markerList"></div>' +
             '<p class="qn-yt-empty" data-yt="emptyMarkers">マーカーはありません</p>' +
           '</section>' +
@@ -569,6 +584,12 @@
       if (!current || !playerReady) { if (window.QNApps) window.QNApps.toast("先に動画を読み込んでください"); return; }
       addMarkerHere();
     });
+    refs.chapToggle.addEventListener("click", function () {
+      refs.chapBox.hidden = !refs.chapBox.hidden;
+      if (!refs.chapBox.hidden) refs.chapText.focus();
+    });
+    refs.chapClose.addEventListener("click", function () { refs.chapBox.hidden = true; });
+    refs.chapAdd.addEventListener("click", addChapters);
     refs.fabEdit.addEventListener("click", toggleEdit);
     refs.fabDel.addEventListener("click", deleteSelected);
 
@@ -1208,6 +1229,57 @@
     });
 
     updateLoopUI();
+  }
+
+  // ---------- チャプターの貼り付け ----------
+  // 「0:00 タイトル」「1:02:03 - タイトル」「[2:45] タイトル」などを1行ずつ読み取る。
+  function parseChapters(text) {
+    var out = [];
+    String(text || "").normalize("NFKC").split(/\r?\n/).forEach(function (line) {
+      var m = line.match(/^\s*(?:[-*・•▶►]\s*)?[\[(（]?\s*((?:\d{1,2}:)?\d{1,3}:\d{2})(?:\.\d+)?\s*[\])）]?\s*[-–—―:：|｜]?\s*(.*?)\s*$/);
+      if (!m) return;
+      var parts = m[1].split(":").map(Number), sec;
+      if (parts.length === 3) {
+        if (parts[1] >= 60 || parts[2] >= 60) return;
+        sec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+      } else {
+        if (parts[1] >= 60) return;
+        sec = parts[0] * 60 + parts[1];
+      }
+      out.push({ time: sec, label: m[2].slice(0, 60) });
+    });
+    return out;
+  }
+
+  function addChapters() {
+    var msg = refs.chapMsg;
+    function say(t, ok) { msg.textContent = t; msg.className = "qn-yt-message" + (ok ? " ok" : ""); }
+    if (!current) { say("先に動画を読み込んでください"); return; }
+    var list = parseChapters(refs.chapText.value);
+    if (!list.length) { say("「時間 タイトル」の行が見つかりません（例: 1:23 Aメロ）"); return; }
+    var presetColors = (typeof getMarkerPresetColors === "function") ? getMarkerPresetColors() : {};
+    var added = 0, skipped = 0;
+    list.forEach(function (c) {
+      var t = Math.round(c.time * 10) / 10;
+      var over = duration && t > duration + 0.5;
+      var dup = current.markers.some(function (x) { return Math.abs(x.time - t) < 0.05; });
+      if (over || dup) { skipped++; return; }
+      var mk = { id: uid("m"), time: t, label: c.label };
+      // 本体と同じく、プリセット名と一致したメモには自動で色を付ける
+      for (var name in presetColors) {
+        if (name.toLowerCase() === c.label.toLowerCase() && presetColors[name] &&
+            typeof MARKER_COLOR_PALETTE !== "undefined" && MARKER_COLOR_PALETTE[presetColors[name]]) {
+          mk.color = presetColors[name]; break;
+        }
+      }
+      current.markers.push(mk);
+      added++;
+    });
+    sortMarkers();
+    persistMarkers();
+    renderMarkers();
+    say(added + "件追加しました" + (skipped ? "（" + skipped + "件は重複/範囲外のためスキップ）" : ""), added > 0);
+    if (added > 0) refs.chapText.value = "";
   }
 
   // ---------- ABループ ----------
