@@ -212,7 +212,8 @@ PC v2の中央パネル（`#pcV2PanelBody`）に表示される中身専用。
   選択中は`.qn-app-active`（本体側JSが`.active`を外してしまうため別クラス）。
 - **アプリ一覧フライアウト（v3.0.0〜）：** `#qnAppBadge`（サイドバー先頭、右端に＞）が入口。
   `ensureFlyout()`が`#qnAppFlyout`（body直下・position:fixed・hidden）を作り、`renderAppItems()`が`.qn-flyout-item`を並べる。
-  `positionFlyout()`＝PC幅はバッジと同じ高さでサイドバーの右に重ねる／SP幅(≤900px)はアイコンバーの真上に横並び(`.qn-flyout-sp`)。
+  `positionFlyout()`＝PC幅はサイドバーと同じ縦幅いっぱい(上端〜下端)でサイドバーの右に重ねる／SP幅(≤900px)はアイコンバーの真上に幅いっぱいの横並び(`.qn-flyout-sp`)。
+  v3.0.1〜：開閉はアニメーション（`.qn-flyout-in`の付け外し。PCは左から・SPは下からclip-path＋移動、閉じ終わり240ms後に`hidden`）。`ensureScrim()`が薄暗い幕`#qnAppScrim`（pointer-events:none）を敷き、フライアウトの背景はテーマ色寄りの暗色＋縁にテーマ色ライン。開閉状態は`flyoutOpen`で持つ（`hidden`では判定しない）。
   `openFlyout()/closeFlyout()`（バッジに`.qn-badge-open`と`aria-expanded`）。PC(hover可・fine pointer)はホバーで開き、離れて160ms後に閉じる（クリックでも開く）。
   SP/タッチはバッジのタップで開閉。閉じる経路は`bindFlyoutGlobal()`（外側pointerdown・Esc・他のサイドバー項目クリック・アイコンバーのスクロール・resize再配置・orientationchange）と、項目選択・`close()`・Colorボタン。
 

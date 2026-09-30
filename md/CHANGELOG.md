@@ -468,3 +468,9 @@
 - サイドバー最下段のMORE(BACK)ボタンと、アプリ一覧モード（`.qn-apps-mode`/`setAppsMode`/`.qn-app-item`）を撤去。Color（下段）は従来どおり常駐。
 - 変更ファイル：`JS/qn-apps.js`、`CSS/style-apps.css`、`index.html`（バージョンのみ）。`qn-app-youtube.js`は公開API(`QNApps.register/open/close/toast/setSideActive/layout`)のみ使う前提で無変更。
 - 実機確認したい点：SPでのバッジのタップ開閉、フライアウトが横スクロールのアイコンバーの上に正しく出るか。
+
+## 3.0.1 — アプリ一覧フライアウトの調整（アニメーション・縦幅いっぱい・目立たせる）
+- アプリ一覧を、PCは左から／SPは下から「にゅっと」出るアニメーションに（閉じる時も同様）。
+- PCはサイドバーと同じ縦幅いっぱい（下は空白）、SPは幅いっぱいで表示。
+- 出たことに気づきやすいよう、ページ全体を薄暗くする幕`#qnAppScrim`（クリックは素通し）、背景をほんのりテーマ色寄りの暗色、縁にテーマ色のラインを追加。
+- 変更ファイル：`JS/qn-apps.js`、`CSS/style-apps.css`、`index.html`（バージョンのみ）。

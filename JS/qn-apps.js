@@ -48,7 +48,7 @@
 
   var apps = [];            // 登録済みアプリ（order順）
   var current = null;       // 今開いているアプリ（null = QNPLAYER本体）
-  var iconBar = null, host = null, badgeBtn = null, flyout = null, flyoutTimer = null, toastEl = null, toastTimer = null;
+  var iconBar = null, host = null, badgeBtn = null, flyout = null, scrim = null, flyoutOpen = false, flyoutHideTimer = null, flyoutTimer = null, toastEl = null, toastTimer = null;
   var views = {};           // id -> viewEl
   var mounted = {};         // id -> true
   var resizeObs = null;
@@ -127,26 +127,47 @@
   function positionFlyout() {
     if (!flyout || !iconBar || !badgeBtn) return;
     var br = iconBar.getBoundingClientRect();
-    var bd = badgeBtn.getBoundingClientRect();
     var sp = isSp();
     flyout.classList.toggle("qn-flyout-sp", sp);
+    if (scrim) scrim.classList.toggle("qn-scrim-sp", sp);
     if (sp) {
+      // SP：アイコンバーの真上に、幅いっぱいで下からにゅっと
       flyout.style.left = "0px";
+      flyout.style.right = "0px";
       flyout.style.top = "auto";
       flyout.style.bottom = Math.max(0, window.innerHeight - br.top) + "px";
     } else {
+      // PC：サイドバーと同じ縦幅いっぱい（上端〜下端）で、右から左へにゅっと
       flyout.style.left = br.right + "px";
-      flyout.style.top = bd.top + "px";
-      flyout.style.bottom = "auto";
+      flyout.style.right = "auto";
+      flyout.style.top = br.top + "px";
+      flyout.style.bottom = Math.max(0, window.innerHeight - br.bottom) + "px";
     }
   }
 
+  // 「ここにアプリ一覧が出たよ」を分かりやすくする薄暗い幕（クリックは素通し）
+  function ensureScrim() {
+    if (scrim) return scrim;
+    scrim = document.createElement("div");
+    scrim.id = "qnAppScrim";
+    scrim.hidden = true;
+    document.body.appendChild(scrim);
+    return scrim;
+  }
+
   function openFlyout() {
-    if (!flyout || !flyout.hidden) return;
+    if (!flyout || flyoutOpen) return;
+    flyoutOpen = true;
     cancelFlyoutClose();
+    if (flyoutHideTimer) { clearTimeout(flyoutHideTimer); flyoutHideTimer = null; }
     closeColorPop();
+    ensureScrim();
     positionFlyout();
     flyout.hidden = false;
+    scrim.hidden = false;
+    void flyout.offsetWidth; // 初期位置を確定させてからアニメーション開始
+    flyout.classList.add("qn-flyout-in");
+    scrim.classList.add("qn-scrim-in");
     if (badgeBtn) {
       badgeBtn.classList.add("qn-badge-open");
       badgeBtn.setAttribute("aria-expanded", "true");
@@ -155,12 +176,22 @@
 
   function closeFlyout() {
     cancelFlyoutClose();
-    if (!flyout || flyout.hidden) return;
-    flyout.hidden = true;
+    if (!flyout || !flyoutOpen) return;
+    flyoutOpen = false;
+    flyout.classList.remove("qn-flyout-in");
+    if (scrim) scrim.classList.remove("qn-scrim-in");
     if (badgeBtn) {
       badgeBtn.classList.remove("qn-badge-open");
       badgeBtn.setAttribute("aria-expanded", "false");
     }
+    // アニメーション終了後に完全に隠す（その間に開き直されたら隠さない）
+    if (flyoutHideTimer) clearTimeout(flyoutHideTimer);
+    flyoutHideTimer = setTimeout(function () {
+      flyoutHideTimer = null;
+      if (flyoutOpen) return;
+      flyout.hidden = true;
+      if (scrim) scrim.hidden = true;
+    }, 240);
   }
 
   function scheduleFlyoutClose() {
@@ -226,7 +257,7 @@
     badgeBtn.addEventListener("mouseleave", scheduleFlyoutClose);
     badgeBtn.addEventListener("click", function () {
       haptic();
-      if (flyout && !flyout.hidden) {
+      if (flyoutOpen) {
         // マウスのPC幅ではホバーで既に開いているので、クリックでは閉じない
         if (!(canHover() && !isSp())) closeFlyout();
       } else {
@@ -494,7 +525,7 @@
     flyoutGlobalBound = true;
     // 外側タップ／クリックで閉じる（バッジとフライアウト自身は除く）
     document.addEventListener("pointerdown", function (e) {
-      if (!flyout || flyout.hidden) return;
+      if (!flyout || !flyoutOpen) return;
       var t = e.target;
       if (t && t.closest && (t.closest("#qnAppFlyout") || t.closest("#qnAppBadge"))) return;
       closeFlyout();
@@ -502,7 +533,7 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeFlyout();
     });
-    window.addEventListener("resize", function () { if (flyout && !flyout.hidden) positionFlyout(); });
+    window.addEventListener("resize", function () { if (flyoutOpen) positionFlyout(); });
     window.addEventListener("orientationchange", closeFlyout);
     // サイドバーの他の項目を押したら閉じる（PLAYERでパネルが切り替わるのと同じ感覚）
     iconBar.addEventListener("click", function (e) {

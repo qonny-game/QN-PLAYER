@@ -132,6 +132,7 @@ grep -o 'id="track[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort
 | ID / クラス | 内容 |
 |---|---|
 | `#qnAppFlyout` | アプリ一覧のフライアウト（v3.0.0〜、body直下・position:fixed・`hidden`、z-index 320）。SP幅は`.qn-flyout-sp`（横並び）。※旧`#qnMoreBtn`/`.qn-apps-mode`/`.qn-app-item`はv3.0.0で撤去 |
+| `#qnAppScrim` | フライアウト表示中にページ全体を薄暗くする幕（v3.0.1〜、z-index 310・pointer-events:none・`.qn-scrim-in`で表示、SPは`.qn-scrim-sp`で少し濃い） |
 | `.qn-flyout-item[data-app-id]` | フライアウトの各項目(`.pcv2-icon-item`と併用)。`.qn-app-active`=選択中、`.qn-app-soon`=準備中 |
 | `#qnAppHost` | アプリ表示領域(position:fixed)。中に`.qn-app-view[data-app-view=<id>]` |
 | `#qnAppToast` | 「◯◯ is coming soon」のトースト |

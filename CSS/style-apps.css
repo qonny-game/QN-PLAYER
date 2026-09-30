@@ -26,38 +26,77 @@
 }
 
 /* ---------- アプリ一覧フライアウト（バッジにホバー／タップで開く） ----------
-   body直下の position:fixed。PC幅=サイドバーの右にバッジと同じ高さから重ねて表示、
-   SP幅=アイコンバーの真上に横並びで表示（位置はJSが left/top/bottom を入れる）。 */
+   body直下の position:fixed。
+   PC幅=サイドバーの右に、サイドバーと同じ縦幅いっぱいで重ねて表示（左からにゅっと）。
+   SP幅=アイコンバーの真上に幅いっぱいで表示（下からにゅっと）。位置はJSが実測で入れる。
+   「ここに出た」を分かりやすくするため、背景をほんのりテーマ色寄りの暗色にし、
+   縁にテーマ色のラインを引き、画面全体を薄暗くする幕(#qnAppScrim)も敷く。
+   アニメーションは clip-path（サイドバーの縁から「生えてくる」ように見える）＋少しだけ移動。 */
 #qnAppFlyout {
   position: fixed;
-  z-index: 320;              /* #qnColorPop(300)より上 */
+  z-index: 320;              /* #qnColorPop(300)・幕(310)より上 */
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  width: 76px;
-  padding: 4px 0;
-  background: var(--bg-base, #0a0a0c);
-  border: 1px solid var(--border-subtle);
-  border-left: none;
-  box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.55);
+  width: 84px;
+  padding: 16px 0;            /* サイドバー(#pcV2IconBar)と同じ上下余白 */
+  gap: 4px;
+  background: color-mix(in srgb, var(--accent-primary) 7%, #050507);
+  border-right: 2px solid var(--accent-primary);
+  box-shadow: 14px 0 36px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateX(-28px);
+  clip-path: inset(0 100% 0 0);
+  transition: opacity 200ms ease,
+              transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              clip-path 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 #qnAppFlyout[hidden] { display: none; }
+#qnAppFlyout.qn-flyout-in {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 -48px 0 0);
+}
 
-/* SP幅：アイコンバーの上に横並び */
+/* SP幅：アイコンバーの上に、幅いっぱいの横並び（下からにゅっと） */
 #qnAppFlyout.qn-flyout-sp {
   flex-direction: row;
   width: auto;
-  padding: 0 6px;
+  padding: 6px 6px;
   gap: 2px;
-  border: none;
-  border-top: 1px solid var(--border-subtle);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55);
+  border-right: none;
+  border-top: 2px solid var(--accent-primary);
+  box-shadow: 0 -14px 36px rgba(0, 0, 0, 0.6);
   overflow-x: auto;
+  transform: translateY(24px);
+  clip-path: inset(100% 0 0 0);
+}
+#qnAppFlyout.qn-flyout-sp.qn-flyout-in {
+  transform: none;
+  clip-path: inset(-48px 0 0 0);
 }
 
 #qnAppFlyout .qn-flyout-item {
   flex-shrink: 0;
+}
+
+/* 薄暗い幕：フライアウト以外を暗くして「出た」ことを知らせる（クリックは素通し） */
+#qnAppScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 310;
+  background: rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+#qnAppScrim[hidden] { display: none; }
+#qnAppScrim.qn-scrim-in { opacity: 1; }
+#qnAppScrim.qn-scrim-sp { background: rgba(0, 0, 0, 0.55); }
+
+@media (prefers-reduced-motion: reduce) {
+  #qnAppFlyout, #qnAppScrim { transition: opacity 120ms ease; transform: none !important; }
 }
 
 /* バッジの「＞」（サブメニューがあるよの印） */
