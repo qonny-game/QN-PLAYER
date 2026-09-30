@@ -5,7 +5,7 @@
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
 - 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（MORE・アプリ一覧・表示領域）
-- 最終更新：QNPLAYER v2.26.0（再生ボタン・Library前次ボタン追加）（2026-09-30）
+- 最終更新：QNPLAYER v2.27.0（Load廃止・Saveで読み込み＆保存）（2026-09-30）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---
@@ -258,3 +258,6 @@ PC幅                                             SP幅（パネルを開いた�
 ## 付録：再生ボタン・Library前/次ボタン（v2.26.0）
 - シークバー下の`.qn-yt-transport`行（Prev / 再生⇄一時停止 / Next）。すべて利用者のクリックを起点に公式メソッド（`playVideo`/`pauseVideo`/`loadVideoById`）を呼ぶだけ。
 - Prev/Nextは`skip`を飛ばす。Auto Nextと違い、可視判定は不要（利用者操作のため）。
+
+## 付録：Save = 読み込み＋保存（v2.27.0）
+- Loadボタンはなし。入力欄のURLが基準で、Libraryに同じ動画があればタイトル更新、無ければ新規追加。保存後は入力欄を空に戻す。

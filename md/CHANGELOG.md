@@ -432,3 +432,9 @@
 - シークバー下（マーカーボタン行の上）に新しい行`.qn-yt-transport`：Prev（Libraryの前の動画）／再生⇄一時停止／Next（Libraryの次の動画）。配置・デザインは後日調整予定。
 - 再生ボタンはスペースキーと同じ`togglePlay()`（`playVideo`/`pauseVideo`）。アイコンは再生状態に追従（`updatePlayBtn`）。
 - Prev/NextはSKIPの動画を飛ばし、押した時に再生開始（利用者操作が起点）。端では「最初/最後の動画です」を表示。Libraryに無い動画（未保存URL）の時は「Libraryの動画を選んでください」。
+
+## 2.27.0 — YouTube Library: Load廃止、SaveだけでLoad＆保存
+- Loadボタンを廃止。Saveを押すと、入力欄のURLの動画を読み込み（再生はしない）、同時にLibraryへ保存する（`saveFromInputs`）。
+- 判定は入力欄のURL基準：Libraryに同じ動画(videoId)がある＝そのタイトルを更新（Libraryから読み込んで名前を直す使い方）／
+  無い新しいURL＝**新規追加**。以前は「先に読み込んだ動画」のタイトルを上書きしてしまう場合があった。
+- Enter：URL欄→タイトル欄へ移動、タイトル欄→Save。URL未入力・URL不正はメッセージ表示。SPではSave後にパネルを閉じてプレイヤーを見せる。

@@ -122,11 +122,10 @@
             '<div class="qn-yt-input-block">' +
               '<div class="qn-yt-row">' +
                 '<input data-yt="urlInput" class="qn-yt-input" type="text" placeholder="YouTube URL" autocomplete="off" spellcheck="false">' +
-                '<button type="button" data-yt="loadBtn" class="qn-yt-btn primary">Load</button>' +
               '</div>' +
               '<div class="qn-yt-row">' +
                 '<input data-yt="titleInput" class="qn-yt-input" type="text" placeholder="Title (type it yourself)" autocomplete="off">' +
-                '<button type="button" data-yt="saveBtn" class="qn-yt-btn">Save</button>' +
+                '<button type="button" data-yt="saveBtn" class="qn-yt-btn primary">Save</button>' +
               '</div>' +
               '<div class="qn-yt-message" data-yt="message" role="status"></div>' +
             '</div>' +
@@ -542,41 +541,50 @@
 
   // ---------- イベント ----------
   function bindEvents() {
-    refs.loadBtn.addEventListener("click", function () {
-      var id = parseVideoId(refs.urlInput.value);
+    // Save = 読み込み＋保存。入力欄のURLが基準：
+    //   ・Libraryに同じ動画(videoId)がある → その行のタイトルを更新（ライブラリから読み込んだ状態で名前を直す使い方）
+    //   ・無い（新しいURL） → 新規追加
+    function saveFromInputs() {
+      var url = refs.urlInput.value.trim();
+      var id = parseVideoId(url);
+      if (!url) { showMessage("YouTubeのURLを入力してください"); return; }
       if (!id) { showMessage("YouTubeのURLとして認識できません"); return; }
-      openVideo(id, refs.urlInput.value.trim(), null);
-      closePanelOnSp();
-    });
-    refs.urlInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); refs.loadBtn.click(); }
-    });
-
-    refs.saveBtn.addEventListener("click", function () {
-      if (!current) { showMessage("先に動画を読み込んでください"); return; }
       var title = refs.titleInput.value.trim() || "(無題)"; // タイトルは常に手入力
-      var item = current.itemId ? findItem(current.itemId) : null;
+      var item = findItemByVideoId(id);
+      var isNew = !item;
       if (item) {
         item.title = title;
-        item.url = current.url;
-        item.loopA = current.loopA;
-        item.loopB = current.loopB;
+        item.url = url;
       } else {
         item = {
-          id: uid("item"), type: "youtube", videoId: current.videoId, url: current.url,
-          title: title, markers: current.markers,
-          loopA: current.loopA, loopB: current.loopB,
+          id: uid("item"), type: "youtube", videoId: id, url: url,
+          title: title, markers: [], loopA: null, loopB: null,
           createdAt: Date.now()
         };
         items.push(item);
-        current.itemId = item.id;
       }
       saveItems();
-      renderList();
-      // 保存したら入力欄は空に戻す（再生中の動画はそのまま）
+      if (current && current.videoId === id) {
+        // すでに開いている動画：読み込み直さずに紐付けだけ更新
+        current.itemId = item.id;
+        current.url = url;
+        if (isNew) item.markers = current.markers;
+        renderList();
+      } else {
+        openVideo(id, url, item.id); // 読み込み(再生はしない)
+      }
+      // 保存したら入力欄は空に戻す（読み込んだ動画はそのまま）
       refs.urlInput.value = "";
       refs.titleInput.value = "";
-      showMessage("リストに保存しました", true);
+      showMessage(isNew ? "リストに追加しました" : "タイトルを更新しました", true);
+      closePanelOnSp();
+    }
+    refs.saveBtn.addEventListener("click", saveFromInputs);
+    refs.urlInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); refs.titleInput.focus(); }
+    });
+    refs.titleInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); saveFromInputs(); }
     });
 
     function addMarkerHere() {
