@@ -143,6 +143,7 @@ GOTCHAS_REFERENCE.mdにまとめました。
   「Marker Memo Colors」末尾の入力行で編集。`getAllMarkerPresetLabels()`が
   組み込み＋カスタムを返し、マーカー編集のプリセットチップと自動カラーに使われる。
   YouTubeアプリのマーカー編集も同じ関数・同じ保存先を共用する。
+- **最後に開いたアプリ（v2.28.0〜）**: `localStorage`の`qn_last_app`（アプリID / `player`）。
 - **YouTubeアプリのデータ（v2.17.0〜）**: `localStorage`の`qn_yt_items`
   （`[{videoId,url,title,skip,markers[{id,time,label,color?,enabled?}],loopA,loopB}]`）、
   `qn_yt_rate`（再生速度）、`qn_yt_autonext`（Auto Next、初期OFF）。
@@ -404,6 +405,7 @@ YouTubeアプリ固有の仕様・規約は`YOUTUBE_APP.md`。
   PLAYER側CSSが`#pcV2PanelBody`スコープなら、アプリ側（`.qn-yt`等）へ同等のルールを写す。
 - **SP幅：** アプリが映像を持つ場合、パネルを開いても映像は隠さない（YouTubeは
   `max(200px,30dvh)`・最低200px）。`data-qn-keep-visible`を付けた要素はColorパネルも覆わない。
+- **再読み込み時の復元（v2.28.0〜）：** `qn_last_app`に最後のアプリIDを保存し、ロード後に自動で開く（`qn-apps.js`）。新アプリは`ready:true`で登録すれば自動対象。
 - **状態の持ち方：** アプリのデータは`qn_<アプリ名>_*`のlocalStorageキー。音声実体は持たない。
 - **画面スリープ防止：** 再生中は`QNWake.set("<アプリ名>", true)`、停止・非表示で`false`。
 - **表示中はPLAYER側を止める：** `body.qn-app-open`でaudio一時停止・下段バー非表示・

@@ -241,6 +241,25 @@
     try { if (typeof audio !== "undefined" && audio && !audio.paused) audio.pause(); } catch (e) {}
   }
 
+  // ---------- 最後に開いていたアプリを再読み込み後に復元 ----------
+  var LAST_APP_KEY = "qn_last_app";
+  function saveLastApp(id) { try { localStorage.setItem(LAST_APP_KEY, id); } catch (e) {} }
+  var restoreScheduled = false;
+  function scheduleRestore() {
+    if (restoreScheduled) return;
+    restoreScheduled = true;
+    function run() {
+      var id = null;
+      try { id = localStorage.getItem(LAST_APP_KEY); } catch (e) {}
+      var app = id && id !== "player" ? findApp(id) : null;
+      // 準備中のアプリ・見つからないアプリは復元しない（本体のまま）
+      if (app && app.ready && !current) open(id);
+    }
+    // 全スクリプト(各アプリの register)が実行された後に行う
+    if (document.readyState === "complete") setTimeout(run, 0);
+    else window.addEventListener("load", function () { setTimeout(run, 0); });
+  }
+
   function open(id) {
     var app = findApp(id);
     if (!app) return;
@@ -261,6 +280,7 @@
     }
 
     current = app;
+    saveLastApp(id);
     pausePlayerAudio();
     document.body.classList.add("qn-app-open");
     host.hidden = false;
@@ -280,6 +300,7 @@
   function close() {
     closeColorPop();
     if (!current) { syncActiveStates(); return; }
+    saveLastApp("player");
     var app = current;
     current = null;
     if (typeof app.onHide === "function") {
@@ -416,6 +437,7 @@
       resizeObs = new ResizeObserver(function () { if (current) layoutHost(); });
       resizeObs.observe(layout);
     }
+    scheduleRestore();
     return true;
   }
 
