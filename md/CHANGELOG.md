@@ -478,3 +478,7 @@
 ## 3.0.2 — フライアウトのPCアニメーションを「スライド」に修正
 - v3.0.1のPC表示はフェードに見えていたため、サイドバーの縁の内側から左→右へ押し出されるスライドに変更（`transform`で全幅ぶんずらしつつ、`clip-path`で縁より左側を切り落とす。SPは同様に下から）。フェード(opacity)は廃止。閉じ終わりの`hidden`は280ms後。
 - 変更ファイル：`JS/qn-apps.js`、`CSS/style-apps.css`、`index.html`（バージョンのみ）。
+
+## 3.0.3 — PLAYERアプリのサイドバーの並び順を変更
+- 並び順を Library → Markers → Text → Control → Backup → Import に変更（`player-ui-pc-v2.js`の`ICON_ITEMS`の並べ替えのみ。Seekbarは従来どおりSP幅専用で先頭、Exportは非表示のまま）。並び順に依存する処理は無い（パネルは`data-panel-id`で参照）。
+- 変更ファイル：`JS/player-ui-pc-v2.js`、`index.html`（バージョンのみ）。

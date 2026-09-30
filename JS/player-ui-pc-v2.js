@@ -51,26 +51,14 @@
   //            "close" = パネルを開かず、開いていれば閉じる（波形/シークバーが
   //                      見える基本画面に戻るためのショートカット。SP幅専用の
   //                      挙動で、PC幅では常時パネル表示のため実質何もしない）
+  // 並び順（v3.1.0〜）：Library → Markers → Text → Control → Backup → Import
+  //（Seekbarは SP幅専用の先頭ショートカット、Exportは非表示）
   const ICON_ITEMS = [
     {
       id: "seekbar",
       label: "Seekbar",
       panelType: "close",
       icon: '<path d="M4 5h2v14H4zm4 3h2v8H8zm4-6h2v20h-2zm4 4h2v12h-2zm4 3h2v6h-2z"/>'
-    },
-    {
-      id: "control",
-      label: "Control",
-      panelType: "tab",
-      tabName: "control",
-      icon: '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>'
-    },
-    {
-      id: "markers",
-      label: "Markers",
-      panelType: "tab",
-      tabName: "markers",
-      icon: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'
     },
     {
       id: "playlist",
@@ -80,11 +68,25 @@
       icon: '<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>'
     },
     {
+      id: "markers",
+      label: "Markers",
+      panelType: "tab",
+      tabName: "markers",
+      icon: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'
+    },
+    {
       id: "text",
       label: "Text",
       panelType: "tab",
       tabName: "text",
       icon: '<path d="M5 4v3h5.5v12h3V7H19V4z"/>'
+    },
+    {
+      id: "control",
+      label: "Control",
+      panelType: "tab",
+      tabName: "control",
+      icon: '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>'
     },
     {
       id: "export",

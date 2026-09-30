@@ -17,7 +17,7 @@
 | ヘッダー / アプリのロゴ部分 | `#appHeader`（「QNPLAYER vX.X.X」表示） | `#appTitle`（曲名）とは別物。`#pcV2Root`より前、ページの一番上に固定 |
 | ライブラリ | Playlistパネル（`#playlistBox`） | サイドメニューでは「Library」表記 |
 | 下部コントロール / コントロールバー | `#pcV2BottomBar` | Play系ボタン（1行目）とMarker系ボタン（2行目、PC幅）またはPlay/Markerが1本に連結された横スクロール列（SP幅） |
-| サイドバー / サイドメニュー / アイコンバー | `#pcV2IconBar` | Seekbar/Control/Markers/Library/Text/Backup/Import等のタブが並ぶ |
+| サイドバー / サイドメニュー / アイコンバー | `#pcV2IconBar` | Seekbar(SP専用)/Library/Markers/Text/Control/Backup/Import（v3.0.3〜の並び順）等のタブが並ぶ |
 | 波形エリア | `#pcV2WaveArea` | 曲名表示・波形バー6分割・マーカー番号ラベルを含む |
 | ピン留め | お気に入り機能（`track.favorite`） | 画鋲アイコン。ハート型から変更した経緯あり |
 | アンカータブ / PLAY・MARKERタブ | `#pcV2BottomBarAnchorTabs`内の`.pcv2-anchor-tab` | 下段バーの横スクロール位置をジャンプさせるショートカットボタン。曲名ヘッダーの直下ではなく、下段バーの直上に位置する |
