@@ -191,7 +191,7 @@
       if (flyoutOpen) return;
       flyout.hidden = true;
       if (scrim) scrim.hidden = true;
-    }, 240);
+    }, 280);
   }
 
   function scheduleFlyoutClose() {
