@@ -5,7 +5,7 @@
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
 - 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（MORE・アプリ一覧・表示領域）
-- 最終更新：QNPLAYER v2.24.1（マーカー区間：未再生は薄く・再生済みはマーカー色）（2026-09-30）
+- 最終更新：QNPLAYER v2.26.0（再生ボタン・Library前次ボタン追加）（2026-09-30）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---
@@ -248,3 +248,13 @@ PC幅                                             SP幅（パネルを開いた�
 
 ---
 参照規約：YouTube API Services Developer Policies（2026-09-14更新版を確認）／作成日 2026-09-29／全面改訂 2026-09-30（v2.23.0時点）
+
+
+## 付録：スペースキーで再生/一時停止（v2.25.0）
+- アプリ表示中のみ有効（`onShow`でリスナー登録、`onHide`で解除）。公式の`getPlayerState()`/`playVideo()`/`pauseVideo()`を、利用者のキー操作を起点に呼ぶだけ。規約OK（§2の「playVideoは利用者操作から」を満たす）。
+- 文字入力中（input/textarea/select/contenteditable）・Ctrl/Alt/Meta/Shift併用・キーリピートは無視。動画が未読み込みなら何もしない。
+- YouTube iframe内にフォーカスがある時のスペースはYouTube側の標準動作（親ページには届かない）。
+
+## 付録：再生ボタン・Library前/次ボタン（v2.26.0）
+- シークバー下の`.qn-yt-transport`行（Prev / 再生⇄一時停止 / Next）。すべて利用者のクリックを起点に公式メソッド（`playVideo`/`pauseVideo`/`loadVideoById`）を呼ぶだけ。
+- Prev/Nextは`skip`を飛ばす。Auto Nextと違い、可視判定は不要（利用者操作のため）。

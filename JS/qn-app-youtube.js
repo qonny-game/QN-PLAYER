@@ -30,6 +30,8 @@
   var SEGS = 3; // シークバーの分割数(3行)
 
   var SVG_PREV = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>';
+  var SVG_PLAY = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M8 5v14l11-7z"/></svg>';
+  var SVG_PAUSE = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
   var SVG_NEXT = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>';
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
   var FLAG_KEY = "qn_yt_autonext", RATE_KEY = "qn_yt_rate";
@@ -230,6 +232,11 @@
           '<p class="qn-yt-fetched-title" data-yt="fetchedTitle"></p>' +
           '<div class="qn-yt-time"><span data-yt="curTime">00:00</span><span class="sep">/</span><span data-yt="durTime">00:00</span></div>' +
           '<div class="qn-yt-seek" data-yt="seekTracks"><div class="qn-yt-marker-layer" data-yt="markerLayer"></div></div>' +
+          '<div class="qn-yt-ctrl-row qn-yt-transport">' +
+            '<button type="button" data-yt="prevVideoBtn" class="qn-yt-btn" title="Libraryの前の動画">' + SVG_PREV + 'Prev</button>' +
+            '<button type="button" data-yt="playBtn" class="qn-yt-btn primary" title="再生 / 一時停止（スペースキー）">' + SVG_PLAY + '</button>' +
+            '<button type="button" data-yt="nextVideoBtn" class="qn-yt-btn" title="Libraryの次の動画">Next' + SVG_NEXT + '</button>' +
+          '</div>' +
           '<div class="qn-yt-ctrl-row">' +
             '<button type="button" data-yt="skipBackBtn" class="qn-yt-btn">◀◀ 10s</button>' +
             '<button type="button" data-yt="prevMarkerBtn" class="qn-yt-btn" title="前のマーカーへ">' + SVG_PREV + 'Marker</button>' +
@@ -445,6 +452,7 @@
         },
         onStateChange: function (e) {
           refreshDuration();
+          updatePlayBtn(!!(e && e.data === 1));
           // 再生中(=1)だけ画面スリープを防ぐ。一時停止/終了/バッファ等では解放
           try { if (window.QNWake) window.QNWake.set("youtube", !!(e && e.data === 1)); } catch (err) {}
           if (e && e.data === 1) { applyDesiredRate(); renderSpeed(); } // PLAYING
@@ -608,6 +616,10 @@
       current.looping = !current.looping;
       updateLoopUI();
     });
+    refs.playBtn.addEventListener("click", togglePlay);
+    refs.prevVideoBtn.addEventListener("click", function () { gotoNeighbor(-1); });
+    refs.nextVideoBtn.addEventListener("click", function () { gotoNeighbor(1); });
+    updatePlayBtn(false);
     refs.prevMarkerBtn.addEventListener("click", function () { jumpMarker(-1); });
     refs.nextMarkerBtn.addEventListener("click", function () { jumpMarker(1); });
     refs.autoNext.setAttribute("aria-checked", String(autoNext));
@@ -1720,7 +1732,59 @@
     });
   }
 
+  // ---------- スペースキーで再生/一時停止（フォーカスがプレイヤー外でも） ----------
+  // 公式の playVideo()/pauseVideo() を、利用者のキー操作を起点に呼ぶだけ（規約OK）。
+  // 文字入力中・修飾キー併用・キーリピートは無視。ボタンにフォーカスがあっても誤作動しない。
+  function isTypingTarget(el) {
+    if (!el || !el.tagName) return false;
+    var tag = el.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+  }
+  function togglePlay() {
+    if (!player || !playerReady || typeof player.getPlayerState !== "function") return;
+    try {
+      if (player.getPlayerState() === 1) player.pauseVideo(); // 1 = PLAYING
+      else player.playVideo();                                 // 利用者操作が起点
+    } catch (err) {}
+  }
+  function updatePlayBtn(playing) {
+    if (!refs.playBtn) return;
+    refs.playBtn.innerHTML = playing ? SVG_PAUSE : SVG_PLAY;
+    refs.playBtn.classList.toggle("is-playing", !!playing);
+  }
+  // Libraryの前/次の動画へ（SKIPは飛ばす）。押した時に再生開始（利用者操作が起点）
+  function gotoNeighbor(dir) {
+    if (!current || !current.itemId) { showMessage("Libraryの動画を選んでください"); return; }
+    var idx = -1, i;
+    for (i = 0; i < items.length; i++) if (items[i].id === current.itemId) idx = i;
+    if (idx < 0) return;
+    var target = null;
+    for (i = idx + dir; i >= 0 && i < items.length; i += dir) if (!items[i].skip) { target = items[i]; break; }
+    if (!target) { showMessage(dir > 0 ? "Libraryの最後の動画です" : "Libraryの最初の動画です"); return; }
+    refs.urlInput.value = target.url;
+    openVideo(target.videoId, target.url, target.id, { play: true });
+  }
+
+  function onSpaceKey(e) {
+    if (e.code !== "Space" && e.key !== " ") return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    if (isTypingTarget(e.target) || isTypingTarget(document.activeElement)) return;
+    if (!player || !playerReady || typeof player.getPlayerState !== "function") return;
+    e.preventDefault(); // ページのスクロール／フォーカス中ボタンの誤クリックを防ぐ
+    if (e.type === "keyup" || e.repeat) return;
+    togglePlay();
+  }
+  var spaceBound = false;
+  function bindSpace(on) {
+    if (on === spaceBound) return;
+    spaceBound = on;
+    var f = on ? "addEventListener" : "removeEventListener";
+    window[f]("keydown", onSpaceKey, true);
+    window[f]("keyup", onSpaceKey, true);
+  }
+
   function onShow() {
+    bindSpace(true);
     // 初回はPC=Library表示、SP=パネルなし。2回目以降は前回の状態を保つ
     var want = panelState || (isSp() ? "none" : "library");
     setPanel(want);
@@ -1731,6 +1795,7 @@
   }
 
   function onHide() {
+    bindSpace(false);
     try { if (window.QNWake) window.QNWake.set("youtube", false); } catch (err) {}
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     // 画面を隠したまま音だけ流さない（規約）。公式メソッドで一時停止する。

@@ -422,3 +422,13 @@
 - 区間の未再生部分は薄い色(`.qn-yt-range-bg`、opacity 0.22)、再生済み部分はマーカー色(`.qn-yt-range-on`)で現在位置まで進む
   （`paintPlayed`、`updateDisplay`から毎回更新）。区間外は従来どおりテーマ色で進む。
   区間レイヤーはz-index:2（`.vfill`より前面、現在位置の白線より背面）。汎用名`.on`/`.bg`はグローバルCSSと衝突しやすいので使わない。
+
+## 2.25.0 — YouTube: スペースキーで再生/一時停止
+- YouTubeアプリ表示中、フォーカスがプレイヤー外（ボタンや余白）でもスペースキーで再生/一時停止をトグル（`onSpaceKey`、`getPlayerState()===1`なら`pauseVideo()`、それ以外は`playVideo()`）。
+  公式メソッドを利用者のキー操作を起点に呼ぶだけ。input/textarea/select/contenteditableで入力中、修飾キー併用、キーリピート中は無視。
+  ページのスクロールとフォーカス中ボタンの誤クリックはpreventDefaultで防止。アプリ非表示時はリスナーを外す。動画未読み込み時は何もしない。
+
+## 2.26.0 — YouTube: 再生/一時停止ボタン、Library前/次ボタン
+- シークバー下（マーカーボタン行の上）に新しい行`.qn-yt-transport`：Prev（Libraryの前の動画）／再生⇄一時停止／Next（Libraryの次の動画）。配置・デザインは後日調整予定。
+- 再生ボタンはスペースキーと同じ`togglePlay()`（`playVideo`/`pauseVideo`）。アイコンは再生状態に追従（`updatePlayBtn`）。
+- Prev/NextはSKIPの動画を飛ばし、押した時に再生開始（利用者操作が起点）。端では「最初/最後の動画です」を表示。Libraryに無い動画（未保存URL）の時は「Libraryの動画を選んでください」。
