@@ -288,15 +288,8 @@
         // ここから下はプレイヤーの外(余白あり)
         '<div class="qn-yt-custom">' +
           '<p class="qn-yt-fetched-title" data-yt="fetchedTitle"></p>' +
-          '<div class="qn-yt-time"><span data-yt="curTime">00:00</span><span class="sep">/</span><span data-yt="durTime">00:00</span></div>' +
           '<div class="qn-yt-seek" data-yt="seekTracks"><div class="qn-yt-marker-layer" data-yt="markerLayer"></div></div>' +
-          '<p class="qn-yt-hint">Markers の「A」「B」ボタンで、ABループの開始・終了を指定できます。</p>' +
         '</div>' +
-        '<footer class="qn-yt-footer">' +
-          '<p class="qn-yt-notice">※ 権利者に無断でアップロードされた動画は使用しないでください。</p>' +
-          // 将来の広告枠。プレイヤーから離れた位置に確保するだけ（広告コードはなし）。
-          '<div class="qn-yt-ad-slot" aria-hidden="true"></div>' +
-        '</footer>' +
       '</section>' +
       BAR_HTML +
     '</div>';
@@ -563,7 +556,7 @@
     var d = player.getDuration();
     if (d && d !== duration) {
       duration = d;
-      refs.durTime.textContent = fmt(d);
+      if (refs.durTime) refs.durTime.textContent = fmt(d);
       renderMarkers();
       updateDisplay(currentPos());
     }
@@ -582,10 +575,12 @@
       markers: item ? item.markers : [],
       loopA: item ? (item.loopA || null) : null,
       loopB: item ? (item.loopB || null) : null,
-      looping: false // 動画を開き直したら自動ではループしない
+      looping: false, // 動画を開き直したら自動ではループしない
+      loopMode: "off", // "off" | "ab"(A/Bループ) | "sec"(区間ループ)
+      secRange: null
     };
     duration = 0;
-    refs.durTime.textContent = "00:00";
+    if (refs.durTime) refs.durTime.textContent = "00:00";
     updateDisplay(0);
     if (item) refs.titleInput.value = item.title;
     showMessage("");
@@ -689,9 +684,20 @@
       seekTo(currentPos() + 10);
     });
 
+    // LOOPボタン：押すたびに OFF → A-Bループ → 区間ループ → OFF（A/B未設定の時は A-B を飛ばす）
     refs.loopToggleBtn.addEventListener("click", function () {
-      if (!current || !loopRangeTimes()) return;
-      current.looping = !current.looping;
+      if (!current || !duration) return;
+      var m = current.loopMode || "off", next;
+      if (m === "off") next = loopRangeTimes() ? "ab" : "sec";
+      else if (m === "ab") next = "sec";
+      else next = "off";
+      if (next === "sec") {
+        var r = sectionRangeAt(currentPos());
+        if (!r) { next = "off"; ytToast("区間を決められません"); }
+        else { current.secRange = r; }
+      }
+      setLoopMode(next);
+      ytToast(next === "ab" ? "Loop: A-B" : next === "sec" ? "Loop: Section " + fmt(current.secRange.start) + " - " + fmt(current.secRange.end) : "Loop: OFF");
       updateLoopUI();
     });
     refs.playBtn.addEventListener("click", togglePlay);
@@ -708,7 +714,7 @@
 
     refs.loopClearBtn.addEventListener("click", function () {
       if (!current) return;
-      current.loopA = null; current.loopB = null; current.looping = false;
+      current.loopA = null; current.loopB = null; if (current.loopMode === "ab") setLoopMode("off");
       persistLoop();
       renderMarkers();
     });
@@ -966,7 +972,7 @@
         // 消えたマーカーを指すAB点は外す
         if (current.loopA && selected[current.loopA]) current.loopA = null;
         if (current.loopB && selected[current.loopB]) current.loopB = null;
-        if (!current.loopA || !current.loopB) current.looping = false;
+        if (!current.loopA || !current.loopB) { if (current.loopMode === "ab") setLoopMode("off"); }
         var it = current.itemId ? findItem(current.itemId) : null;
         if (it) it.markers = current.markers;
         persistMarkers(); persistLoop();
@@ -1430,9 +1436,34 @@
       current.loopB = (current.loopB === markerId) ? null : markerId;
       if (current.loopA === markerId) current.loopA = null;
     }
-    if (!current.loopA || !current.loopB) current.looping = false;
+    if (!current.loopA || !current.loopB) { if (current.loopMode === "ab") setLoopMode("off"); }
     persistLoop();
     renderMarkers();
+  }
+
+  function setLoopMode(m) {
+    if (!current) return;
+    current.loopMode = m;
+    current.looping = (m !== "off");
+    if (m !== "sec") current.secRange = null;
+  }
+
+  // 区間ループの区間：押した時点の再生位置を含む「マーカー〜次のマーカー」。
+  // 前にマーカーが無ければ動画の先頭から、後ろに無ければ動画の終わりまで。
+  function sectionRangeAt(t) {
+    if (!current || !duration) return null;
+    var start = 0, end = duration, i, ms = current.markers;
+    for (i = 0; i < ms.length; i++) {
+      if (ms[i].time <= t) start = ms[i].time;
+      else { end = ms[i].time; break; }
+    }
+    return end - start > 0.5 ? { start: start, end: end } : null;
+  }
+
+  // いまループ中の区間（ループOFFなら、ABが揃っていればその区間を表示用に返す）
+  function activeLoopRange() {
+    if (current && current.loopMode === "sec" && current.secRange) return current.secRange;
+    return loopRangeTimes();
   }
 
   function loopRangeTimes() {
@@ -1448,10 +1479,13 @@
     refs.loopALabel.textContent = ma ? fmt(ma.time) : "--";
     refs.loopBLabel.textContent = mb ? fmt(mb.time) : "--";
 
-    var range = loopRangeTimes();
-    refs.loopToggleBtn.disabled = !range;
-    refs.loopToggleBtn.classList.toggle("is-active", !!current.looping);
-    refs.loopToggleBtn.setAttribute("aria-pressed", String(!!current.looping));
+    var range = activeLoopRange();
+    var lm = current.loopMode || "off";
+    refs.loopToggleBtn.disabled = !duration;
+    refs.loopToggleBtn.classList.toggle("is-active", lm !== "off");
+    refs.loopToggleBtn.setAttribute("aria-pressed", String(lm !== "off"));
+    var lbl = refs.loopToggleBtn.querySelector("span");
+    if (lbl) lbl.textContent = lm === "ab" ? "A-B Loop" : lm === "sec" ? "Section" : "Loop";
 
     // ループ区間を、各行との重なり部分だけ表示
     var len = duration ? duration / SEGS : 0;
@@ -1618,7 +1652,7 @@
       msg = created ? "Marker " + fmt(m.time) : "Markerは既にあります " + fmt(m.time);
     }
     if (kind !== "M") {
-      if (!current.loopA || !current.loopB) current.looping = false;
+      if (!current.loopA || !current.loopB) { if (current.loopMode === "ab") setLoopMode("off"); }
       persistLoop();
     }
     renderMarkers();
@@ -1628,7 +1662,7 @@
 
   function updateDisplay(t) {
     if (!root) return;
-    refs.curTime.textContent = fmt(t);
+    if (refs.curTime) refs.curTime.textContent = fmt(t);
     var active = segIndex(t);
     for (var i = 0; i < SEGS; i++) {
       var p = segPct(i, t) + "%";
@@ -1647,8 +1681,9 @@
     if (typeof player.getCurrentTime !== "function") return;
     var t = player.getCurrentTime();
     if (current && current.looping) {
-      var range = loopRangeTimes();
-      if (range && t >= range.end) { seekTo(range.start); return; }
+      var range = activeLoopRange();
+      // 区間の終わりが動画の終わりの時は、終了(ended)になる前に少し手前で戻す
+      if (range && t >= (range.end >= duration - 0.3 ? duration - 0.3 : range.end)) { seekTo(range.start); return; }
     }
     updateDisplay(t);
   }
@@ -1871,7 +1906,7 @@
           ex.markers = x.markers; ex.loopA = x.loopA; ex.loopB = x.loopB;
           // 今開いている動画なら、画面側の状態も差し替える
           if (current && current.itemId === ex.id) {
-            current.markers = ex.markers; current.loopA = ex.loopA; current.loopB = ex.loopB; current.looping = false;
+            current.markers = ex.markers; current.loopA = ex.loopA; current.loopB = ex.loopB; setLoopMode("off");
           }
         }
         over++;

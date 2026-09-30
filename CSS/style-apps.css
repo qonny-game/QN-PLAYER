@@ -1488,3 +1488,40 @@ body.qn-app-open #pcV2TimeRow {
 @media screen and (max-width: 900px) {
   .qn-yt { transition: none; }
 }
+
+/* ============================================================
+   PC幅：プレイヤーを「縦いっぱい」に／シークバー3本まで1画面に収める（v3.5.0〜）
+   ステージ = プレイヤー領域(余った高さを全部使う) ＋ タイトル ＋ シークバー3本。
+   プレイヤーは16:9のまま、領域の横か縦のどちらかが枠に当たるまで最大に拡大
+   （container queries：領域の幅/高さから、収まる最大の16:9を計算）。
+   プレイヤーの最小は規約どおり200px（それ以下になる小さな窓ではステージがスクロール）。
+   SP幅は従来どおり（幅いっぱいの16:9・縦スクロール）。
+   ============================================================ */
+@media screen and (min-width: 901px) {
+  .qn-yt-stage { padding: 16px 24px 12px; }
+  .qn-yt-player-wrap {
+    flex: 1 1 0;
+    width: 100%;
+    max-width: none;
+    aspect-ratio: auto;
+    min-height: 200px;
+    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+  }
+  .qn-yt-player-wrap iframe,
+  #qnYtPlayer {
+    width: min(100cqw, calc(100cqh * 16 / 9));
+    height: min(100cqh, calc(100cqw * 9 / 16));
+    background: #000;
+  }
+  .qn-yt-custom { margin-top: 12px; max-width: none; flex-shrink: 0; }
+  .qn-yt-fetched-title { margin-bottom: 4px; }
+  .qn-yt-seek { margin-bottom: 4px; }
+  /* 格納中(v3.4.0)は、従来どおりプレイヤー領域の幅を格納前のまま固定（広げない） */
+}
+
+/* タイトルが未取得の間は場所を取らない（プレイヤーとシークバーの隙間を詰める） */
+.qn-yt-fetched-title:empty { display: none; }
