@@ -943,8 +943,28 @@ function renderMarkerPresetColorSettings() {
       e.stopPropagation(); // 画面のショートカットに奪われないように
     });
 
+    // 削除ボタン（文字が入っている行だけ表示。末尾の空欄行では非表示）
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "qn-marker-custom-del";
+    delBtn.title = "Delete";
+    delBtn.setAttribute("aria-label", "Delete custom memo");
+    delBtn.textContent = "\u00d7";
+    function syncDel() { delBtn.style.visibility = entry.label.trim() ? "visible" : "hidden"; }
+    syncDel();
+    input.addEventListener("input", syncDel);
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof hapticTap === "function") hapticTap();
+      const i = state.indexOf(entry);
+      if (i >= 0) state.splice(i, 1);
+      persist();
+      renderMarkerPresetColorSettings();
+    };
+
     row.appendChild(input);
     row.appendChild(swatchBtn);
+    row.appendChild(delBtn);
     return row;
   }
 
