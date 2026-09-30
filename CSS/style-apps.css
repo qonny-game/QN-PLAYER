@@ -224,9 +224,15 @@ body.qn-app-open #pcV2TimeRow {
 
 /* サイドバーの Library / Markers で、パネルに出す中身を切り替える
    （本体の Library / Markers パネルと同じ「1度に1つ」方式） */
-.qn-yt[data-panel="library"] .qn-yt-sec-markers,
-.qn-yt[data-panel="markers"] .qn-yt-sec-library {
+.qn-yt-sec {
   display: none;
+}
+
+.qn-yt[data-panel="library"] .qn-yt-sec-library,
+.qn-yt[data-panel="markers"] .qn-yt-sec-markers,
+.qn-yt[data-panel="backup"] .qn-yt-sec-backup,
+.qn-yt[data-panel="import"] .qn-yt-sec-import {
+  display: block;
 }
 
 /* 見出しと件数はパネル上部の見出し(.qn-yt-panel-header)に出すので、セクション側は隠す */
@@ -462,6 +468,101 @@ body.qn-app-open #pcV2TimeRow {
   background: #f59e0b;
   border-color: transparent;
   color: #1a1204;
+}
+
+/* ---------- Backup / Import（本体のBackup/Importパネルと同じ部品を流用） ----------
+   部品のベース見た目は style-export.css（モーダル用）。ここでは本体の
+   #pcV2PanelBody.pcv2-panel-backup と同じ「枠なし・線区切り」に揃える。 */
+.qn-yt-panel .export-section-label {
+  display: block;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: var(--fs-heading);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  margin: 0;
+}
+
+.qn-yt-panel .track-backup-tracklist-header {
+  margin-bottom: 12px;
+}
+
+.qn-yt-panel .track-backup-mini-btn {
+  background: none;
+}
+
+.qn-yt-panel .track-backup-tracklist {
+  max-height: min(38vh, 340px);
+  gap: 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.qn-yt-panel .track-backup-track-row,
+.qn-yt-panel .track-backup-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.qn-yt-panel .track-backup-track-row:last-child,
+.qn-yt-panel .track-backup-row:last-child {
+  border-bottom: none;
+}
+
+.qn-yt-panel .track-backup-checklist {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.qn-yt-panel .track-backup-row-label {
+  font-size: var(--fs-body);
+  color: #c8c8d0;
+}
+
+.qn-yt-panel .track-backup-options {
+  margin-top: 16px;
+}
+
+.qn-yt-panel .track-backup-row input[type="checkbox"] {
+  accent-color: var(--accent-primary);
+  width: 16px;
+  height: 16px;
+}
+
+.qn-yt-accent {
+  color: var(--accent-primary);
+}
+
+.qn-yt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+
+.qn-yt-actions .export-status {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.qn-yt-panel .track-import-dropzone {
+  margin-bottom: 12px;
+}
+
+.qn-yt-panel .track-import-duplicate-list {
+  margin-top: 16px;
 }
 
 /* --- 右：ステージ（プレイヤー＋自前UI） --- */

@@ -2090,6 +2090,9 @@ document.addEventListener("dragover", e => {
   //遷移してしまう」動作を防ぐためpreventDefault自体は常に呼ぶ。
   const backupModalOverlay = document.getElementById("trackBackupModalOverlay");
   if (backupModalOverlay && backupModalOverlay.classList.contains("open")) return;
+  // MOREのアプリ（YouTube等）表示中は、曲追加のD&Dを無効にする
+  // （アプリ側のImportドロップゾーンが自前で受ける）。
+  if (document.body.classList.contains("qn-app-open")) return;
   document.body.classList.add("dragover");
 });
 
@@ -2106,6 +2109,7 @@ document.addEventListener("drop", e => {
   const backupModalOverlay = document.getElementById("trackBackupModalOverlay");
   if (backupModalOverlay && backupModalOverlay.classList.contains("open")) return;
   document.body.classList.remove("dragover");
+  if (document.body.classList.contains("qn-app-open")) return; // アプリ表示中は曲追加しない
   if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
     addFilesToPlaylist(Array.from(e.dataTransfer.files));
   }

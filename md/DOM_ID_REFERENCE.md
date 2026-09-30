@@ -139,3 +139,8 @@ grep -o 'id="track[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort
 | `body.qn-app-open` | アプリ表示中(下段バー非表示・ショートカット無効) |
 | `#qnYtPlayer` | YouTube IFrame Playerの差し込み先(唯一のid。他は`data-yt="..."`で参照) |
 | `localStorage: qn_yt_items` | YouTubeの保存リスト(videoId/URL/手入力タイトル/マーカー/AB点のみ) |
+
+### YouTubeアプリのBackup / Import（v2.19.0〜、`data-yt`属性で参照）
+`bkList` `bkAll` `bkNone` `bkCount` `bkMarkerTotal` `bkTitle` `bkMarkers` `bkStatus` `bkRun`（Backup）／
+`imDrop` `imFile` `imLoaded` `imName` `imCount` `imDupList` `imBulk` `imBulkLabel` `imDupRows` `imStatus` `imBack` `imRun`（Import）。
+エクスポート形式：`{format:"qn-youtube-library", version:1, items:[{videoId,url,title?,markers?[{id,time,label}],loopA?,loopB?}]}`

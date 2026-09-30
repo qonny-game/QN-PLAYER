@@ -324,5 +324,12 @@
 - 【2.18.1】サイドバー/アプリバー共通のホバーを「テーマカラー背景＋黒文字(#0a0a0c)」に統一
   （`(hover: hover)`の端末のみ）。MORE(BACK)だけ常時テーマカラー背景＋黒文字にして差別化。
   色は`style-apps.css`の`--sidebar-on-accent`とテーマ変数で決まる。
+- 【2.19.0】YouTubeアプリに**Backup / Import**を追加（サイドバーにBackup・Importアイコン）。
+  本体のBackup/Importと同じ部品・流れ：Backup=リスト選択(全選択/全解除)→含める項目
+  (タイトル／マーカー・AB点)→Download(JSON、`qn-youtube-library_YYYYMMDD.json`)。
+  Import=JSONをドロップ/選択→動画ID(videoId)が重複するものは上書き/スキップ
+  (行ごと＋一括トグル)→Import。読み込み時は値を検証・整形（不正なマーカー等は捨てる）。
+  含めるのはURL・手入力タイトル・マーカーのみ（YouTube由来データは含めない）。
+  アプリ表示中は本体の「曲追加」D&Dを無効化（`player-ui-pc-v2.js`のdragover/drop）。
 - アプリ表示中は`body.qn-app-open`が付き、本体の下段バー等を隠す＆audioを一時停止＆
   キーボードショートカット(`player-ui-shared.js`のkeydown)を無効化。
