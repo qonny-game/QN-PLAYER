@@ -207,6 +207,13 @@
               '<button type="button" class="export-run-btn" data-yt="imRun" disabled>Import</button>' +
             '</div>' +
           '</section>' +
+          '<footer class="qn-yt-legal">' +
+            '<p>このアプリはYouTube API Servicesを利用しています。</p>' +
+            '<p><a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube利用規約</a>' +
+            ' ・ <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Googleプライバシーポリシー</a></p>' +
+            '<p>Libraryやマーカーなどの保存データは、この端末のブラウザにだけ保存され、当サイトのサーバーへは送信されません。' +
+            '動画の再生・サムネイル・タイトルの表示のため、YouTubeと通信します。</p>' +
+          '</footer>' +
         '</div>' +
         // 本体(PLAYER)のLibrary/Markersと同じ、右下のフローティングボタン
         '<div class="qn-yt-fab" data-yt="fab">' +
@@ -954,10 +961,21 @@
       attachReorder(grip, row);
       row.appendChild(grip);
 
-      // サムネイルは取得・保存しない(規約：保存するのはURL・自分で付けたタイトル・マーカーのみ)
+      // サムネイルは「表示のみ」：YouTubeの画像URLを<img>で直接参照する。
+      // 保存(localStorage/キャッシュ化)・切り抜き・加工はしない（規約）。読み込めない時は再生アイコン。
       var thumb = document.createElement("div");
-      thumb.className = "playlist-thumb";
+      thumb.className = "playlist-thumb qn-yt-thumb";
       thumb.innerHTML = SVG_PLAY_ICON;
+      if (/^[A-Za-z0-9_-]{11}$/.test(it.videoId)) {
+        var img = document.createElement("img");
+        img.alt = "";
+        img.loading = "lazy";
+        img.referrerPolicy = "no-referrer";
+        img.onload = function () { thumb.classList.add("has-img"); };
+        img.onerror = function () { if (img.parentNode) img.parentNode.removeChild(img); };
+        img.src = "https://i.ytimg.com/vi/" + it.videoId + "/mqdefault.jpg";
+        thumb.appendChild(img); // 読み込めるまでは再生アイコンのまま（画像は透明）
+      }
       row.appendChild(thumb);
 
       var info = document.createElement("div");

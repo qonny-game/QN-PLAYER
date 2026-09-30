@@ -1132,3 +1132,35 @@ body.qn-app-open #pcV2TimeRow {
 }
 .qn-yt-chapter-text::placeholder { color: rgba(255, 255, 255, 0.28); }
 .qn-yt-chapter .qn-yt-hint { margin: 8px 0; }
+
+
+/* Libraryのサムネイル：16:9のまま全体を表示（切り抜き・加工しない） */
+.qn-yt .playlist-thumb.qn-yt-thumb {
+  width: 64px;
+  height: 36px;
+  border-radius: 0;
+}
+.qn-yt .playlist-thumb.qn-yt-thumb img {
+  display: block;
+  width: 64px;
+  height: 36px;
+  object-fit: contain;
+}
+.qn-yt .playlist-thumb.qn-yt-thumb { position: relative; }
+.qn-yt .playlist-thumb.qn-yt-thumb img { position: absolute; inset: 0; opacity: 0; }
+.qn-yt .playlist-thumb.qn-yt-thumb.has-img img { opacity: 1; }
+.qn-yt .playlist-thumb.qn-yt-thumb.has-img svg { display: none; }
+
+/* フッター：規約リンク・保存データの説明 */
+.qn-yt-legal {
+  margin: 28px 0 88px;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--icon-muted);
+}
+.qn-yt-legal p { margin: 0 0 6px; }
+.qn-yt-legal a { color: var(--accent-primary); text-decoration: underline; }
