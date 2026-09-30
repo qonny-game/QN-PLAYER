@@ -888,10 +888,16 @@ body.qn-app-open #pcV2TimeRow {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: var(--accent-glow);
-  outline: 1px solid var(--accent-primary);
+  /* A/Bがそろった区間：テーマ色の帯＋上下の太い線で、どこからどこまでか一目で分かるように */
+  background: color-mix(in srgb, var(--accent-primary) 26%, transparent);
+  box-shadow: inset 0 3px 0 var(--accent-primary), inset 0 -3px 0 var(--accent-primary);
   border-radius: 0;
   pointer-events: none;
+  z-index: 1;
+}
+/* ループ中(ONの間)は、さらに濃く */
+.qn-yt-loop-range.is-on {
+  background: color-mix(in srgb, var(--accent-primary) 42%, transparent);
 }
 
 .qn-yt-loop-range[hidden] {
@@ -1345,21 +1351,6 @@ body.qn-app-open #pcV2TimeRow {
   .qn-yt-bbtn.center:hover { color: var(--accent-primary); }
 }
 
-/* ABループの区間表示（A/Bの時刻） */
-.qn-yt-abread {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0 6px;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: var(--icon-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.qn-yt-abread b { color: var(--text-bright); font-weight: 600; margin-left: 2px; }
 
 /* スピード：［−］ 1x Speed ［＋］ （PLAYERのループ秒数ステッパーと同じ、枠なしフラット） */
 .qn-yt-bstep { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
@@ -1406,7 +1397,7 @@ body.qn-app-open #pcV2TimeRow {
   .qn-yt-bbtn { padding: 10px 10px; }
   .qn-yt-bbtn svg, .qn-yt-bstep-mid svg { width: 26px; height: 26px; margin: 6px auto; }
   .qn-yt-bbtn.center svg { width: 38px; height: 38px; margin: 0; }
-  .qn-yt-bbtn span, .qn-yt-bstep-mid span, .qn-yt-abread { font-size: 11px; }
+  .qn-yt-bbtn span, .qn-yt-bstep-mid span { font-size: 11px; }
   .qn-yt-bstep-btn { width: 30px; height: 44px; font-size: 22px; }
   .qn-yt-bspacer { flex: 0 0 12px; }
   /* パネル(Library等)を開いている間は、自前UIと同じく隠す */
@@ -1525,3 +1516,41 @@ body.qn-app-open #pcV2TimeRow {
 
 /* タイトルが未取得の間は場所を取らない（プレイヤーとシークバーの隙間を詰める） */
 .qn-yt-fetched-title:empty { display: none; }
+
+/* ---------- A/B点のマーカー強調（v3.5.0〜） ---------- */
+.qn-yt-marker.is-loop-a::before,
+.qn-yt-marker.is-loop-b::before { width: 4px; background: var(--accent-primary); }
+.qn-yt-marker-ab {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  background: var(--accent-primary);
+  color: var(--sidebar-on-accent, #0a0a0c);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
+}
+/* A旗は線の右（区間の内側）へ、B旗は線の左へ */
+.qn-yt-marker.is-loop-a .qn-yt-marker-ab { transform: translateX(2px); }
+.qn-yt-marker.is-loop-b .qn-yt-marker-ab { transform: translateX(calc(-100% - 2px)); }
+
+/* 下段バーの Set A / Set B：設定済みの間はテーマ色 */
+.qn-yt-bbtn.has-point { color: var(--accent-primary); }
+
+/* ポップアップ：既存マーカー上では＋Markerを隠す */
+.qn-yt-seekpop-btn[hidden] { display: none; }
+
+/* 下段バーが横に長くなったため、ボタンの左右余白を少し詰める */
+@media screen and (min-width: 901px) {
+  .qn-yt-bar { padding: 10px 12px; }
+  .qn-yt-bbtn { padding: 8px 4px; }
+  .qn-yt-bdiv { margin: 0 6px; }
+}

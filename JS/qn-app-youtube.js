@@ -121,7 +121,10 @@
     repeat: '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>',
     add: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>',
     loop: '<path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>',
+    setA: '<text x="12" y="18" text-anchor="middle" font-size="17" font-weight="700" font-family="Instrument Sans, sans-serif" fill="currentColor">A</text>',
+    setB: '<text x="12" y="18" text-anchor="middle" font-size="17" font-weight="700" font-family="Instrument Sans, sans-serif" fill="currentColor">B</text>',
     clear: '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>',
+    preroll: '<path d="M3 6h3v12H3zm15 0h3v12h-3zM9 9l-3 3 3 3v-2h6v2l3-3-3-3v2H9z"/>',
     speed: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 12L15.5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="1.4"/>'
   };
   function bbtn(ref, cls, icon, label, title) {
@@ -143,9 +146,13 @@
         bbtn("prevMarkerBtn", "", BI.prevTrack, "Marker", "前のマーカーへ") +
         bbtn("addMarkerBtn", "center", BI.add, "Marker", "マーカーを追加") +
         bbtn("nextMarkerBtn", "", BI.nextTrack, "Marker", "次のマーカーへ") +
-        bbtn("loopToggleBtn", "", BI.loop, "Loop", "ABループ ON/OFF") +
-        '<div class="qn-yt-abread" title="ABループの区間">' +
-          '<span>A <b data-yt="loopALabel">--</b></span><span>B <b data-yt="loopBLabel">--</b></span>' +
+        bbtn("setABtn", "", BI.setA, "A --", "現在地をA点に設定（マーカーを作ります）") +
+        bbtn("setBBtn", "", BI.setB, "B --", "現在地をB点に設定（マーカーを作ります）") +
+        bbtn("loopToggleBtn", "", BI.loop, "Loop", "LOOP：OFF → A-B → 区間 → OFF") +
+        '<div class="qn-yt-bstep" title="ループのプリロール/ポストロール秒数（区間の何秒前から・何秒後まで）">' +
+          '<button type="button" data-yt="preDown" class="qn-yt-bstep-btn" title="Decrease">−</button>' +
+          '<div class="qn-yt-bstep-mid"><svg viewBox="0 0 24 24">' + BI.preroll + '</svg><span><b data-yt="preVal">0s</b> Pre/Post</span></div>' +
+          '<button type="button" data-yt="preUp" class="qn-yt-bstep-btn" title="Increase">＋</button>' +
         '</div>' +
         bbtn("loopClearBtn", "", BI.clear, "Clear AB", "AB点をクリア") +
       '</div>' +
@@ -683,6 +690,17 @@
       if (!current || !playerReady) return;
       seekTo(currentPos() + 10);
     });
+
+    // 現在地でA点/B点（マーカーを作って設定）
+    function setFromBar(kind) {
+      if (!current || !playerReady) { showMessage("先に動画を読み込んでください"); return; }
+      setLoopPointAt(kind, clampTime(currentPos()));
+    }
+    refs.setABtn.addEventListener("click", function () { setFromBar("A"); });
+    refs.setBBtn.addEventListener("click", function () { setFromBar("B"); });
+    refs.preDown.addEventListener("click", function () { setPreRoll(preRoll - PREROLL_STEP); });
+    refs.preUp.addEventListener("click", function () { setPreRoll(preRoll + PREROLL_STEP); });
+    renderPreRoll();
 
     // LOOPボタン：押すたびに OFF → A-Bループ → 区間ループ → OFF（A/B未設定の時は A-B を飛ばす）
     refs.loopToggleBtn.addEventListener("click", function () {
@@ -1281,10 +1299,16 @@
       // シークバー上のマーカー(クリックでジャンプ / ドラッグで移動)。非表示にしたものは出さない
       var el = document.createElement("div");
       if (m.enabled !== false) {
-        el.className = "qn-yt-marker";
+        el.className = "qn-yt-marker" + (current.loopA === m.id ? " is-loop-a" : "") + (current.loopB === m.id ? " is-loop-b" : "");
         el.title = fmt(m.time) + " " + (m.label || "");
         if (hex) el.style.setProperty("--marker-color", hex);
         fillMarkerLabel(el, m, i);
+        if (current.loopA === m.id || current.loopB === m.id) {
+          var tag = document.createElement("span");
+          tag.className = "qn-yt-marker-ab";
+          tag.textContent = current.loopA === m.id ? "A" : "B";
+          el.appendChild(tag);
+        }
         positionMarker(el, m.time);
         attachMarkerDrag(el, m);
         refs.markerLayer.appendChild(el);
@@ -1441,6 +1465,26 @@
     renderMarkers();
   }
 
+  // ---------- プリロール/ポストロール（PLAYER本体と同じ：前後共通の秒数） ----------
+  // ループの折り返しで、区間の開始の何秒前へ戻るか／終わりの何秒後まで再生してから戻るか。
+  var PREROLL_KEY = "qn_yt_preroll", PREROLL_MAX = 10, PREROLL_STEP = 1;
+  var preRoll = (function () {
+    try { var v = parseInt(localStorage.getItem(PREROLL_KEY), 10); return v >= 0 && v <= PREROLL_MAX ? v : 0; } catch (e) { return 0; }
+  })();
+  function setPreRoll(v) {
+    preRoll = Math.max(0, Math.min(PREROLL_MAX, v));
+    try { localStorage.setItem(PREROLL_KEY, String(preRoll)); } catch (e) {}
+    renderPreRoll();
+  }
+  function renderPreRoll() {
+    if (refs.preVal) refs.preVal.textContent = preRoll + "s";
+  }
+
+  function setBtnLabel(btn, text) {
+    var sp = btn && btn.querySelector("span");
+    if (sp) sp.textContent = text;
+  }
+
   function setLoopMode(m) {
     if (!current) return;
     current.loopMode = m;
@@ -1476,8 +1520,10 @@
   function updateLoopUI() {
     if (!current) return;
     var ma = findMarker(current.loopA), mb = findMarker(current.loopB);
-    refs.loopALabel.textContent = ma ? fmt(ma.time) : "--";
-    refs.loopBLabel.textContent = mb ? fmt(mb.time) : "--";
+    setBtnLabel(refs.setABtn, "A " + (ma ? fmt(ma.time) : "--"));
+    setBtnLabel(refs.setBBtn, "B " + (mb ? fmt(mb.time) : "--"));
+    refs.setABtn.classList.toggle("has-point", !!ma);
+    refs.setBBtn.classList.toggle("has-point", !!mb);
 
     var range = activeLoopRange();
     var lm = current.loopMode || "off";
@@ -1495,6 +1541,7 @@
         var a = Math.max(range.start, i * len), b = Math.min(range.end, (i + 1) * len);
         if (b > a) {
           loopRanges[i].hidden = false;
+          loopRanges[i].classList.toggle("is-on", lm !== "off");
           loopRanges[i].style.left = segPct(i, a) + "%";
           loopRanges[i].style.width = Math.max(0, segPct(i, b) - segPct(i, a)) + "%";
           shown = true;
@@ -1529,7 +1576,12 @@
       seeking = false;
       el.classList.remove("dragging");
       if (moved) { sortMarkers(); persistMarkers(); renderMarkers(); }
-      else seekTo(m.time);
+      else {
+        seekTo(m.time);
+        // 既存マーカーを1クリック/1タップ → その位置でA / B のポップアップ（＋Markerは出さない）
+        var er = el.getBoundingClientRect();
+        showSeekPop(m.time, tracks[segIndex(m.time)].getBoundingClientRect(), er.left + er.width / 2, m);
+      }
     });
   }
 
@@ -1563,7 +1615,7 @@
   // ABは「マーカー」で持つ仕組みなので、押した位置(0.1秒単位)にマーカーを作ってA点/B点にする。
   // すぐ近く(±0.5秒)に既存マーカーがあれば、新規作成せずそのマーカーを使う。
   // ポップアップはbody直下のposition:fixed（プレイヤー(iframe)には重ねない）。
-  var seekPop = null, seekPopTimer = null, seekPopTime = 0;
+  var seekPop = null, seekPopTimer = null, seekPopTime = 0, seekPopMarkerId = null;
   var SEEKPOP_SNAP = 0.5, SEEKPOP_MS = 4000;
 
   function ensureSeekPop() {
@@ -1609,11 +1661,13 @@
     if (seekPop) seekPop.hidden = true;
   }
 
-  function showSeekPop(t, trackRect, clientX) {
+  function showSeekPop(t, trackRect, clientX, marker) {
     if (!current || !duration) return;
     var pop = ensureSeekPop();
     seekPopTime = Math.round(clampTime(t) * 10) / 10;
+    seekPopMarkerId = marker ? marker.id : null;
     pop.querySelector('[data-pop="time"]').textContent = fmt(seekPopTime);
+    pop.querySelector('[data-pop="M"]').hidden = !!marker; // 既存マーカー上では＋Markerは不要
     pop.hidden = false;
     // 位置：押した場所の真上（収まらなければ真下）。画面端では内側へ寄せる。
     var w = pop.offsetWidth, h = pop.offsetHeight, gap = 10;
@@ -1628,14 +1682,25 @@
   }
 
   function seekPopAction(kind) {
-    if (!current) { hideSeekPop(); return; }
-    var t = seekPopTime, i, m = null;
-    for (i = 0; i < current.markers.length; i++) {
-      if (Math.abs(current.markers[i].time - t) <= SEEKPOP_SNAP) { m = current.markers[i]; break; }
+    hideSeekPop();
+    setLoopPointAt(kind, seekPopTime, seekPopMarkerId);
+  }
+
+  // 指定の位置(秒)にA点/B点(またはマーカー追加)を設定する共通処理。
+  // markerId指定＝その既存マーカーを使う。未指定なら±0.5秒以内の最も近い既存マーカーを使い、無ければ新規作成。
+  function setLoopPointAt(kind, t, markerId) {
+    if (!current) return;
+    var i, m = markerId ? findMarker(markerId) : null;
+    if (!m) {
+      var best = SEEKPOP_SNAP + 1e-9;
+      for (i = 0; i < current.markers.length; i++) {
+        var d = Math.abs(current.markers[i].time - t);
+        if (d <= best) { best = d; m = current.markers[i]; }
+      }
     }
     var created = false;
     if (!m) {
-      m = { id: uid("m"), time: t, label: "" };
+      m = { id: uid("m"), time: Math.round(clampTime(t) * 10) / 10, label: "" };
       current.markers.push(m);
       sortMarkers();
       persistMarkers();
@@ -1656,7 +1721,6 @@
       persistLoop();
     }
     renderMarkers();
-    hideSeekPop();
     ytToast(msg);
   }
 
@@ -1683,7 +1747,9 @@
     if (current && current.looping) {
       var range = activeLoopRange();
       // 区間の終わりが動画の終わりの時は、終了(ended)になる前に少し手前で戻す
-      if (range && t >= (range.end >= duration - 0.3 ? duration - 0.3 : range.end)) { seekTo(range.start); return; }
+      // プリロール/ポストロール：区間の「終わりの何秒後まで」再生してから「開始の何秒前」へ戻る
+      var endAt = Math.min(duration - 0.3, range.end + preRoll);
+      if (range && t >= endAt) { seekTo(Math.max(0, range.start - preRoll)); return; }
     }
     updateDisplay(t);
   }
