@@ -180,7 +180,8 @@
   function open(id) {
     var app = findApp(id);
     if (!app) return;
-    if (id === "player") { close(); return; }
+    // PLAYER＝本体に戻る：アプリを閉じ、サイドバーも通常表示(BACK相当)に戻す
+    if (id === "player") { close(); setAppsMode(false); return; }
     if (!app.ready) { toast(app.label + " is coming soon"); return; }
     if (current && current.id === id) return;
 

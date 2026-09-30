@@ -115,7 +115,9 @@ body.qn-app-open #pcV2TimeRow {
 /* 位置(top/left/right/bottom)は qn-apps.js の layoutHost() が実測して入れる */
 #qnAppHost {
   position: fixed;
-  z-index: 20;
+  /* 波形上のマーカーラベル(.vbar-label z-index:51)や、SP幅のパネル
+     オーバーレイ(100)より手前、ヘッダー(200)より奥。 */
+  z-index: 150;
   background: #0a0a0c;
   overflow: hidden;
   display: flex;
