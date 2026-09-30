@@ -313,6 +313,14 @@
     for (var i = 0; i < nodes.length; i++) refs[nodes[i].getAttribute("data-yt")] = nodes[i];
 
     buildTracks();
+    // 幅が変わったらマーカーの位置・高さを合わせ直す
+    if (window.ResizeObserver) {
+      var roRaf = 0;
+      new ResizeObserver(function () {
+        cancelAnimationFrame(roRaf);
+        roRaf = requestAnimationFrame(function () { if (current) renderMarkers(); });
+      }).observe(refs.seekTracks);
+    }
     bindEvents();
     bindBackupImport();
     updateDisplay(0);
@@ -325,8 +333,8 @@
   function buildTracks() {
     for (var i = 0; i < SEGS; i++) {
       var track = document.createElement("div");
-      track.className = "qn-yt-track";
-      var fill = document.createElement("div"); fill.className = "qn-yt-fill";
+      track.className = "qn-yt-track vbar"; // 本体のシークバー(.vbar)と同じ土台
+      var fill = document.createElement("div"); fill.className = "qn-yt-fill vfill";
       var loop = document.createElement("div"); loop.className = "qn-yt-loop-range"; loop.hidden = true;
       var head = document.createElement("div"); head.className = "qn-yt-head"; head.style.display = "none";
       track.appendChild(fill); track.appendChild(loop); track.appendChild(head);
@@ -361,8 +369,27 @@
   }
   function positionMarker(el, t) {
     var i = segIndex(t);
-    el.style.left = segPct(i, t) + "%";
-    el.style.top = (tracks[i].offsetTop - 16) + "px";
+    var pct = segPct(i, t);
+    el.style.left = pct + "%";
+    el.style.top = tracks[i].offsetTop + "px";
+    el.style.height = tracks[i].offsetHeight + "px";
+    // 右端近くのマーカーは、メモを線の左側に出す（本体の pcv2-label-flip と同じ）
+    el.classList.toggle("flip", pct >= 80);
+  }
+  function markerLabelParts(m, idx) {
+    return { num: String(idx + 1), memo: m.label || "" };
+  }
+  function fillMarkerLabel(el, m, idx) {
+    var lab = el.querySelector(".qn-yt-marker-label");
+    if (!lab) {
+      lab = document.createElement("span");
+      lab.className = "qn-yt-marker-label";
+      lab.innerHTML = '<span class="n"></span><span class="memo"></span>';
+      el.appendChild(lab);
+    }
+    var p = markerLabelParts(m, idx);
+    lab.querySelector(".n").textContent = p.num;
+    lab.querySelector(".memo").textContent = p.memo;
   }
 
   // ---------- YouTube IFrame API(公式の読み込み方法) ----------
@@ -1089,7 +1116,8 @@
       if (m.enabled !== false) {
         el.className = "qn-yt-marker";
         el.title = fmt(m.time) + " " + (m.label || "");
-        if (hex) el.style.borderTopColor = hex;
+        if (hex) el.style.setProperty("--marker-color", hex);
+        fillMarkerLabel(el, m, i);
         positionMarker(el, m.time);
         attachMarkerDrag(el, m);
         refs.markerLayer.appendChild(el);

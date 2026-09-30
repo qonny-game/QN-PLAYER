@@ -716,46 +716,57 @@ body.qn-app-open #pcV2TimeRow {
   color: var(--icon-muted);
 }
 
-/* 3分割シークバー(3行) */
+/* 3分割シークバー(3行)。見た目は本体(PLAYER)のシークバーと同じ：
+   角丸なし・#111の帯・再生済みはテーマ色・マーカーは縦線＋上に番号とメモ。
+   波形は使わない（YouTubeの音声・映像データには触れない）。
+   土台は style-core.css の .vbar / .vfill を流用し、PC v2 の #pcV2WaveArea .vbar と同じ上書きだけここに置く。 */
 .qn-yt-seek {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  padding-top: 18px;
+  gap: 26px;
+  padding-top: 24px;
   margin: 4px 0 16px;
 }
 
-.qn-yt-track {
+.qn-yt-track.vbar {
   position: relative;
-  height: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill);
+  flex: none;
+  height: 40px;
+  background: #111;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
   cursor: pointer;
   touch-action: none;
 }
 
-.qn-yt-fill {
+.qn-yt-track.vbar:hover { border-color: transparent; }
+
+.qn-yt-fill.vfill {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
+  height: auto;
   width: 0;
   background: var(--accent-primary);
-  border-radius: var(--radius-pill);
+  opacity: 0.9;
+  border-radius: 0;
   pointer-events: none;
 }
 
+/* 現在位置：細い白線 */
 .qn-yt-head {
   position: absolute;
-  top: -4px;
-  width: 4px;
-  height: 22px;
-  margin-left: -2px;
-  border-radius: 2px;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
   background: var(--text-pure-white, #fff);
   left: 0;
   pointer-events: none;
+  z-index: 3;
 }
 
 .qn-yt-loop-range {
@@ -764,7 +775,7 @@ body.qn-app-open #pcV2TimeRow {
   bottom: 0;
   background: var(--accent-glow);
   outline: 1px solid var(--accent-primary);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   pointer-events: none;
 }
 
@@ -779,24 +790,80 @@ body.qn-app-open #pcV2TimeRow {
   pointer-events: none;
 }
 
+/* マーカー：本体の波形マーカーと同じ縦線(2px・マーカー色)。番号は線の真上、メモはその右。 */
 .qn-yt-marker {
   position: absolute;
   top: 0;
-  width: 0;
-  height: 0;
-  margin-left: -7px;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-top: 12px solid #f59e0b;
-  cursor: grab;
+  width: 6px;
+  transform: translateX(-50%);
+  background: transparent;
+  cursor: ew-resize;
   pointer-events: auto;
   touch-action: none;
+  z-index: 2;
 }
 
-.qn-yt-marker.dragging {
-  border-top-color: var(--danger, #ef4444);
-  cursor: grabbing;
+.qn-yt-marker::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: var(--marker-color, var(--accent-primary));
 }
+
+/* 透明なつかみ判定（本体の .vbar-line::after と同じ） */
+.qn-yt-marker::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: -9px;
+  right: -9px;
+}
+
+.qn-yt-marker:hover::before { background-color: var(--accent-hover-1); }
+
+.qn-yt-marker-label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.qn-yt-marker-label .n {
+  display: block;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--marker-color, var(--accent-primary));
+}
+
+.qn-yt-marker-label .memo {
+  position: absolute;
+  left: 100%;
+  top: 4px;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #b0b0b8;
+}
+
+.qn-yt-marker.flip .qn-yt-marker-label .memo {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 6px;
+}
+
+.qn-yt-marker.dragging::before { background-color: var(--accent-hover-1); }
 
 /* 操作ボタン行 */
 .qn-yt-ctrl-row {
@@ -956,12 +1023,8 @@ body.qn-app-open #pcV2TimeRow {
     width: 34px;
   }
 
-  .qn-yt-seek {
-    gap: 26px;
-  }
-
-  .qn-yt-track {
-    height: 18px;
+  .qn-yt-track.vbar {
+    height: 36px;
   }
 }
 
