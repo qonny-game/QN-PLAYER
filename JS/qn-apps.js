@@ -172,6 +172,7 @@
   }
 
   function setAppsMode(on) {
+    if (!on) closeColorPop();
     appsMode = !!on;
     refreshSidebar();
   }
@@ -277,6 +278,7 @@
   }
 
   function close() {
+    closeColorPop();
     if (!current) { syncActiveStates(); return; }
     var app = current;
     current = null;
@@ -289,6 +291,88 @@
     sideActiveId = null;
     refreshSidebar();
     window.dispatchEvent(new Event("resize")); // 波形などの再計測
+  }
+
+  // ---------- Color(常駐) ----------
+  // Colorボタンは常にサイドバーに残す。PLAYER本体ではこれまで通りパネルを開くが、
+  // アプリ表示中/アプリ一覧中はパネルが見えないため、テーマ切替セクションを
+  // その場のポップオーバーに借りて表示する（閉じたら元の場所へ戻す）。
+  var colorPop = null, colorSec = null, colorHome = null, colorNext = null;
+
+  function findColorSection() {
+    return document.querySelector('.qn-menu-section[data-qn-section="theme"]');
+  }
+
+  function positionColorPop() {
+    if (!colorPop) return;
+    var btn = document.querySelector('#pcV2IconBarBottom [data-panel-id="color"]');
+    var bar = $("pcV2IconBar");
+    if (!btn || !bar) return;
+    var br = btn.getBoundingClientRect(), bar_r = bar.getBoundingClientRect();
+    var sp = window.matchMedia(SP_QUERY).matches;
+    if (sp) {
+      colorPop.style.left = "8px"; colorPop.style.right = "8px"; colorPop.style.width = "auto";
+      colorPop.style.top = "auto";
+      colorPop.style.bottom = Math.max(8, window.innerHeight - bar_r.top + 8) + "px";
+    } else {
+      colorPop.style.left = (bar_r.right + 8) + "px"; colorPop.style.right = "auto";
+      colorPop.style.width = "320px"; colorPop.style.top = "auto";
+      colorPop.style.bottom = Math.max(8, window.innerHeight - br.bottom) + "px";
+    }
+  }
+
+  function closeColorPop() {
+    if (!colorPop || colorPop.hidden) return;
+    colorPop.hidden = true;
+    if (colorSec && colorHome && colorHome.isConnected) {
+      if (colorNext && colorNext.parentNode === colorHome) colorHome.insertBefore(colorSec, colorNext);
+      else colorHome.appendChild(colorSec);
+    }
+    var b = document.querySelector('#pcV2IconBarBottom [data-panel-id="color"]');
+    if (b) b.classList.remove("qn-app-active");
+    colorSec = colorHome = colorNext = null;
+  }
+
+  function openColorPop() {
+    var sec = findColorSection();
+    if (!sec) return;
+    if (!colorPop) {
+      colorPop = document.createElement("div");
+      colorPop.id = "qnColorPop";
+      colorPop.hidden = true;
+      document.body.appendChild(colorPop);
+      document.addEventListener("pointerdown", function (e) {
+        if (!colorPop || colorPop.hidden) return;
+        if (colorPop.contains(e.target)) return;
+        if (e.target.closest && e.target.closest('[data-panel-id="color"]')) return;
+        closeColorPop();
+      }, true);
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeColorPop();
+      });
+      window.addEventListener("resize", positionColorPop);
+    }
+    colorSec = sec; colorHome = sec.parentNode; colorNext = sec.nextSibling;
+    colorPop.appendChild(sec);
+    colorPop.hidden = false;
+    positionColorPop();
+    var b = document.querySelector('#pcV2IconBarBottom [data-panel-id="color"]');
+    if (b) b.classList.add("qn-app-active");
+  }
+
+  function initColorKeeper() {
+    var bottom = $("pcV2IconBarBottom");
+    if (!bottom || bottom.__qnColor) return;
+    bottom.__qnColor = true;
+    // キャプチャ段階で先取りし、アプリ表示中/一覧中だけ本体のパネル処理を止める
+    bottom.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest('[data-panel-id="color"]');
+      if (!b || !(current || appsMode)) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      haptic();
+      if (colorPop && !colorPop.hidden) closeColorPop(); else openColorPop();
+    }, true);
   }
 
   // ---------- MOREボタン ----------
@@ -310,6 +394,7 @@
     iconBar = $("pcV2IconBar");
     if (!iconBar || !$("pcV2IconBarBottom")) return false;
     buildMore();
+    initColorKeeper();
     buildBadge();
     renderAppItems();
     updateBadge();

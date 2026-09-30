@@ -35,11 +35,28 @@
   display: none;
 }
 
-/* 下段グループ(Keyboard/Color/More)は、MORE(=BACK)だけ残す */
-#pcV2IconBar.qn-apps-mode #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn),
-#pcV2IconBar.qn-app-sidebar #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn) {
+/* 下段グループ(Keyboard/Color/More)は、MORE(=BACK)と Color(常駐)だけ残す */
+#pcV2IconBar.qn-apps-mode #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn):not([data-panel-id="color"]),
+#pcV2IconBar.qn-app-sidebar #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn):not([data-panel-id="color"]) {
   display: none;
 }
+
+/* Colorポップオーバー（アプリ表示中/一覧中。テーマ切替セクションを借りて表示） */
+#qnColorPop {
+  position: fixed;
+  z-index: 300;
+  box-sizing: border-box;
+  max-height: min(70dvh, 420px);
+  overflow: auto;
+  padding: 14px;
+  background: #16161b;
+  border: 1px solid var(--border-subtle, #27272a);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+#qnColorPop[hidden] { display: none; }
+#qnColorPop .qn-menu-section { border-bottom: none; padding-bottom: 0; }
+#qnColorPop .qn-menu-section-label { display: none; }
 
 /* 現在開いているアプリ（.active と同じ見た目。.active は本体側のJSが
    data-panel-id を持たない要素から外してしまうため、別クラスにしている） */

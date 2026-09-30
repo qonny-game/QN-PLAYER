@@ -348,3 +348,7 @@
   一時停止は廃止。ざっくり実装（比率は後日調整予定）。
 - アプリ表示中は`body.qn-app-open`が付き、本体の下段バー等を隠す＆audioを一時停止＆
   キーボードショートカット(`player-ui-shared.js`のkeydown)を無効化。
+- 【2.20.2】Colorボタンをアプリ表示中・アプリ一覧中も常駐させた(MOREと同じ扱い。今後追加するアプリも共通ルール)。
+  PLAYER本体では従来通りColorパネルを開き、アプリ側ではテーマ切替セクションをポップオーバー
+  (#qnColorPop)へ借りて表示し、閉じたら元の場所へ戻す。外側クリック/Escで閉じる。
+  Keyboardはアプリ側では引き続き非表示。実装: JS/qn-apps.js(initColorKeeper)、CSS/style-apps.css。
