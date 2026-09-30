@@ -35,7 +35,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "2.21.0";
+  window.QN_APP_VERSION = "2.21.1";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -857,6 +857,7 @@
 <script src="JS/player-export.js"></script>
 <script src="JS/player-text.js"></script>
 <script src="JS/player-ui-pc-v2.js"></script>
+<script src="JS/qn-wakelock.js"></script>
 <script src="JS/qn-apps.js"></script>
 <script src="JS/qn-app-youtube.js"></script>
 <script src="JS/player-theme.js"></script>

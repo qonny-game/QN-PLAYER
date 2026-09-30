@@ -385,6 +385,8 @@
         },
         onStateChange: function (e) {
           refreshDuration();
+          // 再生中(=1)だけ画面スリープを防ぐ。一時停止/終了/バッファ等では解放
+          try { if (window.QNWake) window.QNWake.set("youtube", !!(e && e.data === 1)); } catch (err) {}
           if (e && e.data === 1) { applyDesiredRate(); renderSpeed(); } // PLAYING
           if (e && e.data === 0) handleEnded();                          // ENDED
         },
@@ -1273,6 +1275,7 @@
   }
 
   function onHide() {
+    try { if (window.QNWake) window.QNWake.set("youtube", false); } catch (err) {}
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     // 画面を隠したまま音だけ流さない（規約）。公式メソッドで一時停止する。
     try {

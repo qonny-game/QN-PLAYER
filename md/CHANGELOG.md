@@ -358,3 +358,6 @@
   保存: localStorage `qn_marker_custom_presets_v1` ([{label,color}])。最大30件、
   組み込み/他と同名(大文字小文字無視)は無視、テキストを消すと行は削除。
   実装: JS/player-markers.js(getAllMarkerPresetLabels 他)、CSS/style-theme.css。
+- 【2.21.1】再生中の画面スリープ防止(Screen Wake Lock API)。JS/qn-wakelock.js を新規追加。
+  PLAYERのaudio再生中とYouTubeアプリの再生中(PLAYING)だけ保持し、一時停止・終了・
+  アプリ非表示・タブが隠れた時に解放、表示に戻れば再取得。HTTPS必須・非対応環境では何もしない。
