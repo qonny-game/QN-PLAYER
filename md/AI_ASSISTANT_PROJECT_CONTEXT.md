@@ -40,7 +40,7 @@ QNPLAYER/
 │   ├── player-auth.js          # Firebase Auth（Googleログイン）
 │   ├── qn-wakelock.js          # 【v2.21.1〜】再生中の画面スリープ防止。window.QNWake.set(key,on)。
 │   │                           #   PLAYERのaudio再生とアプリ再生(YouTube等)が使う
-│   ├── qn-apps.js              # 【v2.17.0〜】MORE/アプリ一覧/アプリ表示領域/アプリ名バッジ。
+│   ├── qn-apps.js              # 【v2.17.0〜】アプリ名バッジ(＞)＋アプリ一覧フライアウト/アプリ表示領域（v3.0.0でMORE撤去）。
 │   │                           #   QNApps.register()でアプリを足す。TUNER/PITCHは準備中の枠だけ。
 │   │                           #   Colorボタン常駐＋Colorパネル借用(initColorKeeper)もここ
 │   ├── qn-app-youtube.js       # 【v2.17.0〜】YouTubeアプリ（IFrame埋め込み＋3行シークバー＋Library/Markers
@@ -56,7 +56,7 @@ QNPLAYER/
 │   ├── style-pcv2-panels.css   # PC v2の中央パネル（#pcV2PanelBody）の中身の実装：
 │   │                           #   Control/EQ・Markers・Library・Text・Backup/Import・
 │   │                           #   Color/Keyboard、パネル見出し・右下FABボタン
-│   ├── style-apps.css          # 【v2.17.0〜】MORE/アプリ一覧/#qnAppHost/YouTubeアプリの見た目
+│   ├── style-apps.css          # 【v2.17.0〜】バッジ(＞)/アプリ一覧フライアウト/#qnAppHost/YouTubeアプリの見た目
 │   ├── style-layout-sp.css     # 旧SP版上書き（現在は実質未使用、詳細は§2）
 │   ├── style-playlist.css / style-markers.css / style-controls.css /
 │   │   style-control-eq.css / style-export.css / style-shareware.css /
@@ -396,8 +396,8 @@ grep -o 'id="[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort -u
 新しいアプリを`QNApps.register()`で足す時も、以下を全アプリ共通ルールとして守る。
 YouTubeアプリ固有の仕様・規約は`YOUTUBE_APP.md`。
 
-- **MORE・Colorは常駐：** サイドバー下部のMOREとColorは、アプリ表示中・アプリ一覧中も
-  常に押せる。アプリ側でColorを別実装しない（`qn-apps.js`の`initColorKeeper`が
+- **Colorは常駐／アプリ切替はバッジのフライアウト：** サイドバー下部のColorは、アプリ表示中も
+  常に押せる（v3.0.0でMOREは撤去。アプリ切替はサイドバー先頭のバッジ`#qnAppBadge`(＞)へマウスを載せる/タップすると開く`#qnAppFlyout`から）。アプリ側でColorを別実装しない（`qn-apps.js`の`initColorKeeper`が
   テーマ切替セクションを`#qnColorPop`パネルへ借りて表示し、閉じたら戻す）。
   アプリ表示中はPLAYER専用の「Marker Memo Colors」を隠す。Keyboardはアプリでは非表示。
 - **PLAYERと同じ部品・同じ操作：** リスト行・EDIT→OK・丸チェック削除・カラーパレット・

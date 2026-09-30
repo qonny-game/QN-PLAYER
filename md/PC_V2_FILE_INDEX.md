@@ -200,7 +200,7 @@ PC v2の中央パネル（`#pcV2PanelBody`）に表示される中身専用。
 
 ## JS/qn-apps.js / JS/qn-app-youtube.js / CSS/style-apps.css（v2.17.0〜）
 
-MOREボタン・アプリ一覧・アプリ表示領域と、その第1号のYouTubeアプリ。
+アプリ名バッジ(＞)＋アプリ一覧フライアウト・アプリ表示領域と、その第1号のYouTubeアプリ（v3.0.0でMORE/BACK・`.qn-apps-mode`は撤去）。
 `player-ui-pc-v2.js`の`build()`が作った`#pcV2IconBar`に**後から**項目を差し込む
 方式（MutationObserverで出来上がりを待つ）。`player-ui-pc-v2.js`自体は変更していない。
 
@@ -208,10 +208,13 @@ MOREボタン・アプリ一覧・アプリ表示領域と、その第1号のYou
 - `QNApps.open(id)` / `QNApps.close()` — アプリの表示/非表示。`close()`で本体へ戻る。
 - `layoutHost()` — `#qnAppHost`(position:fixed)の位置を`#pcV2Layout`と`#pcV2IconBar`
   の実測から決める。PC幅=アイコンバーの右〜下端、SP幅=ヘッダー直下〜アイコンバー直上。
-- サイドバーの切替は`#pcV2IconBar.qn-apps-mode`（一覧）/`.qn-app-sidebar`（アプリ表示中、`.qn-appside-item`のみ表示）のCSSで行う。
+- サイドバーの切替は`#pcV2IconBar.qn-app-sidebar`（アプリ表示中、`.qn-appside-item`とバッジとColorのみ表示）のCSSで行う。
   選択中は`.qn-app-active`（本体側JSが`.active`を外してしまうため別クラス）。
-- `#qnMoreBtn`は`#pcV2IconBarBottom`の末尾。アプリ一覧モード中はこのボタンだけ残り、
-  ラベル/アイコンがBack用に入れ替わる。
+- **アプリ一覧フライアウト（v3.0.0〜）：** `#qnAppBadge`（サイドバー先頭、右端に＞）が入口。
+  `ensureFlyout()`が`#qnAppFlyout`（body直下・position:fixed・hidden）を作り、`renderAppItems()`が`.qn-flyout-item`を並べる。
+  `positionFlyout()`＝PC幅はバッジと同じ高さでサイドバーの右に重ねる／SP幅(≤900px)はアイコンバーの真上に横並び(`.qn-flyout-sp`)。
+  `openFlyout()/closeFlyout()`（バッジに`.qn-badge-open`と`aria-expanded`）。PC(hover可・fine pointer)はホバーで開き、離れて160ms後に閉じる（クリックでも開く）。
+  SP/タッチはバッジのタップで開閉。閉じる経路は`bindFlyoutGlobal()`（外側pointerdown・Esc・他のサイドバー項目クリック・アイコンバーのスクロール・resize再配置・orientationchange）と、項目選択・`close()`・Colorボタン。
 
 ### v2.18〜v2.23 の追記（アプリまわり）
 
@@ -220,8 +223,8 @@ MOREボタン・アプリ一覧・アプリ表示領域と、その第1号のYou
   `openColorPop()`/`closeColorPop()`でテーマ切替セクション(`.qn-menu-section[data-qn-section="theme"]`)を
   `#qnColorPop`へ借りて表示→閉じたら元の場所へ戻す。`positionColorPop()`が位置決め
   （PC=アイコンバー右の左カラム全高・幅375px / SP=`[data-qn-keep-visible]`の下〜アイコンバー直上）。
-  他のサイドバー項目・Esc・Color再押下で閉じる。`close()`と`setAppsMode(false)`でも閉じる。
-- アプリ名バッジ`#qnAppBadge`（サイドバー先頭）、`QNApps.toast()`、`QNApps.setSideActive()`、`QNApps.layout()`。
+  他のサイドバー項目・Esc・Color再押下で閉じる。`close()`でも閉じる（Colorを開く時はフライアウトを閉じる）。
+- アプリ名バッジ`#qnAppBadge`（サイドバー先頭。v3.0.0〜押す/ホバーでフライアウト）、`QNApps.toast()`、`QNApps.setSideActive()`、`QNApps.layout()`。
 
 **JS/qn-app-youtube.js**（約1700行・機能ごとの目安）
 - データ: `loadItems/saveItems/findItem/findMarker/persistMarkers/persistLoop/sortMarkers`

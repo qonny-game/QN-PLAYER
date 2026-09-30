@@ -61,8 +61,8 @@
 
 | ユーザーの言葉 | 実体 |
 |---|---|
-| MOREボタン / BACKボタン | `#qnMoreBtn`（サイドバー最下部、アプリ一覧中はBACKに変わる） |
-| アプリ一覧 | サイドバーが`.qn-apps-mode`になった状態（PLAYER/YOUTUBE/TUNER/PITCH） |
+| アプリ名バッジ（＞付き） | `#qnAppBadge`（サイドバー先頭。右の＞＝サブメニューあり。※MORE/BACKはv3.0.0で撤去） |
+| アプリ一覧 / フライアウト | バッジにホバー(PC)/タップ(SP)で出る`#qnAppFlyout`（PLAYER/YOUTUBE/TUNER/PITCH） |
 | YouTubeの画面 | `#qnAppHost`内の`.qn-yt`（左Library/Markers、右プレイヤー＋3行シークバー） |
 
 ## v2.18〜v2.23 の追記

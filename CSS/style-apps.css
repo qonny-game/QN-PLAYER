@@ -1,44 +1,92 @@
 /* ============================================================
    style-apps.css
-   MOREボタン／アプリ一覧（サイドバー切替）／アプリ表示領域(#qnAppHost)／
-   YouTubeアプリ(.qn-yt*)。JS側は JS/qn-apps.js と JS/qn-app-youtube.js。
+   アプリ名バッジ(＞)／アプリ一覧フライアウト(#qnAppFlyout)／
+   アプリ表示領域(#qnAppHost)／YouTubeアプリ(.qn-yt*)。
+   JS側は JS/qn-apps.js と JS/qn-app-youtube.js。
 
    【方針】
    - アプリ一覧の項目は通常のサイドバーアイコンと同じ .pcv2-icon-item を
-     そのまま使う（見た目・サイズ・位置・SP幅の横並びも自動で同じになる）。
-     ここでは「表示/非表示の切り替え」と、準備中・選択中の状態だけを足す。
+     そのまま使う（見た目・サイズ・SP幅の横並びも自動で同じになる）。
+     ここでは「フライアウトの置き場」と、準備中・選択中の状態だけを足す。
    - 配色・角丸・文字サイズは style-core.css の :root トークン
      (--accent-primary / --border-subtle / --radius-* / --fs-* 等)を使う。
      テーマ(Colorパネル)を変えると、このファイルの色も一緒に変わる。
    ============================================================ */
 
-/* ---------- サイドバー：アプリ一覧モード ---------- */
+/* ---------- サイドバー：アプリ表示中 ---------- */
 
-/* アプリ項目は通常は隠しておき、アプリ一覧モードの時だけ出す */
-#pcV2IconBar > .qn-app-item {
-  display: none;
-}
-
-#pcV2IconBar.qn-apps-mode > .qn-app-item {
-  display: flex;
-}
-
-/* アプリ一覧モード中は、通常のアイコン（Control/Markers/…）を隠す。
-   SP幅でSeekbarだけ display:flex に戻されている指定(0,2,0)にも勝つ詳細度。 */
-#pcV2IconBar.qn-apps-mode > .pcv2-icon-item:not(.qn-app-item) {
-  /* （現在のアプリ名バッジ #qnAppBadge もここで隠れる：一覧そのものが見えているため） */
-  display: none;
-}
-
-/* アプリ表示中(一覧ではない)は、そのアプリ専用の項目(.qn-appside-item)だけ出す */
+/* アプリ表示中(PLAYER以外)は、そのアプリ専用の項目(.qn-appside-item)とバッジだけ出す */
 #pcV2IconBar.qn-app-sidebar > .pcv2-icon-item:not(.qn-appside-item):not(#qnAppBadge) {
   display: none;
 }
 
-/* 下段グループ(Keyboard/Color/More)は、MORE(=BACK)と Color(常駐)だけ残す */
-#pcV2IconBar.qn-apps-mode #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn):not([data-panel-id="color"]),
-#pcV2IconBar.qn-app-sidebar #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn):not([data-panel-id="color"]) {
+/* 下段グループ(Keyboard/Color)は、Color(常駐)だけ残す */
+#pcV2IconBar.qn-app-sidebar #pcV2IconBarBottom > .pcv2-icon-item:not([data-panel-id="color"]) {
   display: none;
+}
+
+/* ---------- アプリ一覧フライアウト（バッジにホバー／タップで開く） ----------
+   body直下の position:fixed。PC幅=サイドバーの右にバッジと同じ高さから重ねて表示、
+   SP幅=アイコンバーの真上に横並びで表示（位置はJSが left/top/bottom を入れる）。 */
+#qnAppFlyout {
+  position: fixed;
+  z-index: 320;              /* #qnColorPop(300)より上 */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 76px;
+  padding: 4px 0;
+  background: var(--bg-base, #0a0a0c);
+  border: 1px solid var(--border-subtle);
+  border-left: none;
+  box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.55);
+}
+#qnAppFlyout[hidden] { display: none; }
+
+/* SP幅：アイコンバーの上に横並び */
+#qnAppFlyout.qn-flyout-sp {
+  flex-direction: row;
+  width: auto;
+  padding: 0 6px;
+  gap: 2px;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55);
+  overflow-x: auto;
+}
+
+#qnAppFlyout .qn-flyout-item {
+  flex-shrink: 0;
+}
+
+/* バッジの「＞」（サブメニューがあるよの印） */
+#pcV2IconBar #qnAppBadge {
+  position: relative;
+}
+#qnAppBadge .qn-badge-chev {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  fill: currentColor;
+  opacity: 0.85;
+  transition: transform 120ms ease;
+}
+/* SP幅は横並びバーの上にフライアウトが出るので、印は「＾」向き */
+@media screen and (max-width: 900px) {
+  #qnAppBadge .qn-badge-chev {
+    right: 50%;
+    top: 2px;
+    margin-top: 0;
+    margin-right: -7px;
+    width: 12px;
+    height: 12px;
+    transform: rotate(-90deg);
+  }
+  #qnAppBadge.qn-badge-open .qn-badge-chev { transform: rotate(90deg); }
 }
 
 /* Colorパネル（アプリ表示中/一覧中。PLAYERのパネルと同じ見た目で、テーマ切替セクションを借りて表示） */
@@ -102,16 +150,15 @@ body.qn-app-open #qnColorPop .qn-marker-preset-colors { display: none; }
   opacity: 0.7;
 }
 
-/* ---------- サイドバー／アプリバーのホバー・MOREの色（v2.18.1） ----------
+/* ---------- サイドバー／アプリバーのホバー・バッジの色（v2.18.1） ----------
    ・ホバー時：背景=テーマカラー、文字・アイコン=背景色と同じ黒(#0a0a0c)に統一
      （通常のサイドバー、アプリ一覧、アプリ専用サイドバーの全部が対象）。
      タッチ端末ではタップ後に:hoverが残ってしまうため、ホバー可能な端末だけに適用。
-   ・MORE(BACK)だけは常にテーマカラー背景＋黒文字にして、他の項目と差別化する。 */
+   ・アプリ名バッジ(#qnAppBadge)だけは常にテーマカラー背景＋黒文字にして、他の項目と差別化する。 */
 :root {
   --sidebar-on-accent: #0a0a0c;
 }
 
-#pcV2IconBar #qnMoreBtn,
 #pcV2IconBar #qnAppBadge {
   background: var(--accent-primary);
   color: var(--sidebar-on-accent);
@@ -137,14 +184,18 @@ body.qn-app-open #qnColorPop .qn-marker-preset-colors { display: none; }
     color: var(--sidebar-on-accent);
   }
 
-  #pcV2IconBar #qnMoreBtn:hover,
+  #qnAppFlyout .pcv2-icon-item:hover,
+  #qnAppFlyout .pcv2-icon-item.qn-app-active:hover {
+    background: var(--accent-primary);
+    color: var(--sidebar-on-accent);
+  }
+
   #pcV2IconBar #qnAppBadge:hover {
     background: var(--accent-hover-1);
     color: var(--sidebar-on-accent);
   }
 }
 
-#pcV2IconBar #qnMoreBtn:active,
 #pcV2IconBar #qnAppBadge:active {
   background: var(--accent-hover-1);
 }

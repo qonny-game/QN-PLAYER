@@ -4,8 +4,8 @@
 このファイルは**現行のYouTubeアプリの仕様書 兼 規約遵守ルール**になった。
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
-- 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（MORE・アプリ一覧・表示領域）
-- 最終更新：QNPLAYER v2.29.0（サムネイル表示・規約リンクのフッター）（2026-09-30）
+- 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（アプリ名バッジ・アプリ一覧フライアウト・表示領域）
+- 最終更新：QNPLAYER v3.0.0（アプリ切替をバッジのフライアウトに変更）（2026-10-01）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---
@@ -26,8 +26,8 @@
 ## 1. 現在できること（実装済み）
 
 ### 1-1. 入口とサイドバー
-- MOREでアプリ一覧 → YOUTUBEを選ぶと、サイドバーが「Library / Markers / Backup / Import」＋Color＋MOREに切り替わる。
-  先頭に現在のアプリ名バッジ（押すとアプリ一覧）。仕組みは`PC_V2_FILE_INDEX.md`のqn-apps.jsの項。
+- サイドバー先頭のアプリ名バッジ（＞付き）にマウスを載せる（SPはタップ）とアプリ一覧のフライアウトが出る → YOUTUBEを選ぶと、サイドバーが「Library / Markers / Backup / Import」＋Colorに切り替わる。
+  先頭のバッジは現在のアプリ名を表示し、ここからいつでも他のアプリへ切り替えられる。仕組みは`PC_V2_FILE_INDEX.md`のqn-apps.jsの項。
 - アプリ表示中は本体の下段バーを隠し、本体のaudioを一時停止、キーボードショートカットと「曲追加」D&Dを無効化する（`body.qn-app-open`）。
 - Colorボタンは全アプリで常駐。アプリ表示中はPLAYERと同じ「パネル」として開く（Marker Memo Colorsだけ非表示）。
 

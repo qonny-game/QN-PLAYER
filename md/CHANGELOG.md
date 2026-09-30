@@ -461,3 +461,10 @@
 - v2.30.1のテストで、Wake Lockを止めるとiPhoneのホーム画面アプリでもPLAYERのバックグラウンド再生が続き、YouTubeはホームに戻ると停止（希望どおり）と確認。
 - 画面スリープ防止を再開しつつ、画面が隠れる/`pagehide`の時は自分から先に解放する（`release()`）。表示に戻れば再取得。
 - PLAYER側でまた止まる場合は`qn-wakelock.js`の`WAKE_FOR_PLAYER = false`にする（YouTube側の画面スリープ防止は残る）。
+
+## 3.0.0 — アプリ切替をバッジ（＞）のフライアウトに変更、MORE撤去
+- サイドバー先頭のアプリ名バッジ（`#qnAppBadge`）の右端に「＞」を追加（サブメニューあり）。PCはマウスを載せる（クリックでも可）と、サイドバーの右にサイドバーと同じデザインでアプリ一覧（PLAYER/YOUTUBE/TUNER/PITCH）のフライアウト`#qnAppFlyout`が重なって出る。
+- SP/タッチ：バッジをタップするとアイコンバーの真上に一覧が出る。もう一度タップ・外側タップ・Escで閉じる。
+- サイドバー最下段のMORE(BACK)ボタンと、アプリ一覧モード（`.qn-apps-mode`/`setAppsMode`/`.qn-app-item`）を撤去。Color（下段）は従来どおり常駐。
+- 変更ファイル：`JS/qn-apps.js`、`CSS/style-apps.css`、`index.html`（バージョンのみ）。`qn-app-youtube.js`は公開API(`QNApps.register/open/close/toast/setSideActive/layout`)のみ使う前提で無変更。
+- 実機確認したい点：SPでのバッジのタップ開閉、フライアウトが横スクロールのアイコンバーの上に正しく出るか。

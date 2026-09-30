@@ -131,9 +131,8 @@ grep -o 'id="track[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort
 
 | ID / クラス | 内容 |
 |---|---|
-| `#qnMoreBtn` | サイドバー最下部のMORE(=BACK)ボタン。`aria-pressed`がアプリ一覧モード |
-| `#pcV2IconBar.qn-apps-mode` | アプリ一覧モード中のクラス |
-| `.qn-app-item[data-app-id]` | アプリ一覧の各項目(`.pcv2-icon-item`と併用)。`.qn-app-active`=選択中、`.qn-app-soon`=準備中 |
+| `#qnAppFlyout` | アプリ一覧のフライアウト（v3.0.0〜、body直下・position:fixed・`hidden`、z-index 320）。SP幅は`.qn-flyout-sp`（横並び）。※旧`#qnMoreBtn`/`.qn-apps-mode`/`.qn-app-item`はv3.0.0で撤去 |
+| `.qn-flyout-item[data-app-id]` | フライアウトの各項目(`.pcv2-icon-item`と併用)。`.qn-app-active`=選択中、`.qn-app-soon`=準備中 |
 | `#qnAppHost` | アプリ表示領域(position:fixed)。中に`.qn-app-view[data-app-view=<id>]` |
 | `#qnAppToast` | 「◯◯ is coming soon」のトースト |
 | `body.qn-app-open` | アプリ表示中(下段バー非表示・ショートカット無効) |
@@ -148,7 +147,7 @@ grep -o 'id="track[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort
 ### v2.18〜v2.23 の追記
 | ID / クラス | 内容 |
 |---|---|
-| `#qnAppBadge` | サイドバー先頭の現在アプリ名バッジ（押すとアプリ一覧） |
+| `#qnAppBadge` | サイドバー先頭の現在アプリ名バッジ。右端の`.qn-badge-chev`(＞)が「サブメニューあり」の印。ホバー/タップでフライアウトが開き、開いている間`.qn-badge-open`・`aria-expanded=true` |
 | `#qnColorPop` | アプリ中のColorパネル(z-index 300)。`.qn-colorpanel-head` / `.qn-colorpanel-body`（テーマ切替セクションを借りて表示） |
 | `[data-qn-keep-visible]` | 覆ってはいけない要素の印（YouTubeプレイヤー）。SPのColorパネル位置の基準 |
 | `.qn-yt[data-edit]` | YouTubeのEDIT状態（`library` / `markers`）。CSSがこの値で表示を切替 |

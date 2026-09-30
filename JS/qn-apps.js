@@ -1,12 +1,15 @@
 // ============================================================
-// qn-apps.js  —  MORE ボタン ＆ アプリ一覧（サイドバー切替）＆ アプリ表示領域
+// qn-apps.js  —  アプリ名バッジ ＆ アプリ一覧フライアウト ＆ アプリ表示領域
 //
-// 【何をするファイルか】
-//   PC v2 のサイドバー(#pcV2IconBar)の一番下に「MORE」ボタンを足す。
-//   押すとサイドバーの中身が「アプリ一覧」に切り替わり（見た目・サイズ・位置は
-//   通常のサイドバーアイコン .pcv2-icon-item と完全に同じ）、MORE は BACK に変わる。
+// 【何をするファイルか】（v3.0.0〜。旧MOREボタン／アプリ一覧モードは撤去）
+//   サイドバー(#pcV2IconBar)の先頭に、現在のアプリ名バッジ(#qnAppBadge)を置く。
+//   バッジには「＞」が付いており、サブメニュー（アプリ一覧）があることを示す。
+//   PC幅：バッジにマウスを載せると、サイドバーの右に同じデザインのフライアウト
+//         (#qnAppFlyout)が出て、パネルの上に重なる。クリックでも開く。
+//   SP幅／タッチ：バッジをタップするとアイコンバーの上に一覧が開く。
+//         もう一度タップ、または外側タップ／Escで閉じる。
 //   一覧のアプリを選ぶと、サイドバー右側〜画面下端の領域（#qnAppHost）が
-//   そのアプリの画面に切り替わる。BACK / PLAYER で QNPLAYER 本体に戻る。
+//   そのアプリの画面に切り替わる。PLAYER を選ぶと QNPLAYER 本体に戻る。
 //
 // 【アプリの足し方（今後も増える前提）】
 //   1) JS/qn-app-xxx.js を作り、次を呼ぶだけ：
@@ -38,15 +41,14 @@
   "use strict";
 
   var MORE_ICON = '<path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>';
-  var BACK_ICON = '<path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>';
+  var CHEVRON_ICON = '<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/>';
   var PLAYER_ICON = '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>';
 
   var SP_QUERY = "(max-width: 900px)";
 
   var apps = [];            // 登録済みアプリ（order順）
   var current = null;       // 今開いているアプリ（null = QNPLAYER本体）
-  var appsMode = false;     // サイドバーがアプリ一覧になっているか
-  var iconBar = null, host = null, moreBtn = null, badgeBtn = null, toastEl = null, toastTimer = null;
+  var iconBar = null, host = null, badgeBtn = null, flyout = null, flyoutTimer = null, toastEl = null, toastTimer = null;
   var views = {};           // id -> viewEl
   var mounted = {};         // id -> true
   var resizeObs = null;
@@ -73,28 +75,45 @@
     return btn;
   }
 
-  // ---------- サイドバーのアプリ項目 ----------
-  function renderAppItems() {
-    if (!iconBar) return;
-    var old = iconBar.querySelectorAll(".qn-app-item");
-    for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
+  // ---------- アプリ一覧フライアウト（バッジにホバー／タップで開く） ----------
+  // 見た目は通常のサイドバーと同じ .pcv2-icon-item を並べたもの。
+  // body直下に置き、PC幅ではバッジの右（パネルの上に重ねる）、
+  // SP幅ではアイコンバーの直上に出す。
+  function ensureFlyout() {
+    if (flyout) return flyout;
+    flyout = document.createElement("div");
+    flyout.id = "qnAppFlyout";
+    flyout.hidden = true;
+    flyout.setAttribute("role", "menu");
+    document.body.appendChild(flyout);
+    flyout.addEventListener("mouseenter", cancelFlyoutClose);
+    flyout.addEventListener("mouseleave", scheduleFlyoutClose);
+    return flyout;
+  }
 
-    var spacer = $("pcV2IconBarSpacer");
+  function renderAppItems() {
+    var fo = ensureFlyout();
+    fo.innerHTML = "";
     apps.forEach(function (app) {
       var btn = makeItemButton(
-        { cls: "qn-app-item" + (app.ready ? "" : " qn-app-soon"), appId: app.id },
+        { cls: "qn-flyout-item" + (app.ready ? "" : " qn-app-soon"), appId: app.id },
         app.icon, app.label.toUpperCase(),
         app.ready ? app.label : app.label + " (coming soon)"
       );
-      btn.addEventListener("click", function () { haptic(); open(app.id); });
-      if (spacer) iconBar.insertBefore(btn, spacer); else iconBar.appendChild(btn);
+      btn.setAttribute("role", "menuitem");
+      btn.addEventListener("click", function () {
+        haptic();
+        closeFlyout();
+        open(app.id);
+      });
+      fo.appendChild(btn);
     });
     syncActiveStates();
   }
 
   function syncActiveStates() {
-    if (!iconBar) return;
-    var items = iconBar.querySelectorAll(".qn-app-item");
+    if (!flyout) return;
+    var items = flyout.querySelectorAll(".qn-flyout-item");
     for (var i = 0; i < items.length; i++) {
       var id = items[i].getAttribute("data-app-id");
       var isActive = (current ? current.id === id : id === "player");
@@ -102,15 +121,66 @@
     }
   }
 
-  // サイドバーの表示状態は3通り：
-  //   本体(PLAYER)            : 通常のアイコン ＋ MORE
-  //   アプリ表示中            : そのアプリ専用のアイコン(def.sidebar) ＋ MORE
-  //   アプリ一覧(MORE押下後)  : PLAYER/YOUTUBE/… ＋ BACK
+  function isSp() { return window.matchMedia(SP_QUERY).matches; }
+  function canHover() { return window.matchMedia("(hover: hover) and (pointer: fine)").matches; }
+
+  function positionFlyout() {
+    if (!flyout || !iconBar || !badgeBtn) return;
+    var br = iconBar.getBoundingClientRect();
+    var bd = badgeBtn.getBoundingClientRect();
+    var sp = isSp();
+    flyout.classList.toggle("qn-flyout-sp", sp);
+    if (sp) {
+      flyout.style.left = "0px";
+      flyout.style.top = "auto";
+      flyout.style.bottom = Math.max(0, window.innerHeight - br.top) + "px";
+    } else {
+      flyout.style.left = br.right + "px";
+      flyout.style.top = bd.top + "px";
+      flyout.style.bottom = "auto";
+    }
+  }
+
+  function openFlyout() {
+    if (!flyout || !flyout.hidden) return;
+    cancelFlyoutClose();
+    closeColorPop();
+    positionFlyout();
+    flyout.hidden = false;
+    if (badgeBtn) {
+      badgeBtn.classList.add("qn-badge-open");
+      badgeBtn.setAttribute("aria-expanded", "true");
+    }
+  }
+
+  function closeFlyout() {
+    cancelFlyoutClose();
+    if (!flyout || flyout.hidden) return;
+    flyout.hidden = true;
+    if (badgeBtn) {
+      badgeBtn.classList.remove("qn-badge-open");
+      badgeBtn.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  function scheduleFlyoutClose() {
+    if (!canHover() || isSp()) return;
+    cancelFlyoutClose();
+    flyoutTimer = setTimeout(closeFlyout, 160);
+  }
+  function cancelFlyoutClose() {
+    if (flyoutTimer) { clearTimeout(flyoutTimer); flyoutTimer = null; }
+  }
+
+  // サイドバーの表示状態は2通り：
+  //   本体(PLAYER)   : 通常のアイコン
+  //   アプリ表示中   : そのアプリ専用のアイコン(def.sidebar)
+  // どちらも先頭のバッジ（現在のアプリ名＋＞）から、アプリ一覧フライアウトを開く。
   function renderAppSideItems() {
     if (!iconBar) return;
     var old = iconBar.querySelectorAll(".qn-appside-item");
     for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
-    if (!current || !current.sidebar || appsMode) return;
+    if (!current || !current.sidebar) return;
     var spacer = $("pcV2IconBarSpacer");
     current.sidebar.forEach(function (it) {
       var btn = makeItemButton({ cls: "qn-appside-item" }, it.icon, it.label, it.label);
@@ -135,14 +205,33 @@
   }
 
   // ---------- 現在のアプリ名バッジ（サイドバーの先頭） ----------
-  // 「今どのアプリに居るか」を示す。押すとMOREと同じアプリ一覧に切り替わる。
+  // 「今どのアプリに居るか」を示す。右端の「＞」はサブメニュー（アプリ一覧）あり、の印。
+  // PC幅(マウス)：ホバーで開く／クリックでも開く。SP・タッチ：タップで開閉。
   function buildBadge() {
     if (!iconBar || $("qnAppBadge")) return;
     badgeBtn = makeItemButton({ cls: "qn-app-badge" }, PLAYER_ICON, "Player", "Apps");
     badgeBtn.id = "qnAppBadge";
+    badgeBtn.setAttribute("aria-haspopup", "menu");
+    badgeBtn.setAttribute("aria-expanded", "false");
+    var chev = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    chev.setAttribute("viewBox", "0 0 24 24");
+    chev.setAttribute("class", "qn-badge-chev");
+    chev.setAttribute("aria-hidden", "true");
+    chev.innerHTML = CHEVRON_ICON;
+    badgeBtn.appendChild(chev);
+
+    badgeBtn.addEventListener("mouseenter", function () {
+      if (canHover() && !isSp()) openFlyout();
+    });
+    badgeBtn.addEventListener("mouseleave", scheduleFlyoutClose);
     badgeBtn.addEventListener("click", function () {
       haptic();
-      setAppsMode(true);
+      if (flyout && !flyout.hidden) {
+        // マウスのPC幅ではホバーで既に開いているので、クリックでは閉じない
+        if (!(canHover() && !isSp())) closeFlyout();
+      } else {
+        openFlyout();
+      }
     });
     iconBar.insertBefore(badgeBtn, iconBar.firstChild);
   }
@@ -157,24 +246,13 @@
   }
 
   function refreshSidebar() {
-    if (!iconBar || !moreBtn) return;
+    if (!iconBar) return;
     updateBadge();
-    iconBar.classList.toggle("qn-apps-mode", appsMode);
-    iconBar.classList.toggle("qn-app-sidebar", !!current && !appsMode);
-    moreBtn.querySelector("svg").innerHTML = appsMode ? BACK_ICON : MORE_ICON;
-    moreBtn.querySelector("span").textContent = appsMode ? "Back" : "More";
-    moreBtn.title = appsMode ? "Back" : "More apps";
-    moreBtn.setAttribute("aria-pressed", appsMode ? "true" : "false");
+    iconBar.classList.toggle("qn-app-sidebar", !!current);
     renderAppSideItems();
     syncActiveStates();
     if (iconBar.scrollTo) iconBar.scrollTo(0, 0);
     window.dispatchEvent(new Event("resize"));
-  }
-
-  function setAppsMode(on) {
-    if (!on) closeColorPop();
-    appsMode = !!on;
-    refreshSidebar();
   }
 
   // ---------- 表示領域(#qnAppHost)の位置合わせ ----------
@@ -263,10 +341,10 @@
   function open(id) {
     var app = findApp(id);
     if (!app) return;
-    // PLAYER＝本体に戻る：アプリを閉じ、サイドバーも通常表示(BACK相当)に戻す
-    if (id === "player") { close(); setAppsMode(false); return; }
+    // PLAYER＝本体に戻る
+    if (id === "player") { close(); return; }
     if (!app.ready) { toast(app.label + " is coming soon"); return; }
-    if (current && current.id === id) { setAppsMode(false); return; }
+    if (current && current.id === id) return;
 
     if (current && typeof current.onHide === "function") {
       try { current.onHide(); } catch (e) { console.error(e); }
@@ -286,7 +364,6 @@
     host.hidden = false;
     view.hidden = false;
     layoutHost();
-    appsMode = false;
     sideActiveId = null;
     refreshSidebar();
     // 下段バー等を隠した結果レイアウトが変わるため、次フレームでも合わせ直す
@@ -299,6 +376,7 @@
 
   function close() {
     closeColorPop();
+    closeFlyout();
     if (!current) { syncActiveStates(); return; }
     saveLastApp("player");
     var app = current;
@@ -316,7 +394,7 @@
 
   // ---------- Color(常駐) ----------
   // Colorボタンは常にサイドバーに残す。PLAYER本体ではこれまで通りパネルを開くが、
-  // アプリ表示中/アプリ一覧中はパネルが見えないため、テーマ切替セクションを
+  // アプリ表示中はパネルが見えないため、テーマ切替セクションを
   // その場のポップオーバーに借りて表示する（閉じたら元の場所へ戻す）。
   var colorPop = null, colorSec = null, colorHome = null, colorNext = null;
 
@@ -397,10 +475,11 @@
     var bottom = $("pcV2IconBarBottom");
     if (!bottom || bottom.__qnColor) return;
     bottom.__qnColor = true;
-    // キャプチャ段階で先取りし、アプリ表示中/一覧中だけ本体のパネル処理を止める
+    // キャプチャ段階で先取りし、アプリ表示中だけ本体のパネル処理を止める
     bottom.addEventListener("click", function (e) {
       var b = e.target.closest && e.target.closest('[data-panel-id="color"]');
-      if (!b || !(current || appsMode)) return;
+      if (!b || !current) return;
+      closeFlyout();
       e.stopImmediatePropagation();
       e.preventDefault();
       haptic();
@@ -408,28 +487,40 @@
     }, true);
   }
 
-  // ---------- MOREボタン ----------
-  function buildMore() {
-    var bottom = $("pcV2IconBarBottom");
-    if (!bottom || $("qnMoreBtn")) return;
-    moreBtn = makeItemButton({ cls: "qn-more-btn" }, MORE_ICON, "More", "More apps");
-    moreBtn.id = "qnMoreBtn";
-    moreBtn.addEventListener("click", function () {
-      haptic();
-      // MORE↔BACK：アプリ一覧の表示/非表示だけを切り替える（開いているアプリは閉じない）
-      setAppsMode(!appsMode);
+  // ---------- フライアウトを閉じる共通操作 ----------
+  var flyoutGlobalBound = false;
+  function bindFlyoutGlobal() {
+    if (flyoutGlobalBound) return;
+    flyoutGlobalBound = true;
+    // 外側タップ／クリックで閉じる（バッジとフライアウト自身は除く）
+    document.addEventListener("pointerdown", function (e) {
+      if (!flyout || flyout.hidden) return;
+      var t = e.target;
+      if (t && t.closest && (t.closest("#qnAppFlyout") || t.closest("#qnAppBadge"))) return;
+      closeFlyout();
+    }, true);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeFlyout();
     });
-    bottom.appendChild(moreBtn);
+    window.addEventListener("resize", function () { if (flyout && !flyout.hidden) positionFlyout(); });
+    window.addEventListener("orientationchange", closeFlyout);
+    // サイドバーの他の項目を押したら閉じる（PLAYERでパネルが切り替わるのと同じ感覚）
+    iconBar.addEventListener("click", function (e) {
+      if (e.target.closest && e.target.closest("#qnAppBadge")) return;
+      closeFlyout();
+    });
+    // アイコンバー（SPで横スクロール）が動いたら位置がずれるので閉じる
+    iconBar.addEventListener("scroll", closeFlyout, { passive: true });
   }
 
   // ---------- 起動：player-ui-pc-v2.js の build() 完了を待つ ----------
   function init() {
     iconBar = $("pcV2IconBar");
     if (!iconBar || !$("pcV2IconBarBottom")) return false;
-    buildMore();
     initColorKeeper();
     buildBadge();
     renderAppItems();
+    bindFlyoutGlobal();
     updateBadge();
     ensureHost();
     var layout = $("pcV2Layout");
