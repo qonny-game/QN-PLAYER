@@ -208,7 +208,7 @@ MOREボタン・アプリ一覧・アプリ表示領域と、その第1号のYou
 - `QNApps.open(id)` / `QNApps.close()` — アプリの表示/非表示。`close()`で本体へ戻る。
 - `layoutHost()` — `#qnAppHost`(position:fixed)の位置を`#pcV2Layout`と`#pcV2IconBar`
   の実測から決める。PC幅=アイコンバーの右〜下端、SP幅=ヘッダー直下〜アイコンバー直上。
-- サイドバーの切替は`#pcV2IconBar.qn-apps-mode`のCSSのみ（DOMは動かさない）。
+- サイドバーの切替は`#pcV2IconBar.qn-apps-mode`（一覧）/`.qn-app-sidebar`（アプリ表示中、`.qn-appside-item`のみ表示）のCSSで行う。
   選択中は`.qn-app-active`（本体側JSが`.active`を外してしまうため別クラス）。
 - `#qnMoreBtn`は`#pcV2IconBarBottom`の末尾。アプリ一覧モード中はこのボタンだけ残り、
   ラベル/アイコンがBack用に入れ替わる。

@@ -29,8 +29,14 @@
   display: none;
 }
 
+/* アプリ表示中(一覧ではない)は、そのアプリ専用の項目(.qn-appside-item)だけ出す */
+#pcV2IconBar.qn-app-sidebar > .pcv2-icon-item:not(.qn-appside-item) {
+  display: none;
+}
+
 /* 下段グループ(Keyboard/Color/More)は、MORE(=BACK)だけ残す */
-#pcV2IconBar.qn-apps-mode #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn) {
+#pcV2IconBar.qn-apps-mode #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn),
+#pcV2IconBar.qn-app-sidebar #pcV2IconBarBottom > .pcv2-icon-item:not(#qnMoreBtn) {
   display: none;
 }
 
@@ -188,12 +194,19 @@ body.qn-app-open #pcV2TimeRow {
   padding: 16px 16px 4px 20px;
 }
 
-.qn-yt-sec + .qn-yt-sec {
-  border-top: 1px solid var(--border-subtle);
-  margin-top: 12px;
+/* サイドバーの Library / Markers で、パネルに出す中身を切り替える
+   （本体の Library / Markers パネルと同じ「1度に1つ」方式） */
+.qn-yt[data-panel="library"] .qn-yt-sec-markers,
+.qn-yt[data-panel="markers"] .qn-yt-sec-library {
+  display: none;
 }
 
+/* 見出しと件数はパネル上部の見出し(.qn-yt-panel-header)に出すので、セクション側は隠す */
 .qn-yt-sec-head {
+  display: none;
+}
+
+.qn-yt-sec-head-unused {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -613,6 +626,7 @@ body.qn-app-open #pcV2TimeRow {
     flex-direction: column;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    position: relative;
   }
 
   .qn-yt-stage {
@@ -630,15 +644,22 @@ body.qn-app-open #pcV2TimeRow {
     padding-top: 12px;
   }
 
+  /* SP幅：パネルは本体と同じく、サイドバーのアイコンで開閉する全面オーバーレイ
+     （ステージの上に重なる。ステージは裏に残る） */
   .qn-yt-panel {
-    order: 2;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: #0a0a0c;
     border-right: none;
-    border-top: 1px solid var(--border-subtle);
-    flex-shrink: 0;
+  }
+
+  .qn-yt[data-panel="none"] .qn-yt-panel {
+    display: none;
   }
 
   .qn-yt-panel-scroll {
-    overflow: visible;
+    overflow-y: auto;
   }
 
   .qn-yt-panel-header {

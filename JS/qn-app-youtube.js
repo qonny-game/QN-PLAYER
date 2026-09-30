@@ -107,9 +107,9 @@
   var TEMPLATE =
     '<div class="qn-yt">' +
       '<aside class="qn-yt-panel">' +
-        '<div class="qn-yt-panel-header"><span class="pcv2-panel-header-title">YouTube</span></div>' +
+        '<div class="qn-yt-panel-header"><span class="pcv2-panel-header-title" data-yt="panelTitle">Library</span></div>' +
         '<div class="qn-yt-panel-scroll">' +
-          '<section class="qn-yt-sec">' +
+          '<section class="qn-yt-sec qn-yt-sec-library">' +
             '<div class="qn-yt-sec-head"><h3>Library</h3><span class="qn-yt-count" data-yt="listCount">0</span></div>' +
             '<div class="qn-yt-input-block">' +
               '<div class="qn-yt-row">' +
@@ -125,7 +125,7 @@
             '<ul class="qn-yt-list" data-yt="itemList"></ul>' +
             '<p class="qn-yt-empty" data-yt="emptyList">まだ保存されていません</p>' +
           '</section>' +
-          '<section class="qn-yt-sec">' +
+          '<section class="qn-yt-sec qn-yt-sec-markers">' +
             '<div class="qn-yt-sec-head"><h3>Markers</h3><span class="qn-yt-count" data-yt="markerCount">0</span></div>' +
             '<ul class="qn-yt-list qn-yt-marker-list" data-yt="markerList"></ul>' +
             '<p class="qn-yt-empty" data-yt="emptyMarkers">マーカーはありません</p>' +
@@ -160,6 +160,43 @@
         '</footer>' +
       '</section>' +
     '</div>';
+
+  // ---------- サイドバー(Library / Markers)とパネル ----------
+  // PC幅：パネルは常時表示で、アイコンは中身を切り替える。
+  // SP幅：パネルは全面オーバーレイ。アイコンで開閉（同じアイコンをもう一度で閉じる）。
+  var SIDEBAR = [
+    { id: "library", label: "Library", icon: '<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>' },
+    { id: "markers", label: "Markers", icon: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>' }
+  ];
+  var panelState = null; // "library" | "markers" | "none"(SPのみ)
+
+  function isSp() { return window.matchMedia("(max-width: 900px)").matches; }
+
+  function setPanel(id) {
+    if (!isSp() && id === "none") id = "library";
+    panelState = id;
+    if (!root) return;
+    var yt = root.querySelector(".qn-yt");
+    yt.setAttribute("data-panel", id);
+    updatePanelTitle();
+    if (window.QNApps) window.QNApps.setSideActive(id === "none" ? null : id);
+  }
+
+  // パネル見出し：本体のパネル同様「LIBRARY」「MARKERS」＋件数
+  function updatePanelTitle() {
+    if (!root || !panelState || panelState === "none") return;
+    var isM = panelState === "markers";
+    refs.panelTitle.textContent = (isM ? "Markers " : "Library ") +
+      (isM ? (current ? current.markers.length : 0) : items.length);
+  }
+
+  function onSidebar(id) {
+    if (isSp() && panelState === id) setPanel("none");
+    else setPanel(id);
+  }
+
+  // SP幅で動画を選んだ/読み込んだ後は、パネルを閉じてプレイヤーを見せる
+  function closePanelOnSp() { if (isSp()) setPanel("none"); }
 
   function mount(view) {
     root = view;
@@ -341,6 +378,7 @@
       var id = parseVideoId(refs.urlInput.value);
       if (!id) { showMessage("YouTubeのURLとして認識できません"); return; }
       openVideo(id, refs.urlInput.value.trim(), null);
+      closePanelOnSp();
     });
     refs.urlInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); refs.loadBtn.click(); }
@@ -456,6 +494,7 @@
     refs.itemList.textContent = "";
     refs.emptyList.style.display = items.length ? "none" : "";
     refs.listCount.textContent = String(items.length);
+    updatePanelTitle();
     items.forEach(function (it) {
       var li = document.createElement("li");
       if (current && current.itemId === it.id) li.className = "active";
@@ -464,6 +503,7 @@
       t.addEventListener("click", function () {
         refs.urlInput.value = it.url;
         openVideo(it.videoId, it.url, it.id, { play: true }); // クリック起点なので再生開始OK
+        closePanelOnSp();
       });
       var edit = document.createElement("button");
       edit.type = "button"; edit.className = "qn-yt-btn mini"; edit.textContent = "Edit";
@@ -513,6 +553,7 @@
     var ms = current ? current.markers : [];
     refs.emptyMarkers.style.display = ms.length ? "none" : "";
     refs.markerCount.textContent = String(ms.length);
+    updatePanelTitle();
 
     ms.forEach(function (m) {
       // シークバー上のマーカー(クリックでジャンプ / ドラッグで移動)
@@ -699,6 +740,9 @@
   }
 
   function onShow() {
+    // 初回はPC=Library表示、SP=パネルなし。2回目以降は前回の状態を保つ
+    var want = panelState || (isSp() ? "none" : "library");
+    setPanel(want);
     // 非表示中はoffsetTopが0になりマーカー位置がずれるので、表示のたびに描き直す
     renderMarkers();
     updateDisplay(currentPos());
@@ -721,6 +765,8 @@
       icon: YT_ICON,
       order: 10,
       ready: true,
+      sidebar: SIDEBAR,
+      onSidebar: onSidebar,
       mount: mount,
       onShow: onShow,
       onHide: onHide

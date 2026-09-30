@@ -16,6 +16,8 @@
 //          icon: '<path d="..."/>',  // 24x24 viewBox の SVG path
 //          order: 10,                // 一覧の並び順（小さいほど上）
 //          ready: true,              // false なら「準備中」（押すとトースト表示）
+//          sidebar: [{id,label,icon}],  // アプリ表示中のサイドバー項目（本体のControl/Markers…に相当）
+//          onSidebar(itemId) {},     // その項目が押された時。選択表示は QNApps.setSideActive(itemId|null)
 //          mount(viewEl) {},         // 初回表示時に1回だけ呼ばれる。viewEl に画面を作る
 //          onShow() {},              // 表示されるたびに呼ばれる
 //          onHide() {}               // 隠れるたびに呼ばれる
@@ -100,17 +102,55 @@
     }
   }
 
-  function setAppsMode(on) {
-    appsMode = !!on;
+  // サイドバーの表示状態は3通り：
+  //   本体(PLAYER)            : 通常のアイコン ＋ MORE
+  //   アプリ表示中            : そのアプリ専用のアイコン(def.sidebar) ＋ MORE
+  //   アプリ一覧(MORE押下後)  : PLAYER/YOUTUBE/… ＋ BACK
+  function renderAppSideItems() {
+    if (!iconBar) return;
+    var old = iconBar.querySelectorAll(".qn-appside-item");
+    for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
+    if (!current || !current.sidebar || appsMode) return;
+    var spacer = $("pcV2IconBarSpacer");
+    current.sidebar.forEach(function (it) {
+      var btn = makeItemButton({ cls: "qn-appside-item" }, it.icon, it.label, it.label);
+      btn.setAttribute("data-side-id", it.id);
+      btn.addEventListener("click", function () {
+        haptic();
+        if (typeof current.onSidebar === "function") current.onSidebar(it.id);
+      });
+      if (spacer) iconBar.insertBefore(btn, spacer); else iconBar.appendChild(btn);
+    });
+    setSideActive(sideActiveId);
+  }
+
+  var sideActiveId = null;
+  function setSideActive(id) {
+    sideActiveId = id;
+    if (!iconBar) return;
+    var items = iconBar.querySelectorAll(".qn-appside-item");
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.toggle("qn-app-active", items[i].getAttribute("data-side-id") === id);
+    }
+  }
+
+  function refreshSidebar() {
     if (!iconBar || !moreBtn) return;
     iconBar.classList.toggle("qn-apps-mode", appsMode);
+    iconBar.classList.toggle("qn-app-sidebar", !!current && !appsMode);
     moreBtn.querySelector("svg").innerHTML = appsMode ? BACK_ICON : MORE_ICON;
     moreBtn.querySelector("span").textContent = appsMode ? "Back" : "More";
-    moreBtn.title = appsMode ? "Back to menu" : "More apps";
+    moreBtn.title = appsMode ? "Back" : "More apps";
     moreBtn.setAttribute("aria-pressed", appsMode ? "true" : "false");
+    renderAppSideItems();
     syncActiveStates();
     if (iconBar.scrollTo) iconBar.scrollTo(0, 0);
-    if (typeof window.dispatchEvent === "function") window.dispatchEvent(new Event("resize"));
+    window.dispatchEvent(new Event("resize"));
+  }
+
+  function setAppsMode(on) {
+    appsMode = !!on;
+    refreshSidebar();
   }
 
   // ---------- 表示領域(#qnAppHost)の位置合わせ ----------
@@ -183,7 +223,7 @@
     // PLAYER＝本体に戻る：アプリを閉じ、サイドバーも通常表示(BACK相当)に戻す
     if (id === "player") { close(); setAppsMode(false); return; }
     if (!app.ready) { toast(app.label + " is coming soon"); return; }
-    if (current && current.id === id) return;
+    if (current && current.id === id) { setAppsMode(false); return; }
 
     if (current && typeof current.onHide === "function") {
       try { current.onHide(); } catch (e) { console.error(e); }
@@ -202,7 +242,9 @@
     host.hidden = false;
     view.hidden = false;
     layoutHost();
-    syncActiveStates();
+    appsMode = false;
+    sideActiveId = null;
+    refreshSidebar();
     // 下段バー等を隠した結果レイアウトが変わるため、次フレームでも合わせ直す
     requestAnimationFrame(layoutHost);
 
@@ -221,7 +263,8 @@
     if (views[app.id]) views[app.id].hidden = true;
     if (host) host.hidden = true;
     document.body.classList.remove("qn-app-open");
-    syncActiveStates();
+    sideActiveId = null;
+    refreshSidebar();
     window.dispatchEvent(new Event("resize")); // 波形などの再計測
   }
 
@@ -233,13 +276,8 @@
     moreBtn.id = "qnMoreBtn";
     moreBtn.addEventListener("click", function () {
       haptic();
-      if (appsMode) {
-        // BACK：アプリを閉じて通常のサイドバーへ
-        close();
-        setAppsMode(false);
-      } else {
-        setAppsMode(true);
-      }
+      // MORE↔BACK：アプリ一覧の表示/非表示だけを切り替える（開いているアプリは閉じない）
+      setAppsMode(!appsMode);
     });
     bottom.appendChild(moreBtn);
   }
@@ -278,6 +316,7 @@
       icon: def.icon || MORE_ICON,
       order: typeof def.order === "number" ? def.order : 100,
       ready: def.ready !== false,
+      sidebar: def.sidebar || null, onSidebar: def.onSidebar,
       mount: def.mount, onShow: def.onShow, onHide: def.onHide
     };
     if (idx >= 0) apps[idx] = app; else apps.push(app);
@@ -290,6 +329,7 @@
     open: open,
     close: close,
     toast: toast,
+    setSideActive: setSideActive,
     getCurrentId: function () { return current ? current.id : null; },
     layout: layoutHost
   };

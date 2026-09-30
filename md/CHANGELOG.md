@@ -316,5 +316,10 @@
 - 【2.17.1】アプリ一覧の「PLAYER」を押すと、アプリを閉じるだけでなく
   サイドバーも通常表示(BACK相当)へ自動で戻る。YouTube画面に本体の波形マーカー
   ラベル(z-index:51)が透けて残る問題を、`#qnAppHost`のz-indexを20→150にして解消。
+- 【2.18.0】アプリ表示中のサイドバーを、本体と同じMORE構造に変更。YouTube表示中は
+  サイドバーが「Library / Markers」＋MOREになり、アイコンでパネルの中身を切替
+  （PC幅=パネル常時表示、SP幅=全面オーバーレイで開閉）。MOREはアプリ一覧の
+  表示/非表示だけを切り替え、BACKでも開いているアプリは閉じない（PLAYERを選ぶと本体へ）。
+  アプリ側は`QNApps.register({sidebar,onSidebar})`＋`QNApps.setSideActive()`で対応。
 - アプリ表示中は`body.qn-app-open`が付き、本体の下段バー等を隠す＆audioを一時停止＆
   キーボードショートカット(`player-ui-shared.js`のkeydown)を無効化。
