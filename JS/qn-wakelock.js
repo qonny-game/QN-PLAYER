@@ -4,9 +4,11 @@
 // 公開: window.QNWake.set(理由キー, true/false)
 (function () {
   "use strict";
-  // 【切り分け用 v2.30.1】iPhoneのホーム画面アプリでバックグラウンド再生が止まる原因調査のため、
-  // 画面スリープ防止(Wake Lock)を一時的に無効にしている。原因が別と分かったら true に戻す。
-  var ENABLE_WAKE_LOCK = false;
+  // v2.30.1：Wake Lockを止めたら、iPhoneのホーム画面アプリでPLAYERのバックグラウンド再生が続くことを確認。
+  // v2.31.0：画面が隠れる/ページを離れる時に自分から先にWake Lockを解放する形で再開（OSに任せない）。
+  //   PLAYER(audio)側で再び止まるようなら WAKE_FOR_PLAYER を false にする（YouTube側は影響なし）。
+  var ENABLE_WAKE_LOCK = true;
+  var WAKE_FOR_PLAYER = true;
   var reasons = {};
   var sentinel = null;
   var pending = false;
@@ -36,11 +38,18 @@
 
   function sync() { if (wanted()) acquire(); else release(); }
 
-  function set(key, on) { reasons[key] = !!on; sync(); }
+  function set(key, on) {
+    if (key === "player" && !WAKE_FOR_PLAYER) on = false;
+    reasons[key] = !!on;
+    sync();
+  }
 
+  // 隠れる時は、OSに解放されるのを待たず自分から先に解放する（バックグラウンド再生を邪魔しない）
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") sync();
+    if (document.visibilityState === "visible") sync(); else release();
   });
+  window.addEventListener("pagehide", release);
+  window.addEventListener("pageshow", function () { if (document.visibilityState === "visible") sync(); });
 
   function hookAudio() {
     if (typeof audio === "undefined" || !audio || !audio.addEventListener) return false;

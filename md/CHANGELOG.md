@@ -456,3 +456,8 @@
 ## 2.30.1 — 【切り分け用】Wake Lockを一時的に無効化
 - iPhoneのホーム画面アプリでPLAYERのバックグラウンド再生が止まる問題の原因調査。v2.17.0以降、再生系コア(player-core/ui-shared/playlist)は無変更で、追加されたのはアプリ系(qn-apps/qn-app-youtube)とWake Lock(v2.21.1)のみ。
   最も疑わしいWake Lockを`ENABLE_WAKE_LOCK=false`で止めて、止まらなくなるかを実機で確認する。結果次第で戻す（画面スリープ防止機能は一時的に効かない）。
+
+## 2.31.0 — Wake Lockを再開（隠れる時に自分から解放）
+- v2.30.1のテストで、Wake Lockを止めるとiPhoneのホーム画面アプリでもPLAYERのバックグラウンド再生が続き、YouTubeはホームに戻ると停止（希望どおり）と確認。
+- 画面スリープ防止を再開しつつ、画面が隠れる/`pagehide`の時は自分から先に解放する（`release()`）。表示に戻れば再取得。
+- PLAYER側でまた止まる場合は`qn-wakelock.js`の`WAKE_FOR_PLAYER = false`にする（YouTube側の画面スリープ防止は残る）。

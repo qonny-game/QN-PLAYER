@@ -218,3 +218,8 @@ QN-PLAYERの開発において発生した不具合・知見・落とし穴（Go
 - 対策(v2.30.0)：`navigator.audioSession.type="playback"`、隠れた/戻った時にAudioContextを`resume()`。ロック画面のボタンは`mediaSession`。
 - **教訓：** ロック中に`audio`のpauseを検知して自動で`play()`し直すような実装は、ロック画面の一時停止ボタンとケンカするので避ける。PC/エミュレータでは再現できないため、iPhone/Androidの実機で「素の再生」と「EQ/Key使用後」を分けて確認する。
 
+### 2-33. Wake Lockがあるとホーム画面アプリ(iPhone)でバックグラウンド再生が止まった疑い
+- **現象：** iPhoneのホーム画面アプリでPLAYERの音がホームに戻ると止まる（v2.21.1のWake Lock追加後）。v2.30.1でWake Lockだけ止めたら続いた。
+- **対応(v2.31.0)：** 隠れる/pagehideの時に自分から`release()`。再発したら`WAKE_FOR_PLAYER=false`。
+- **教訓：** 再生系コアが無変更なのに挙動が変わったら、追加ファイルを1つずつ止めて切り分ける（機能フラグ定数を残しておくと楽）。
+
