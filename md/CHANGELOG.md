@@ -321,5 +321,8 @@
   （PC幅=パネル常時表示、SP幅=全面オーバーレイで開閉）。MOREはアプリ一覧の
   表示/非表示だけを切り替え、BACKでも開いているアプリは閉じない（PLAYERを選ぶと本体へ）。
   アプリ側は`QNApps.register({sidebar,onSidebar})`＋`QNApps.setSideActive()`で対応。
+- 【2.18.1】サイドバー/アプリバー共通のホバーを「テーマカラー背景＋黒文字(#0a0a0c)」に統一
+  （`(hover: hover)`の端末のみ）。MORE(BACK)だけ常時テーマカラー背景＋黒文字にして差別化。
+  色は`style-apps.css`の`--sidebar-on-accent`とテーマ変数で決まる。
 - アプリ表示中は`body.qn-app-open`が付き、本体の下段バー等を隠す＆audioを一時停止＆
   キーボードショートカット(`player-ui-shared.js`のkeydown)を無効化。

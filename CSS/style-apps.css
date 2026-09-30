@@ -65,8 +65,36 @@
   opacity: 0.7;
 }
 
-#qnMoreBtn[aria-pressed="true"] {
-  color: var(--text-bright);
+/* ---------- サイドバー／アプリバーのホバー・MOREの色（v2.18.1） ----------
+   ・ホバー時：背景=テーマカラー、文字・アイコン=背景色と同じ黒(#0a0a0c)に統一
+     （通常のサイドバー、アプリ一覧、アプリ専用サイドバーの全部が対象）。
+     タッチ端末ではタップ後に:hoverが残ってしまうため、ホバー可能な端末だけに適用。
+   ・MORE(BACK)だけは常にテーマカラー背景＋黒文字にして、他の項目と差別化する。 */
+:root {
+  --sidebar-on-accent: #0a0a0c;
+}
+
+#pcV2IconBar #qnMoreBtn {
+  background: var(--accent-primary);
+  color: var(--sidebar-on-accent);
+}
+
+@media (hover: hover) {
+  #pcV2IconBar .pcv2-icon-item:hover,
+  #pcV2IconBar .pcv2-icon-item.active:hover,
+  #pcV2IconBar .pcv2-icon-item.qn-app-active:hover {
+    background: var(--accent-primary);
+    color: var(--sidebar-on-accent);
+  }
+
+  #pcV2IconBar #qnMoreBtn:hover {
+    background: var(--accent-hover-1);
+    color: var(--sidebar-on-accent);
+  }
+}
+
+#pcV2IconBar #qnMoreBtn:active {
+  background: var(--accent-hover-1);
 }
 
 @media screen and (max-width: 900px) {
