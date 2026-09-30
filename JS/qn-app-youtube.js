@@ -29,6 +29,12 @@
   var STORAGE_KEY = "qn_yt_items";
   var SEGS = 3; // シークバーの分割数(3行)
 
+  var SVG_PREV = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>';
+  var SVG_NEXT = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>';
+  var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
+  var FLAG_KEY = "qn_yt_autonext", RATE_KEY = "qn_yt_rate";
+  var FALLBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
   var YT_ICON = '<path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.28 5 12 5 12 5s-6.28 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2C2 8.77 2 12 2 12s0 3.23.4 4.8a2.5 2.5 0 0 0 1.76 1.77C5.72 19 12 19 12 19s6.28 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77C22 15.23 22 12 22 12s0-3.23-.4-4.8zM10 15V9l5.2 3L10 15z"/>';
 
   // ---------- 状態 ----------
@@ -197,8 +203,22 @@
           '<div class="qn-yt-seek" data-yt="seekTracks"><div class="qn-yt-marker-layer" data-yt="markerLayer"></div></div>' +
           '<div class="qn-yt-ctrl-row">' +
             '<button type="button" data-yt="skipBackBtn" class="qn-yt-btn">◀◀ 10s</button>' +
+            '<button type="button" data-yt="prevMarkerBtn" class="qn-yt-btn" title="前のマーカーへ">' + SVG_PREV + 'Marker</button>' +
             '<button type="button" data-yt="addMarkerBtn" class="qn-yt-btn primary">+ Marker</button>' +
+            '<button type="button" data-yt="nextMarkerBtn" class="qn-yt-btn" title="次のマーカーへ">Marker' + SVG_NEXT + '</button>' +
             '<button type="button" data-yt="skipFwdBtn" class="qn-yt-btn">10s ▶▶</button>' +
+          '</div>' +
+          // 再生スピード：プレイヤーの外に置く自前UI。中身はYouTube標準と同じ倍率
+          // （getAvailablePlaybackRates()）。公式メソッドsetPlaybackRate()のみ使用。
+          '<div class="qn-yt-ctrl-row qn-yt-speed-row">' +
+            '<span class="qn-yt-loop-status">Speed</span>' +
+            '<div class="qn-yt-speed-chips" data-yt="speedChips"></div>' +
+          '</div>' +
+          // 終了したら次のライブラリの動画へ。利用者が明示的にONにした時だけ動く（初期OFF）。
+          '<div class="qn-yt-ctrl-row qn-yt-autonext-row">' +
+            '<span class="qn-yt-loop-status">Auto Next</span>' +
+            '<button type="button" class="glow-switch" role="switch" aria-checked="false" data-yt="autoNext" title="終了したらLibraryの次の動画を読み込む"><span class="glow-switch-knob"></span></button>' +
+            '<span class="qn-yt-loop-status qn-yt-autonext-hint">動画が終わったら、Libraryの次の動画を再生します</span>' +
           '</div>' +
           '<div class="qn-yt-ctrl-row qn-yt-ab-row">' +
             '<span class="qn-yt-loop-status">A <b data-yt="loopALabel">--</b></span>' +
@@ -237,6 +257,8 @@
     if (!root) return;
     var yt = root.querySelector(".qn-yt");
     yt.setAttribute("data-panel", id);
+    // SP幅でパネルを開いても、プレイヤーは画面上部に小さく残る（覆わない）ので
+    // 一時停止は不要（CSS側 .qn-yt:not([data-panel="none"]) 参照）。
     if (id === "backup") renderBackupList();
     if (id === "import") resetImportView();
     updatePanelTitle();
@@ -250,6 +272,12 @@
     if (panelState === "markers") t += " " + (current ? current.markers.length : 0);
     else if (panelState === "library") t += " " + items.length;
     refs.panelTitle.textContent = t;
+  }
+
+  function pausePlayer() {
+    try {
+      if (player && playerReady && typeof player.pauseVideo === "function") player.pauseVideo();
+    } catch (e) {}
   }
 
   function onSidebar(id) {
@@ -352,8 +380,15 @@
           playerReady = true;
           if (shouldPlay) player.playVideo(); // 利用者操作が起点なのでOK
           refreshDuration();
+          applyDesiredRate();
+          renderSpeed();
         },
-        onStateChange: function () { refreshDuration(); },
+        onStateChange: function (e) {
+          refreshDuration();
+          if (e && e.data === 1) { applyDesiredRate(); renderSpeed(); } // PLAYING
+          if (e && e.data === 0) handleEnded();                          // ENDED
+        },
+        onPlaybackRateChange: function () { renderSpeed(); },
         onError: onPlayerError
       }
     });
@@ -495,12 +530,116 @@
       current.looping = !current.looping;
       updateLoopUI();
     });
+    refs.prevMarkerBtn.addEventListener("click", function () { jumpMarker(-1); });
+    refs.nextMarkerBtn.addEventListener("click", function () { jumpMarker(1); });
+    refs.autoNext.setAttribute("aria-checked", String(autoNext));
+    refs.autoNext.addEventListener("click", function () { setAutoNext(!autoNext); });
+    renderSpeed();
+
     refs.loopClearBtn.addEventListener("click", function () {
       if (!current) return;
       current.loopA = null; current.loopB = null; current.looping = false;
       persistLoop();
       renderMarkers();
     });
+  }
+
+  // ---------- 前/次のマーカーへ移動（現在地を基準） ----------
+  function jumpMarker(dir) {
+    if (!current || !playerReady) { showMessage("先に動画を読み込んでください"); return; }
+    var ms = current.markers;
+    if (!ms.length) { showMessage("マーカーがありません"); return; }
+    var t = currentPos(), target = null, i;
+    if (dir > 0) {
+      for (i = 0; i < ms.length; i++) if (ms[i].time > t + 0.05) { target = ms[i]; break; }
+      if (!target) { showMessage("これより後のマーカーはありません"); return; }
+    } else {
+      // 直前のマーカーの少し先にいる時は、その1つ前へ戻れるよう 0.5秒の余裕を持たせる
+      for (i = ms.length - 1; i >= 0; i--) if (ms[i].time < t - 0.5) { target = ms[i]; break; }
+    }
+    showMessage("");
+    seekTo(target ? target.time : 0);
+  }
+
+  // ---------- 再生スピード（プレイヤーの外の自前UI・公式メソッドのみ） ----------
+  var desiredRate = loadRate();
+  function loadRate() {
+    try { var r = parseFloat(localStorage.getItem(RATE_KEY)); return r > 0 ? r : 1; } catch (e) { return 1; }
+  }
+  function availableRates() {
+    try {
+      if (player && playerReady && typeof player.getAvailablePlaybackRates === "function") {
+        var a = player.getAvailablePlaybackRates();
+        if (a && a.length) return a;
+      }
+    } catch (e) {}
+    return FALLBACK_RATES;
+  }
+  function applyDesiredRate() {
+    try {
+      if (player && playerReady && typeof player.setPlaybackRate === "function" &&
+          player.getPlaybackRate() !== desiredRate) {
+        player.setPlaybackRate(desiredRate);
+      }
+    } catch (e) {}
+  }
+  function renderSpeed() {
+    if (!root) return;
+    var actual = desiredRate;
+    try { if (player && playerReady && player.getPlaybackRate) actual = player.getPlaybackRate(); } catch (e) {}
+    refs.speedChips.textContent = "";
+    availableRates().forEach(function (r) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "qn-yt-btn mini" + (Math.abs(r - actual) < 0.001 ? " on" : "");
+      b.textContent = r === 1 ? "1x" : (r + "x");
+      b.addEventListener("click", function () {
+        desiredRate = r;
+        try { localStorage.setItem(RATE_KEY, String(r)); } catch (e) {}
+        if (player && playerReady && player.setPlaybackRate) player.setPlaybackRate(r);
+        renderSpeed();
+      });
+      refs.speedChips.appendChild(b);
+    });
+  }
+
+  // ---------- 終了したら次のライブラリの動画へ（Auto Next） ----------
+  // 規約：自動再生は「プレイヤーが画面に見えていて、その半分超が見えている」時だけ
+  // 許される。画面外・別タブ・アプリ非表示の時は行わない。
+  // 初期OFF、利用者がONにした時だけ動く。
+  var autoNext = (function () {
+    try { return localStorage.getItem(FLAG_KEY) === "1"; } catch (e) { return false; }
+  })();
+
+  function setAutoNext(on) {
+    autoNext = !!on;
+    try { localStorage.setItem(FLAG_KEY, autoNext ? "1" : "0"); } catch (e) {}
+    if (refs.autoNext) refs.autoNext.setAttribute("aria-checked", String(autoNext));
+  }
+
+  function playerMostlyVisible() {
+    if (document.visibilityState !== "visible") return false;
+    if (!root || root.hidden) return false;
+    var wrap = root.querySelector(".qn-yt-player-wrap");
+    var host = document.getElementById("qnAppHost");
+    if (!wrap || !host || host.hidden) return false;
+    var r = wrap.getBoundingClientRect(), h = host.getBoundingClientRect();
+    var w = Math.min(r.right, h.right) - Math.max(r.left, h.left);
+    var ht = Math.min(r.bottom, h.bottom) - Math.max(r.top, h.top);
+    if (w <= 0 || ht <= 0) return false;
+    return (w * ht) / (r.width * r.height) > 0.5;
+  }
+
+  function handleEnded() {
+    if (!autoNext || !current || !current.itemId) return;
+    var idx = -1;
+    for (var i = 0; i < items.length; i++) if (items[i].id === current.itemId) idx = i;
+    if (idx < 0) return;
+    var next = items[idx + 1];
+    if (!next) { showMessage("Libraryの最後の動画でした"); return; }
+    if (!playerMostlyVisible()) return;
+    refs.urlInput.value = next.url;
+    openVideo(next.videoId, next.url, next.id, { play: true });
   }
 
   // ---------- 保存リスト ----------
@@ -553,6 +692,57 @@
     });
   }
 
+  // 並べ替え：つかみ部分をドラッグ。ドラッグ中は行をtransformで動かすだけで
+  // DOMは動かさず（ポインターキャプチャを保つため）、離した時に配列を並べ替える。
+  function attachReorder(grip, li) {
+    var startY = 0, targetId = null, before = true;
+    function clearMarks() {
+      var m = refs.itemList.querySelectorAll(".drop-before,.drop-after");
+      for (var i = 0; i < m.length; i++) m[i].classList.remove("drop-before", "drop-after");
+    }
+    grip.addEventListener("pointerdown", function (e) {
+      e.preventDefault();
+      grip.setPointerCapture(e.pointerId);
+      startY = e.clientY; targetId = null;
+      li.classList.add("dragging");
+    });
+    grip.addEventListener("pointermove", function (e) {
+      if (!grip.hasPointerCapture(e.pointerId)) return;
+      li.style.transform = "translateY(" + (e.clientY - startY) + "px)";
+      clearMarks();
+      targetId = null;
+      var rows = refs.itemList.children;
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        if (r === li) continue;
+        var b = r.getBoundingClientRect();
+        if (e.clientY >= b.top && e.clientY <= b.bottom) {
+          targetId = r.dataset.id;
+          before = e.clientY < b.top + b.height / 2;
+          r.classList.add(before ? "drop-before" : "drop-after");
+          break;
+        }
+      }
+    });
+    function finish(e, commit) {
+      if (!grip.hasPointerCapture(e.pointerId)) return;
+      grip.releasePointerCapture(e.pointerId);
+      li.classList.remove("dragging"); li.style.transform = "";
+      clearMarks();
+      if (commit && targetId && targetId !== li.dataset.id) {
+        var moving = findItem(li.dataset.id);
+        items = items.filter(function (x) { return x !== moving; });
+        var pos = 0;
+        for (var i = 0; i < items.length; i++) if (items[i].id === targetId) pos = i;
+        items.splice(before ? pos : pos + 1, 0, moving);
+        saveItems();
+      }
+      renderList();
+    }
+    grip.addEventListener("pointerup", function (e) { finish(e, true); });
+    grip.addEventListener("pointercancel", function (e) { finish(e, false); });
+  }
+
   function renderList() {
     refs.itemList.textContent = "";
     refs.emptyList.style.display = items.length ? "none" : "";
@@ -561,7 +751,11 @@
     if (panelState === "backup") renderBackupList();
     items.forEach(function (it) {
       var li = document.createElement("li");
+      li.dataset.id = it.id;
       if (current && current.itemId === it.id) li.className = "active";
+      var grip = document.createElement("span");
+      grip.className = "qn-yt-grip"; grip.title = "ドラッグで並べ替え"; grip.innerHTML = SVG_GRIP;
+      attachReorder(grip, li);
       var t = document.createElement("span");
       t.className = "title"; t.textContent = it.title; t.title = it.title;
       t.addEventListener("click", function () {
@@ -579,7 +773,7 @@
         if (current && current.itemId === it.id) current.itemId = null;
         saveItems(); renderList();
       });
-      li.appendChild(t); li.appendChild(edit); li.appendChild(del);
+      li.appendChild(grip); li.appendChild(t); li.appendChild(edit); li.appendChild(del);
       refs.itemList.appendChild(li);
     });
   }

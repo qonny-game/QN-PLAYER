@@ -46,7 +46,7 @@
   var apps = [];            // 登録済みアプリ（order順）
   var current = null;       // 今開いているアプリ（null = QNPLAYER本体）
   var appsMode = false;     // サイドバーがアプリ一覧になっているか
-  var iconBar = null, host = null, moreBtn = null, toastEl = null, toastTimer = null;
+  var iconBar = null, host = null, moreBtn = null, badgeBtn = null, toastEl = null, toastTimer = null;
   var views = {};           // id -> viewEl
   var mounted = {};         // id -> true
   var resizeObs = null;
@@ -134,8 +134,31 @@
     }
   }
 
+  // ---------- 現在のアプリ名バッジ（サイドバーの先頭） ----------
+  // 「今どのアプリに居るか」を示す。押すとMOREと同じアプリ一覧に切り替わる。
+  function buildBadge() {
+    if (!iconBar || $("qnAppBadge")) return;
+    badgeBtn = makeItemButton({ cls: "qn-app-badge" }, PLAYER_ICON, "Player", "Apps");
+    badgeBtn.id = "qnAppBadge";
+    badgeBtn.addEventListener("click", function () {
+      haptic();
+      setAppsMode(true);
+    });
+    iconBar.insertBefore(badgeBtn, iconBar.firstChild);
+  }
+
+  function updateBadge() {
+    if (!badgeBtn) return;
+    var app = current || findApp("player");
+    if (!app) return;
+    badgeBtn.querySelector("svg").innerHTML = app.icon;
+    badgeBtn.querySelector("span").textContent = app.label.toUpperCase();
+    badgeBtn.title = app.label + " — switch app";
+  }
+
   function refreshSidebar() {
     if (!iconBar || !moreBtn) return;
+    updateBadge();
     iconBar.classList.toggle("qn-apps-mode", appsMode);
     iconBar.classList.toggle("qn-app-sidebar", !!current && !appsMode);
     moreBtn.querySelector("svg").innerHTML = appsMode ? BACK_ICON : MORE_ICON;
@@ -287,7 +310,9 @@
     iconBar = $("pcV2IconBar");
     if (!iconBar || !$("pcV2IconBarBottom")) return false;
     buildMore();
+    buildBadge();
     renderAppItems();
+    updateBadge();
     ensureHost();
     var layout = $("pcV2Layout");
     if (layout && window.ResizeObserver && !resizeObs) {

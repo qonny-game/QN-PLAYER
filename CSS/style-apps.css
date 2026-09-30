@@ -26,11 +26,12 @@
 /* アプリ一覧モード中は、通常のアイコン（Control/Markers/…）を隠す。
    SP幅でSeekbarだけ display:flex に戻されている指定(0,2,0)にも勝つ詳細度。 */
 #pcV2IconBar.qn-apps-mode > .pcv2-icon-item:not(.qn-app-item) {
+  /* （現在のアプリ名バッジ #qnAppBadge もここで隠れる：一覧そのものが見えているため） */
   display: none;
 }
 
 /* アプリ表示中(一覧ではない)は、そのアプリ専用の項目(.qn-appside-item)だけ出す */
-#pcV2IconBar.qn-app-sidebar > .pcv2-icon-item:not(.qn-appside-item) {
+#pcV2IconBar.qn-app-sidebar > .pcv2-icon-item:not(.qn-appside-item):not(#qnAppBadge) {
   display: none;
 }
 
@@ -74,9 +75,22 @@
   --sidebar-on-accent: #0a0a0c;
 }
 
-#pcV2IconBar #qnMoreBtn {
+#pcV2IconBar #qnMoreBtn,
+#pcV2IconBar #qnAppBadge {
   background: var(--accent-primary);
   color: var(--sidebar-on-accent);
+}
+
+/* 現在のアプリ名バッジ：サイドバーの先頭。PC幅は下に少し余白、SP幅は右に少し余白 */
+#pcV2IconBar #qnAppBadge {
+  margin-bottom: 8px;
+}
+
+@media screen and (max-width: 900px) {
+  #pcV2IconBar #qnAppBadge {
+    margin-bottom: 0;
+    margin-right: 6px;
+  }
 }
 
 @media (hover: hover) {
@@ -87,13 +101,15 @@
     color: var(--sidebar-on-accent);
   }
 
-  #pcV2IconBar #qnMoreBtn:hover {
+  #pcV2IconBar #qnMoreBtn:hover,
+  #pcV2IconBar #qnAppBadge:hover {
     background: var(--accent-hover-1);
     color: var(--sidebar-on-accent);
   }
 }
 
-#pcV2IconBar #qnMoreBtn:active {
+#pcV2IconBar #qnMoreBtn:active,
+#pcV2IconBar #qnAppBadge:active {
   background: var(--accent-hover-1);
 }
 
@@ -391,6 +407,46 @@ body.qn-app-open #pcV2TimeRow {
   position: relative;
 }
 
+/* 並べ替えのつかみ部分 */
+.qn-yt-grip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 28px;
+  margin-left: -4px;
+  color: var(--icon-muted);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.qn-yt-grip svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.qn-yt-grip:hover {
+  color: var(--text-bright);
+}
+
+.qn-yt-list li.dragging {
+  position: relative;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.qn-yt-list li.drop-before {
+  box-shadow: inset 0 2px 0 var(--accent-primary);
+}
+
+.qn-yt-list li.drop-after {
+  box-shadow: inset 0 -2px 0 var(--accent-primary);
+}
+
 .qn-yt-list li.active .title {
   color: var(--accent-primary);
 }
@@ -581,6 +637,7 @@ body.qn-app-open #pcV2TimeRow {
   width: 100%;
   max-width: 1280px;
   aspect-ratio: 16 / 9;
+  min-height: 200px; /* 規約: 最小 200px */
   background: #000;
   flex-shrink: 0;
 }
@@ -720,6 +777,28 @@ body.qn-app-open #pcV2TimeRow {
   font-variant-numeric: tabular-nums;
 }
 
+.qn-yt-ico {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  vertical-align: -3px;
+  margin: 0 4px;
+}
+
+.qn-yt-btn .qn-yt-ico:first-child {
+  margin-left: 0;
+}
+
+.qn-yt-speed-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qn-yt-autonext-hint {
+  font-size: var(--fs-micro);
+}
+
 .qn-yt-loop-status b {
   color: var(--text-bright);
   font-weight: 600;
@@ -773,14 +852,16 @@ body.qn-app-open #pcV2TimeRow {
     padding-top: 12px;
   }
 
-  /* SP幅：パネルは本体と同じく、サイドバーのアイコンで開閉する全面オーバーレイ
-     （ステージの上に重なる。ステージは裏に残る） */
+  /* SP幅：パネルはサイドバーのアイコンで開閉する。開いている間は、
+     プレイヤーを画面上部に小さく残し（規約：プレイヤーを覆わない・隠さない・
+     最低200x200pxを保つ）、パネルはその下の残り領域に表示する。
+     ※ざっくり実装。高さの割合などは後日調整。 */
   .qn-yt-panel {
-    position: absolute;
-    inset: 0;
-    z-index: 5;
-    background: #0a0a0c;
+    order: 2;
     border-right: none;
+    border-top: 1px solid var(--border-subtle);
+    flex: 1;
+    min-height: 0;
   }
 
   .qn-yt[data-panel="none"] .qn-yt-panel {
@@ -789,6 +870,28 @@ body.qn-app-open #pcV2TimeRow {
 
   .qn-yt-panel-scroll {
     overflow-y: auto;
+  }
+
+  /* パネルが開いている間：全体はスクロールさせず、ステージ=小さなプレイヤーだけ、
+     自前UI(シークバー等)とフッターは隠す（パネルを閉じれば戻る） */
+  .qn-yt:not([data-panel="none"]) {
+    overflow: hidden;
+  }
+
+  .qn-yt:not([data-panel="none"]) .qn-yt-stage {
+    padding: 8px 16px;
+    overflow: hidden;
+  }
+
+  .qn-yt:not([data-panel="none"]) .qn-yt-custom,
+  .qn-yt:not([data-panel="none"]) .qn-yt-footer {
+    display: none;
+  }
+
+  .qn-yt:not([data-panel="none"]) .qn-yt-player-wrap {
+    aspect-ratio: auto;
+    height: max(200px, 30dvh);
+    min-height: 200px;
   }
 
   .qn-yt-panel-header {

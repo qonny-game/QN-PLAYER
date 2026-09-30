@@ -228,3 +228,24 @@ QNPLAYER（QNシリーズ）に追加予定の「YouTube URL再生機能」を�
 ---
 作成日: 2026年9月29日（規約遵守ルールを追加・標準コントロール表示方針に変更）
 参照規約: YouTube API Services Developer Policies（2026-09-14更新版を確認）
+
+
+---
+
+## 追補（2026-09-30 / QNPLAYER v2.20.0）：統合後に追加した機能と規約上の扱い
+
+出典：YouTube API Services Required Minimum Functionality / Developer Policies（実装時に原文を確認）。
+
+- **Auto Next（終了したらLibraryの次の動画を読み込む）**
+  - 初期OFF。利用者が明示的にONにした時だけ動く（`localStorage: qn_yt_autonext`）。
+  - 規約上、自動再生は「プレイヤーが画面に見えていて、その半分超が見えている」場合に限られる。
+    そのため、①別タブ／②アプリ非表示／③プレイヤーが半分以上隠れている、
+    のいずれかでは次へ進まない（`playerMostlyVisible()`）。
+  - 同時に自動再生するプレイヤーは常に1つだけ（プレイヤー自体が1つ）。
+- **再生スピード**：プレイヤーの**外**に置いた自前UI。倍率は`getAvailablePlaybackRates()`（YouTube標準と同じ）、
+  変更は公式メソッド`setPlaybackRate()`のみ。プレイヤーの上には何も重ねない。
+- **前/次マーカー**：`getCurrentTime()`→`seekTo()`のみ。
+- **SP幅でパネルを開いてもプレイヤーは覆わない**：プレイヤーを画面上部に小さく残し（最低200×200px）、
+  パネルはその下に表示する（v2.20.1〜）。アプリを閉じる時は`pauseVideo()`で一時停止
+  （見えないまま再生され続けるバックグラウンド再生を作らないため）。
+- **Library並べ替え**：自前データ（URL・手入力タイトル・マーカー）の順序のみ。YouTubeへは影響なし。
