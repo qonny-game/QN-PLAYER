@@ -550,6 +550,9 @@
       }
       saveItems();
       renderList();
+      // 保存したら入力欄は空に戻す（再生中の動画はそのまま）
+      refs.urlInput.value = "";
+      refs.titleInput.value = "";
       showMessage("リストに保存しました", true);
     });
 
