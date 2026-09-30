@@ -123,3 +123,19 @@ grep -o 'id="track[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort
 新しいモーダル/パネルを作るときは、その機能グループのIDプレフィックスを
 1つに統一する（`trackBackup*` / `trackImport*`のように）と、後から
 `grep`で一括抽出しやすく、この一覧にも足しやすい。
+
+
+---
+
+## アプリ一覧・YouTubeアプリ（v2.17.0〜）
+
+| ID / クラス | 内容 |
+|---|---|
+| `#qnMoreBtn` | サイドバー最下部のMORE(=BACK)ボタン。`aria-pressed`がアプリ一覧モード |
+| `#pcV2IconBar.qn-apps-mode` | アプリ一覧モード中のクラス |
+| `.qn-app-item[data-app-id]` | アプリ一覧の各項目(`.pcv2-icon-item`と併用)。`.qn-app-active`=選択中、`.qn-app-soon`=準備中 |
+| `#qnAppHost` | アプリ表示領域(position:fixed)。中に`.qn-app-view[data-app-view=<id>]` |
+| `#qnAppToast` | 「◯◯ is coming soon」のトースト |
+| `body.qn-app-open` | アプリ表示中(下段バー非表示・ショートカット無効) |
+| `#qnYtPlayer` | YouTube IFrame Playerの差し込み先(唯一のid。他は`data-yt="..."`で参照) |
+| `localStorage: qn_yt_items` | YouTubeの保存リスト(videoId/URL/手入力タイトル/マーカー/AB点のみ) |

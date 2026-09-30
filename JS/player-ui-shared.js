@@ -481,6 +481,9 @@ if (nextTrackBtn) nextTrackBtn.onclick = () => playNextTrack();
 
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  // MOREのアプリ（YouTube等）を開いている間は、本体のショートカット
+  // （Space=再生、P/M=マーカー追加 等）を無効にする（qn-apps.js参照）。
+  if (document.body.classList.contains("qn-app-open")) return;
 
   const activePins = pins.filter(p => p.enabled);
 

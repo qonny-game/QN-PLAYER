@@ -37,6 +37,10 @@ QNPLAYER/
 │   ├── player-id3.js           # MP3のID3v2タグ読み取り（Title/Artist）
 │   ├── player-text.js          # Textタブ（歌詞・メモ）
 │   ├── player-auth.js          # Firebase Auth（Googleログイン）
+│   ├── qn-apps.js              # 【v2.17.0〜】MORE/アプリ一覧/アプリ表示領域。QNApps.register()で
+│   │                           #   アプリを足す。TUNER/PITCHは準備中の枠だけ登録済み
+│   ├── qn-app-youtube.js       # 【v2.17.0〜】YouTubeアプリ（IFrame埋め込み＋3行シークバー＋マーカー＋ABループ）。
+│   │                           #   規約ルールはmd/YT_PROTOTYPE_SPEC.md（最優先）
 │   ├── jszip.min.js / lame_min.js  # 外部ライブラリ（ZIP圧縮／MP3エンコード）
 ├── CSS/
 │   ├── style-core.css          # PC版デフォルトレイアウト＋PC/SP共通デザイン
@@ -47,6 +51,7 @@ QNPLAYER/
 │   ├── style-pcv2-panels.css   # PC v2の中央パネル（#pcV2PanelBody）の中身の実装：
 │   │                           #   Control/EQ・Markers・Library・Text・Backup/Import・
 │   │                           #   Color/Keyboard、パネル見出し・右下FABボタン
+│   ├── style-apps.css          # 【v2.17.0〜】MORE/アプリ一覧/#qnAppHost/YouTubeアプリの見た目
 │   ├── style-layout-sp.css     # 旧SP版上書き（現在は実質未使用、詳細は§2）
 │   ├── style-playlist.css / style-markers.css / style-controls.css /
 │   │   style-control-eq.css / style-export.css / style-shareware.css /
@@ -59,7 +64,8 @@ QNPLAYER/
 player-ui-shared.js → player-id3.js → player-playlist.js →
 player-track-backup.js → player-markers.js → player-control-eq.js →
 player-controls.js → player-export.js → player-text.js →
-player-ui-pc-v2.js → player-theme.js → player-auth.js(module)`
+player-ui-pc-v2.js → qn-apps.js → qn-app-youtube.js → player-theme.js →
+player-auth.js(module)`（qn-apps.jsはplayer-ui-pc-v2.jsより後、アプリ側ファイルはqn-apps.jsより後）
 
 **新しい関数を他ファイルから参照する場合は、この順序で「呼ぶ側より前に定義されているか」を必ず確認する。**
 特に `player-core.js` はほぼ全ファイルの先頭にあるので、共通ヘルパーを追加する定位置として適している。

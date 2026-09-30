@@ -194,3 +194,21 @@ PC v2の中央パネル（`#pcV2PanelBody`）に表示される中身専用。
   （放置すると目次自体が誤誘導になるため、これは他ファイルより優先度高）。
 - 他のファイルが同程度の規模（1000行超）に育った場合は、同じ形式で
   このファイルにセクションを追加してよい。
+
+
+---
+
+## JS/qn-apps.js / JS/qn-app-youtube.js / CSS/style-apps.css（v2.17.0〜）
+
+MOREボタン・アプリ一覧・アプリ表示領域と、その第1号のYouTubeアプリ。
+`player-ui-pc-v2.js`の`build()`が作った`#pcV2IconBar`に**後から**項目を差し込む
+方式（MutationObserverで出来上がりを待つ）。`player-ui-pc-v2.js`自体は変更していない。
+
+- `QNApps.register({id,label,icon,order,ready,mount,onShow,onHide})` — アプリ登録。
+- `QNApps.open(id)` / `QNApps.close()` — アプリの表示/非表示。`close()`で本体へ戻る。
+- `layoutHost()` — `#qnAppHost`(position:fixed)の位置を`#pcV2Layout`と`#pcV2IconBar`
+  の実測から決める。PC幅=アイコンバーの右〜下端、SP幅=ヘッダー直下〜アイコンバー直上。
+- サイドバーの切替は`#pcV2IconBar.qn-apps-mode`のCSSのみ（DOMは動かさない）。
+  選択中は`.qn-app-active`（本体側JSが`.active`を外してしまうため別クラス）。
+- `#qnMoreBtn`は`#pcV2IconBarBottom`の末尾。アプリ一覧モード中はこのボタンだけ残り、
+  ラベル/アイコンがBack用に入れ替わる。

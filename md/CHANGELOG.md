@@ -299,3 +299,19 @@
   `style-pcv2-panels.css`（パネルの中身専用）を追加。
   全セレクタが過不足なく移動していることを機械的に検証済み
   （詳細は`md/CSS_SPLIT_INSTRUCTIONS.md`）。
+
+## 2.17.0 — MOREボタン＋アプリ一覧、YouTubeアプリを統合
+- サイドバー(`#pcV2IconBar`)の一番下（Keyboard/Colorの下）に**MOREボタン**を追加。
+  押すとサイドバーが**アプリ一覧**（PLAYER / YOUTUBE / TUNER / PITCH）に切り替わる。
+  項目は通常のサイドバーアイコン(`.pcv2-icon-item`)と同じ見た目・サイズ・位置
+  （SP幅の横並びも同じ）。MOREは押すとBACKに変わり、通常のサイドバーへ戻る。
+- アプリ一覧の仕組みを新規ファイル`JS/qn-apps.js`にまとめた（`QNApps.register()`で
+  1アプリ=1登録。今後アプリを増やす時はここに足すだけ）。TUNER/PITCHは「準備中」
+  （押すとトースト表示）として先に枠だけ用意。
+- YouTubeプロトタイプ(単体版)を`JS/qn-app-youtube.js`＋`CSS/style-apps.css`として統合。
+  見た目をQNPLAYERの配色トークン・パネル・ボタンに統一。単体版からの変更点：
+  idの名前空間化(`data-yt`)、IFrame APIは初回に動画を読み込む時まで取得しない、
+  非表示中はポーリング停止＋`pauseVideo()`、削除は2度押し確認(confirm()廃止)。
+  規約ルールは`md/YT_PROTOTYPE_SPEC.md`（単体版の仕様書）のまま維持。
+- アプリ表示中は`body.qn-app-open`が付き、本体の下段バー等を隠す＆audioを一時停止＆
+  キーボードショートカット(`player-ui-shared.js`のkeydown)を無効化。
