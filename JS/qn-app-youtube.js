@@ -128,12 +128,12 @@
               '</div>' +
               '<div class="qn-yt-message" data-yt="message" role="status"></div>' +
             '</div>' +
-            '<ul class="qn-yt-list" data-yt="itemList"></ul>' +
+            '<div class="qn-yt-libbox" data-yt="itemList"></div>' +
             '<p class="qn-yt-empty" data-yt="emptyList">まだ保存されていません</p>' +
           '</section>' +
           '<section class="qn-yt-sec qn-yt-sec-markers">' +
             '<div class="qn-yt-sec-head"><h3>Markers</h3><span class="qn-yt-count" data-yt="markerCount">0</span></div>' +
-            '<ul class="qn-yt-list qn-yt-marker-list" data-yt="markerList"></ul>' +
+            '<div class="qn-yt-pinbox" data-yt="markerList"></div>' +
             '<p class="qn-yt-empty" data-yt="emptyMarkers">マーカーはありません</p>' +
           '</section>' +
           // ---- Backup（本体のBackupと同じ流れ：リスト選択 → 含める項目 → Download） ----
@@ -192,10 +192,24 @@
             '</div>' +
           '</section>' +
         '</div>' +
+        // 本体(PLAYER)のLibrary/Markersと同じ、右下のフローティングボタン
+        '<div class="qn-yt-fab" data-yt="fab">' +
+          '<div class="qn-yt-fab-add">' +
+            '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="fabAdd" title="Add Marker">' +
+              '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>ADD MARKER</span>' +
+            '</button>' +
+          '</div>' +
+          '<button type="button" class="panel-fab-btn panel-fab-delete-btn" data-yt="fabDel" disabled>' +
+            '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg><span>Delete</span>' +
+          '</button>' +
+          '<button type="button" class="panel-fab-btn panel-edit-btn" data-yt="fabEdit" title="Edit">' +
+            '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg><span data-yt="fabEditLabel">EDIT</span>' +
+          '</button>' +
+        '</div>' +
       '</aside>' +
       '<section class="qn-yt-stage">' +
         // プレイヤーは標準コントロールのまま表示。上には何も重ねない（規約）
-        '<div class="qn-yt-player-wrap"><div id="qnYtPlayer"></div></div>' +
+        '<div class="qn-yt-player-wrap" data-qn-keep-visible><div id="qnYtPlayer"></div></div>' +
         // ここから下はプレイヤーの外(余白あり)
         '<div class="qn-yt-custom">' +
           '<p class="qn-yt-fetched-title" data-yt="fetchedTitle"></p>' +
@@ -255,8 +269,12 @@
     if (!isSp() && id === "none") id = "library";
     panelState = id;
     if (!root) return;
+    if (editMode && editMode !== id) { editMode = null; selected = {}; }
     var yt = root.querySelector(".qn-yt");
     yt.setAttribute("data-panel", id);
+    updateFab();
+    renderList();
+    renderMarkers();
     // SP幅でパネルを開いても、プレイヤーは画面上部に小さく残る（覆わない）ので
     // 一時停止は不要（CSS側 .qn-yt:not([data-panel="none"]) 参照）。
     if (id === "backup") renderBackupList();
@@ -508,14 +526,21 @@
       showMessage("リストに保存しました", true);
     });
 
-    refs.addMarkerBtn.addEventListener("click", function () {
+    function addMarkerHere() {
       if (!current || !playerReady) { showMessage("先に動画を読み込んでください"); return; }
       var t = Math.round(clampTime(currentPos()) * 10) / 10;
       current.markers.push({ id: uid("m"), time: t, label: "" });
       sortMarkers();
       persistMarkers();
       renderMarkers();
+    }
+    refs.addMarkerBtn.addEventListener("click", addMarkerHere);
+    refs.fabAdd.addEventListener("click", function () {
+      if (!current || !playerReady) { if (window.QNApps) window.QNApps.toast("先に動画を読み込んでください"); return; }
+      addMarkerHere();
     });
+    refs.fabEdit.addEventListener("click", toggleEdit);
+    refs.fabDel.addEventListener("click", deleteSelected);
 
     // ±10秒: seekTo() のみを使う自前UI(公式メソッドのみ・プレイヤーへの重ね合わせなし)
     refs.skipBackBtn.addEventListener("click", function () {
@@ -549,7 +574,7 @@
   // ---------- 前/次のマーカーへ移動（現在地を基準） ----------
   function jumpMarker(dir) {
     if (!current || !playerReady) { showMessage("先に動画を読み込んでください"); return; }
-    var ms = current.markers;
+    var ms = current.markers.filter(function (x) { return x.enabled !== false; });
     if (!ms.length) { showMessage("マーカーがありません"); return; }
     var t = currentPos(), target = null, i;
     if (dir > 0) {
@@ -637,7 +662,8 @@
     var idx = -1;
     for (var i = 0; i < items.length; i++) if (items[i].id === current.itemId) idx = i;
     if (idx < 0) return;
-    var next = items[idx + 1];
+    var next = null;
+    for (var j = idx + 1; j < items.length; j++) if (!items[j].skip) { next = items[j]; break; }
     if (!next) { showMessage("Libraryの最後の動画でした"); return; }
     if (!playerMostlyVisible()) return;
     refs.urlInput.value = next.url;
@@ -745,38 +771,182 @@
     grip.addEventListener("pointercancel", function (e) { finish(e, false); });
   }
 
+  // ---------- EDITモード（本体のLibrary / Markersパネルと同じ操作） ----------
+  // 右下のEDIT→OKで切り替え。編集中は「PLAY/SKIP」トグルと削除用の丸チェックが出て、
+  // 選んだ行を右下のDeleteでまとめて削除する。
+  var editMode = null;   // null | "library" | "markers"
+  var selected = {};     // 削除用に選んだ行の id
+
+  function selectedCount() {
+    var n = 0;
+    for (var k in selected) if (selected[k]) n++;
+    return n;
+  }
+  function updateFab() {
+    if (!root) return;
+    var yt = root.querySelector(".qn-yt");
+    if (editMode) yt.setAttribute("data-edit", editMode); else yt.removeAttribute("data-edit");
+    refs.fabEdit.classList.toggle("active", !!editMode);
+    refs.fabEditLabel.textContent = editMode ? "OK" : "EDIT";
+    refs.fabDel.disabled = selectedCount() === 0;
+  }
+  function setEditMode(mode) {
+    editMode = mode;
+    selected = {};
+    updateFab();
+    renderList();
+    renderMarkers();
+  }
+  function toggleEdit() {
+    if (panelState !== "library" && panelState !== "markers") return;
+    setEditMode(editMode === panelState ? null : panelState);
+  }
+  function toggleSelect(id, delBtn, container, toggleSel) {
+    if (selected[id]) { delete selected[id]; delBtn.classList.remove("pcv2-selected"); }
+    else { selected[id] = true; delBtn.classList.add("pcv2-selected"); }
+    updateFab();
+    // 選択中は「PLAY/SKIP」「表示/非表示」を押せなくする（本体と同じ仕様）
+    var has = selectedCount() > 0;
+    var ts = container.querySelectorAll(toggleSel);
+    for (var i = 0; i < ts.length; i++) ts[i].disabled = has;
+  }
+  function deleteSelected() {
+    var mode = editMode;
+    if (!mode || !selectedCount()) return;
+    refs.fabDel.disabled = true;
+    var box = mode === "library" ? refs.itemList : refs.markerList;
+    var rows = box.children, delay = 0;
+    for (var i = 0; i < rows.length; i++) {
+      if (selected[rows[i].dataset.id]) { rows[i].classList.add("pcv2-row-deleting"); delay = 260; }
+    }
+    box.style.pointerEvents = "none";
+    setTimeout(function () {
+      box.style.pointerEvents = "";
+      if (mode === "library") {
+        items = items.filter(function (x) { return !selected[x.id]; });
+        if (current && current.itemId && selected[current.itemId]) current.itemId = null;
+        saveItems();
+      } else if (current) {
+        current.markers = current.markers.filter(function (x) { return !selected[x.id]; });
+        // 消えたマーカーを指すAB点は外す
+        if (current.loopA && selected[current.loopA]) current.loopA = null;
+        if (current.loopB && selected[current.loopB]) current.loopB = null;
+        if (!current.loopA || !current.loopB) current.looping = false;
+        var it = current.itemId ? findItem(current.itemId) : null;
+        if (it) it.markers = current.markers;
+        persistMarkers(); persistLoop();
+      }
+      selected = {};
+      updateFab();
+      renderList();
+      renderMarkers();
+    }, delay);
+  }
+
+  function playItem(it) {
+    refs.urlInput.value = it.url;
+    openVideo(it.videoId, it.url, it.id, { play: true }); // クリック起点なので再生開始OK
+    closePanelOnSp();
+  }
+
+  var SVG_PLAY_ICON = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  var SVG_PENCIL = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+
   function renderList() {
+    if (!root) return;
     refs.itemList.textContent = "";
     refs.emptyList.style.display = items.length ? "none" : "";
     refs.listCount.textContent = String(items.length);
     updatePanelTitle();
     if (panelState === "backup") renderBackupList();
+    var edit = editMode === "library";
+    // 存在しない行の選択は捨てる
+    for (var k in selected) if (!findItem(k) && !(current && findMarker(k))) delete selected[k];
+    var box = refs.itemList;
+
     items.forEach(function (it) {
-      var li = document.createElement("li");
-      li.dataset.id = it.id;
-      if (current && current.itemId === it.id) li.className = "active";
+      var row = document.createElement("div");
+      row.className = "playlistItem";
+      row.dataset.id = it.id;
+      if (current && current.itemId === it.id) row.classList.add("playing");
+      if (it.skip) row.classList.add("disabled");
+
+      if (!edit) {
+        row.addEventListener("click", function (e) {
+          if (e.target.closest("button, input, .playlist-drag-handle, .playlist-info-block")) return;
+          playItem(it);
+        });
+      }
+
       var grip = document.createElement("span");
-      grip.className = "qn-yt-grip"; grip.title = "ドラッグで並べ替え"; grip.innerHTML = SVG_GRIP;
-      attachReorder(grip, li);
-      var t = document.createElement("span");
-      t.className = "title"; t.textContent = it.title; t.title = it.title;
-      t.addEventListener("click", function () {
-        refs.urlInput.value = it.url;
-        openVideo(it.videoId, it.url, it.id, { play: true }); // クリック起点なので再生開始OK
-        closePanelOnSp();
+      grip.className = "playlist-drag-handle"; grip.title = "ドラッグで並べ替え"; grip.innerHTML = SVG_GRIP;
+      attachReorder(grip, row);
+      row.appendChild(grip);
+
+      // サムネイルは取得・保存しない(規約：保存するのはURL・自分で付けたタイトル・マーカーのみ)
+      var thumb = document.createElement("div");
+      thumb.className = "playlist-thumb";
+      thumb.innerHTML = SVG_PLAY_ICON;
+      row.appendChild(thumb);
+
+      var info = document.createElement("div");
+      info.className = "playlist-info-block";
+      info.addEventListener("click", function (e) {
+        if (e.target.closest(".playlist-editable-input, .playlist-hover-edit-btn")) return;
+        playItem(it);
       });
-      var edit = document.createElement("button");
-      edit.type = "button"; edit.className = "qn-yt-btn mini"; edit.textContent = "Edit";
-      edit.addEventListener("click", function () { startInlineEdit(it, t, edit); });
-      var del = document.createElement("button");
-      del.type = "button"; del.className = "qn-yt-btn mini"; del.textContent = "Del";
-      armDelete(del, function () {
-        items = items.filter(function (x) { return x.id !== it.id; });
-        if (current && current.itemId === it.id) current.itemId = null;
-        saveItems(); renderList();
+      var titleRow = document.createElement("div");
+      titleRow.className = "playlist-title-row";
+      var titleField = makeEditableText(it.title, "playlist-title", "", function (v) {
+        if (!v) { renderList(); return; }            // 空にはしない(元のタイトルに戻す)
+        it.title = v;
+        if (current && current.itemId === it.id) refs.titleInput.value = v;
+        saveItems();
+        updatePanelTitle();
       });
-      li.appendChild(grip); li.appendChild(t); li.appendChild(edit); li.appendChild(del);
-      refs.itemList.appendChild(li);
+      titleRow.appendChild(titleField);
+      if (!edit) {
+        var pen = document.createElement("button");
+        pen.type = "button"; pen.className = "playlist-hover-edit-btn"; pen.title = "Edit title";
+        pen.innerHTML = SVG_PENCIL;
+        pen.addEventListener("click", function (e) { e.stopPropagation(); titleField.startEdit(); });
+        titleRow.appendChild(pen);
+      }
+      info.appendChild(titleRow);
+      row.appendChild(info);
+
+      if (edit) {
+        var hasSel = selectedCount() > 0;
+        var skip = document.createElement("button");
+        skip.type = "button";
+        skip.className = "playlist-skip-toggle" + (it.skip ? "" : " skip-off");
+        skip.disabled = hasSel;
+        skip.title = it.skip ? "Skipped during Auto Next (click to include)" : "Included in Auto Next (click to skip)";
+        skip.innerHTML = '<span class="playlist-skip-toggle-label">' + (it.skip ? "SKIP" : "PLAY") + '</span>';
+        skip.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (selectedCount() > 0) return;
+          it.skip = !it.skip;
+          if (!it.skip) delete it.skip;
+          saveItems(); renderList();
+        });
+        row.appendChild(skip);
+
+        var zone = document.createElement("div");
+        zone.className = "playlist-del-zone";
+        var del = document.createElement("button");
+        del.type = "button"; del.className = "del-btn"; del.tabIndex = -1; del.textContent = "✕";
+        if (selected[it.id]) del.classList.add("pcv2-selected");
+        zone.appendChild(del);
+        zone.addEventListener("click", function (e) {
+          e.stopPropagation();
+          toggleSelect(it.id, del, box, ".playlist-skip-toggle");
+        });
+        row.appendChild(zone);
+      }
+      // 編集中は全行のタイトルを最初から入力欄にする（未接続の間に切り替えるのでフォーカスは奪わない）
+      if (edit) titleField.startEdit();
+      box.appendChild(row);
     });
   }
 
@@ -806,67 +976,204 @@
     updateDisplay(clampTime(t));
   }
 
+  function markerColorHex(m) {
+    return m.color && typeof MARKER_COLOR_PALETTE !== "undefined" && MARKER_COLOR_PALETTE[m.color] ? MARKER_COLOR_PALETTE[m.color] : null;
+  }
+  function markerText(m, i) {
+    return (i + 1) + " - " + (m.label ? m.label : fmt(m.time));
+  }
+
+  // メモ編集（本体のマーカーメモと同じ：鉛筆→入力欄＋プリセット。プリセットを選ぶと色も自動で付く）
+  function startMemoEdit(m, infoSpan, i) {
+    if (infoSpan.parentNode.querySelector(".pin-memo-input")) return;
+    var input = document.createElement("input");
+    input.type = "text"; input.className = "pin-memo-input";
+    input.value = m.label || ""; input.placeholder = fmt(m.time); input.maxLength = 60;
+    infoSpan.style.display = "none";
+    infoSpan.parentNode.insertBefore(input, infoSpan);
+    input.focus(); input.select();
+
+    var popup = document.createElement("div");
+    popup.className = "pin-memo-preset-popup";
+    var hasPresets = typeof getAllMarkerPresetLabels === "function" && typeof getMarkerPresetColors === "function";
+    var presetColors = hasPresets ? getMarkerPresetColors() : {};
+    var pointerActive = false, finished = false;
+
+    function closePop() { if (typeof closePinMemoPresetPopup === "function") closePinMemoPresetPopup(); }
+    function commit() {
+      if (finished) return; finished = true; closePop();
+      m.label = input.value.trim();
+      persistMarkers(); renderMarkers();
+    }
+    function cancel() { if (finished) return; finished = true; closePop(); renderMarkers(); }
+    function applyPreset(label) {
+      if (finished) return; finished = true; closePop();
+      m.label = label;
+      var c = presetColors[label];
+      if (c && MARKER_COLOR_PALETTE[c]) m.color = c;
+      persistMarkers(); renderMarkers();
+    }
+
+    if (hasPresets) {
+      getAllMarkerPresetLabels().forEach(function (label) {
+        var chip = document.createElement("button");
+        chip.type = "button"; chip.className = "pin-memo-preset-chip";
+        var c = presetColors[label];
+        if (c && MARKER_COLOR_PALETTE[c]) {
+          var dot = document.createElement("span");
+          dot.className = "pin-memo-preset-dot"; dot.style.background = MARKER_COLOR_PALETTE[c];
+          chip.appendChild(dot);
+        }
+        chip.appendChild(document.createTextNode(label));
+        chip.addEventListener("pointerdown", function (e) {
+          e.preventDefault(); pointerActive = true;
+          window.addEventListener("pointerup", function () {
+            setTimeout(function () {
+              if (!pointerActive) return;
+              pointerActive = false;
+              if (!finished && document.activeElement !== input) commit();
+            }, 80);
+          }, { once: true });
+        });
+        chip.addEventListener("click", function (e) { e.stopPropagation(); pointerActive = false; applyPreset(label); });
+        popup.appendChild(chip);
+      });
+      popup.addEventListener("click", function (e) { e.stopPropagation(); });
+
+      var reposition = function () {
+        if (!input.isConnected) { closePop(); return; }
+        var r = input.getBoundingClientRect(), pr = popup.getBoundingClientRect();
+        var top = r.bottom + 6;
+        if (top + pr.height > window.innerHeight - 8) top = Math.max(8, r.top - pr.height - 6);
+        var left = r.left;
+        if (left + pr.width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - pr.width - 8);
+        popup.style.top = top + "px"; popup.style.left = left + "px";
+      };
+      closePop();
+      document.body.appendChild(popup);
+      window.activePinMemoPresetPopup = { popup: popup, reposition: reposition };
+      reposition();
+      window.addEventListener("scroll", reposition, true);
+      window.addEventListener("resize", reposition);
+    }
+
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); commit(); }
+      else if (e.key === "Escape") { e.preventDefault(); cancel(); }
+    });
+    input.addEventListener("blur", function () {
+      setTimeout(function () { if (!pointerActive) commit(); }, 0);
+    });
+    input.addEventListener("click", function (e) { e.stopPropagation(); });
+  }
+
+  var SVG_EYE_ON = '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+  var SVG_EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
+
   function renderMarkers() {
     if (!root) return;
+    if (typeof closePinMemoPresetPopup === "function") closePinMemoPresetPopup();
     refs.markerLayer.textContent = "";
     refs.markerList.textContent = "";
     var ms = current ? current.markers : [];
     refs.emptyMarkers.style.display = ms.length ? "none" : "";
     refs.markerCount.textContent = String(ms.length);
     updatePanelTitle();
+    var edit = editMode === "markers";
+    var box = refs.markerList;
 
-    ms.forEach(function (m) {
-      // シークバー上のマーカー(クリックでジャンプ / ドラッグで移動)
+    ms.forEach(function (m, i) {
+      var hex = markerColorHex(m);
+      // シークバー上のマーカー(クリックでジャンプ / ドラッグで移動)。非表示にしたものは出さない
       var el = document.createElement("div");
-      el.className = "qn-yt-marker";
-      el.title = fmt(m.time) + " " + (m.label || "");
-      positionMarker(el, m.time);
-      attachMarkerDrag(el, m);
-      refs.markerLayer.appendChild(el);
+      if (m.enabled !== false) {
+        el.className = "qn-yt-marker";
+        el.title = fmt(m.time) + " " + (m.label || "");
+        if (hex) el.style.borderTopColor = hex;
+        positionMarker(el, m.time);
+        attachMarkerDrag(el, m);
+        refs.markerLayer.appendChild(el);
+      }
 
-      // 一覧(上段: 時間 / A / B / 上書き / 削除、下段: ラベル)
-      var li = document.createElement("li");
-      var tm = document.createElement("span");
-      tm.className = "mtime"; tm.textContent = fmt(m.time);
-      tm.addEventListener("click", function () { seekTo(m.time); });
-      var lab = document.createElement("input");
-      lab.type = "text"; lab.className = "qn-yt-input mlabel"; lab.value = m.label; lab.placeholder = "Label";
-      lab.addEventListener("change", function () {
-        m.label = lab.value; persistMarkers(); el.title = fmt(m.time) + " " + m.label;
+      // 一覧(本体のMarkersパネルと同じ行)
+      var row = document.createElement("div");
+      row.className = "pinItem" + (m.enabled === false ? " disabled" : "");
+      row.dataset.id = m.id;
+
+      var lead = document.createElement("div");
+      lead.className = "pin-leading-cell";
+      var cm = document.createElement("button");
+      cm.type = "button"; cm.className = "pin-color-mark"; cm.title = "Set marker color";
+      cm.style.background = hex || "#3a3a48";
+      cm.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (typeof openColorChoicePopup !== "function") return;
+        openColorChoicePopup(cm, m.color || null, function (name) {
+          if (name) m.color = name; else delete m.color;
+          persistMarkers(); renderMarkers();
+        });
       });
+      lead.appendChild(cm);
+      row.appendChild(lead);
+
+      var labelRow = document.createElement("div");
+      labelRow.className = "pin-label-row";
+      var infoSpan = document.createElement("span");
+      infoSpan.className = "pin-info";
+      infoSpan.textContent = markerText(m, i);
+      if (m.label) infoSpan.title = m.label;
+      infoSpan.addEventListener("click", function () { seekTo(m.time); });
+      labelRow.appendChild(infoSpan);
+      var pen = document.createElement("button");
+      pen.type = "button"; pen.className = "pin-edit-btn"; pen.title = "Edit memo";
+      pen.innerHTML = SVG_PENCIL;
+      pen.addEventListener("click", function (e) { e.stopPropagation(); startMemoEdit(m, infoSpan, i); });
+      labelRow.appendChild(pen);
+      row.appendChild(labelRow);
+
+      // ABループの指定（YouTube側独自の機能。編集モード中は隠す）
+      var ab = document.createElement("div");
+      ab.className = "qn-yt-ab-cell";
       var abtnA = document.createElement("button");
       abtnA.type = "button";
       abtnA.className = "qn-yt-btn mini ab" + (current.loopA === m.id ? " active-a" : "");
-      abtnA.textContent = "A";
-      abtnA.title = "ABループのA点(開始)に設定";
-      abtnA.addEventListener("click", function () { toggleLoopPoint("A", m.id); });
+      abtnA.textContent = "A"; abtnA.title = "ABループのA点(開始)に設定";
+      abtnA.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("A", m.id); });
       var abtnB = document.createElement("button");
       abtnB.type = "button";
       abtnB.className = "qn-yt-btn mini ab" + (current.loopB === m.id ? " active-b" : "");
-      abtnB.textContent = "B";
-      abtnB.title = "ABループのB点(終了)に設定";
-      abtnB.addEventListener("click", function () { toggleLoopPoint("B", m.id); });
-      var ow = document.createElement("button");
-      ow.type = "button"; ow.className = "qn-yt-btn mini"; ow.textContent = "Set";
-      ow.title = "現在位置でこのマーカーを上書き";
-      ow.addEventListener("click", function () {
-        m.time = Math.round(clampTime(currentPos()) * 10) / 10;
-        sortMarkers(); persistMarkers(); renderMarkers();
+      abtnB.textContent = "B"; abtnB.title = "ABループのB点(終了)に設定";
+      abtnB.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("B", m.id); });
+      ab.appendChild(abtnA); ab.appendChild(abtnB);
+      row.appendChild(ab);
+
+      var tg = document.createElement("button");
+      tg.type = "button"; tg.className = "toggle-btn";
+      tg.title = m.enabled === false ? "Marker disabled (click to enable)" : "Marker enabled (click to disable)";
+      tg.innerHTML = m.enabled === false ? SVG_EYE_OFF : SVG_EYE_ON;
+      tg.disabled = edit && selectedCount() > 0;
+      tg.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (selectedCount() > 0) return;
+        if (m.enabled === false) delete m.enabled; else m.enabled = false;
+        persistMarkers(); renderMarkers();
       });
-      var del = document.createElement("button");
-      del.type = "button"; del.className = "qn-yt-btn mini"; del.textContent = "Del";
-      armDelete(del, function () {
-        current.markers.splice(current.markers.indexOf(m), 1);
-        if (current.loopA === m.id) current.loopA = null;
-        if (current.loopB === m.id) current.loopB = null;
-        persistMarkers(); persistLoop(); renderMarkers();
-      });
-      var top = document.createElement("div");
-      top.className = "mrow";
-      top.appendChild(tm); top.appendChild(abtnA); top.appendChild(abtnB);
-      top.appendChild(ow); top.appendChild(del);
-      li.appendChild(top); li.appendChild(lab);
-      refs.markerList.appendChild(li);
+      row.appendChild(tg);
+
+      if (edit) {
+        var zone = document.createElement("div");
+        zone.className = "pin-del-zone";
+        var del = document.createElement("button");
+        del.type = "button"; del.className = "del-btn"; del.tabIndex = -1; del.textContent = "✕";
+        if (selected[m.id]) del.classList.add("pcv2-selected");
+        zone.appendChild(del);
+        zone.addEventListener("click", function (e) {
+          e.stopPropagation();
+          toggleSelect(m.id, del, box, ".toggle-btn");
+        });
+        row.appendChild(zone);
+      }
+      box.appendChild(row);
     });
 
     updateLoopUI();
@@ -1063,7 +1370,7 @@
         var o = { videoId: it.videoId, url: it.url };
         if (incTitle) o.title = it.title;
         if (incMarkers) {
-          o.markers = it.markers.map(function (m) { return { id: m.id, time: m.time, label: m.label || "" }; });
+          o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; return o2; });
           o.loopA = it.loopA || null;
           o.loopB = it.loopB || null;
         }
@@ -1106,7 +1413,10 @@
           var id = cleanStr(m.id, 40);
           if (!id || ids[id]) id = uid("m");
           ids[id] = true;
-          ms.push({ id: id, time: Math.round(m.time * 10) / 10, label: cleanStr(m.label, 200) });
+          var mo = { id: id, time: Math.round(m.time * 10) / 10, label: cleanStr(m.label, 200) };
+          if (typeof m.color === "string" && typeof MARKER_COLOR_PALETTE !== "undefined" && MARKER_COLOR_PALETTE[m.color]) mo.color = m.color;
+          if (m.enabled === false) mo.enabled = false;
+          ms.push(mo);
         });
         ms.sort(function (a, b) { return a.time - b.time; });
         o.markers = ms;

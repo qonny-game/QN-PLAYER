@@ -303,21 +303,31 @@
     return document.querySelector('.qn-menu-section[data-qn-section="theme"]');
   }
 
+  // PLAYERのパネルと同じ見た目・同じ位置（PC＝アイコンバー右の左カラム全高、
+  // SP＝アイコンバーの上）。SPでアプリが「常時表示すべきプレイヤー」
+  // ([data-qn-keep-visible])を持つ場合は、それを覆わないよう直下から始める。
   function positionColorPop() {
     if (!colorPop) return;
-    var btn = document.querySelector('#pcV2IconBarBottom [data-panel-id="color"]');
-    var bar = $("pcV2IconBar");
-    if (!btn || !bar) return;
-    var br = btn.getBoundingClientRect(), bar_r = bar.getBoundingClientRect();
+    var bar = $("pcV2IconBar"), layout = $("pcV2Layout");
+    if (!bar || !layout) return;
+    var bar_r = bar.getBoundingClientRect(), lr = layout.getBoundingClientRect();
     var sp = window.matchMedia(SP_QUERY).matches;
+    colorPop.classList.toggle("qn-colorpanel-sp", sp);
     if (sp) {
-      colorPop.style.left = "8px"; colorPop.style.right = "8px"; colorPop.style.width = "auto";
-      colorPop.style.top = "auto";
-      colorPop.style.bottom = Math.max(8, window.innerHeight - bar_r.top + 8) + "px";
+      var top = lr.top;
+      var keep = document.querySelector("#qnAppHost [data-qn-keep-visible]");
+      if (keep && current) {
+        var kr = keep.getBoundingClientRect();
+        if (kr.width > 0) top = Math.max(top, kr.bottom + 8);
+      }
+      colorPop.style.left = "0px"; colorPop.style.right = "0px"; colorPop.style.width = "auto";
+      colorPop.style.top = top + "px";
+      colorPop.style.bottom = Math.max(0, window.innerHeight - bar_r.top) + "px";
     } else {
-      colorPop.style.left = (bar_r.right + 8) + "px"; colorPop.style.right = "auto";
-      colorPop.style.width = "320px"; colorPop.style.top = "auto";
-      colorPop.style.bottom = Math.max(8, window.innerHeight - br.bottom) + "px";
+      colorPop.style.left = bar_r.right + "px"; colorPop.style.right = "auto";
+      colorPop.style.width = "375px";
+      colorPop.style.top = lr.top + "px";
+      colorPop.style.bottom = Math.max(0, window.innerHeight - lr.bottom) + "px";
     }
   }
 
@@ -340,20 +350,22 @@
       colorPop = document.createElement("div");
       colorPop.id = "qnColorPop";
       colorPop.hidden = true;
+      colorPop.innerHTML = '<div class="qn-colorpanel-head"><span class="pcv2-panel-header-title">Color</span></div>' +
+        '<div class="qn-colorpanel-body"></div>';
       document.body.appendChild(colorPop);
-      document.addEventListener("pointerdown", function (e) {
-        if (!colorPop || colorPop.hidden) return;
-        if (colorPop.contains(e.target)) return;
+      // サイドバーの他の項目（アプリ専用アイコン/バッジ/MORE等）を押したらパネルを閉じる
+      // （PLAYERでパネルが切り替わるのと同じ挙動。Colorボタン自身は別処理）
+      iconBar.addEventListener("click", function (e) {
         if (e.target.closest && e.target.closest('[data-panel-id="color"]')) return;
         closeColorPop();
-      }, true);
+      });
       document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") closeColorPop();
       });
       window.addEventListener("resize", positionColorPop);
     }
     colorSec = sec; colorHome = sec.parentNode; colorNext = sec.nextSibling;
-    colorPop.appendChild(sec);
+    colorPop.querySelector(".qn-colorpanel-body").appendChild(sec);
     colorPop.hidden = false;
     positionColorPop();
     var b = document.querySelector('#pcV2IconBarBottom [data-panel-id="color"]');

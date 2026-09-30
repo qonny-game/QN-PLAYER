@@ -41,22 +41,41 @@
   display: none;
 }
 
-/* Colorポップオーバー（アプリ表示中/一覧中。テーマ切替セクションを借りて表示） */
+/* Colorパネル（アプリ表示中/一覧中。PLAYERのパネルと同じ見た目で、テーマ切替セクションを借りて表示） */
 #qnColorPop {
   position: fixed;
   z-index: 300;
   box-sizing: border-box;
-  max-height: min(70dvh, 420px);
-  overflow: auto;
-  padding: 14px;
-  background: #16161b;
-  border: 1px solid var(--border-subtle, #27272a);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-base, #0a0a0c);
+  border-right: 1px solid var(--border-subtle);
 }
+#qnColorPop.qn-colorpanel-sp { border-right: none; border-top: 1px solid var(--border-subtle); }
 #qnColorPop[hidden] { display: none; }
+#qnColorPop .qn-colorpanel-head {
+  padding: 14px 16px 14px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: var(--fs-title);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+#qnColorPop .qn-colorpanel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
 #qnColorPop .qn-menu-section { border-bottom: none; padding-bottom: 0; }
 #qnColorPop .qn-menu-section-label { display: none; }
+/* PLAYER専用のマーカーメモ設定は、アプリ表示中は出さない */
+body.qn-app-open #qnColorPop .qn-marker-preset-colors { display: none; }
+/* SPはヘッダーを省スペースに */
+#qnColorPop.qn-colorpanel-sp .qn-colorpanel-head { padding: 8px 16px; }
 
 /* 現在開いているアプリ（.active と同じ見た目。.active は本体側のJSが
    data-panel-id を持たない要素から外してしまうため、別クラスにしている） */
@@ -945,3 +964,72 @@ body.qn-app-open #pcV2TimeRow {
     height: 18px;
   }
 }
+
+/* ---------- Library / Markers：本体(PLAYER)のパネルと同じ行・同じ操作 ----------
+   行のベース見た目は style-playlist.css(.playlistItem) / style-markers.css(.pinItem) を流用。
+   本体側の「#pcV2PanelBody …」限定のルールだけ、ここで .qn-yt 用に再掲する。 */
+.qn-yt-panel { position: relative; }
+
+.qn-yt-sec-library,
+.qn-yt-sec-markers { padding: 0; }
+.qn-yt-sec-library .qn-yt-input-block { padding: 16px 16px 12px 20px; }
+.qn-yt-sec-library .qn-yt-empty,
+.qn-yt-sec-markers .qn-yt-empty { margin: 16px 20px; }
+/* 右下のボタンに最後の行が隠れないよう、スクロール終端を伸ばす */
+.qn-yt[data-panel="library"] .qn-yt-panel-scroll,
+.qn-yt[data-panel="markers"] .qn-yt-panel-scroll { padding-bottom: 140px; }
+
+.qn-yt-libbox, .qn-yt-pinbox { display: flex; flex-direction: column; }
+.qn-yt-libbox .playlistItem.drop-before { box-shadow: inset 0 2px 0 var(--accent-primary); }
+.qn-yt-libbox .playlistItem.drop-after { box-shadow: inset 0 -2px 0 var(--accent-primary); }
+
+/* 削除用の丸チェックは編集モード(EDIT→OK)の時だけ */
+.qn-yt-libbox .playlist-del-zone,
+.qn-yt-pinbox .pin-del-zone { display: none; }
+.qn-yt[data-edit="library"] .qn-yt-libbox .playlist-del-zone,
+.qn-yt[data-edit="markers"] .qn-yt-pinbox .pin-del-zone { display: flex; }
+
+.qn-yt[data-edit="library"] .qn-yt-libbox .playlist-del-zone {
+  align-items: center; justify-content: center; flex-shrink: 0;
+  margin: -9px -12px -9px 0; padding: 9px 16px 9px 8px; cursor: pointer;
+}
+.qn-yt[data-edit="markers"] .qn-yt-pinbox .pin-del-zone {
+  align-items: center; justify-content: center; align-self: stretch; flex-shrink: 0;
+  margin: -10px -12px -10px 0; padding: 10px 16px 10px 8px; cursor: pointer;
+}
+.qn-yt[data-edit] .del-btn {
+  display: flex; width: 20px; height: 20px; align-items: center; justify-content: center;
+  border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, 0.24);
+  background: none; color: transparent; font-size: 0; padding: 0; flex-shrink: 0;
+  pointer-events: none;
+}
+.qn-yt[data-edit] .del-btn.pcv2-selected { background: var(--danger); border-color: var(--danger); }
+.qn-yt[data-edit] .del-btn.pcv2-selected::after {
+  content: ""; display: block; width: 5px; height: 9px;
+  border-right: 2px solid var(--text-pure-white); border-bottom: 2px solid var(--text-pure-white);
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.qn-yt[data-edit="markers"] .qn-yt-pinbox .toggle-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* マーカー行：色 / 本文 / (A B) / 目 / 削除。編集中はA・Bを隠す */
+.qn-yt-pinbox .pinItem { grid-template-columns: auto 1fr auto auto auto; }
+.qn-yt-ab-cell { display: flex; gap: 4px; }
+.qn-yt[data-edit="markers"] .qn-yt-ab-cell { display: none; }
+.qn-yt[data-edit="markers"] .qn-yt-pinbox .pinItem { grid-template-columns: auto 1fr auto auto; }
+/* タッチ端末：編集モード中は鉛筆を常時表示 */
+@media (hover: none), (pointer: coarse) {
+  .qn-yt[data-edit="markers"] .qn-yt-pinbox .pin-edit-btn { display: flex; }
+}
+.qn-yt-libbox .playlistItem.playing .playlist-title { color: var(--accent-primary); }
+
+/* 右下のフローティングボタン（EDIT / Delete / ADD MARKER） */
+.qn-yt-fab {
+  position: absolute; right: 20px; bottom: 20px; z-index: 5;
+  display: none; flex-direction: column; align-items: flex-end; gap: 10px;
+  pointer-events: none;
+}
+.qn-yt[data-panel="library"] .qn-yt-fab,
+.qn-yt[data-panel="markers"] .qn-yt-fab { display: flex; }
+.qn-yt-fab-add { display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
+.qn-yt[data-panel="markers"]:not([data-edit]) .qn-yt-fab-add { display: flex; }
+.qn-yt[data-edit] .panel-fab-delete-btn { display: flex; }
