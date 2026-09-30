@@ -334,7 +334,7 @@
     if (id === "import") resetImportView();
     if (id === "keyboard") renderShortcuts();
     updatePanelTitle();
-    if (window.QNApps) window.QNApps.setSideActive(id === "none" ? null : id);
+    if (window.QNApps) window.QNApps.setSideActive((id === "none" || isCollapsed()) ? null : id);
   }
 
   // パネル見出し：本体のパネル同様「LIBRARY」「MARKERS」＋件数
@@ -353,8 +353,44 @@
   }
 
   function onSidebar(id) {
-    if (isSp() && panelState === id) setPanel("none");
-    else setPanel(id);
+    if (isSp()) {
+      if (panelState === id) setPanel("none"); else setPanel(id);
+      return;
+    }
+    // PC幅（v3.4.0〜）：開いているパネルのアイコンをもう一度押すと、パネルを左へ格納。
+    // 格納中にどのアイコンを押しても、パネルが開いてその内容を表示する。
+    if (panelCollapsed) { setCollapsed(false); setPanel(id); return; }
+    if (panelState === id) { setCollapsed(true); return; }
+    setPanel(id);
+  }
+
+  // ---------- パネルの格納（PC幅のみ・v3.4.0〜） ----------
+  // 格納するのはアイコンバーの右の「パネル(Library等)」。プレイヤーの大きさは変えない
+  // （格納直前の幅のまま固定）。状態はlocalStorageに保存し、再読み込み後も維持する。
+  var COLLAPSE_KEY = "qn_yt_panel_collapsed";
+  var panelCollapsed = (function () {
+    try { return localStorage.getItem(COLLAPSE_KEY) === "1"; } catch (e) { return false; }
+  })();
+  function isCollapsed() { return panelCollapsed && !isSp(); }
+
+  // 格納中のプレイヤー幅＝「格納しなかった場合の幅」（パネル375px・ステージ余白24px×2・最大1280px）
+  function applyCollapse() {
+    if (!root) return;
+    var yt = root.querySelector(".qn-yt");
+    if (!yt) return;
+    var on = isCollapsed();
+    if (on) {
+      var w = Math.min(1280, yt.clientWidth - 375 - 48);
+      yt.style.setProperty("--qn-yt-player-w", Math.max(200, w) + "px");
+    }
+    yt.classList.toggle("qn-yt-collapsed", on);
+    if (window.QNApps) window.QNApps.setSideActive((on || !panelState || panelState === "none") ? null : panelState);
+  }
+
+  function setCollapsed(on) {
+    panelCollapsed = !!on;
+    try { localStorage.setItem(COLLAPSE_KEY, panelCollapsed ? "1" : "0"); } catch (e) {}
+    applyCollapse();
   }
 
   // SP幅で動画を選んだ/読み込んだ後は、パネルを閉じてプレイヤーを見せる
@@ -366,6 +402,7 @@
     var nodes = root.querySelectorAll("[data-yt]");
     for (var i = 0; i < nodes.length; i++) refs[nodes[i].getAttribute("data-yt")] = nodes[i];
 
+    window.addEventListener("resize", applyCollapse);
     buildTracks();
     // 幅が変わったらマーカーの位置・高さを合わせ直す
     if (window.ResizeObserver) {
@@ -1464,14 +1501,17 @@
 
   // ---------- 自前シークバー(3行それぞれで操作可能・ドラッグで行をまたげる) ----------
   function attachTrackSeek(track) {
+    var downX = 0, downY = 0, dragged = false;
     track.addEventListener("pointerdown", function (e) {
       if (!duration) return;
       track.setPointerCapture(e.pointerId);
       seeking = true;
+      dragged = false; downX = e.clientX; downY = e.clientY;
       updateDisplay(timeFromPoint(e));
     });
     track.addEventListener("pointermove", function (e) {
       if (!seeking || !track.hasPointerCapture(e.pointerId)) return;
+      if (Math.abs(e.clientX - downX) > 4 || Math.abs(e.clientY - downY) > 4) dragged = true;
       updateDisplay(timeFromPoint(e));
     });
     track.addEventListener("pointerup", function (e) {
@@ -1480,7 +1520,110 @@
       var t = timeFromPoint(e);
       seeking = false;
       seekTo(t);
+      // 動かさずに離した(=1クリック/1タップ)時だけ、その位置にA/B/+Markerのポップアップ
+      if (!dragged) showSeekPop(t, track.getBoundingClientRect(), e.clientX);
     });
+  }
+
+  // ---------- シークバー上の1クリック/1タップ → A / B / +Marker ポップアップ（v3.3.0） ----------
+  // ABは「マーカー」で持つ仕組みなので、押した位置(0.1秒単位)にマーカーを作ってA点/B点にする。
+  // すぐ近く(±0.5秒)に既存マーカーがあれば、新規作成せずそのマーカーを使う。
+  // ポップアップはbody直下のposition:fixed（プレイヤー(iframe)には重ねない）。
+  var seekPop = null, seekPopTimer = null, seekPopTime = 0;
+  var SEEKPOP_SNAP = 0.5, SEEKPOP_MS = 4000;
+
+  function ensureSeekPop() {
+    if (seekPop) return seekPop;
+    seekPop = document.createElement("div");
+    seekPop.className = "qn-yt-seekpop";
+    seekPop.hidden = true;
+    seekPop.setAttribute("role", "menu");
+    seekPop.innerHTML =
+      '<div class="qn-yt-seekpop-time" data-pop="time">00:00</div>' +
+      '<div class="qn-yt-seekpop-row">' +
+        '<button type="button" class="qn-yt-seekpop-btn" data-pop="A" title="この位置をA点(ループ開始)に"><b>A</b><span>Start</span></button>' +
+        '<button type="button" class="qn-yt-seekpop-btn" data-pop="B" title="この位置をB点(ループ終了)に"><b>B</b><span>End</span></button>' +
+        '<button type="button" class="qn-yt-seekpop-btn" data-pop="M" title="この位置にマーカーを追加"><b>＋</b><span>Marker</span></button>' +
+      '</div>';
+    document.body.appendChild(seekPop);
+    seekPop.addEventListener("pointerdown", function (e) { e.stopPropagation(); resetSeekPopTimer(); });
+    seekPop.addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("[data-pop]") : null;
+      if (!b) return;
+      var k = b.getAttribute("data-pop");
+      if (k === "A" || k === "B" || k === "M") seekPopAction(k);
+    });
+    // 外側のタップ・Esc・スクロールで閉じる
+    document.addEventListener("pointerdown", function (e) {
+      if (seekPop.hidden) return;
+      if (e.target.closest && e.target.closest(".qn-yt-seekpop")) return;
+      // シークバー自身のタップは、pointerupで新しい位置のポップアップに置き換わる
+      hideSeekPop();
+    }, true);
+    window.addEventListener("keydown", function (e) { if (e.key === "Escape") hideSeekPop(); }, true);
+    window.addEventListener("resize", hideSeekPop);
+    return seekPop;
+  }
+
+  function resetSeekPopTimer() {
+    if (seekPopTimer) clearTimeout(seekPopTimer);
+    seekPopTimer = setTimeout(hideSeekPop, SEEKPOP_MS);
+  }
+
+  function hideSeekPop() {
+    if (seekPopTimer) { clearTimeout(seekPopTimer); seekPopTimer = null; }
+    if (seekPop) seekPop.hidden = true;
+  }
+
+  function showSeekPop(t, trackRect, clientX) {
+    if (!current || !duration) return;
+    var pop = ensureSeekPop();
+    seekPopTime = Math.round(clampTime(t) * 10) / 10;
+    pop.querySelector('[data-pop="time"]').textContent = fmt(seekPopTime);
+    pop.hidden = false;
+    // 位置：押した場所の真上（収まらなければ真下）。画面端では内側へ寄せる。
+    var w = pop.offsetWidth, h = pop.offsetHeight, gap = 10;
+    var left = Math.min(Math.max(clientX - w / 2, 8), window.innerWidth - w - 8);
+    var top = trackRect.top - h - gap;
+    var below = top < 8;
+    if (below) top = trackRect.bottom + gap;
+    pop.classList.toggle("is-below", below);
+    pop.style.left = left + "px";
+    pop.style.top = top + "px";
+    resetSeekPopTimer();
+  }
+
+  function seekPopAction(kind) {
+    if (!current) { hideSeekPop(); return; }
+    var t = seekPopTime, i, m = null;
+    for (i = 0; i < current.markers.length; i++) {
+      if (Math.abs(current.markers[i].time - t) <= SEEKPOP_SNAP) { m = current.markers[i]; break; }
+    }
+    var created = false;
+    if (!m) {
+      m = { id: uid("m"), time: t, label: "" };
+      current.markers.push(m);
+      sortMarkers();
+      persistMarkers();
+      created = true;
+    }
+    var msg;
+    if (kind === "A") {
+      current.loopA = m.id; if (current.loopB === m.id) current.loopB = null;
+      msg = "A " + fmt(m.time);
+    } else if (kind === "B") {
+      current.loopB = m.id; if (current.loopA === m.id) current.loopA = null;
+      msg = "B " + fmt(m.time);
+    } else {
+      msg = created ? "Marker " + fmt(m.time) : "Markerは既にあります " + fmt(m.time);
+    }
+    if (kind !== "M") {
+      if (!current.loopA || !current.loopB) current.looping = false;
+      persistLoop();
+    }
+    renderMarkers();
+    hideSeekPop();
+    ytToast(msg);
   }
 
   function updateDisplay(t) {
@@ -1975,6 +2118,7 @@
     // 初回はPC=Library表示、SP=パネルなし。2回目以降は前回の状態を保つ
     var want = panelState || (isSp() ? "none" : "library");
     setPanel(want);
+    applyCollapse();
     // 非表示中はoffsetTopが0になりマーカー位置がずれるので、表示のたびに描き直す
     renderMarkers();
     updateDisplay(currentPos());
@@ -1983,6 +2127,7 @@
 
   function onHide() {
     bindSpace(false);
+    hideSeekPop();
     try { if (window.QNWake) window.QNWake.set("youtube", false); } catch (err) {}
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     // 画面を隠したまま音だけ流さない（規約）。公式メソッドで一時停止する。

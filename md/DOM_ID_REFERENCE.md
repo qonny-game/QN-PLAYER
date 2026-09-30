@@ -133,6 +133,8 @@ grep -o 'id="track[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort
 |---|---|
 | `#qnAppFlyout` | アプリ一覧のフライアウト（v3.0.0〜、body直下・position:fixed・`hidden`、z-index 320）。SP幅は`.qn-flyout-sp`（横並び）。※旧`#qnMoreBtn`/`.qn-apps-mode`/`.qn-app-item`はv3.0.0で撤去 |
 | `.qn-yt-bar` | YouTubeアプリのシークバー下コントロールバー（v3.2.0〜）。`.qn-yt-bgroup`/`.qn-yt-bdiv`/`.qn-yt-bspacer`、ボタン`.qn-yt-bbtn`(`.center`=Play/+Marker、`.is-active`=ON)、`.qn-yt-abread`、スピード`.qn-yt-bstep`(`data-yt=speedDown/speedUp/speedVal`) |
+| `.qn-yt-seekpop` | シークバー1タップのA/B/+Markerポップアップ（v3.3.0〜、body直下・position:fixed・`hidden`・z-index 330）。`data-pop=time/A/B/M` |
+| `.qn-yt.qn-yt-collapsed` | YouTubeアプリのパネル格納中（PC幅・v3.4.0〜）。`--qn-yt-player-w`でプレイヤー幅を固定。`localStorage: qn_yt_panel_collapsed` |
 | `#qnAppScrim` | フライアウト表示中にページ全体を薄暗くする幕（v3.0.1〜、z-index 310・pointer-events:none・`.qn-scrim-in`で表示、SPは`.qn-scrim-sp`で少し濃い） |
 | `.qn-flyout-item[data-app-id]` | フライアウトの各項目(`.pcv2-icon-item`と併用)。`.qn-app-active`=選択中、`.qn-app-soon`=準備中 |
 | `#qnAppHost` | アプリ表示領域(position:fixed)。中に`.qn-app-view[data-app-view=<id>]` |

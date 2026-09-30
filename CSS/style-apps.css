@@ -1412,3 +1412,79 @@ body.qn-app-open #pcV2TimeRow {
   /* パネル(Library等)を開いている間は、自前UIと同じく隠す */
   .qn-yt:not([data-panel="none"]) .qn-yt-bar { display: none; }
 }
+
+/* ---------- シークバー1タップのポップアップ（A / B / +Marker）（v3.3.0〜） ----------
+   body直下のposition:fixed。押した位置の真上（収まらない時は真下）に出す。 */
+.qn-yt-seekpop {
+  position: fixed;
+  z-index: 330;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px 8px 6px;
+  background: #101013;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-popup, 12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+}
+.qn-yt-seekpop[hidden] { display: none; }
+.qn-yt-seekpop-time {
+  text-align: center;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+}
+.qn-yt-seekpop-row { display: flex; gap: 2px; }
+.qn-yt-seekpop-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-width: 52px;
+  padding: 6px 8px;
+  background: none;
+  border: none;
+  color: var(--icon-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform var(--dur-press, 100ms) var(--ease-snap, ease);
+}
+.qn-yt-seekpop-btn b { font-size: 20px; line-height: 26px; font-weight: 700; color: var(--accent-primary); }
+.qn-yt-seekpop-btn span { font-size: 9px; font-weight: 600; letter-spacing: 0.3px; }
+.qn-yt-seekpop-btn:active { transform: scale(0.94); }
+@media (hover: hover) and (pointer: fine) {
+  .qn-yt-seekpop-btn:hover { color: var(--text-bright); }
+}
+@media screen and (max-width: 900px) {
+  .qn-yt-seekpop-btn { min-width: 60px; padding: 8px 10px; }
+  .qn-yt-seekpop-btn b { font-size: 24px; line-height: 30px; }
+  .qn-yt-seekpop-btn span { font-size: 11px; }
+}
+
+/* ---------- PC幅：パネルの格納（v3.4.0〜） ----------
+   開いているパネルのアイコンをもう一度押すと、パネル(375px)が左へ縮んで消える。
+   プレイヤーは格納前の幅のまま（JSが --qn-yt-player-w に格納前の幅を入れる）。
+   シークバー・コントロールバー等は広がる。SP幅では使わない（クラスは付かない）。 */
+.qn-yt { transition: grid-template-columns 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.qn-yt.qn-yt-collapsed { grid-template-columns: 0 1fr; }
+.qn-yt-panel { overflow: hidden; }
+/* 縮む途中で中身が潰れて折り返さないよう、中身は375px幅のまま右側を隠す */
+.qn-yt-panel > .qn-yt-panel-header,
+.qn-yt-panel > .qn-yt-panel-scroll { min-width: 374px; }
+.qn-yt.qn-yt-collapsed .qn-yt-panel {
+  border-right-color: transparent;
+  visibility: hidden;
+  transition: visibility 0s linear 220ms;
+}
+.qn-yt.qn-yt-collapsed .qn-yt-player-wrap {
+  width: var(--qn-yt-player-w, 100%);
+  max-width: var(--qn-yt-player-w, 1280px);
+}
+@media screen and (max-width: 900px) {
+  .qn-yt { transition: none; }
+}

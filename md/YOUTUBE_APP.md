@@ -5,7 +5,7 @@
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
 - 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（アプリ名バッジ・アプリ一覧フライアウト・表示領域）
-- 最終更新：QNPLAYER v3.2.0（シークバー下のコントロールバーをPLAYER下段バーと同じデザインに）（2026-10-01）
+- 最終更新：QNPLAYER v3.4.0（PC幅：サイドアイコンでパネルを格納）（2026-10-01）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---
@@ -268,6 +268,18 @@ PC幅                                             SP幅（パネルを開いた�
 - SP幅：PLAYER同様、アイコンバーの直上に固定（`position: sticky; bottom: 0`、横スクロール、アイコン・文字を大きく）。パネルを開いている間は隠す（従来の自前UIと同じ）。※PLAYERにある「PLAY/MARKERアンカータブ」は未対応。
 - 旧`.qn-yt-ctrl-row`（Prev/Next・±10s・Marker・Speedチップ・Auto Next行・AB行）は撤去。機能は維持：Auto Nextは`.is-active`のボタンに、LoopはON時`.is-active`（ABが無い間は`disabled`）、スピードチップは`−/＋`ステッパーに変更（`stepRate`。本家ショートカット`<` `>`と同じ処理）。
 - 再生ボタンは`updatePlayBtn`がアイコン＋「Play/Pause」表示ごと差し替える。
+
+## 付録：シークバー1クリック/1タップ → A / B / +Marker ポップアップ（v3.3.0）
+- シークバー(3行のどこでも)を**動かさずに**押して離すと、通常どおりその位置へシークし、同時にその位置の真上（収まらなければ真下）へポップアップ（`showSeekPop`）。ドラッグ（4px超の移動）の時は出ない。マーカー上の操作は従来どおり（ポップアップなし）。
+- ボタン：A(Start)／B(End)／＋(Marker)。ABは「マーカー」で持つ仕組みのため、押した位置（0.1秒単位）にマーカーを作ってA点/B点にする（`seekPopAction`）。**±0.5秒以内に既存マーカーがあれば新規作成せずそれを使う**。A/Bが両方そろうとLoopが押せるようになる（自動ONにはしない）。保存形式の変更なし（Backup/Import影響なし）。
+- 閉じ方：4秒放置・外側のタップ・Esc・選択後・resize・アプリを隠す時。body直下のposition:fixed（z-index 330、プレイヤーには重ねない）。
+- 押した結果は`QNApps.toast()`で一言表示。
+
+## 付録：PC幅のパネル格納（v3.4.0）
+- PC幅で、開いているパネル(Library等)のサイドアイコンをもう一度押すと、パネル(375px)が左へ縮んで格納される（`.qn-yt.qn-yt-collapsed`、gridの`grid-template-columns: 0 1fr`を220msでアニメーション）。格納中にどのアイコンを押しても、パネルが開いてそのパネルを表示する。
+- **プレイヤー(iframe)は広げない**：格納前と同じ幅で固定（`--qn-yt-player-w`＝min(1280, ステージ幅−375−48)、`applyCollapse`）。シークバー・コントロールバーは広がる。
+- 格納中はサイドアイコンの選択表示を外す（`setSideActive(null)`）。状態は`localStorage: qn_yt_panel_collapsed`に保存し、再読み込み後も維持。
+- SP幅は従来どおり（同じアイコンをもう一度でパネルを閉じる）。この格納は使わず、クラスも付かない。
 
 ## 付録：再生ボタン・Library前/次ボタン（v2.26.0）
 - シークバー下の`.qn-yt-transport`行（Prev / 再生⇄一時停止 / Next）。すべて利用者のクリックを起点に公式メソッド（`playVideo`/`pauseVideo`/`loadVideoById`）を呼ぶだけ。
