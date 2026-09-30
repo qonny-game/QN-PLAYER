@@ -1118,10 +1118,30 @@ body {
 
 /* .shortcut-grid, .shortcut-table関連は style-core-pc.css へ移動済み */
 
-body, .vbar-line, .pinItem, .vbar, button {
+/* 【v2.19.1】テキスト選択：以前はbody全体で選択不可にしていたが、
+   シークバーエリア（波形・マーカーの線とラベル）と、操作系（ボタン類・
+   下段バー・サイドバー・つまみ・ドラッグのつかみ部分）以外は選択・コピー
+   できるようにした。YouTubeアプリ等の画面も同様（ドラッグ操作する
+   シークバー/マーカー部分だけ選択不可）。 */
+body {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.vbar-line, .vbar, .vbar-label, #vbarContainer, #pcV2WaveArea,
+#pcV2BottomBar, #pcV2BottomBarAnchorTabs, #pcV2IconBar, #appHeader,
+.playlist-drag-handle, input[type="range"],
+.qn-yt-seek, .qn-yt-marker, .qn-yt-track,
+button {
   user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
+}
+
+/* 入力欄・テキスト領域の中は常に選択できる */
+input[type="text"], input[type="number"], textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 
