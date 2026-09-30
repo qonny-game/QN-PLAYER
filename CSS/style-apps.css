@@ -326,6 +326,8 @@ body.qn-app-open #pcV2TimeRow {
   min-height: 0;
   display: grid;
   grid-template-columns: 375px 1fr;
+  /* v3.2.0〜：左=パネル(縦いっぱい)、右=ステージ＋その下にコントロールバー(右側だけに吸着) */
+  grid-template-rows: minmax(0, 1fr) auto;
   color: var(--text-bright);
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: var(--fs-body);
@@ -333,6 +335,8 @@ body.qn-app-open #pcV2TimeRow {
 
 /* --- 左：パネル（Library / Markers） --- */
 .qn-yt-panel {
+  grid-column: 1;
+  grid-row: 1 / span 2;
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -750,6 +754,8 @@ body.qn-app-open #pcV2TimeRow {
 
 /* --- 右：ステージ（プレイヤー＋自前UI） --- */
 .qn-yt-stage {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
@@ -1266,4 +1272,143 @@ body.qn-app-open #pcV2TimeRow {
   font-size: var(--fs-small);
   color: var(--text-dim, rgba(255, 255, 255, 0.45));
   line-height: 1.6;
+}
+
+/* ============================================================
+   シークバー下のコントロールバー（v3.2.0〜）
+   PLAYERの下段バー(#pcV2BottomBar / .pcv2-ctrl-btn / .tripleNavBtn)と同じデザイン：
+   枠なし・背景なしのフラットなアイコン＋英字。 再生系 │ マーカー系 │ スピード。
+   PC幅：ステージの下端に吸着（左のパネル/サイドバー側へは伸ばさない）。
+   SP幅：アイコンバーの直上に固定し、横スクロール。
+   ============================================================ */
+.qn-yt-bar {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 24px;
+  background: var(--bg-base, #0a0a0c);
+  border-top: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.qn-yt-bar::-webkit-scrollbar { display: none; }
+
+.qn-yt-bgroup { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
+.qn-yt-bdiv { width: 1px; height: 24px; background: var(--border-subtle); margin: 0 10px; flex-shrink: 0; }
+.qn-yt-bspacer { flex: 1 1 0; min-width: 8px; }
+
+.qn-yt-bbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  flex: 0 0 auto;
+  padding: 8px 7px;
+  cursor: pointer;
+  color: var(--icon-muted);
+  background: none;
+  border: none;
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  position: relative;
+  transition: transform var(--dur-press, 100ms) var(--ease-snap, ease);
+}
+/* アイコン領域の高さを32pxに揃え、中央(Play/+Marker)の大きいアイコンと文字の高さが揃うようにする */
+.qn-yt-bbtn svg,
+.qn-yt-bstep-mid svg {
+  width: 20px;
+  height: 20px;
+  margin: 6px auto;
+  display: block;
+  fill: currentColor;
+}
+.qn-yt-bbtn.center { color: var(--accent-primary); }
+.qn-yt-bbtn.center svg { width: 32px; height: 32px; margin: 0; }
+.qn-yt-bbtn span,
+.qn-yt-bstep-mid span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.qn-yt-bbtn:active { transform: scale(0.94); }
+.qn-yt-bbtn.is-active,
+.qn-yt-bbtn.is-active:hover { color: var(--accent-primary); }
+.qn-yt-bbtn:disabled { opacity: 0.35; pointer-events: none; }
+@media (hover: hover) and (pointer: fine) {
+  .qn-yt-bbtn:hover { color: var(--text-bright); }
+  .qn-yt-bbtn.center:hover { color: var(--accent-primary); }
+}
+
+/* ABループの区間表示（A/Bの時刻） */
+.qn-yt-abread {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 6px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--icon-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.qn-yt-abread b { color: var(--text-bright); font-weight: 600; margin-left: 2px; }
+
+/* スピード：［−］ 1x Speed ［＋］ （PLAYERのループ秒数ステッパーと同じ、枠なしフラット） */
+.qn-yt-bstep { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
+.qn-yt-bstep-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 2px;
+  color: var(--accent-primary);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+}
+.qn-yt-bstep-mid b { font-weight: 700; }
+.qn-yt-bstep-btn {
+  width: 24px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--icon-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform var(--dur-press, 100ms) var(--ease-snap, ease);
+}
+.qn-yt-bstep-btn:active { transform: scale(0.88); }
+@media (hover: hover) and (pointer: fine) {
+  .qn-yt-bstep-btn:hover { color: var(--text-bright); }
+}
+
+/* ---------- SP幅：PLAYERの下部バーと同じく、アイコンバーの直上に固定・横スクロール ---------- */
+@media screen and (max-width: 900px) {
+  .qn-yt-bar {
+    order: 4;
+    grid-column: auto;
+    grid-row: auto;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: auto;
+    flex-shrink: 0;
+    padding: 0 25px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .qn-yt-bbtn { padding: 10px 10px; }
+  .qn-yt-bbtn svg, .qn-yt-bstep-mid svg { width: 26px; height: 26px; margin: 6px auto; }
+  .qn-yt-bbtn.center svg { width: 38px; height: 38px; margin: 0; }
+  .qn-yt-bbtn span, .qn-yt-bstep-mid span, .qn-yt-abread { font-size: 11px; }
+  .qn-yt-bstep-btn { width: 30px; height: 44px; font-size: 22px; }
+  .qn-yt-bspacer { flex: 0 0 12px; }
+  /* パネル(Library等)を開いている間は、自前UIと同じく隠す */
+  .qn-yt:not([data-panel="none"]) .qn-yt-bar { display: none; }
 }

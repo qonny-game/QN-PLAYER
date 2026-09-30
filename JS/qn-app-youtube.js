@@ -29,10 +29,6 @@
   var STORAGE_KEY = "qn_yt_items";
   var SEGS = 3; // シークバーの分割数(3行)
 
-  var SVG_PREV = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>';
-  var SVG_PLAY = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M8 5v14l11-7z"/></svg>';
-  var SVG_PAUSE = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
-  var SVG_NEXT = '<svg viewBox="0 0 24 24" class="qn-yt-ico"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>';
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
   var FLAG_KEY = "qn_yt_autonext", RATE_KEY = "qn_yt_rate";
   var FALLBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -110,6 +106,58 @@
     }
     return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
   }
+
+  // ---------- シークバー下のコントロールバー（v3.2.0〜：PLAYER下段バーと同じデザイン） ----------
+  // アイコン＋英字。  再生系 │ マーカー系 │ スピード
+  // PC幅=ステージ(プレイヤー側)の下端に吸着（サイドバー/パネル側へは伸ばさない）。
+  // SP幅=PLAYER同様、アイコンバーの直上に横スクロールで固定。
+  var BI = {
+    prevTrack: '<path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>',
+    nextTrack: '<path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>',
+    back10: '<path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>',
+    fwd10: '<path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>',
+    play: '<path d="M8 5v14l11-7z"/>',
+    pause: '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>',
+    repeat: '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>',
+    add: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>',
+    loop: '<path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>',
+    clear: '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>',
+    speed: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 12L15.5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="1.4"/>'
+  };
+  function bbtn(ref, cls, icon, label, title) {
+    return '<button type="button" data-yt="' + ref + '" class="qn-yt-bbtn' + (cls ? " " + cls : "") + '" title="' + title + '">' +
+      '<svg viewBox="0 0 24 24">' + icon + '</svg><span>' + label + '</span></button>';
+  }
+  var BAR_HTML =
+    '<div class="qn-yt-bar">' +
+      '<div class="qn-yt-bgroup">' +
+        bbtn("prevVideoBtn", "", BI.prevTrack, "Track", "Libraryの前の動画 (Shift+P)") +
+        bbtn("skipBackBtn", "", BI.back10, "-10s", "10秒戻る (J)") +
+        bbtn("playBtn", "center", BI.play, "Play", "再生 / 一時停止 (Space / K)") +
+        bbtn("skipFwdBtn", "", BI.fwd10, "+10s", "10秒進む (L)") +
+        bbtn("nextVideoBtn", "", BI.nextTrack, "Track", "Libraryの次の動画 (Shift+N)") +
+        bbtn("autoNext", "", BI.repeat, "Auto Next", "終了したらLibraryの次の動画を読み込む（ON/OFF）") +
+      '</div>' +
+      '<div class="qn-yt-bdiv"></div>' +
+      '<div class="qn-yt-bgroup">' +
+        bbtn("prevMarkerBtn", "", BI.prevTrack, "Marker", "前のマーカーへ") +
+        bbtn("addMarkerBtn", "center", BI.add, "Marker", "マーカーを追加") +
+        bbtn("nextMarkerBtn", "", BI.nextTrack, "Marker", "次のマーカーへ") +
+        bbtn("loopToggleBtn", "", BI.loop, "Loop", "ABループ ON/OFF") +
+        '<div class="qn-yt-abread" title="ABループの区間">' +
+          '<span>A <b data-yt="loopALabel">--</b></span><span>B <b data-yt="loopBLabel">--</b></span>' +
+        '</div>' +
+        bbtn("loopClearBtn", "", BI.clear, "Clear AB", "AB点をクリア") +
+      '</div>' +
+      '<div class="qn-yt-bspacer"></div>' +
+      '<div class="qn-yt-bgroup">' +
+        '<div class="qn-yt-bstep" title="再生スピード (&lt; / &gt;)">' +
+          '<button type="button" data-yt="speedDown" class="qn-yt-bstep-btn" title="Slower (&lt;)">−</button>' +
+          '<div class="qn-yt-bstep-mid"><svg viewBox="0 0 24 24">' + BI.speed + '</svg><span><b data-yt="speedVal">1x</b> Speed</span></div>' +
+          '<button type="button" data-yt="speedUp" class="qn-yt-bstep-btn" title="Faster (&gt;)">＋</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
 
   // ---------- 画面の骨組み ----------
   var TEMPLATE =
@@ -242,37 +290,7 @@
           '<p class="qn-yt-fetched-title" data-yt="fetchedTitle"></p>' +
           '<div class="qn-yt-time"><span data-yt="curTime">00:00</span><span class="sep">/</span><span data-yt="durTime">00:00</span></div>' +
           '<div class="qn-yt-seek" data-yt="seekTracks"><div class="qn-yt-marker-layer" data-yt="markerLayer"></div></div>' +
-          '<div class="qn-yt-ctrl-row qn-yt-transport">' +
-            '<button type="button" data-yt="prevVideoBtn" class="qn-yt-btn" title="Libraryの前の動画">' + SVG_PREV + 'Prev</button>' +
-            '<button type="button" data-yt="playBtn" class="qn-yt-btn primary" title="再生 / 一時停止（スペースキー）">' + SVG_PLAY + '</button>' +
-            '<button type="button" data-yt="nextVideoBtn" class="qn-yt-btn" title="Libraryの次の動画">Next' + SVG_NEXT + '</button>' +
-          '</div>' +
-          '<div class="qn-yt-ctrl-row">' +
-            '<button type="button" data-yt="skipBackBtn" class="qn-yt-btn">◀◀ 10s</button>' +
-            '<button type="button" data-yt="prevMarkerBtn" class="qn-yt-btn" title="前のマーカーへ">' + SVG_PREV + 'Marker</button>' +
-            '<button type="button" data-yt="addMarkerBtn" class="qn-yt-btn primary">+ Marker</button>' +
-            '<button type="button" data-yt="nextMarkerBtn" class="qn-yt-btn" title="次のマーカーへ">Marker' + SVG_NEXT + '</button>' +
-            '<button type="button" data-yt="skipFwdBtn" class="qn-yt-btn">10s ▶▶</button>' +
-          '</div>' +
-          // 再生スピード：プレイヤーの外に置く自前UI。中身はYouTube標準と同じ倍率
-          // （getAvailablePlaybackRates()）。公式メソッドsetPlaybackRate()のみ使用。
-          '<div class="qn-yt-ctrl-row qn-yt-speed-row">' +
-            '<span class="qn-yt-loop-status">Speed</span>' +
-            '<div class="qn-yt-speed-chips" data-yt="speedChips"></div>' +
-          '</div>' +
-          // 終了したら次のライブラリの動画へ。利用者が明示的にONにした時だけ動く（初期OFF）。
-          '<div class="qn-yt-ctrl-row qn-yt-autonext-row">' +
-            '<span class="qn-yt-loop-status">Auto Next</span>' +
-            '<button type="button" class="glow-switch" role="switch" aria-checked="false" data-yt="autoNext" title="終了したらLibraryの次の動画を読み込む"><span class="glow-switch-knob"></span></button>' +
-            '<span class="qn-yt-loop-status qn-yt-autonext-hint">動画が終わったら、Libraryの次の動画を再生します</span>' +
-          '</div>' +
-          '<div class="qn-yt-ctrl-row qn-yt-ab-row">' +
-            '<span class="qn-yt-loop-status">A <b data-yt="loopALabel">--</b></span>' +
-            '<span class="qn-yt-loop-status">B <b data-yt="loopBLabel">--</b></span>' +
-            '<button type="button" data-yt="loopToggleBtn" class="qn-yt-btn" disabled>Loop OFF</button>' +
-            '<button type="button" data-yt="loopClearBtn" class="qn-yt-btn">Clear AB</button>' +
-          '</div>' +
-          '<p class="qn-yt-hint">Markers の「A」「B」ボタンで、ABループの開始・終了を指定できます。再生/停止は YouTube 標準のコントロールで行います。</p>' +
+          '<p class="qn-yt-hint">Markers の「A」「B」ボタンで、ABループの開始・終了を指定できます。</p>' +
         '</div>' +
         '<footer class="qn-yt-footer">' +
           '<p class="qn-yt-notice">※ 権利者に無断でアップロードされた動画は使用しないでください。</p>' +
@@ -280,6 +298,7 @@
           '<div class="qn-yt-ad-slot" aria-hidden="true"></div>' +
         '</footer>' +
       '</section>' +
+      BAR_HTML +
     '</div>';
 
   // ---------- サイドバー(Library / Markers)とパネル ----------
@@ -644,8 +663,10 @@
     updatePlayBtn(false);
     refs.prevMarkerBtn.addEventListener("click", function () { jumpMarker(-1); });
     refs.nextMarkerBtn.addEventListener("click", function () { jumpMarker(1); });
-    refs.autoNext.setAttribute("aria-checked", String(autoNext));
+    syncAutoNextBtn();
     refs.autoNext.addEventListener("click", function () { setAutoNext(!autoNext); });
+    refs.speedDown.addEventListener("click", function () { stepRate(-1, true); });
+    refs.speedUp.addEventListener("click", function () { stepRate(1, true); });
     renderSpeed();
 
     refs.loopClearBtn.addEventListener("click", function () {
@@ -696,23 +717,10 @@
     } catch (e) {}
   }
   function renderSpeed() {
-    if (!root) return;
+    if (!root || !refs.speedVal) return;
     var actual = desiredRate;
     try { if (player && playerReady && player.getPlaybackRate) actual = player.getPlaybackRate(); } catch (e) {}
-    refs.speedChips.textContent = "";
-    availableRates().forEach(function (r) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "qn-yt-btn mini" + (Math.abs(r - actual) < 0.001 ? " on" : "");
-      b.textContent = r === 1 ? "1x" : (r + "x");
-      b.addEventListener("click", function () {
-        desiredRate = r;
-        try { localStorage.setItem(RATE_KEY, String(r)); } catch (e) {}
-        if (player && playerReady && player.setPlaybackRate) player.setPlaybackRate(r);
-        renderSpeed();
-      });
-      refs.speedChips.appendChild(b);
-    });
+    refs.speedVal.textContent = actual + "x";
   }
 
   // ---------- 終了したら次のライブラリの動画へ（Auto Next） ----------
@@ -726,7 +734,12 @@
   function setAutoNext(on) {
     autoNext = !!on;
     try { localStorage.setItem(FLAG_KEY, autoNext ? "1" : "0"); } catch (e) {}
-    if (refs.autoNext) refs.autoNext.setAttribute("aria-checked", String(autoNext));
+    syncAutoNextBtn();
+  }
+  function syncAutoNextBtn() {
+    if (!refs.autoNext) return;
+    refs.autoNext.classList.toggle("is-active", !!autoNext);
+    refs.autoNext.setAttribute("aria-pressed", String(!!autoNext));
   }
 
   function playerMostlyVisible() {
@@ -1400,8 +1413,8 @@
 
     var range = loopRangeTimes();
     refs.loopToggleBtn.disabled = !range;
-    refs.loopToggleBtn.textContent = "Loop " + (current.looping ? "ON" : "OFF");
-    refs.loopToggleBtn.classList.toggle("on", !!current.looping);
+    refs.loopToggleBtn.classList.toggle("is-active", !!current.looping);
+    refs.loopToggleBtn.setAttribute("aria-pressed", String(!!current.looping));
 
     // ループ区間を、各行との重なり部分だけ表示
     var len = duration ? duration / SEGS : 0;
@@ -1782,7 +1795,7 @@
   }
   function updatePlayBtn(playing) {
     if (!refs.playBtn) return;
-    refs.playBtn.innerHTML = playing ? SVG_PAUSE : SVG_PLAY;
+    refs.playBtn.innerHTML = '<svg viewBox="0 0 24 24">' + (playing ? BI.pause : BI.play) + '</svg><span>' + (playing ? "Pause" : "Play") + '</span>';
     refs.playBtn.classList.toggle("is-playing", !!playing);
   }
   // Libraryの前/次の動画へ（SKIPは飛ばす）。押した時に再生開始（利用者操作が起点）
@@ -1820,7 +1833,7 @@
     try { if (window.QNApps && window.QNApps.toast) window.QNApps.toast(text); } catch (e) {}
   }
 
-  function stepRate(dir) {
+  function stepRate(dir, quiet) {
     var rates = availableRates(), actual = desiredRate, i, idx = -1;
     try { if (player && playerReady && player.getPlaybackRate) actual = player.getPlaybackRate(); } catch (e) {}
     for (i = 0; i < rates.length; i++) if (Math.abs(rates[i] - actual) < 0.001) idx = i;
@@ -1833,7 +1846,7 @@
     try { localStorage.setItem(RATE_KEY, String(desiredRate)); } catch (e) {}
     try { if (player && playerReady && player.setPlaybackRate) player.setPlaybackRate(desiredRate); } catch (e) {}
     renderSpeed();
-    ytToast("Speed " + desiredRate + "x");
+    if (!quiet) ytToast("Speed " + desiredRate + "x");
   }
 
   function changeVolume(delta) {

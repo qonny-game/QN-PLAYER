@@ -5,7 +5,7 @@
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
 - 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（アプリ名バッジ・アプリ一覧フライアウト・表示領域）
-- 最終更新：QNPLAYER v3.1.0（YouTube本家と同じショートカット＋Keyboardパネル）（2026-10-01）
+- 最終更新：QNPLAYER v3.2.0（シークバー下のコントロールバーをPLAYER下段バーと同じデザインに）（2026-10-01）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---
@@ -261,6 +261,13 @@ PC幅                                             SP幅（パネルを開いた�
 - 意図的に入れていないもの：F(全画面)・T(シアター)・C(字幕)・I(ミニプレイヤー)など、iframe内部の機能。
 - 音量・速度・ミュートの変更は`QNApps.toast()`で一言表示。文字入力中・Ctrl/Meta/Alt併用は無視。ページスクロール防止のため、処理したキーは`preventDefault`。
 - サイドバーの最後に`Keyboard`項目（`data-panel="keyboard"`・`.qn-yt-sec-keyboard`）。`renderShortcuts()`が本体の`#qnShortcutsTable`を複製して行だけ差し替える（見た目を本体と統一。表が無ければ同クラス名で自前構築）。一覧の元データは`SHORTCUTS`配列。
+
+## 付録：シークバー下のコントロールバー（v3.2.0）
+- `.qn-yt-bar`（`BAR_HTML`）。PLAYERの下段バー(`#pcV2BottomBar`/`.pcv2-ctrl-btn`/`.tripleNavBtn`)と同じ枠なしフラットなアイコン＋英字。並び：再生系（Track / -10s / Play / +10s / Track / Auto Next）│ マーカー系（Marker / +Marker / Marker / Loop / A・B表示 / Clear AB）│ スピード（− 1x Speed ＋）。
+- PC幅：`.qn-yt`のgridで、左=パネル(縦いっぱい)、右=ステージ＋その下のバー。バーはステージ側の下端に吸着し、サイドバー/パネル側へは伸ばさない。横幅が足りない時はバー内を横スクロール。
+- SP幅：PLAYER同様、アイコンバーの直上に固定（`position: sticky; bottom: 0`、横スクロール、アイコン・文字を大きく）。パネルを開いている間は隠す（従来の自前UIと同じ）。※PLAYERにある「PLAY/MARKERアンカータブ」は未対応。
+- 旧`.qn-yt-ctrl-row`（Prev/Next・±10s・Marker・Speedチップ・Auto Next行・AB行）は撤去。機能は維持：Auto Nextは`.is-active`のボタンに、LoopはON時`.is-active`（ABが無い間は`disabled`）、スピードチップは`−/＋`ステッパーに変更（`stepRate`。本家ショートカット`<` `>`と同じ処理）。
+- 再生ボタンは`updatePlayBtn`がアイコン＋「Play/Pause」表示ごと差し替える。
 
 ## 付録：再生ボタン・Library前/次ボタン（v2.26.0）
 - シークバー下の`.qn-yt-transport`行（Prev / 再生⇄一時停止 / Next）。すべて利用者のクリックを起点に公式メソッド（`playVideo`/`pauseVideo`/`loadVideoById`）を呼ぶだけ。
