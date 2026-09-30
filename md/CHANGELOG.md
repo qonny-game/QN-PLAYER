@@ -447,3 +447,12 @@
 - Libraryの行にサムネイルを表示（YouTubeの画像URLを`<img>`で参照する表示のみ。16:9のまま全体表示、保存・切り抜き・加工なし。読み込めない時は再生アイコン）。
 - YouTubeアプリ画面のフッターに、YouTube利用規約・Googleプライバシーポリシーへのリンクと、保存データの扱いの説明を追加。
 - 注意：`<img loading="lazy">`はDOMに付ける前だと読み込まれない。画像は先にthumbへ追加して、読み込めたら表示する。
+
+## 2.30.0 — PLAYERの再生中は画面を閉じてもバックグラウンド再生を維持
+- `qn-wakelock.js`：`navigator.audioSession.type = "playback"`（対応ブラウザのみ）を設定し、画面が隠れた/戻った/pagehide/pageshow時に、再生中なのにAudioContext(EQ/Speed/Key経由)が止まっていれば`resume()`する。
+- YouTubeアプリは対象外（規約により、隠れている間は再生しない。アプリを閉じると一時停止）。
+- 実機依存：iOSではEQ/Speed/Keyを使うと（Web Audio経由になるため）OSに止められる場合がある。素の再生（これらを使わない）が最も安定。
+
+## 2.30.1 — 【切り分け用】Wake Lockを一時的に無効化
+- iPhoneのホーム画面アプリでPLAYERのバックグラウンド再生が止まる問題の原因調査。v2.17.0以降、再生系コア(player-core/ui-shared/playlist)は無変更で、追加されたのはアプリ系(qn-apps/qn-app-youtube)とWake Lock(v2.21.1)のみ。
+  最も疑わしいWake Lockを`ENABLE_WAKE_LOCK=false`で止めて、止まらなくなるかを実機で確認する。結果次第で戻す（画面スリープ防止機能は一時的に効かない）。

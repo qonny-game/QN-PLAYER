@@ -212,3 +212,9 @@ QN-PLAYERの開発において発生した不具合・知見・落とし穴（Go
 ### 2-31. 検証時の注意（アプリ関連）
 - `pkill -f http.server` は終了コード144を返すが異常ではない（コマンド列の最後に置く）。
 - YouTubeのIFrame APIは実ネットワークに出られない環境では読み込めないため、`https://www.youtube.com/iframe_api`をモックに差し替えて検証する。実機のWake Lock・実YouTube再生は別途実機確認が必要。
+
+### 2-32. バックグラウンド再生はOS/ブラウザ次第 — 実機確認が必要
+- PLAYERのaudioは、アプリ側では画面が隠れても止めていない。止まる原因は主にOS/ブラウザ側：iOSでは`createMediaElementSource`でWeb Audio経由（EQ・Speed・Keyを一度でも操作した後）にすると、ロック中に止められることがある。
+- 対策(v2.30.0)：`navigator.audioSession.type="playback"`、隠れた/戻った時にAudioContextを`resume()`。ロック画面のボタンは`mediaSession`。
+- **教訓：** ロック中に`audio`のpauseを検知して自動で`play()`し直すような実装は、ロック画面の一時停止ボタンとケンカするので避ける。PC/エミュレータでは再現できないため、iPhone/Androidの実機で「素の再生」と「EQ/Key使用後」を分けて確認する。
+
