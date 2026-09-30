@@ -5,7 +5,7 @@
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
 - 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（アプリ名バッジ・アプリ一覧フライアウト・表示領域）
-- 最終更新：QNPLAYER v3.0.0（アプリ切替をバッジのフライアウトに変更）（2026-10-01）
+- 最終更新：QNPLAYER v3.1.0（YouTube本家と同じショートカット＋Keyboardパネル）（2026-10-01）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---
@@ -26,7 +26,7 @@
 ## 1. 現在できること（実装済み）
 
 ### 1-1. 入口とサイドバー
-- サイドバー先頭のアプリ名バッジ（＞付き）にマウスを載せる（SPはタップ）とアプリ一覧のフライアウトが出る → YOUTUBEを選ぶと、サイドバーが「Library / Markers / Backup / Import」＋Colorに切り替わる。
+- サイドバー先頭のアプリ名バッジ（＞付き）にマウスを載せる（SPはタップ）とアプリ一覧のフライアウトが出る → YOUTUBEを選ぶと、サイドバーが「Library / Markers / Backup / Import / Keyboard」＋Colorに切り替わる。
   先頭のバッジは現在のアプリ名を表示し、ここからいつでも他のアプリへ切り替えられる。仕組みは`PC_V2_FILE_INDEX.md`のqn-apps.jsの項。
 - アプリ表示中は本体の下段バーを隠し、本体のaudioを一時停止、キーボードショートカットと「曲追加」D&Dを無効化する（`body.qn-app-open`）。
 - Colorボタンは全アプリで常駐。アプリ表示中はPLAYERと同じ「パネル」として開く（Marker Memo Colorsだけ非表示）。
@@ -254,6 +254,13 @@ PC幅                                             SP幅（パネルを開いた�
 - アプリ表示中のみ有効（`onShow`でリスナー登録、`onHide`で解除）。公式の`getPlayerState()`/`playVideo()`/`pauseVideo()`を、利用者のキー操作を起点に呼ぶだけ。規約OK（§2の「playVideoは利用者操作から」を満たす）。
 - 文字入力中（input/textarea/select/contenteditable）・Ctrl/Alt/Meta/Shift併用・キーリピートは無視。動画が未読み込みなら何もしない。
 - YouTube iframe内にフォーカスがある時のスペースはYouTube側の標準動作（親ページには届かない）。
+
+## 付録：YouTube本家と同じショートカット＋Keyboardパネル（v3.1.0）
+- 上の「スペースキー」の仕組み（`onShow`で登録／`onHide`で解除、`onSpaceKey`）を拡張。公式メソッドを利用者のキー操作を起点に呼ぶだけ。
+- キー：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5秒、↑/↓ 音量±5%、M ミュート、0〜9 動画の0〜90%へ、Home/End 先頭/末尾、`,` `.` 一時停止中のみ1フレーム(約1/30秒)、`<` `>`(Shift+,/.) 速度−/＋（`availableRates()`を1段階、Speedチップにも反映・`qn_yt_rate`へ保存）、Shift+P/N Libraryの前/次の動画（`gotoNeighbor`）。
+- 意図的に入れていないもの：F(全画面)・T(シアター)・C(字幕)・I(ミニプレイヤー)など、iframe内部の機能。
+- 音量・速度・ミュートの変更は`QNApps.toast()`で一言表示。文字入力中・Ctrl/Meta/Alt併用は無視。ページスクロール防止のため、処理したキーは`preventDefault`。
+- サイドバーの最後に`Keyboard`項目（`data-panel="keyboard"`・`.qn-yt-sec-keyboard`）。`renderShortcuts()`が本体の`#qnShortcutsTable`を複製して行だけ差し替える（見た目を本体と統一。表が無ければ同クラス名で自前構築）。一覧の元データは`SHORTCUTS`配列。
 
 ## 付録：再生ボタン・Library前/次ボタン（v2.26.0）
 - シークバー下の`.qn-yt-transport`行（Prev / 再生⇄一時停止 / Next）。すべて利用者のクリックを起点に公式メソッド（`playVideo`/`pauseVideo`/`loadVideoById`）を呼ぶだけ。

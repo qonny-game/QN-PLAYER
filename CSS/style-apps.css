@@ -373,7 +373,8 @@ body.qn-app-open #pcV2TimeRow {
 .qn-yt[data-panel="library"] .qn-yt-sec-library,
 .qn-yt[data-panel="markers"] .qn-yt-sec-markers,
 .qn-yt[data-panel="backup"] .qn-yt-sec-backup,
-.qn-yt[data-panel="import"] .qn-yt-sec-import {
+.qn-yt[data-panel="import"] .qn-yt-sec-import,
+.qn-yt[data-panel="keyboard"] .qn-yt-sec-keyboard {
   display: block;
 }
 
@@ -1254,3 +1255,15 @@ body.qn-app-open #pcV2TimeRow {
 }
 .qn-yt-legal p { margin: 0 0 6px; }
 .qn-yt-legal a { color: var(--accent-primary); text-decoration: underline; }
+
+/* ---------- Keyboardパネル（v3.1.0〜）：本体の .qn-shortcut-table を複製して使う。
+   本体側のCSSが効かない場合でも崩れないよう、最低限だけここでも指定する。 */
+.qn-yt-kbd .qn-menu-section { border-bottom: none; padding-bottom: 0; }
+.qn-yt-kbd .qn-menu-section-label { display: none; }
+.qn-yt-kbd .qn-shortcut-table { width: 100%; border-collapse: collapse; }
+.qn-yt-kbd-note {
+  margin: 12px 0 0;
+  font-size: var(--fs-small);
+  color: var(--text-dim, rgba(255, 255, 255, 0.45));
+  line-height: 1.6;
+}

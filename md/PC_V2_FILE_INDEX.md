@@ -227,7 +227,7 @@ PC v2の中央パネル（`#pcV2PanelBody`）に表示される中身専用。
   他のサイドバー項目・Esc・Color再押下で閉じる。`close()`でも閉じる（Colorを開く時はフライアウトを閉じる）。
 - アプリ名バッジ`#qnAppBadge`（サイドバー先頭。v3.0.0〜押す/ホバーでフライアウト）、`QNApps.toast()`、`QNApps.setSideActive()`、`QNApps.layout()`。
 
-**JS/qn-app-youtube.js**（約1700行・機能ごとの目安）
+**JS/qn-app-youtube.js**（約1900行・機能ごとの目安。v3.1.0〜：`SHORTCUTS`/`onSpaceKey`(本家準拠キー)/`renderShortcuts`/サイドバー`keyboard`）
 - データ: `loadItems/saveItems/findItem/findMarker/persistMarkers/persistLoop/sortMarkers`
 - プレイヤー: `requestApi/createPlayer/openVideo/pausePlayer/seekTo/applyDesiredRate/renderSpeed/handleEnded(SKIP対応)/playerMostlyVisible`
 - シークバー・マーカー: `buildTracks/positionMarker/fillMarkerLabel/attachMarkerDrag/attachTrackSeek/jumpMarker`

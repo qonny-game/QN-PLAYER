@@ -482,3 +482,8 @@
 ## 3.0.3 — PLAYERアプリのサイドバーの並び順を変更
 - 並び順を Library → Markers → Text → Control → Backup → Import に変更（`player-ui-pc-v2.js`の`ICON_ITEMS`の並べ替えのみ。Seekbarは従来どおりSP幅専用で先頭、Exportは非表示のまま）。並び順に依存する処理は無い（パネルは`data-panel-id`で参照）。
 - 変更ファイル：`JS/player-ui-pc-v2.js`、`index.html`（バージョンのみ）。
+
+## 3.1.0 — YouTubeアプリにYouTube本家と同じショートカット＋Keyboardパネル
+- ショートカット追加：Space/K、J/L(±10秒)、←/→(±5秒)、↑/↓(音量±5%)、M(ミュート)、0〜9(0〜90%へ)、Home/End、`,`/`.`(一時停止中の1フレーム)、`<`/`>`(速度)、Shift+P/N(Libraryの前/次の動画)。アプリ表示中のみ有効。文字入力中は無効。
+- YouTubeアプリのサイドバーに`Keyboard`を追加（末尾）。PLAYERのKeyboard Shortcuts表を複製して同じデザインで一覧表示。
+- 変更ファイル：`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`（バージョンのみ）。

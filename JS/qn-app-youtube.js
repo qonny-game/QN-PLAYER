@@ -207,6 +207,10 @@
               '<button type="button" class="export-run-btn" data-yt="imRun" disabled>Import</button>' +
             '</div>' +
           '</section>' +
+          // ---- Keyboard（YouTube本家と同じショートカットの一覧。中身は renderShortcuts() が入れる） ----
+          '<section class="qn-yt-sec qn-yt-sec-keyboard">' +
+            '<div class="qn-yt-kbd" data-yt="kbdBox"></div>' +
+          '</section>' +
           '<footer class="qn-yt-legal">' +
             '<p>このアプリはYouTube API Servicesを利用しています。</p>' +
             '<p><a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube利用規約</a>' +
@@ -286,10 +290,12 @@
     { id: "markers", label: "Markers", icon: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>' },
     // 本体のBackup / Importと同じアイコン・同じ流れ
     { id: "backup", label: "Backup", icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>' },
-    { id: "import", label: "Import", icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' }
+    { id: "import", label: "Import", icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' },
+    // 本体のKeyboardと同じアイコン。YouTube本家と同じショートカットの一覧（v3.1.0〜）
+    { id: "keyboard", label: "Keyboard", icon: '<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM11 8h2v2h-2V8zM11 11h2v2h-2v-2zM8 8h2v2H8V8zM8 11h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm10 6H9v-2h6v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>' }
   ];
-  var PANEL_TITLES = { library: "Library", markers: "Markers", backup: "Backup", import: "Import" };
-  var panelState = null; // "library" | "markers" | "backup" | "import" | "none"(SPのみ)
+  var PANEL_TITLES = { library: "Library", markers: "Markers", backup: "Backup", import: "Import", keyboard: "Keyboard" };
+  var panelState = null; // "library" | "markers" | "backup" | "import" | "keyboard" | "none"(SPのみ)
 
   function isSp() { return window.matchMedia("(max-width: 900px)").matches; }
 
@@ -307,6 +313,7 @@
     // 一時停止は不要（CSS側 .qn-yt:not([data-panel="none"]) 参照）。
     if (id === "backup") renderBackupList();
     if (id === "import") resetImportView();
+    if (id === "keyboard") renderShortcuts();
     updatePanelTitle();
     if (window.QNApps) window.QNApps.setSideActive(id === "none" ? null : id);
   }
@@ -1791,15 +1798,156 @@
     openVideo(target.videoId, target.url, target.id, { play: true });
   }
 
+  // ---------- YouTube本家と同じキーボードショートカット（v3.1.0〜） ----------
+  // 公式メソッド（playVideo/pauseVideo/seekTo/setVolume/mute/setPlaybackRate）を、
+  // 利用者のキー操作を起点に呼ぶだけ（規約OK）。アプリ表示中のみ有効。
+  // 文字入力中・Ctrl/Cmd/Alt併用・キーリピート（再生系）は無視。
+  // ※プレイヤー(iframe)自体にフォーカスがある時は、YouTube側が同じキーを処理する。
+  var SHORTCUTS = [
+    { key: "Space / K", action: "Play / Pause" },
+    { key: "J / L", action: "Back / Forward 10s" },
+    { key: "← / →", action: "Back / Forward 5s" },
+    { key: "↑ / ↓", action: "Volume +5% / -5%" },
+    { key: "M", action: "Mute / Unmute" },
+    { key: "0 - 9", action: "Jump to 0% - 90%" },
+    { key: "Home / End", action: "Start / End of video" },
+    { key: ", / .", action: "Previous / Next frame (paused)" },
+    { key: "< / >", action: "Slower / Faster (Shift + , / .)" },
+    { key: "Shift + P / N", action: "Previous / Next video (Library)" }
+  ];
+
+  function ytToast(text) {
+    try { if (window.QNApps && window.QNApps.toast) window.QNApps.toast(text); } catch (e) {}
+  }
+
+  function stepRate(dir) {
+    var rates = availableRates(), actual = desiredRate, i, idx = -1;
+    try { if (player && playerReady && player.getPlaybackRate) actual = player.getPlaybackRate(); } catch (e) {}
+    for (i = 0; i < rates.length; i++) if (Math.abs(rates[i] - actual) < 0.001) idx = i;
+    if (idx < 0) { // 現在値が一覧に無い時は、いちばん近い側へ
+      idx = 0;
+      for (i = 0; i < rates.length; i++) if (rates[i] <= actual) idx = i;
+    }
+    var n = Math.max(0, Math.min(rates.length - 1, idx + dir));
+    desiredRate = rates[n];
+    try { localStorage.setItem(RATE_KEY, String(desiredRate)); } catch (e) {}
+    try { if (player && playerReady && player.setPlaybackRate) player.setPlaybackRate(desiredRate); } catch (e) {}
+    renderSpeed();
+    ytToast("Speed " + desiredRate + "x");
+  }
+
+  function changeVolume(delta) {
+    try {
+      if (!player.getVolume || !player.setVolume) return;
+      if (player.isMuted && player.isMuted() && delta > 0 && player.unMute) player.unMute();
+      var v = Math.max(0, Math.min(100, Math.round(player.getVolume()) + delta));
+      player.setVolume(v);
+      ytToast("Volume " + v + "%");
+    } catch (e) {}
+  }
+
+  function toggleMute() {
+    try {
+      if (!player.isMuted) return;
+      if (player.isMuted()) { player.unMute(); ytToast("Unmuted"); }
+      else { player.mute(); ytToast("Muted"); }
+    } catch (e) {}
+  }
+
   function onSpaceKey(e) {
-    if (e.code !== "Space" && e.key !== " ") return;
-    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (isTypingTarget(e.target) || isTypingTarget(document.activeElement)) return;
     if (!player || !playerReady || typeof player.getPlayerState !== "function") return;
-    e.preventDefault(); // ページのスクロール／フォーカス中ボタンの誤クリックを防ぐ
-    if (e.type === "keyup" || e.repeat) return;
-    togglePlay();
+    var k = e.key, isSpace = (e.code === "Space" || k === " ");
+    if (isSpace) {
+      if (e.shiftKey) return;
+      e.preventDefault(); // ページのスクロール／フォーカス中ボタンの誤クリックを防ぐ
+      if (e.type === "keyup" || e.repeat) return;
+      togglePlay();
+      return;
+    }
+    if (e.type !== "keydown") return;
+    var lk = (k || "").length === 1 ? k.toLowerCase() : k;
+    var handled = true, t, st;
+    if (e.shiftKey) {
+      // Shift併用は「< >」(速度)と Shift+N/P(前後の動画)だけ。
+      if (k === "<") stepRate(-1);
+      else if (k === ">") stepRate(1);
+      else if (lk === "n" && !e.repeat) gotoNeighbor(1);
+      else if (lk === "p" && !e.repeat) gotoNeighbor(-1);
+      else handled = false;
+      if (handled) e.preventDefault();
+      return;
+    }
+    if (lk === "k") { if (!e.repeat) togglePlay(); }
+    else if (lk === "j") seekTo(currentPos() - 10);
+    else if (lk === "l") seekTo(currentPos() + 10);
+    else if (k === "ArrowLeft") seekTo(currentPos() - 5);
+    else if (k === "ArrowRight") seekTo(currentPos() + 5);
+    else if (k === "ArrowUp") changeVolume(5);
+    else if (k === "ArrowDown") changeVolume(-5);
+    else if (lk === "m") { if (!e.repeat) toggleMute(); }
+    else if (k === "Home") seekTo(0);
+    else if (k === "End") { if (duration) seekTo(duration); }
+    else if (k >= "0" && k <= "9" && k.length === 1) {
+      if (duration) seekTo(duration * (Number(k) / 10));
+    }
+    else if (k === "," || k === ".") {
+      // 一時停止中だけ、1フレーム(約1/30秒)ずつ。再生中はYouTube本家同様に何もしない
+      try { st = player.getPlayerState(); } catch (err) { st = -1; }
+      if (st === 1) handled = false;
+      else seekTo(currentPos() + (k === "." ? 1 : -1) / 30);
+    }
+    else handled = false;
+    if (handled) e.preventDefault();
   }
+
+  // Keyboardパネル：本体のKeyboard Shortcuts表（#qnShortcutsTable）を複製して、同じ見た目のまま
+  // 行だけYouTube用に差し替える。本体の表が見つからない時は、同じクラス名で自前で組み立てる。
+  function setCellText(cell, text) {
+    var n = cell;
+    while (n.children.length === 1) n = n.children[0];
+    n.textContent = text;
+  }
+  function renderShortcuts() {
+    if (!refs.kbdBox) return;
+    refs.kbdBox.textContent = "";
+    var sec = document.createElement("div");
+    sec.className = "qn-menu-section";
+    var src = document.getElementById("qnShortcutsTable");
+    var table = null;
+    if (src && src.tBodies[0] && src.tBodies[0].rows.length) {
+      table = src.cloneNode(true);
+      table.removeAttribute("id");
+      table.style.display = "";
+      var tb = table.tBodies[0], tpl = tb.rows[0].cloneNode(true);
+      tb.textContent = "";
+      SHORTCUTS.forEach(function (sc) {
+        var tr = tpl.cloneNode(true);
+        // 見出しは「Action | Key」の順。列数が違う場合は自前の構築に任せる
+        if (tr.cells.length >= 2) { setCellText(tr.cells[0], sc.action); setCellText(tr.cells[1], sc.key); }
+        tb.appendChild(tr);
+      });
+    } else {
+      table = document.createElement("table");
+      table.className = "qn-shortcut-table";
+      table.innerHTML = "<thead><tr><th>Action</th><th>Key</th></tr></thead><tbody></tbody>";
+      SHORTCUTS.forEach(function (sc) {
+        var tr = document.createElement("tr");
+        var a = document.createElement("td"), k = document.createElement("td");
+        a.textContent = sc.action; k.textContent = sc.key;
+        tr.appendChild(a); tr.appendChild(k);
+        table.tBodies[0].appendChild(tr);
+      });
+    }
+    sec.appendChild(table);
+    var note = document.createElement("p");
+    note.className = "qn-yt-kbd-note";
+    note.textContent = "YouTube本家と同じキーです。文字入力中は動きません。";
+    sec.appendChild(note);
+    refs.kbdBox.appendChild(sec);
+  }
+
   var spaceBound = false;
   function bindSpace(on) {
     if (on === spaceBound) return;
