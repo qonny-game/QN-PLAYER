@@ -64,3 +64,15 @@
 | MOREボタン / BACKボタン | `#qnMoreBtn`（サイドバー最下部、アプリ一覧中はBACKに変わる） |
 | アプリ一覧 | サイドバーが`.qn-apps-mode`になった状態（PLAYER/YOUTUBE/TUNER/PITCH） |
 | YouTubeの画面 | `#qnAppHost`内の`.qn-yt`（左Library/Markers、右プレイヤー＋3行シークバー） |
+
+## v2.18〜v2.23 の追記
+
+| ユーザーの言葉 | 実体 |
+|---|---|
+| アプリ名（サイドバー上の） | `#qnAppBadge` |
+| Colorパネル（YouTube中） | `#qnColorPop`（PLAYERと同じ見た目のパネル。ポップアップではない） |
+| Marker Memo Colors / カスタムメモ | Colorパネル内。空欄行に入力→次の空欄が増える。×で削除（PLAYER時のみ表示） |
+| YouTubeのEDIT / OK / Delete | 右下`.qn-yt-fab`。Library・Markersとも本体と同じ挙動 |
+| PLAY / SKIP | YouTube Libraryの行トグル。SKIPはAuto Nextで飛ばす |
+| チャプター貼り付け | Markersパネルの入力欄。貼ったテキストを解析してマーカー化（YouTubeからは取得しない） |
+| 前/次マーカー | +Markerの左右ボタン（現在地基準） |

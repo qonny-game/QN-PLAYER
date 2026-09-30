@@ -312,72 +312,104 @@
   見た目をQNPLAYERの配色トークン・パネル・ボタンに統一。単体版からの変更点：
   idの名前空間化(`data-yt`)、IFrame APIは初回に動画を読み込む時まで取得しない、
   非表示中はポーリング停止＋`pauseVideo()`、削除は2度押し確認(confirm()廃止)。
-  規約ルールは`md/YT_PROTOTYPE_SPEC.md`（単体版の仕様書）のまま維持。
-- 【2.17.1】アプリ一覧の「PLAYER」を押すと、アプリを閉じるだけでなく
+  規約ルールは`md/YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約）に集約。
+- アプリ表示中は`body.qn-app-open`が付き、本体の下段バー等を隠す＆audioを一時停止＆
+  キーボードショートカット(`player-ui-shared.js`のkeydown)を無効化。
+
+## 2.17.1 — アプリ一覧からPLAYERへ戻る導線、YouTube画面への波形ラベル透け修正
+- アプリ一覧の「PLAYER」を押すと、アプリを閉じるだけでなく
   サイドバーも通常表示(BACK相当)へ自動で戻る。YouTube画面に本体の波形マーカー
   ラベル(z-index:51)が透けて残る問題を、`#qnAppHost`のz-indexを20→150にして解消。
-- 【2.18.0】アプリ表示中のサイドバーを、本体と同じMORE構造に変更。YouTube表示中は
+
+## 2.18.0 — アプリ表示中のサイドバーをMORE構造に統一
+- アプリ表示中のサイドバーを、本体と同じMORE構造に変更。YouTube表示中は
   サイドバーが「Library / Markers」＋MOREになり、アイコンでパネルの中身を切替
   （PC幅=パネル常時表示、SP幅=全面オーバーレイで開閉）。MOREはアプリ一覧の
   表示/非表示だけを切り替え、BACKでも開いているアプリは閉じない（PLAYERを選ぶと本体へ）。
   アプリ側は`QNApps.register({sidebar,onSidebar})`＋`QNApps.setSideActive()`で対応。
-- 【2.18.1】サイドバー/アプリバー共通のホバーを「テーマカラー背景＋黒文字(#0a0a0c)」に統一
+
+## 2.18.1 — サイドバー/アプリバーのホバーを統一
+- サイドバー/アプリバー共通のホバーを「テーマカラー背景＋黒文字(#0a0a0c)」に統一
   （`(hover: hover)`の端末のみ）。MORE(BACK)だけ常時テーマカラー背景＋黒文字にして差別化。
   色は`style-apps.css`の`--sidebar-on-accent`とテーマ変数で決まる。
-- 【2.19.0】YouTubeアプリに**Backup / Import**を追加（サイドバーにBackup・Importアイコン）。
+
+## 2.19.0 — YouTube Backup / Import、アプリ中のD&D無効化
+- YouTubeアプリに**Backup / Import**を追加（サイドバーにBackup・Importアイコン）。
   本体のBackup/Importと同じ部品・流れ：Backup=リスト選択(全選択/全解除)→含める項目
   (タイトル／マーカー・AB点)→Download(JSON、`qn-youtube-library_YYYYMMDD.json`)。
   Import=JSONをドロップ/選択→動画ID(videoId)が重複するものは上書き/スキップ
   (行ごと＋一括トグル)→Import。読み込み時は値を検証・整形（不正なマーカー等は捨てる）。
   含めるのはURL・手入力タイトル・マーカーのみ（YouTube由来データは含めない）。
   アプリ表示中は本体の「曲追加」D&Dを無効化（`player-ui-pc-v2.js`のdragover/drop）。
-- 【2.19.1】テキスト選択を解禁。`style-core.css`の`body { user-select: none }`をやめ、
+
+## 2.19.1 — テキスト選択の解禁
+- テキスト選択を解禁。`style-core.css`の`body { user-select: none }`をやめ、
   シークバーエリア（波形・マーカー線/ラベル）、ボタン類、下段バー、サイドバー、
   つまみ、ドラッグのつかみ部分、YouTubeの3行シークバー/マーカーだけ選択不可に。
   それ以外（パネルの文字、リスト、YouTube画面の文字等）は選択・コピー可能。
-- 【2.20.0】サイドバーの先頭に**現在のアプリ名バッジ**(`#qnAppBadge`、テーマカラー背景＋黒文字)を追加。
+
+## 2.20.0 — アプリ名バッジ、YouTube機能拡充(並べ替え/Auto Next/前後マーカー/速度)
+- サイドバーの先頭に**現在のアプリ名バッジ**(`#qnAppBadge`、テーマカラー背景＋黒文字)を追加。
   PLAYER表示中は「PLAYER」、YouTube表示中は「YOUTUBE」。押すとMOREと同じアプリ一覧に切り替わる
   （一覧表示中はバッジを隠し、代わりに一覧が並ぶ）。
-- 【2.20.0】YouTubeアプリ：Library並べ替え(つかみドラッグ)／Auto Next(終了時にLibraryの次の動画を
+- YouTubeアプリ：Library並べ替え(つかみドラッグ)／Auto Next(終了時にLibraryの次の動画を
   読み込み。初期OFF・利用者がONにした時のみ。プレイヤーが半分超見えている時だけ動作)／
   +Markerの左右に前・次マーカーへ移動(現在地基準)／再生スピード(プレイヤー外の自前UI、
   YouTube標準と同じ倍率、setPlaybackRate使用)。
   規約対応：SP幅でパネルがプレイヤーを覆う時は一時停止（見えないまま音だけ流れる状態の防止）。
-- 【2.20.1】SP幅のYouTube：パネル(Library等)を開いても、プレイヤーを画面上部に小さく
+
+## 2.20.1 — SP幅YouTube：プレイヤーを常に見せる
+- SP幅のYouTube：パネル(Library等)を開いても、プレイヤーを画面上部に小さく
   (高さ max(200px, 30dvh))残し、パネルはその下に表示（覆わない）。パネルを開いた時の
   一時停止は廃止。ざっくり実装（比率は後日調整予定）。
-- アプリ表示中は`body.qn-app-open`が付き、本体の下段バー等を隠す＆audioを一時停止＆
-  キーボードショートカット(`player-ui-shared.js`のkeydown)を無効化。
-- 【2.20.2】Colorボタンをアプリ表示中・アプリ一覧中も常駐させた(MOREと同じ扱い。今後追加するアプリも共通ルール)。
+
+## 2.20.2 — Colorボタンをアプリ中も常駐
+- Colorボタンをアプリ表示中・アプリ一覧中も常駐させた(MOREと同じ扱い。今後追加するアプリも共通ルール)。
   PLAYER本体では従来通りColorパネルを開き、アプリ側ではテーマ切替セクションをポップオーバー
   (#qnColorPop)へ借りて表示し、閉じたら元の場所へ戻す。外側クリック/Escで閉じる。
   Keyboardはアプリ側では引き続き非表示。実装: JS/qn-apps.js(initColorKeeper)、CSS/style-apps.css。
-- 【2.21.0】マーカーメモのカスタムプリセット。Colorパネル「Marker Memo Colors」の末尾に
+
+## 2.21.0 — マーカーメモのカスタムプリセット
+- マーカーメモのカスタムプリセット。Colorパネル「Marker Memo Colors」の末尾に
   「テキスト＋色」の入力行を追加。入力すると次の空欄行が自動で増える。追加したメモは
   マーカー編集時のプリセットチップにも組み込みの後ろへ並び、選ぶと色も自動で付く。
   保存: localStorage `qn_marker_custom_presets_v1` ([{label,color}])。最大30件、
   組み込み/他と同名(大文字小文字無視)は無視、テキストを消すと行は削除。
   実装: JS/player-markers.js(getAllMarkerPresetLabels 他)、CSS/style-theme.css。
-- 【2.21.1】再生中の画面スリープ防止(Screen Wake Lock API)。JS/qn-wakelock.js を新規追加。
+
+## 2.21.1 — 再生中の画面スリープ防止(Wake Lock)
+- 再生中の画面スリープ防止(Screen Wake Lock API)。JS/qn-wakelock.js を新規追加。
   PLAYERのaudio再生中とYouTubeアプリの再生中(PLAYING)だけ保持し、一時停止・終了・
   アプリ非表示・タブが隠れた時に解放、表示に戻れば再取得。HTTPS必須・非対応環境では何もしない。
-- 【2.21.2】カスタムメモ行に削除ボタン(×)を追加。文字が入っている行にだけ表示。
-- 【2.21.3】アプリ表示中のColorをポップオーバーからPLAYERと同じ「パネル」表示に変更
+
+## 2.21.2 — カスタムメモ行の削除ボタン
+- カスタムメモ行に削除ボタン(×)を追加。文字が入っている行にだけ表示。
+
+## 2.21.3 — アプリ中のColorをPLAYERと同じパネル表示に
+- アプリ表示中のColorをポップオーバーからPLAYERと同じ「パネル」表示に変更
   (PC: アイコンバー右の左カラム全高 / SP: アイコンバー上。YouTubeのプレイヤー([data-qn-keep-visible])は覆わない)。
   サイドバーの他項目を押すと閉じる。アプリ表示中はPLAYER専用の「Marker Memo Colors」を非表示。
-- 【2.22.0】YouTubeのLibrary / Markersを本体(PLAYER)と同じ行・同じ操作に統一。
+
+## 2.22.0 — YouTube Library/MarkersをPLAYERと同じ操作に統一
+- YouTubeのLibrary / Markersを本体(PLAYER)と同じ行・同じ操作に統一。
   Library: 行は本体の.playlistItem(ドラッグ、タイトルのホバー鉛筆編集、クリックで再生)。右下のEDIT→OKで
   タイトルを常時入力化し、PLAY/SKIPトグル(SKIPはAuto Nextで飛ばす)と削除用の丸チェックを表示、Deleteで一括削除(フェード付き)。
   Markers: 行は本体の.pinItem(色の丸→カラーパレット、メモ編集＋プリセットチップ(選ぶと色も自動)、目アイコンで表示/非表示、
   EDIT→OKで丸チェックを選んでDelete)。ADD MARKERもFABに追加。A/B(ABループ)は編集していない時だけ行に表示。
   非表示にしたマーカーはシークバーに出さず、前/次マーカー移動でも飛ばす。色はシークバー上のマーカーにも反映。
   Backup/Importにマーカーのcolor・enabledを追加(任意項目・旧形式も読める)。サムネイルは規約方針(保存しない)により未対応。
-- 【2.22.1】YouTubeのシークバーを本体(PLAYER)のシークバーに寄せた。角丸なし・#111の帯(.vbarを流用)・
+
+## 2.22.1 — YouTubeシークバーをPLAYER風に
+- YouTubeのシークバーを本体(PLAYER)のシークバーに寄せた。角丸なし・#111の帯(.vbarを流用)・
   再生済みはテーマ色(.vfill)・現在位置は細い白線・高さ40px(SPは36px)。マーカーは本体と同じ縦線(2px、マーカー色)で、
   線の真上に番号、右にメモ(右端近くは左側に反転)。ドラッグ移動・行またぎは従来通り。波形は使わない
   (YouTubeの音声・映像データに触れないため)。幅変更時はマーカー位置を再計算。
-- 【2.22.2】YouTube: Saveしたら URL / タイトルの入力欄を空に戻す。
-- 【2.23.0】YouTube Markersに「チャプターを貼り付け」を追加。説明欄からコピーしたテキスト
+
+## 2.22.2 — YouTube Save後に入力欄をクリア
+- YouTube: Saveしたら URL / タイトルの入力欄を空に戻す。
+
+## 2.23.0 — YouTube チャプター貼り付け
+- YouTube Markersに「チャプターを貼り付け」を追加。説明欄からコピーしたテキスト
   (「0:00 タイトル」「1:02:03 - タイトル」「[2:45] タイトル」等・全角可)を1行ずつ解析してマーカー化。
   YouTubeからは何も取得しない(利用者が貼ったテキストを処理するだけ)。重複時刻・動画長超えはスキップ、
   プリセット名と一致するメモは色を自動付与。入力欄にはテンプレ例を薄字で表示。

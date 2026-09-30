@@ -9,6 +9,7 @@ QN-PLAYER（QNシリーズのブラウザ完結型MP3プレイヤー）の開発
 - `PC_V2_FILE_INDEX.md` — 最大3ファイル（`player-ui-pc-v2.js` /  `style-layout-pc-v2.css` / `style-pcv2-panels.css`）の処理内容目次。
 - `DOM_ID_REFERENCE.md` — HTML静的ID・JS動的生成IDの一覧  （特にBackup/Importモーダルの`trackBackup*` / `trackImport*`）。
 - `UI_TERMINOLOGY.md` — ユーザーの言葉とDOM要素・コード上の名前の対応表。  画面上の場所を指す言葉が食い違いそうなときに確認する。
+- `YOUTUBE_APP.md` — **YouTubeアプリ専用**の仕様＋規約ルール（最優先）。YouTube/アプリ関連の作業前に必ず読む。
 - `CHANGELOG.md` — バージョンごとの変更履歴。前回どこまで進んだかの確認用。
 - `GOTCHAS_REFERENCE.md` — 不具合、エラー、バグなどのまとめ
 ---
@@ -37,10 +38,14 @@ QNPLAYER/
 │   ├── player-id3.js           # MP3のID3v2タグ読み取り（Title/Artist）
 │   ├── player-text.js          # Textタブ（歌詞・メモ）
 │   ├── player-auth.js          # Firebase Auth（Googleログイン）
-│   ├── qn-apps.js              # 【v2.17.0〜】MORE/アプリ一覧/アプリ表示領域。QNApps.register()で
-│   │                           #   アプリを足す。TUNER/PITCHは準備中の枠だけ登録済み
-│   ├── qn-app-youtube.js       # 【v2.17.0〜】YouTubeアプリ（IFrame埋め込み＋3行シークバー＋マーカー＋ABループ）。
-│   │                           #   規約ルールはmd/YT_PROTOTYPE_SPEC.md（最優先）
+│   ├── qn-wakelock.js          # 【v2.21.1〜】再生中の画面スリープ防止。window.QNWake.set(key,on)。
+│   │                           #   PLAYERのaudio再生とアプリ再生(YouTube等)が使う
+│   ├── qn-apps.js              # 【v2.17.0〜】MORE/アプリ一覧/アプリ表示領域/アプリ名バッジ。
+│   │                           #   QNApps.register()でアプリを足す。TUNER/PITCHは準備中の枠だけ。
+│   │                           #   Colorボタン常駐＋Colorパネル借用(initColorKeeper)もここ
+│   ├── qn-app-youtube.js       # 【v2.17.0〜】YouTubeアプリ（IFrame埋め込み＋3行シークバー＋Library/Markers
+│   │                           #   （本体と同じ行・EDIT/DEL）＋ABループ＋Auto Next＋チャプター貼り付け＋Backup/Import）。
+│   │                           #   仕様・規約ルールはmd/YOUTUBE_APP.md（最優先）
 │   ├── jszip.min.js / lame_min.js  # 外部ライブラリ（ZIP圧縮／MP3エンコード）
 ├── CSS/
 │   ├── style-core.css          # PC版デフォルトレイアウト＋PC/SP共通デザイン
@@ -64,7 +69,7 @@ QNPLAYER/
 player-ui-shared.js → player-id3.js → player-playlist.js →
 player-track-backup.js → player-markers.js → player-control-eq.js →
 player-controls.js → player-export.js → player-text.js →
-player-ui-pc-v2.js → qn-apps.js → qn-app-youtube.js → player-theme.js →
+player-ui-pc-v2.js → qn-wakelock.js → qn-apps.js → qn-app-youtube.js → player-theme.js →
 player-auth.js(module)`（qn-apps.jsはplayer-ui-pc-v2.jsより後、アプリ側ファイルはqn-apps.jsより後）
 
 **新しい関数を他ファイルから参照する場合は、この順序で「呼ぶ側より前に定義されているか」を必ず確認する。**
@@ -133,6 +138,15 @@ GOTCHAS_REFERENCE.mdにまとめました。
   `qn_marker_preset_colors_v1`に`{ プリセット名: 色キー|null }`で保存。
   未保存のプリセットは`MARKER_PRESET_COLOR_DEFAULTS`（player-markers.js）の
   初期配色を使う。色キーは`MARKER_COLOR_PALETTE`（=QN_THEMESのname）。
+- **マーカーメモのカスタムプリセット（v2.21.0〜）**: `localStorage`の
+  `qn_marker_custom_presets_v1`に`[{label,color}]`（最大30件）。Colorパネル
+  「Marker Memo Colors」末尾の入力行で編集。`getAllMarkerPresetLabels()`が
+  組み込み＋カスタムを返し、マーカー編集のプリセットチップと自動カラーに使われる。
+  YouTubeアプリのマーカー編集も同じ関数・同じ保存先を共用する。
+- **YouTubeアプリのデータ（v2.17.0〜）**: `localStorage`の`qn_yt_items`
+  （`[{videoId,url,title,skip,markers[{id,time,label,color?,enabled?}],loopA,loopB}]`）、
+  `qn_yt_rate`（再生速度）、`qn_yt_autonext`（Auto Next、初期OFF）。
+  YouTube由来データ（サムネ・公式タイトル等）は**保存しない**（規約）。詳細は`YOUTUBE_APP.md` §4。
 - **`openPlaylistDB()`**: DB接続はキャッシュされ使い回される
   （呼ぶたびに`indexedDB.open()`し直さない）。
 - **`pins`配列**（`player-core.js`）: 現在再生中の曲のマーカー一覧。
@@ -177,10 +191,10 @@ GOTCHAS_REFERENCE.mdにまとめました。
 5. **回帰を防ぐ**: 修正が§3の履歴にある領域と重なる場合、そのバグを
    再び作り込んでいないか（特に3-2・3-5・3-7のような「見えにくい」
    類の不具合）を意識して見直す。
-6. **バージョン番号の更新とZIP化**: 修正のたびに`index.html`内の
+6. **バージョン番号の更新と納品**: 修正のたびに`index.html`内の
    `window.QN_APP_VERSION`を更新し（機能追加はマイナー、バグ修正/微調整は
    パッチ）、全JS構文チェック・HTML構文チェック・CSS波括弧対応チェック・
-   ID重複チェックを行ってからZIPを作成する。**同時に`CHANGELOG.md`の末尾に
+   ID重複チェックを行ってから納品する。**納品は「変更したファイルだけのパッチZIP」（フォルダ構成を保持、`PATCH_FILES.txt`は付けない）が標準**。全体ZIPは依頼された時だけ。**同時に`CHANGELOG.md`の末尾に
    新バージョンの変更点を追記する**（書式は同ファイル冒頭のルール参照）。
 7. **このドキュメント自体を毎回更新する**: 修正やバグ調査を1件終えるたびに、
    このファイルへの反映が必要かを確認し、該当すれば追記する。
@@ -206,13 +220,13 @@ GOTCHAS_REFERENCE.mdにまとめました。
      超えて育った場合は、同じ形式でセクションを追加してよい。
    - `DOM_ID_REFERENCE.md`: 新しいモーダル/パネル/機能ブロックのID群を
      追加した場合、該当グループに追記する。
+   - `YOUTUBE_APP.md`: YouTubeアプリの機能・データ・規約対応を変えたら、同ファイルの該当節と§7チェックリストを更新。
    - `UI_TERMINOLOGY.md`: ユーザーの言葉とUI要素の対応で行き違いが
      起きた場合（無駄なやり取りが発生した場合）、その場で追記する。
    追記は該当セクションの末尾に、既存の項目と同じ見出しレベル・文体で
    行う。過去の記述を消すのは、実際に廃止された仕組みや誤りが判明した
    場合のみとし、通常は追記していく。反映を終えたら、更新後の
-   `AI_ASSISTANT_PROJECT_CONTEXT.md`を毎回、最終成果物のZIPと一緒に
-   出力する。
+   `AI_ASSISTANT_PROJECT_CONTEXT.md`も（変更があれば）同じパッチZIPに含める。
 
 ---
 
@@ -373,3 +387,24 @@ grep -o 'id="[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort -u
 - 汎用セレクタ（`.playlistItem button`・`.pinItem button`は丸ボタン指定）より
   個別のボタンを優先させたい時は、`.playlistItem .playlist-skip-toggle`のように
   親クラスを前置して詳細度を上げる。
+
+---
+
+## 9. アプリ（YouTube/今後追加するアプリ）共通ルール（v2.17.0〜）
+
+新しいアプリを`QNApps.register()`で足す時も、以下を全アプリ共通ルールとして守る。
+YouTubeアプリ固有の仕様・規約は`YOUTUBE_APP.md`。
+
+- **MORE・Colorは常駐：** サイドバー下部のMOREとColorは、アプリ表示中・アプリ一覧中も
+  常に押せる。アプリ側でColorを別実装しない（`qn-apps.js`の`initColorKeeper`が
+  テーマ切替セクションを`#qnColorPop`パネルへ借りて表示し、閉じたら戻す）。
+  アプリ表示中はPLAYER専用の「Marker Memo Colors」を隠す。Keyboardはアプリでは非表示。
+- **PLAYERと同じ部品・同じ操作：** リスト行・EDIT→OK・丸チェック削除・カラーパレット・
+  プリセットチップ・シークバー(`.vbar`/`.vfill`)は本体のクラスを流用し、挙動を揃える。
+  PLAYER側CSSが`#pcV2PanelBody`スコープなら、アプリ側（`.qn-yt`等）へ同等のルールを写す。
+- **SP幅：** アプリが映像を持つ場合、パネルを開いても映像は隠さない（YouTubeは
+  `max(200px,30dvh)`・最低200px）。`data-qn-keep-visible`を付けた要素はColorパネルも覆わない。
+- **状態の持ち方：** アプリのデータは`qn_<アプリ名>_*`のlocalStorageキー。音声実体は持たない。
+- **画面スリープ防止：** 再生中は`QNWake.set("<アプリ名>", true)`、停止・非表示で`false`。
+- **表示中はPLAYER側を止める：** `body.qn-app-open`でaudio一時停止・下段バー非表示・
+  キーボードショートカット無効・曲追加D&D無効。

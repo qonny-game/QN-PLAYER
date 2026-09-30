@@ -144,3 +144,16 @@ grep -o 'id="track[a-zA-Z0-9_]*"' index.html | sed 's/id="//;s/"//' | sort
 `bkList` `bkAll` `bkNone` `bkCount` `bkMarkerTotal` `bkTitle` `bkMarkers` `bkStatus` `bkRun`（Backup）／
 `imDrop` `imFile` `imLoaded` `imName` `imCount` `imDupList` `imBulk` `imBulkLabel` `imDupRows` `imStatus` `imBack` `imRun`（Import）。
 エクスポート形式：`{format:"qn-youtube-library", version:1, items:[{videoId,url,title?,markers?[{id,time,label}],loopA?,loopB?}]}`
+
+### v2.18〜v2.23 の追記
+| ID / クラス | 内容 |
+|---|---|
+| `#qnAppBadge` | サイドバー先頭の現在アプリ名バッジ（押すとアプリ一覧） |
+| `#qnColorPop` | アプリ中のColorパネル(z-index 300)。`.qn-colorpanel-head` / `.qn-colorpanel-body`（テーマ切替セクションを借りて表示） |
+| `[data-qn-keep-visible]` | 覆ってはいけない要素の印（YouTubeプレイヤー）。SPのColorパネル位置の基準 |
+| `.qn-yt[data-edit]` | YouTubeのEDIT状態（`library` / `markers`）。CSSがこの値で表示を切替 |
+| `.qn-yt-libbox` / `.qn-yt-pinbox` | Library / Markersの行コンテナ（中身は本体の`.playlistItem` / `.pinItem`） |
+| `.qn-yt-fab` | YouTube右下FAB（`data-yt`: `fabAdd` `fabDel` `fabEdit` `fabEditLabel`） |
+| `.qn-yt-track.vbar` / `.qn-yt-fill.vfill` / `.qn-yt-head` | YouTubeシークバー（本体の`.vbar`流用）。マーカーは`.qn-yt-marker`+`.qn-yt-marker-label` |
+| チャプター貼り付け | `data-yt`: `chapToggle` `chapBox` `chapText` `chapAdd` `chapClose` `chapMsg` |
+| `localStorage` | `qn_yt_items` `qn_yt_rate` `qn_yt_autonext` / `qn_marker_custom_presets_v1` |

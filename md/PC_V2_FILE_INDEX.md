@@ -212,3 +212,32 @@ MOREボタン・アプリ一覧・アプリ表示領域と、その第1号のYou
   選択中は`.qn-app-active`（本体側JSが`.active`を外してしまうため別クラス）。
 - `#qnMoreBtn`は`#pcV2IconBarBottom`の末尾。アプリ一覧モード中はこのボタンだけ残り、
   ラベル/アイコンがBack用に入れ替わる。
+
+### v2.18〜v2.23 の追記（アプリまわり）
+
+**JS/qn-apps.js**
+- `initColorKeeper()` — Colorボタン(`#pcV2IconBarBottom`内)のクリックをキャプチャ段階で受け、アプリ表示中/一覧中は
+  `openColorPop()`/`closeColorPop()`でテーマ切替セクション(`.qn-menu-section[data-qn-section="theme"]`)を
+  `#qnColorPop`へ借りて表示→閉じたら元の場所へ戻す。`positionColorPop()`が位置決め
+  （PC=アイコンバー右の左カラム全高・幅375px / SP=`[data-qn-keep-visible]`の下〜アイコンバー直上）。
+  他のサイドバー項目・Esc・Color再押下で閉じる。`close()`と`setAppsMode(false)`でも閉じる。
+- アプリ名バッジ`#qnAppBadge`（サイドバー先頭）、`QNApps.toast()`、`QNApps.setSideActive()`、`QNApps.layout()`。
+
+**JS/qn-app-youtube.js**（約1700行・機能ごとの目安）
+- データ: `loadItems/saveItems/findItem/findMarker/persistMarkers/persistLoop/sortMarkers`
+- プレイヤー: `requestApi/createPlayer/openVideo/pausePlayer/seekTo/applyDesiredRate/renderSpeed/handleEnded(SKIP対応)/playerMostlyVisible`
+- シークバー・マーカー: `buildTracks/positionMarker/fillMarkerLabel/attachMarkerDrag/attachTrackSeek/jumpMarker`
+- Library: `renderList/playItem/attachReorder`、EDIT系: `updateFab/setEditMode/toggleEdit/toggleSelect/deleteSelected`
+- Markers: `renderMarkers/startMemoEdit(プリセットチップ)/markerColorHex/markerText/addMarkerHere`
+- チャプター貼り付け: `parseChapters/addChapters`
+- Backup/Import: `renderBackupList/downloadBackup/normalizeImport/loadImportFile/runImport/bindBackupImport`
+- 未使用(残置): `startInlineEdit`, `armDelete`
+
+**JS/qn-wakelock.js** — `QNWake.set(key,on)`。audio再生/一時停止/終了をフック、visibilitychangeで再取得。
+
+**JS/player-markers.js** — カスタムプリセット: `loadMarkerCustomPresets/saveMarkerCustomPresets/getValidMarkerCustomPresets/getAllMarkerPresetLabels`、
+`renderMarkerPresetColorSettings`がカスタム入力行(`.qn-marker-custom-input`/`-del`)を生成。
+
+**CSS/style-apps.css** — セクション: サイドバー(アプリ一覧/アプリ中) / `#qnAppHost` / YouTubeレイアウト(PC・SP) /
+シークバー(`.qn-yt-track.vbar`等) / Library・Markers(`[data-edit]`・FAB・del-zone) / チャプター(`.qn-yt-chapter*`) /
+`#qnColorPop`（Colorパネル）。

@@ -12,7 +12,7 @@
 //       - 見た目は QNPLAYER の配色トークン(--accent-primary 等)に統一
 //         （スタイルは CSS/style-apps.css の .qn-yt*）
 //
-// 【規約遵守ルール（最優先・破らない）】 詳細は md/YT_PROTOTYPE_SPEC.md
+// 【規約遵守ルール（最優先・破らない）】 詳細は md/YOUTUBE_APP.md
 //   - 埋め込みは公式IFrame Player APIのみ。標準コントロールを表示したまま、
 //     プレイヤーの上に何も重ねない・切り抜かない・隠さない。
 //   - 自前UIはプレイヤーの外(下)に置く。再生/停止の自前ボタンは付けない。
