@@ -1121,6 +1121,31 @@
   var SVG_EYE_ON = '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
   var SVG_EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
 
+  // マーカー区間(そのマーカー〜次の表示中マーカー、最後は動画の終わりまで)を、マーカーの色でシークバーに塗る
+  function paintMarkerRanges(ms) {
+    var old = refs.seekTracks.querySelectorAll(".qn-yt-range");
+    for (var k = 0; k < old.length; k++) old[k].parentNode.removeChild(old[k]);
+    if (!duration) return;
+    var vis = ms.filter(function (m) { return m.enabled !== false; });
+    var len = duration / SEGS;
+    vis.forEach(function (m, idx) {
+      var hex = markerColorHex(m);
+      if (!hex) return;
+      var start = m.time, end = idx + 1 < vis.length ? vis[idx + 1].time : duration;
+      if (!(end > start)) return;
+      for (var i = segIndex(start); i < SEGS; i++) {
+        var a = Math.max(start, i * len), z = Math.min(end, (i + 1) * len);
+        if (z <= a) { if (i * len >= end) break; continue; }
+        var band = document.createElement("div");
+        band.className = "qn-yt-range";
+        band.style.left = ((a - i * len) / len * 100) + "%";
+        band.style.width = ((z - a) / len * 100) + "%";
+        band.style.background = hex;
+        tracks[i].insertBefore(band, loopRanges[i]);
+      }
+    });
+  }
+
   function renderMarkers() {
     if (!root) return;
     if (typeof closePinMemoPresetPopup === "function") closePinMemoPresetPopup();
@@ -1132,6 +1157,7 @@
     updatePanelTitle();
     var edit = editMode === "markers";
     var box = refs.markerList;
+    paintMarkerRanges(ms);
 
     ms.forEach(function (m, i) {
       var hex = markerColorHex(m);

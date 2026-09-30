@@ -756,6 +756,16 @@ body.qn-app-open #pcV2TimeRow {
   pointer-events: none;
 }
 
+/* マーカー区間：そのマーカーの色で塗る */
+.qn-yt-range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* 現在位置：細い白線 */
 .qn-yt-head {
   position: absolute;
