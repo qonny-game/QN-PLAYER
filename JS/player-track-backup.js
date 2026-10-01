@@ -1,7 +1,7 @@
 // player-track-backup.js — PC v2サイドメニューのBackup/Import(PLAYERとYouTube共通の1画面)。
-// Backup: 曲選択→含める項目(音声/設定)→Download。音声あり=ZIP(markers.json+audio/)、音声なし=markers.json単体。設定オフ=nameのみ。YouTubeがあればyoutube.jsonも同梱(window.QNYouTubeBackupのlist()/buildExport())。ZIP名: qnplayer_library_backup_YYYYMMDD.zip(.json)。
-// Import: ZIP/JSONを自動判定(markers.json=PLAYER, youtube.json=YouTube。旧形式も可)。同名曲は曲ごとに上書き/スキップ。JSON単体は音声なし→既存曲の上書きのみ。完了後ImportボタンはCloseに変わる。
-// YouTubeアプリはwindow.qnBackupMountInto(mode,hostEl,onDismiss)でこの画面を借りる。
+// Backup: 曲選択→含める項目(音声/設定)→Download。音声あり=ZIP(markers.json+audio/)、音声なし=markers.json単体。設定オフ=nameのみ。YouTubeがあればyoutube.jsonも、PITCH録音があればpitch.json+pitch/(音声)も同梱(window.QNYouTubeBackup / window.QNPitchBackup)。ZIP名: qnplayer_library_backup_YYYYMMDD.zip(.json)。
+// Import: ZIP/JSONを自動判定(markers.json=PLAYER, youtube.json=YouTube, pitch.json=PITCH。旧形式も可)。同名曲は曲ごとに上書き/スキップ。JSON単体は音声なし→既存曲の上書きのみ。完了後ImportボタンはCloseに変わる。
+// YouTube/PITCHアプリはwindow.qnBackupMountInto(mode,hostEl,onDismiss)でこの画面を借りる。
 // 依存: player-core.js(playlist,savePlaylistTrack), player-ui-shared.js(hapticTap), player-playlist.js(renderPlaylist,persistPlaylistOrder)。JSZip(JS/jszip.min.js)を先に読み込む
 
 // ---------- Backup/Import画面 ----------
@@ -44,6 +44,10 @@ window.qnBackupReleaseExternal = function () { window.qnBackupExternalDismiss = 
 function ytBackupApi() {
   return (window.QNYouTubeBackup && typeof window.QNYouTubeBackup.list === "function") ? window.QNYouTubeBackup : null;
 }
+// PITCHアプリ用の窓口(無ければnull)。list()はキャッシュ(同期)、refresh()でIndexedDBから読み直す(Promise)
+function ptBackupApi() {
+  return (window.QNPitchBackup && typeof window.QNPitchBackup.list === "function") ? window.QNPitchBackup : null;
+}
 const trackBackupCancelBtn = document.getElementById("trackBackupCancelBtn");
 const trackBackupRunBtn = document.getElementById("trackBackupRunBtn");
 const trackBackupStatusEl = document.getElementById("trackBackupStatus");
@@ -60,6 +64,8 @@ const trackBackupIncludeSettingsEl = document.getElementById("trackBackupInclude
 let trackBackupSelectedNames = new Set();
 // YouTube動画のチェック状態(キー=item.id)。開くたび全選択でリセット
 let trackBackupSelectedYtIds = new Set();
+// PITCH録音のチェック状態(キー=録音のDB id)
+let trackBackupSelectedPtIds = new Set();
 
 function formatFileSize(bytes) {
   if (!bytes || bytes <= 0) return "0 MB";
@@ -75,18 +81,24 @@ function updateTrackBackupSelectionSummary() {
   if (!Array.isArray(playlist)) return;
   const selectedTracks = playlist.filter(t => trackBackupSelectedNames.has(t.name));
   const ytCount = trackBackupSelectedYtIds.size;
+  const pt = ptBackupApi();
+  const ptSel = pt ? pt.list().filter(it => trackBackupSelectedPtIds.has(it.id)) : [];
+  const ptCount = ptSel.length;
   if (trackBackupSelectedCountEl) {
-    // 曲(PLAYER)と動画(YouTube)の両方を数える
-    trackBackupSelectedCountEl.textContent = ytCount > 0
-      ? (selectedTracks.length > 0 ? `${selectedTracks.length}曲 + ${ytCount}動画選択中` : `${ytCount}動画選択中`)
-      : `${selectedTracks.length}曲選択中`;
+    // 曲(PLAYER)・動画(YouTube)・録音(PITCH)を数える
+    const parts = [];
+    if (selectedTracks.length > 0) parts.push(`${selectedTracks.length}曲`);
+    if (ytCount > 0) parts.push(`${ytCount}動画`);
+    if (ptCount > 0) parts.push(`${ptCount}録音`);
+    trackBackupSelectedCountEl.textContent = parts.length ? parts.join(" + ") + "選択中" : "0曲選択中";
   }
   if (trackBackupTotalSizeEl) {
-    const totalBytes = selectedTracks.reduce((sum, t) => sum + (t.file && t.file.size ? t.file.size : 0), 0);
+    const totalBytes = selectedTracks.reduce((sum, t) => sum + (t.file && t.file.size ? t.file.size : 0), 0)
+      + ptSel.reduce((sum, it) => sum + (it.size || 0), 0);
     trackBackupTotalSizeEl.textContent = formatFileSize(totalBytes);
   }
   if (trackBackupRunBtn) {
-    trackBackupRunBtn.disabled = selectedTracks.length === 0 && ytCount === 0;
+    trackBackupRunBtn.disabled = selectedTracks.length === 0 && ytCount === 0 && ptCount === 0;
   }
 }
 
@@ -104,10 +116,12 @@ function renderTrackBackupTrackList() {
   const tracks = Array.isArray(playlist) ? playlist : [];
   const yt = ytBackupApi();
   const ytList = yt ? yt.list() : [];
-  // YouTube動画がある時だけPLAYER/YouTubeの見出しで分ける
-  const grouped = ytList.length > 0;
+  const ptApi = ptBackupApi();
+  const ptList = ptApi ? ptApi.list() : [];
+  // YouTube動画/PITCH録音がある時だけ見出しで分ける
+  const grouped = ytList.length > 0 || ptList.length > 0;
 
-  if (grouped) trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("PLAYER"));
+  if (grouped && tracks.length > 0) trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("PLAYER"));
 
   tracks.forEach(track => {
     const row = document.createElement("label");
@@ -140,7 +154,7 @@ function renderTrackBackupTrackList() {
     trackBackupTrackListEl.appendChild(row);
   });
 
-  if (grouped) {
+  if (ytList.length > 0) {
     trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("YouTube"));
     ytList.forEach(it => {
       const row = document.createElement("label");
@@ -170,6 +184,37 @@ function renderTrackBackupTrackList() {
       trackBackupTrackListEl.appendChild(row);
     });
   }
+
+  if (ptList.length > 0) {
+    trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("PITCH"));
+    ptList.forEach(it => {
+      const row = document.createElement("label");
+      row.className = "track-backup-track-row";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = trackBackupSelectedPtIds.has(it.id);
+      checkbox.onchange = () => {
+        if (checkbox.checked) trackBackupSelectedPtIds.add(it.id);
+        else trackBackupSelectedPtIds.delete(it.id);
+        updateTrackBackupSelectionSummary();
+      };
+      row.appendChild(checkbox);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "track-backup-track-name";
+      nameSpan.textContent = it.title;
+      nameSpan.title = it.title;
+      row.appendChild(nameSpan);
+
+      const sizeSpan = document.createElement("span");
+      sizeSpan.className = "track-backup-track-size";
+      sizeSpan.textContent = formatFileSize(it.size);
+      row.appendChild(sizeSpan);
+
+      trackBackupTrackListEl.appendChild(row);
+    });
+  }
 }
 
 if (trackBackupSelectAllBtn) {
@@ -178,6 +223,8 @@ if (trackBackupSelectAllBtn) {
     trackBackupSelectedNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
     const ytA = ytBackupApi();
     trackBackupSelectedYtIds = new Set(ytA ? ytA.list().map(it => it.id) : []);
+    const ptA = ptBackupApi();
+    trackBackupSelectedPtIds = new Set(ptA ? ptA.list().map(it => it.id) : []);
     renderTrackBackupTrackList();
     updateTrackBackupSelectionSummary();
   };
@@ -187,6 +234,7 @@ if (trackBackupSelectNoneBtn) {
     hapticTap();
     trackBackupSelectedNames = new Set();
     trackBackupSelectedYtIds = new Set();
+    trackBackupSelectedPtIds = new Set();
     renderTrackBackupTrackList();
     updateTrackBackupSelectionSummary();
   };
@@ -198,6 +246,16 @@ function prepareBackupView() {
   trackBackupSelectedNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
   const ytOpen = ytBackupApi();
   trackBackupSelectedYtIds = new Set(ytOpen ? ytOpen.list().map(it => it.id) : []);
+  const ptOpen = ptBackupApi();
+  trackBackupSelectedPtIds = new Set(ptOpen ? ptOpen.list().map(it => it.id) : []);
+  // PITCH録音はIndexedDBなので非同期で読み直し、届いたら全選択で描き直す
+  if (ptOpen && typeof ptOpen.refresh === "function") {
+    ptOpen.refresh().then(() => {
+      trackBackupSelectedPtIds = new Set(ptOpen.list().map(it => it.id));
+      renderTrackBackupTrackList();
+      updateTrackBackupSelectionSummary();
+    }).catch(() => {});
+  }
   if (trackBackupIncludeAudioEl) trackBackupIncludeAudioEl.checked = true;
   if (trackBackupIncludeSettingsEl) trackBackupIncludeSettingsEl.checked = true;
 
@@ -254,8 +312,10 @@ async function runTrackBackup() {
   const targetTracks = (Array.isArray(playlist) ? playlist : []).filter(t => trackBackupSelectedNames.has(t.name));
   const yt = ytBackupApi();
   const ytIds = yt ? yt.list().map(it => it.id).filter(id => trackBackupSelectedYtIds.has(id)) : [];
-  if (targetTracks.length === 0 && ytIds.length === 0) {
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "曲または動画を1つ以上選択してください。";
+  const ptApi = ptBackupApi();
+  const ptIds = ptApi ? ptApi.list().map(it => it.id).filter(id => trackBackupSelectedPtIds.has(id)) : [];
+  if (targetTracks.length === 0 && ytIds.length === 0 && ptIds.length === 0) {
+    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "曲・動画・録音を1つ以上選択してください。";
     return;
   }
 
@@ -273,8 +333,11 @@ async function runTrackBackup() {
   // ZIP化が必要か: PLAYER音声を含める/PLAYERとYouTube同時
   const hasPlayer = targetTracks.length > 0;
   const hasYt = ytIds.length > 0;
+  const hasPt = ptIds.length > 0;
   const includeAudio = hasPlayer && opts.audio;
-  const needZip = includeAudio || (hasPlayer && hasYt);
+  // PITCH録音は音声を含める時だけファイルが増える(点列・名前はpitch.jsonに常に入る)
+  const sources = (hasPlayer ? 1 : 0) + (hasYt ? 1 : 0) + (hasPt ? 1 : 0);
+  const needZip = includeAudio || (hasPt && opts.audio) || sources > 1;
   if (needZip && typeof JSZip === "undefined") {
     if (trackBackupStatusEl) trackBackupStatusEl.textContent = "JSZipが読み込まれていません。";
     return;
@@ -325,6 +388,10 @@ async function runTrackBackup() {
     // ---------- YouTube側のJSON（YouTubeアプリの形式。設定データ=タイトル・マーカー・AB点） ----------
     const ytJsonText = hasYt ? JSON.stringify(yt.buildExport(ytIds, opts.settings), null, 2) : null;
 
+    // ---------- PITCH側(pitch.json + pitch/音声ファイル) ----------
+    const ptExport = hasPt ? await ptApi.buildExport(ptIds, opts.audio) : null;
+    const ptJsonText = ptExport ? JSON.stringify(ptExport.json) : null;
+
     if (needZip) {
       // PLAYER(markers.json+audio/)とYouTube(youtube.json)を1つのZIPへ。PLAYER側構成は従来と同じ(古い版はyoutube.jsonを無視して読める)
       const zip = new JSZip();
@@ -336,17 +403,28 @@ async function runTrackBackup() {
         }
       }
       if (hasYt) zip.file("youtube.json", ytJsonText);
+      if (hasPt) {
+        zip.file("pitch.json", ptJsonText);
+        if (ptExport.files.length) {
+          const pitchFolder = zip.folder("pitch");
+          ptExport.files.forEach(f => pitchFolder.file(f.name, f.blob));
+        }
+      }
       const blob = await zip.generateAsync({ type: "blob" });
-      downloadBlobAs(blob, hasYt
+      downloadBlobAs(blob, sources > 1
         ? `qnplayer_backup_${dateStr}.zip`
-        : `qnplayer_library_backup_${dateStr}.zip`);
+        : (hasPt ? `qn-pitch_backup_${dateStr}.zip` : `qnplayer_library_backup_${dateStr}.zip`));
     } else if (hasPlayer) {
       downloadBlobAs(new Blob([markersJsonText], { type: "application/json" }),
         `qnplayer_library_backup_${dateStr}.json`);
-    } else {
+    } else if (hasYt) {
       // YouTubeのみ: JSON単体
       downloadBlobAs(new Blob([ytJsonText], { type: "application/json" }),
         `qn-youtube-library_${dateStr}.json`);
+    } else {
+      // PITCHのみ・音声なし: JSON単体(音声なしの新規は取り込めない=既存録音の名前上書き専用)
+      downloadBlobAs(new Blob([ptJsonText], { type: "application/json" }),
+        `qn-pitch_backup_${dateStr}.json`);
     }
 
     hapticSuccess();
@@ -385,6 +463,9 @@ let trackImportAudioFiles = null;
 let trackImportDuplicateChoices = new Map();
 // 読み込んだYouTube分(整形済みリスト。無ければnull)。重複選択はtrackImportDuplicateChoicesに"yt:<videoId>"キー(PLAYER曲名キーと衝突回避)
 let trackImportYtList = null;
+// 読み込んだPITCH録音(整形済み。無ければnull)と音声(ファイル名→Blob)。重複選択キーは"pt:<createdAt>"
+let trackImportPtList = null;
+let trackImportPtAudio = null;
 
 function updateTrackImportCancelBtnMode() {
   if (!trackImportCancelBtn) return;
@@ -420,12 +501,17 @@ function prepareImportView() {
   if (!trackImportBodyNode) return;
   resetImportState();
   if (trackImportStatusEl) trackImportStatusEl.textContent = "";
+  // 重複判定用にPITCH録音の一覧を最新化(非同期。ファイル選択までには終わる)
+  const ptOpen = ptBackupApi();
+  if (ptOpen && typeof ptOpen.refresh === "function") ptOpen.refresh().catch(() => {});
 }
 
 function resetImportState() {
   trackImportParsedData = null;
   trackImportAudioFiles = null;
   trackImportYtList = null;
+  trackImportPtList = null;
+  trackImportPtAudio = null;
   trackImportDuplicateChoices = new Map();
   if (trackImportDropZoneEl) trackImportDropZoneEl.style.display = "flex";
   if (trackImportLoadedInfoEl) trackImportLoadedInfoEl.style.display = "none";
@@ -489,15 +575,19 @@ async function handleTrackImportFileSelected(file) {
   try {
     let parsed = null;
     let ytList = null;
+    let ptList = null;
+    const ptAudio = new Map();
     const audioMap = new Map();
     const yt = ytBackupApi();
+    const pt = ptBackupApi();
 
     if (isZip) {
       const zip = await JSZip.loadAsync(file);
       const markersEntry = zip.file("markers.json");
       const ytEntry = zip.file("youtube.json");
-      if (!markersEntry && !ytEntry) {
-        if (trackImportStatusEl) trackImportStatusEl.textContent = "markers.jsonまたはyoutube.jsonが見つかりません。";
+      const ptEntry = zip.file("pitch.json");
+      if (!markersEntry && !ytEntry && !ptEntry) {
+        if (trackImportStatusEl) trackImportStatusEl.textContent = "markers.json・youtube.json・pitch.jsonのいずれも見つかりません。";
         return;
       }
       if (markersEntry) {
@@ -513,11 +603,21 @@ async function handleTrackImportFileSelected(file) {
       if (ytEntry && yt) {
         ytList = yt.parseImport(JSON.parse(await ytEntry.async("string")));
       }
+      if (ptEntry && pt) {
+        ptList = pt.parseImport(JSON.parse(await ptEntry.async("string")));
+        const pitchFolder = zip.folder("pitch");
+        const pitchFiles = pitchFolder ? pitchFolder.file(/.*/) : [];
+        for (const entry of pitchFiles) {
+          ptAudio.set(entry.name.split("/").pop(), await entry.async("blob"));
+        }
+      }
     } else {
       // JSON単体インポート: tracks配列=PLAYER、format:qn-youtube-library=YouTubeと自動判定。PLAYERのJSON単体は音声なし→既存曲の上書き(メタ/マーカー/メモ)専用(音声なし新規はrunTrackImportがスキップ)
       const raw = JSON.parse(await file.text());
       if (raw && Array.isArray(raw.tracks)) {
         parsed = raw;
+      } else if (pt && raw && raw.format === "qn-pitch-recordings") {
+        ptList = pt.parseImport(raw);
       } else if (yt) {
         ytList = yt.parseImport(raw);
       }
@@ -525,13 +625,16 @@ async function handleTrackImportFileSelected(file) {
 
     const hasPlayerData = !!(parsed && Array.isArray(parsed.tracks));
     const hasYtData = !!(ytList && ytList.length);
-    if (!hasPlayerData && !hasYtData) {
+    const hasPtData = !!(ptList && ptList.length);
+    if (!hasPlayerData && !hasYtData && !hasPtData) {
       if (trackImportStatusEl) trackImportStatusEl.textContent = "ファイルの内容を読み取れませんでした。";
       return;
     }
     // YouTubeのみでも後続共通処理のため空tracksを持たせる
     if (!hasPlayerData) parsed = { tracks: [] };
     trackImportYtList = hasYtData ? ytList : null;
+    trackImportPtList = hasPtData ? ptList : null;
+    trackImportPtAudio = hasPtData ? ptAudio : null;
 
     trackImportParsedData = parsed;
     trackImportAudioFiles = audioMap;
@@ -543,8 +646,9 @@ async function handleTrackImportFileSelected(file) {
     if (trackImportLoadedFileNameEl) trackImportLoadedFileNameEl.textContent = file.name;
     if (trackImportLoadedFileCountEl) {
       const parts = [];
-      if (parsed.tracks.length > 0 || !hasYtData) parts.push(`PLAYER ${parsed.tracks.length}曲`);
+      if (parsed.tracks.length > 0 || (!hasYtData && !hasPtData)) parts.push(`PLAYER ${parsed.tracks.length}曲`);
       if (hasYtData) parts.push(`YouTube ${ytList.length}件`);
+      if (hasPtData) parts.push(`PITCH ${ptList.length}件`);
       trackImportLoadedFileCountEl.textContent = parts.join(" / ");
     }
     setTrackImportRunBtnMode("import");
@@ -560,6 +664,12 @@ async function handleTrackImportFileSelected(file) {
         if (yt.exists(x.videoId)) {
           duplicateEntries.push({ key: "yt:" + x.videoId, label: "[YouTube] " + (x.title || yt.titleOf(x.videoId) || x.videoId) });
         }
+      });
+    }
+
+    if (trackImportPtList && pt) {
+      trackImportPtList.forEach(x => {
+        if (pt.exists(x.key)) duplicateEntries.push({ key: "pt:" + x.key, label: "[PITCH] " + (pt.titleOf(x.key) || x.name) });
       });
     }
 
@@ -743,16 +853,32 @@ async function runTrackImport() {
       ytResult = ytApi.applyImport(trackImportYtList, ytChoices);
     }
 
-    const hasPlayerPart = trackImportParsedData.tracks.length > 0 || !ytResult;
-    let summary = "";
+    // ---------- PITCH分（PITCHアプリの保存先へ反映） ----------
+    let ptResult = null;
+    const ptApi = ptBackupApi();
+    if (trackImportPtList && ptApi) {
+      const ptChoices = {};
+      trackImportPtList.forEach(x => {
+        const c = trackImportDuplicateChoices.get("pt:" + x.key);
+        if (c) ptChoices[x.key] = c;
+      });
+      ptResult = await ptApi.applyImport(trackImportPtList, trackImportPtAudio, ptChoices);
+    }
+
+    const hasPlayerPart = trackImportParsedData.tracks.length > 0 || !(ytResult || ptResult);
+    const sections = [];
     if (hasPlayerPart) {
-      summary = `新規追加: ${addedCount}件\n上書き: ${overwrittenCount}件\nスキップ: ${skippedCount}件`;
-      if (noAudioSkippedCount > 0) summary += `\n音声なしのためスキップ: ${noAudioSkippedCount}件`;
+      let t = `新規追加: ${addedCount}件\n上書き: ${overwrittenCount}件\nスキップ: ${skippedCount}件`;
+      if (noAudioSkippedCount > 0) t += `\n音声なしのためスキップ: ${noAudioSkippedCount}件`;
+      sections.push(["PLAYER", t]);
     }
-    if (ytResult) {
-      const ytLine = `新規追加: ${ytResult.added}件\n上書き: ${ytResult.over}件\nスキップ: ${ytResult.skipped}件`;
-      summary = hasPlayerPart ? `【PLAYER】\n${summary}\n【YouTube】\n${ytLine}` : ytLine;
+    if (ytResult) sections.push(["YouTube", `新規追加: ${ytResult.added}件\n上書き: ${ytResult.over}件\nスキップ: ${ytResult.skipped}件`]);
+    if (ptResult) {
+      let t = `新規追加: ${ptResult.added}件\n上書き: ${ptResult.over}件\nスキップ: ${ptResult.skipped}件`;
+      if (ptResult.noAudio > 0) t += `\n音声なしのためスキップ: ${ptResult.noAudio}件`;
+      sections.push(["PITCH", t]);
     }
+    const summary = sections.length === 1 ? sections[0][1] : sections.map(x => `【${x[0]}】\n${x[1]}`).join("\n");
     if (trackImportSummaryEl) {
       trackImportSummaryEl.textContent = summary;
       trackImportSummaryEl.style.display = "block";

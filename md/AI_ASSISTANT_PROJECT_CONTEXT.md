@@ -33,7 +33,7 @@ JS/
   qn-pitch-core.js            TUNER/PITCH共通：マイク入力・ピッチ検出(自己相関)・音名変換（QNPitchCore。DOM操作なし）
   qn-app-tuner.js             TUNERアプリ本体（IIFE。Mic Tuner/Tone Generator/Sensitivity/Display）
   qn-pitch-filters.js         PITCH用：ノイズ除去/ビブラート/ズレ検出/スコア＋フィルタ設定（QNPitchFilters。DOM操作なし）
-  qn-app-pitch.js             PITCHアプリ本体（IIFE。ピッチロール/録音/再生/Filters/Recordings）
+  qn-app-pitch.js             PITCHアプリ本体（IIFE。ピッチロール/録音/再生/Filters/Recordings/Backup窓口QNPitchBackup）
   player-theme.js             カラーテーマ・ショートカット一覧・ハンバーガーメニュー
   player-auth.js              Firebase Auth（module）
   jszip.min.js / lame_min.js  外部ライブラリ（触らない）

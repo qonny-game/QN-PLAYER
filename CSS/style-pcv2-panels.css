@@ -244,9 +244,9 @@
 }
 
 
-/* Backup/Importパネル(v2.13.6〜)。【v3.18.0】YouTubeの.qn-yt-sec-backup/.qn-yt-sec-importにも:is()で共用(ここを直せば両方に効く) */
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-modal-footer,
-:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-modal-footer {
+/* Backup/Importパネル(v2.13.6〜)。【v3.18.0】YouTube(.qn-yt-sec-*)、【v3.23.0】PITCH(.qn-pt-sec-*)にも:is()で共用(ここを直せば全部に効く) */
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .export-modal-footer,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import, .qn-pt-sec-import) .export-modal-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -256,60 +256,60 @@
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-status,
-:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-status {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .export-status,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import, .qn-pt-sec-import) .export-status {
   flex-basis: 100%;
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-status:empty,
-:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-status:empty {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .export-status:empty,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import, .qn-pt-sec-import) .export-status:empty {
   display: none;
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-run-btn,
-:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-run-btn {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .export-run-btn,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import, .qn-pt-sec-import) .export-run-btn {
   flex: 1;
   width: auto;
 }
 
 
 /* 【v2.15.1/v2.16.7】Backupパネル: 曲選択リストはflex:1で埋めない(overflow-y:autoの要素内で多段flex:1はiOS Safariでリスト高さ確定前に後続セクションが重なって描画される既知不具合。GOTCHAS.md)。リスト=max-height固定上限(内側のみスクロール)、パネル全体=#pcV2PanelBodyの1箇所だけスクロール。行は線区切り(角丸枠なし) */
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-section {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .export-section {
   padding: 18px 0;
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-section:first-child {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .export-section:first-child {
   padding-top: 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-options {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-options {
   border-bottom: none;
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-tracklist-header {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-tracklist-header {
   margin-bottom: 12px;
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-tracklist-header .export-section-label {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-tracklist-header .export-section-label {
   margin-bottom: 0;
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-mini-btn {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-mini-btn {
   padding: 0 var(--btn-pad-x);
   border-radius: var(--radius-pill);
   background: none;
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-tracklist {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-tracklist {
   /* 【v2.16.9】リスト上限は低めに(58vh/520pxだとSPで内外2つのスクロール領域が競合し、外側へ渡すのが困難だった)。曲数が少なければ内容分(min-heightなし) */
   max-height: min(38vh, 340px);
   gap: 0;
@@ -318,8 +318,8 @@
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row,
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-row {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-track-row,
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-row {
   gap: 12px;
   padding: 12px 4px;
   background: none;
@@ -329,20 +329,20 @@
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row:last-child,
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-row:last-child {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-track-row:last-child,
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-row:last-child {
   border-bottom: none;
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-row:hover,
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-row:has(input:checked) {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-row:hover,
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-row:has(input:checked) {
   background: none;
   border-color: var(--border-subtle);
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row input[type="checkbox"] {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-track-row input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   margin: 0;
@@ -355,13 +355,13 @@
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row input[type="checkbox"]:checked {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-track-row input[type="checkbox"]:checked {
   border-color: var(--accent-primary, #3b82f6);
   background: var(--accent-primary, #3b82f6);
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row input[type="checkbox"]:checked::after {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-track-row input[type="checkbox"]:checked::after {
   content: "";
   position: absolute;
   left: 6px;
@@ -374,12 +374,12 @@
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-name {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-track-name {
   font-size: var(--fs-body);
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-size-row {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-size-row {
   flex-shrink: 0;
   padding: 12px 4px 0;
 }
@@ -399,14 +399,14 @@
 }
 
 
-:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) #trackBackupCancelBtn,
-:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) #trackImportCancelBtn[data-mode="cancel"] {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) #trackBackupCancelBtn,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import, .qn-pt-sec-import) #trackImportCancelBtn[data-mode="cancel"] {
   display: none;
 }
 
 
 #pcV2PanelBody .mobile-tab-panel,
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-modal-body {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-modal-body {
   display: block !important;
   width: auto;
   background: none;
@@ -421,36 +421,36 @@
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-modal-body {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-modal-body {
   padding: 0;
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-section {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-section {
   display: block;
   padding: 26px 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-section:first-child {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-section:first-child {
   padding-top: 0;
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-section:last-of-type {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-section:last-of-type {
   border-bottom: none;
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-section-label {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-section-label {
   display: block;
   margin-bottom: 10px;
   font-size: var(--fs-heading);
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-modal-footer {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-modal-footer {
   display: block;
   padding: 16px 0 0;
   border-top: none;
@@ -462,7 +462,7 @@
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-run-btn {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-run-btn {
   width: 100%;
   padding: 12px;
   background: var(--accent-primary);
@@ -471,12 +471,12 @@
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-cancel-btn {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-cancel-btn {
   border-radius: var(--radius-pill);
 }
 
 
-:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-run-btn:hover:not(:disabled) {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-run-btn:hover:not(:disabled) {
   background: var(--accent-hover-1);
   box-shadow: none;
   transform: none;

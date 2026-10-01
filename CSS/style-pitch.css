@@ -49,6 +49,8 @@
 .qn-pt[data-panel="filters"] .qn-pt-sec-filters,
 .qn-pt[data-panel="recordings"] .qn-pt-sec-recordings,
 .qn-pt[data-panel="save"] .qn-pt-sec-save,
+.qn-pt[data-panel="backup"] .qn-pt-sec-backup,
+.qn-pt[data-panel="import"] .qn-pt-sec-import,
 .qn-pt[data-panel="keyboard"] .qn-pt-sec-keyboard { display: block; }
 .qn-pt[data-panel="recordings"] .qn-pt-sec-recordings { padding: 0; }
 .qn-pt[data-panel="recordings"] .qn-pt-panel-scroll { padding-bottom: 140px; }

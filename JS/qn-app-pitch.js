@@ -132,7 +132,7 @@
           var c = req.result;
           if (c) {
             var v = c.value;
-            out.push({ id: v.id, name: v.name, createdAt: v.createdAt, duration: v.duration, score: v.score });
+            out.push({ id: v.id, name: v.name, createdAt: v.createdAt, duration: v.duration, score: v.score, size: v.blob ? v.blob.size : 0 });
             c.continue();
           } else {
             out.sort(function (a, b) { return b.createdAt - a.createdAt; });
@@ -178,6 +178,9 @@
               '<button type="button" class="export-run-btn" data-pt="saveOk">Save</button>' +
             '</div>' +
           '</section>' +
+          // Backup / Import: 本体共通画面を借りる(実体player-track-backup.js。setPanel()がqnBackupMountInto()で差し込む)
+          '<section class="qn-pt-sec qn-pt-sec-backup"><div data-pt="bkHost"></div></section>' +
+          '<section class="qn-pt-sec qn-pt-sec-import"><div data-pt="imHost"></div></section>' +
           '<section class="qn-pt-sec qn-pt-sec-keyboard"><div data-pt="kbdBox"></div></section>' +
         '</div>' +
         '<div class="qn-pt-fab">' +
@@ -865,9 +868,11 @@
   var SIDEBAR = [
     { id: "filters", label: "Filters", icon: ICON.filters },
     { id: "recordings", label: "Recordings", icon: ICON.list },
+    { id: "backup", bottom: true, label: "Backup", icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>' },
+    { id: "import", bottom: true, label: "Import", icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' },
     { id: "keyboard", bottom: true, label: "Keyboard", icon: ICON.keyboard }
   ];
-  var PANEL_TITLES = { filters: "Filters", recordings: "Recordings", keyboard: "Keyboard", save: "Save Recording" };
+  var PANEL_TITLES = { filters: "Filters", recordings: "Recordings", backup: "Backup", import: "Import", keyboard: "Keyboard", save: "Save Recording" };
   var panelCollapsed = (function () { try { return localStorage.getItem(KEY_COLLAPSE) === "1"; } catch (e) { return false; } })();
   function isCollapsed() { return panelCollapsed && !isSp() && panelState !== "save"; }
 
@@ -879,6 +884,13 @@
     root.firstChild.setAttribute("data-panel", id);
     if (id === "keyboard") window.QNApps.renderShortcuts(refs.kbdBox, "pitch");
     if (id === "recordings") refreshList();
+    if (id === "backup" || id === "import") {
+      if (typeof window.qnBackupMountInto === "function") {
+        window.qnBackupMountInto(id, id === "backup" ? refs.bkHost : refs.imHost, function () { setPanel(isSp() ? "none" : "recordings"); });
+      }
+    } else if (typeof window.qnBackupReleaseExternal === "function") {
+      window.qnBackupReleaseExternal();
+    }
     if (id !== "none") setText(refs.panelTitle, PANEL_TITLES[id] || "");
     applyCollapse();
   }
@@ -1035,6 +1047,103 @@
     stopTick();
     syncWake();
   }
+
+  // ---------- 共通Backup/Import画面への窓口(player-track-backup.jsが使う。アプリを開く前でも使える) ----------
+  // 形式: pitch.json {format:"qn-pitch-recordings",version:1,items:[{name,createdAt,duration,score,file?,track:[[t,midi,cents,rms,voiced(0/1)],...]}]} + pitch/<file>(音声)
+  // 録音の同一性はcreatedAt。上書き=古いレコードを消して新規add(再putしない=GOTCHAS §1)。名前はlocalStorage(qn_pitch_rec_meta)
+  var BK_FORMAT = "qn-pitch-recordings";
+  function extOf(type) { return /mp4|aac|m4a/.test(type || "") ? "m4a" : (/ogg/.test(type || "") ? "ogg" : "webm"); }
+  function mimeOf(file) { return /\.m4a$/i.test(file) ? "audio/mp4" : (/\.ogg$/i.test(file) ? "audio/ogg" : "audio/webm"); }
+  function findByCreatedAt(key) {
+    for (var i = 0; i < recList.length; i++) if (String(recList[i].createdAt) === String(key)) return recList[i];
+    return null;
+  }
+  function isNum(v) { return typeof v === "number" && isFinite(v); }
+
+  window.QNPitchBackup = {
+    list: function () {
+      return recList.map(function (r) { return { id: r.id, title: nameOf(r), size: r.size || 0, duration: r.duration }; });
+    },
+    refresh: function () { return dbList().then(function (l) { recList = l; if (root) renderList(); return l; }); },
+    // ids: DBのid配列。withAudio=falseなら音声ファイルを含めない
+    buildExport: async function (ids, withAudio) {
+      var items = [], files = [];
+      for (var i = 0; i < ids.length; i++) {
+        var rec = await dbGet(ids[i]);
+        if (!rec) continue;
+        var o = {
+          name: nameOf(rec), createdAt: rec.createdAt, duration: rec.duration,
+          score: (rec.score === undefined ? null : rec.score),
+          track: (rec.track || []).map(function (p) { return [p.t, p.midi, p.cents, p.rms, p.voiced ? 1 : 0]; })
+        };
+        if (withAudio && rec.blob) {
+          var fn = rec.createdAt + "." + extOf(rec.blob.type);
+          o.file = fn;
+          files.push({ name: fn, blob: rec.blob });
+        }
+        items.push(o);
+      }
+      return { json: { format: BK_FORMAT, version: 1, exportedAt: new Date().toISOString(), items: items }, files: files };
+    },
+    // 形式が違う/空ならnull。壊れた値は捨てる。戻りの各要素に重複判定用のkey(=createdAt文字列)
+    parseImport: function (raw) {
+      if (!raw || raw.format !== BK_FORMAT || !Array.isArray(raw.items)) return null;
+      var out = [], seen = {};
+      raw.items.forEach(function (r) {
+        if (!r || !isNum(r.createdAt) || !Array.isArray(r.track) || !r.track.length || r.track.length > 300000) return;
+        var key = String(r.createdAt);
+        if (seen[key]) return;
+        var tr = [];
+        for (var i = 0; i < r.track.length; i++) {
+          var a = r.track[i];
+          if (!Array.isArray(a) || !isNum(a[0]) || !isNum(a[1]) || !isNum(a[2]) || !isNum(a[3])) continue;
+          tr.push({ t: a[0], midi: a[1], cents: a[2], rms: a[3], voiced: a[4] === 1 });
+        }
+        if (!tr.length) return;
+        seen[key] = true;
+        out.push({
+          key: key, createdAt: r.createdAt,
+          name: (typeof r.name === "string" && r.name.trim() ? r.name.trim() : "REC").slice(0, 60),
+          duration: isNum(r.duration) ? r.duration : tr[tr.length - 1].t,
+          score: isNum(r.score) ? r.score : null,
+          file: typeof r.file === "string" ? r.file.split("/").pop().slice(0, 100) : "",
+          track: tr
+        });
+      });
+      return out.length ? out : null;
+    },
+    exists: function (key) { return !!findByCreatedAt(key); },
+    titleOf: function (key) { var r = findByCreatedAt(key); return r ? nameOf(r) : ""; },
+    // audioMap: ファイル名→Blob(ZIPのpitch/)。戻り {added,over,skipped,noAudio}
+    applyImport: async function (list, audioMap, choices) {
+      var added = 0, over = 0, skipped = 0, noAudio = 0;
+      for (var i = 0; i < list.length; i++) {
+        var x = list[i], ex = findByCreatedAt(x.key);
+        var raw = audioMap && x.file ? audioMap.get(x.file) : null;
+        var blob = raw ? new Blob([raw], { type: mimeOf(x.file) }) : null;
+        if (ex) {
+          if (choices && choices[x.key] === "skip") { skipped++; continue; }
+          if (blob) {
+            await dbDelete([ex.id]);
+            delete names[ex.id];
+            var nid = await dbAdd({ name: x.name, blob: blob, track: x.track, duration: x.duration, score: x.score, createdAt: x.createdAt });
+            names[nid] = x.name;
+          } else {
+            names[ex.id] = x.name; // 音声なし=名前だけ上書き
+          }
+          over++;
+        } else {
+          if (!blob) { noAudio++; continue; }
+          await dbAdd({ name: x.name, blob: blob, track: x.track, duration: x.duration, score: x.score, createdAt: x.createdAt });
+          added++;
+        }
+      }
+      saveMeta();
+      await window.QNPitchBackup.refresh();
+      if (playback && playback.id !== null && !recList.some(function (r) { return r.id === playback.id; })) stopPlayback(true);
+      return { added: added, over: over, skipped: skipped, noAudio: noAudio };
+    }
+  };
 
   if (window.QNApps) {
     window.QNApps.register({
