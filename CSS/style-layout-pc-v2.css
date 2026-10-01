@@ -1498,3 +1498,8 @@ body.pc-v2-active #qnMenuMount {
 html {
   scrollbar-gutter: stable;
 }
+
+/* v3.10.0：下段バーのSpeed/Key ステッパー（−［アイコン＋値］＋） */
+#pcV2BottomBar .pcv2-stepper { display: inline-flex; align-items: center; gap: 0; }
+#pcV2BottomBar .pcv2-step-btn { min-width: 26px; padding-left: 4px; padding-right: 4px; font-size: 18px; line-height: 1; }
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span { min-width: 3.2em; text-align: center; font-variant-numeric: tabular-nums; }

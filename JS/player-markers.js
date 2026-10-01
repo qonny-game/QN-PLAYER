@@ -471,6 +471,7 @@ function startDragPin(index) {
         const pinObj = pins[index];
         if (pinObj) {
           lastPinTapAt = Date.now();
+          if (typeof abLeaveIfOutside === "function") abLeaveIfOutside(pinObj.t);
           audio.currentTime = pinObj.t;
           prevTime = pinObj.t;
           audio.play();

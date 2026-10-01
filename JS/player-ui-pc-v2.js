@@ -468,10 +468,46 @@
         e.preventDefault();
         switchPanel("control");
       });
-      rightGroup.appendChild(btn);
+      // v3.10.0〜：Speed/Keyは「−［アイコン＋値(ON/OFF)］＋」のステッパーにする（−＋はControlパネルの
+      // 同名ボタンを押すのと同じ：Speed 5%刻み・Key ±1。無料版の制限もそちらで処理される）
+      if (entry.id === "speed" || entry.id === "key") {
+        const cap = entry.id === "speed" ? "Speed" : "Key";
+        const mk = (sign, dir) => {
+          const b = el('<button type="button" class="pcv2-ctrl-btn pcv2-step-btn" title="' + cap + (dir < 0 ? " −" : " ＋") + '"><span>' + sign + '</span></button>');
+          b.addEventListener("click", () => {
+            const t = document.getElementById("control" + cap + (dir < 0 ? "DownBtn" : "UpBtn"));
+            if (t) t.click();
+            updateBottomStepperValues();
+          });
+          return b;
+        };
+        const wrap = el('<div class="pcv2-stepper"></div>');
+        wrap.appendChild(mk("−", -1));
+        wrap.appendChild(btn);
+        wrap.appendChild(mk("＋", 1));
+        rightGroup.appendChild(wrap);
+        btn.dataset.stepKind = entry.id;
+      } else {
+        rightGroup.appendChild(btn);
+      }
       bottomBarEffectButtons[entry.id] = btn;
       syncBottomBarEffectButton(entry.id, btn);
     });
+
+    // Speed/Keyの現在値をボタンのラベルに表示（Controlパネルのスライダー/ボタン/リセット/キー操作でも変わるため軽く定期更新）
+    function updateBottomStepperValues() {
+      const sp = bottomBarEffectButtons.speed, ky = bottomBarEffectButtons.key;
+      if (sp && typeof currentSpeed === "number") {
+        const l = sp.querySelector("span"); const v = currentSpeed.toFixed(2) + "x";
+        if (l && l.textContent !== v) l.textContent = v;
+      }
+      if (ky && typeof currentKeySemitones === "number") {
+        const l = ky.querySelector("span"); const v = (currentKeySemitones > 0 ? "+" : "") + currentKeySemitones;
+        if (l && l.textContent !== v) l.textContent = v;
+      }
+    }
+    updateBottomStepperValues();
+    setInterval(updateBottomStepperValues, 250);
 
     // Controlパネル内のトグルスイッチ(controlSpeedEnableToggle等)が
     // 直接クリックされた場合にも下段バーの見た目を追従させる。

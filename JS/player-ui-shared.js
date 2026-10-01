@@ -802,6 +802,16 @@ function loopWrapAB(abr, ct) {
   setTimeout(() => { isJumping = false; }, 200);
 }
 
+// v3.10.0〜：A-Bループ中に、A〜Bの外側をクリック（シーク）したらループをOFFにする（A/B点は残す）。
+function abLeaveIfOutside(t) {
+  if (!loopEnabled || loopMode !== "ab") return;
+  const abr = typeof getABRange === "function" ? getABRange() : null;
+  if (!abr) return;
+  if (t >= abr.start - 0.05 && t <= abr.end + 0.05) return;
+  if (typeof setLoopModeState === "function") setLoopModeState("off", true);
+  else { loopEnabled = false; if (typeof applyLoopButtonUI === "function") applyLoopButtonUI(); }
+}
+
 function calcTimeFromBarPosition(bar, barIndex, clientX) {
   const rect = bar.getBoundingClientRect();
   const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
@@ -820,6 +830,7 @@ document.querySelectorAll(".vbar").forEach((bar, index) => {
     beginSeek();
 
     const clickedTime = calcTimeFromBarPosition(bar, index, e.clientX);
+    abLeaveIfOutside(clickedTime);
 
     audio.currentTime = clickedTime;
     prevTime = clickedTime;

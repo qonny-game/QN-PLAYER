@@ -558,3 +558,8 @@
 - シークバー/波形のポップアップの Color を押すと、ラベル入力欄・プリセット（Intro/Verse…＋自作）・色パレットが1つのパネルで開く。プリセットを選ぶとラベルと色が一緒に入り、色だけ・ラベルだけの変更もできる。変更は即反映され、パネル外クリック/Enter/Escで閉じる。
 - プリセット（名前と色）はMarkersの設定と共用（PLAYERとYouTubeで同じ内容）。
 - 変更ファイル：`JS/player-markers.js`、`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.10.0 — PLAYER: 下部バーのSpeed/Keyをステッパー化／A-B外クリックでA-BループOFF
+- 下部バーの Speed / Key を「−［アイコン＋現在値］＋」に変更。アイコン（値表示）を押すと従来どおりON/OFF、−＋はControlパネルと同じ（Speed 5%刻み・Key ±1）。値は1.00x / +0 の形式で表示。右クリックでControlパネルを開く動作も従来どおり。
+- A-Bループ中に、A〜Bの範囲外の波形をクリック、または範囲外のマーカーをタップしたら、LOOPをOFFにする（A/B点は残る。再度LOOPを押せば同じA-Bで再開）。範囲内のクリックはそのままループ継続。
+- 変更ファイル：`JS/player-ui-pc-v2.js`、`JS/player-ui-shared.js`、`JS/player-markers.js`、`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`。
