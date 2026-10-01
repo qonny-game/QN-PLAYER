@@ -108,12 +108,14 @@
     {
       id: "backup",
       label: "Backup",
+      bottom: true,   // v3.17.0〜：下段グループ（Keyboardの上）に置く
       panelType: "backup",
       icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>'
     },
     {
       id: "import",
       label: "Import",
+      bottom: true,
       panelType: "import",
       icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>'
     }
@@ -145,7 +147,7 @@
     panel.appendChild(panelBody);
 
     ICON_ITEMS.forEach(item => {
-      if (item.hidden) return;
+      if (item.hidden || item.bottom) return;
       const displayLabel = item.shortLabel || item.label;
       const btn = el(
         '<button type="button" class="pcv2-icon-item" data-panel-id="' + item.id + '" title="' + item.label + '">' +
@@ -164,6 +166,18 @@
     // セクションをDOMごと移動して表示するだけ）。
     const spacer = el('<div id="pcV2IconBarSpacer"></div>');
     const bottomGroup = el('<div id="pcV2IconBarBottom"></div>');
+    // 【v3.17.0】下段グループ：Backup / Import / Keyboard / Color（YouTubeアプリと同じ並び）。
+    // Backup/ImportはICON_ITEMS側のbottom:true項目（handleIconClick経由で開く）。
+    ICON_ITEMS.filter(item => item.bottom && !item.hidden).forEach(item => {
+      const btn = el(
+        '<button type="button" class="pcv2-icon-item" data-panel-id="' + item.id + '" title="' + item.label + '">' +
+          '<svg viewBox="0 0 24 24">' + item.icon + '</svg>' +
+          '<span>' + (item.shortLabel || item.label) + '</span>' +
+        '</button>'
+      );
+      btn.addEventListener("click", () => handleIconClick(item));
+      bottomGroup.appendChild(btn);
+    });
     [
       { id: "keyboard", label: "Keyboard", icon: '<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM11 8h2v2h-2V8zM11 11h2v2h-2v-2zM8 8h2v2H8V8zM8 11h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm10 6H9v-2h6v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>' },
       { id: "color", label: "Color", icon: '<path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10c1.38 0 2.5-1.12 2.5-2.5 0-.61-.23-1.2-.64-1.67-.08-.09-.13-.21-.13-.33 0-.28.22-.5.5-.5H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 8 6.5 8 8 8.67 8 9.5 7.33 11 6.5 11zm3-4C8.67 7 8 6.33 8 5.5S8.67 4 9.5 4s1.5.67 1.5 1.5S10.33 7 9.5 7zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 4 14.5 4s1.5.67 1.5 1.5S15.33 7 14.5 7zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 8 17.5 8s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>' }

@@ -209,10 +209,14 @@
   // どちらも先頭のバッジ（現在のアプリ名＋＞）から、アプリ一覧フライアウトを開く。
   function renderAppSideItems() {
     if (!iconBar) return;
-    var old = iconBar.querySelectorAll(".qn-appside-item");
+    var old = document.querySelectorAll("#pcV2IconBar .qn-appside-item");
     for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
     if (!current || !current.sidebar) return;
     var spacer = $("pcV2IconBarSpacer");
+    // 下段グループ(#pcV2IconBarBottom)に置く項目（it.bottom）は、常駐のColorの直前へ。
+    // 本体(PLAYER)と同じ「Backup / Import / Keyboard / Color」の並びにするため（v3.17.0〜）。
+    var bottomBox = $("pcV2IconBarBottom");
+    var colorBtn = bottomBox ? bottomBox.querySelector('[data-panel-id="color"]') : null;
     current.sidebar.forEach(function (it) {
       var btn = makeItemButton({ cls: "qn-appside-item" }, it.icon, it.label, it.label);
       btn.setAttribute("data-side-id", it.id);
@@ -220,7 +224,8 @@
         haptic();
         if (typeof current.onSidebar === "function") current.onSidebar(it.id);
       });
-      if (spacer) iconBar.insertBefore(btn, spacer); else iconBar.appendChild(btn);
+      if (it.bottom && bottomBox) bottomBox.insertBefore(btn, colorBtn || null);
+      else if (spacer) iconBar.insertBefore(btn, spacer); else iconBar.appendChild(btn);
     });
     setSideActive(sideActiveId);
   }
@@ -229,7 +234,7 @@
   function setSideActive(id) {
     sideActiveId = id;
     if (!iconBar) return;
-    var items = iconBar.querySelectorAll(".qn-appside-item");
+    var items = iconBar.querySelectorAll(".qn-appside-item");   // 下段グループの項目も含む（子孫）
     for (var i = 0; i < items.length; i++) {
       items[i].classList.toggle("qn-app-active", items[i].getAttribute("data-side-id") === id);
     }

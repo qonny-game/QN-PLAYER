@@ -207,61 +207,10 @@
             '<div class="qn-yt-pinbox" data-yt="markerList"></div>' +
             '<p class="qn-yt-empty" data-yt="emptyMarkers">マーカーはありません</p>' +
           '</section>' +
-          // ---- Backup（本体のBackupと同じ流れ：リスト選択 → 含める項目 → Download） ----
-          '<section class="qn-yt-sec qn-yt-sec-backup">' +
-            '<div class="track-backup-tracklist-header">' +
-              '<label class="export-section-label">リストを選択</label>' +
-              '<div class="track-backup-tracklist-actions">' +
-                '<button type="button" class="track-backup-mini-btn" data-yt="bkAll">全選択</button>' +
-                '<button type="button" class="track-backup-mini-btn" data-yt="bkNone">全解除</button>' +
-              '</div>' +
-            '</div>' +
-            '<div class="track-backup-tracklist" data-yt="bkList"></div>' +
-            '<div class="track-backup-size-row"><span data-yt="bkCount">0件選択中</span><span class="qn-yt-accent" data-yt="bkMarkerTotal">0 markers</span></div>' +
-            '<div class="track-backup-options">' +
-              '<label class="export-section-label">含める項目</label>' +
-              '<div class="track-backup-checklist">' +
-                '<label class="track-backup-row"><input type="checkbox" data-yt="bkTitle" checked><span class="track-backup-row-label">タイトル</span></label>' +
-                '<label class="track-backup-row"><input type="checkbox" data-yt="bkMarkers" checked><span class="track-backup-row-label">マーカー・AB点</span></label>' +
-              '</div>' +
-            '</div>' +
-            '<p class="qn-yt-hint">動画のURLは常に含まれます。保存されるのは、URL・自分で付けたタイトル・マーカー（位置とラベル）だけです。</p>' +
-            '<div class="qn-yt-actions">' +
-              '<div class="export-status" data-yt="bkStatus"></div>' +
-              '<button type="button" class="export-run-btn" data-yt="bkRun">Download</button>' +
-            '</div>' +
-          '</section>' +
-          // ---- Import（JSONを読み込み → 重複は上書き/スキップ → Import） ----
-          '<section class="qn-yt-sec qn-yt-sec-import">' +
-            '<div class="track-import-dropzone" data-yt="imDrop">' +
-              '<svg viewBox="0 0 24 24" class="track-import-dropzone-icon"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>' +
-              '<div class="track-import-dropzone-text">JSONファイルをドロップ</div>' +
-              '<div class="track-import-dropzone-sub">またはクリックして選択</div>' +
-              '<input type="file" accept=".json,application/json" style="display:none;" data-yt="imFile">' +
-            '</div>' +
-            '<div class="track-import-loaded-info" data-yt="imLoaded" style="display:none;">' +
-              '<svg viewBox="0 0 24 24" class="track-import-loaded-info-icon"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>' +
-              '<div class="track-import-loaded-info-text">' +
-                '<div class="track-import-loaded-info-name" data-yt="imName">-</div>' +
-                '<div class="track-import-loaded-info-count" data-yt="imCount"></div>' +
-              '</div>' +
-            '</div>' +
-            '<div class="track-import-duplicate-list" data-yt="imDupList" style="display:none;">' +
-              '<div class="track-import-duplicate-header">' +
-                '<label class="export-section-label">重複する動画</label>' +
-                '<div class="track-import-bulk-toggle-wrap">' +
-                  '<span class="track-import-choice-label" data-yt="imBulkLabel">すべて上書き</span>' +
-                  '<button type="button" class="glow-switch track-import-choice-switch" role="switch" aria-checked="true" data-yt="imBulk" title="すべてスキップに切り替え"><span class="glow-switch-knob"></span></button>' +
-                '</div>' +
-              '</div>' +
-              '<div data-yt="imDupRows"></div>' +
-            '</div>' +
-            '<div class="qn-yt-actions">' +
-              '<div class="export-status" data-yt="imStatus"></div>' +
-              '<button type="button" class="export-cancel-btn" data-yt="imBack" style="display:none;">Back</button>' +
-              '<button type="button" class="export-run-btn" data-yt="imRun" disabled>Import</button>' +
-            '</div>' +
-          '</section>' +
+          // ---- Backup / Import（v3.17.0〜：本体(PLAYER)と共通の1画面を借りて表示する。
+          //      実体は player-track-backup.js。setPanel()が qnBackupMountInto() で差し込む） ----
+          '<section class="qn-yt-sec qn-yt-sec-backup"><div data-yt="bkHost"></div></section>' +
+          '<section class="qn-yt-sec qn-yt-sec-import"><div data-yt="imHost"></div></section>' +
           // ---- Keyboard（YouTube本家と同じショートカットの一覧。中身は renderShortcuts() が入れる） ----
           '<section class="qn-yt-sec qn-yt-sec-keyboard">' +
             '<div class="qn-yt-kbd" data-yt="kbdBox"></div>' +
@@ -308,10 +257,10 @@
     { id: "library", label: "Library", icon: '<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>' },
     { id: "markers", label: "Markers", icon: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>' },
     // 本体のBackup / Importと同じアイコン・同じ流れ
-    { id: "backup", label: "Backup", icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>' },
-    { id: "import", label: "Import", icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' },
+    { id: "backup", bottom: true, label: "Backup", icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>' },
+    { id: "import", bottom: true, label: "Import", icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' },
     // 本体のKeyboardと同じアイコン。YouTube本家と同じショートカットの一覧（v3.1.0〜）
-    { id: "keyboard", label: "Keyboard", icon: '<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM11 8h2v2h-2V8zM11 11h2v2h-2v-2zM8 8h2v2H8V8zM8 11h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm10 6H9v-2h6v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>' }
+    { id: "keyboard", bottom: true, label: "Keyboard", icon: '<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM11 8h2v2h-2V8zM11 11h2v2h-2v-2zM8 8h2v2H8V8zM8 11h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm10 6H9v-2h6v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>' }
   ];
   var PANEL_TITLES = { library: "Library", markers: "Markers", backup: "Backup", import: "Import", keyboard: "Keyboard" };
   var panelState = null; // "library" | "markers" | "backup" | "import" | "keyboard" | "none"(SPのみ)
@@ -330,8 +279,16 @@
     renderMarkers();
     // SP幅でパネルを開いても、プレイヤーは画面上部に小さく残る（覆わない）ので
     // 一時停止は不要（CSS側 .qn-yt:not([data-panel="none"]) 参照）。
-    if (id === "backup") renderBackupList();
-    if (id === "import") resetImportView();
+    // Backup/Importは本体と共通の画面を借りて表示（それ以外のパネルでは借りを解除）
+    if (id === "backup" || id === "import") {
+      if (typeof window.qnBackupMountInto === "function") {
+        window.qnBackupMountInto(id, id === "backup" ? refs.bkHost : refs.imHost, function () {
+          setPanel(isSp() ? "none" : "library");
+        });
+      }
+    } else if (typeof window.qnBackupReleaseExternal === "function") {
+      window.qnBackupReleaseExternal();
+    }
     if (id === "keyboard") renderShortcuts();
     updatePanelTitle();
     if (window.QNApps) window.QNApps.setSideActive((id === "none" || isCollapsed()) ? null : id);
@@ -413,7 +370,6 @@
       }).observe(refs.seekTracks);
     }
     bindEvents();
-    bindBackupImport();
     updateDisplay(0);
     renderList();
     renderMarkers();
@@ -1023,7 +979,6 @@
     refs.emptyList.style.display = items.length ? "none" : "";
     refs.listCount.textContent = String(items.length);
     updatePanelTitle();
-    if (panelState === "backup") renderBackupList();
     var edit = editMode === "library";
     // 存在しない行の選択は捨てる
     for (var k in selected) if (!findItem(k) && !(current && findMarker(k))) delete selected[k];
@@ -1940,79 +1895,8 @@
   //   YouTube由来のデータ（自動取得タイトル・サムネ等）は含めない（規約）。
   // ============================================================
   var EXPORT_FORMAT = "qn-youtube-library";
-  var bkSelected = {};             // itemId -> false のとき未選択（未登録=選択）
-  var imData = null;               // 読み込んだ項目（正規化済み）
-  var imChoices = {};              // videoId -> "overwrite" | "skip"
-
-  function setStatus(el, text, kind) {
-    el.textContent = text || "";
-    el.className = "export-status" + (kind ? " " + kind : "");
-  }
-
-  function renderBackupList() {
-    if (!root) return;
-    refs.bkList.textContent = "";
-    if (!items.length) {
-      var p = document.createElement("p");
-      p.className = "qn-yt-empty"; p.textContent = "保存されたリストがありません";
-      refs.bkList.appendChild(p);
-    }
-    items.forEach(function (it) {
-      var row = document.createElement("label");
-      row.className = "track-backup-track-row";
-      var cb = document.createElement("input");
-      cb.type = "checkbox"; cb.checked = bkSelected[it.id] !== false;
-      cb.addEventListener("change", function () { bkSelected[it.id] = cb.checked; updateBackupSummary(); });
-      var nm = document.createElement("span");
-      nm.className = "track-backup-track-name"; nm.textContent = it.title; nm.title = it.title;
-      var sz = document.createElement("span");
-      sz.className = "track-backup-track-size"; sz.textContent = it.markers.length + " markers";
-      row.appendChild(cb); row.appendChild(nm); row.appendChild(sz);
-      refs.bkList.appendChild(row);
-    });
-    updateBackupSummary();
-  }
-
-  function selectedItems() {
-    return items.filter(function (it) { return bkSelected[it.id] !== false; });
-  }
-
-  function updateBackupSummary() {
-    var sel = selectedItems();
-    var mk = 0;
-    sel.forEach(function (it) { mk += it.markers.length; });
-    refs.bkCount.textContent = sel.length + "件選択中";
-    refs.bkMarkerTotal.textContent = mk + " markers";
-    refs.bkRun.disabled = sel.length === 0;
-  }
-
-  function downloadBackup() {
-    var sel = selectedItems();
-    if (!sel.length) return;
-    var incTitle = refs.bkTitle.checked, incMarkers = refs.bkMarkers.checked;
-    var out = {
-      format: EXPORT_FORMAT, version: 1, exportedAt: new Date().toISOString(),
-      items: sel.map(function (it) {
-        var o = { videoId: it.videoId, url: it.url };
-        if (incTitle) o.title = it.title;
-        if (incMarkers) {
-          o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; return o2; });
-          o.loopA = abTimeOf(it.loopA, it.markers);   // v3.8.0〜：秒（マーカーとは別の点）。旧形式(マーカーID)は時刻に読み替え
-          o.loopB = abTimeOf(it.loopB, it.markers);
-        }
-        return o;
-      })
-    };
-    var d = new Date(), pad = function (n) { return (n < 10 ? "0" : "") + n; };
-    var name = "qn-youtube-library_" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + ".json";
-    var blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-    setStatus(refs.bkStatus, sel.length + "件をダウンロードしました", "success");
-  }
-
+  // （Backup/Importの画面そのものは本体と共通。ここにはYouTube側のデータの出し入れだけを置く。
+  //   v3.17.0〜：window.QNYouTubeBackup として公開し、player-track-backup.jsが使う）
   // ---- Import ----
   function cleanStr(v, max) {
     return typeof v === "string" ? v.trim().slice(0, max) : "";
@@ -2055,95 +1939,32 @@
     return out;
   }
 
-  function resetImportView() {
-    if (!root) return;
-    imData = null; imChoices = {};
-    refs.imDrop.style.display = "";
-    refs.imLoaded.style.display = "none";
-    refs.imDupList.style.display = "none";
-    refs.imBack.style.display = "none";
-    refs.imRun.disabled = true;
-    refs.imFile.value = "";
-    setStatus(refs.imStatus, "");
+  // ---- 共通Backup/Import画面への窓口（v3.17.0〜） ----
+  function buildExportObject(ids, includeSettings) {
+    var want = {};
+    ids.forEach(function (id) { want[id] = true; });
+    var sel = items.filter(function (it) { return want[it.id]; });
+    return {
+      format: EXPORT_FORMAT, version: 1, exportedAt: new Date().toISOString(),
+      items: sel.map(function (it) {
+        var o = { videoId: it.videoId, url: it.url };
+        if (includeSettings) {
+          o.title = it.title;
+          o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; return o2; });
+          o.loopA = abTimeOf(it.loopA, it.markers);   // v3.8.0〜：秒（マーカーとは別の点）
+          o.loopB = abTimeOf(it.loopB, it.markers);
+        }
+        return o;
+      })
+    };
   }
 
-  function loadImportFile(file) {
-    if (!file) return;
-    file.text().then(function (text) {
-      var raw;
-      try { raw = JSON.parse(text); } catch (e) { setStatus(refs.imStatus, "JSONとして読み込めませんでした", "error"); return; }
-      var list = normalizeImport(raw);
-      if (!list || !list.length) { setStatus(refs.imStatus, "取り込める動画が見つかりませんでした", "error"); return; }
-      imData = list;
-      imChoices = {};
-      refs.imName.textContent = file.name;
-      var dups = list.filter(function (x) { return findItemByVideoId(x.videoId); });
-      refs.imCount.textContent = list.length + "件（新規 " + (list.length - dups.length) + " / 重複 " + dups.length + "）";
-      refs.imDrop.style.display = "none";
-      refs.imLoaded.style.display = "";
-      refs.imBack.style.display = "";
-      refs.imRun.disabled = false;
-      setStatus(refs.imStatus, "");
-      renderDuplicates(dups);
-    }).catch(function () { setStatus(refs.imStatus, "ファイルを読み込めませんでした", "error"); });
-  }
-
-  function applyChoiceUi(toggle, label, overwrite) {
-    label.textContent = overwrite ? "上書き" : "スキップ";
-    label.classList.toggle("is-skip", !overwrite);
-    toggle.setAttribute("aria-checked", String(overwrite));
-    toggle.title = overwrite ? "スキップに切り替え" : "上書きに切り替え";
-  }
-
-  function renderDuplicates(dups) {
-    refs.imDupRows.textContent = "";
-    refs.imDupList.style.display = dups.length ? "" : "none";
-    dups.forEach(function (x) {
-      imChoices[x.videoId] = "overwrite";
-      var existing = findItemByVideoId(x.videoId);
-      var row = document.createElement("div");
-      row.className = "track-import-duplicate-row";
-      var nm = document.createElement("span");
-      nm.className = "track-import-duplicate-name";
-      nm.textContent = x.title || (existing && existing.title) || x.videoId;
-      var wrap = document.createElement("div");
-      wrap.className = "track-import-choice-wrap";
-      var label = document.createElement("span");
-      label.className = "track-import-choice-label";
-      var tg = document.createElement("button");
-      tg.type = "button"; tg.className = "glow-switch track-import-choice-switch";
-      tg.setAttribute("role", "switch");
-      tg.innerHTML = '<span class="glow-switch-knob"></span>';
-      tg.dataset.vid = x.videoId;
-      applyChoiceUi(tg, label, true);
-      tg.addEventListener("click", function () {
-        var ow = tg.getAttribute("aria-checked") !== "true";
-        imChoices[x.videoId] = ow ? "overwrite" : "skip";
-        applyChoiceUi(tg, label, ow);
-      });
-      wrap.appendChild(label); wrap.appendChild(tg);
-      row.appendChild(nm); row.appendChild(wrap);
-      refs.imDupRows.appendChild(row);
-    });
-    applyChoiceUi(refs.imBulk, refs.imBulkLabel, true);
-  }
-
-  function setAllChoices(overwrite) {
-    var tgs = refs.imDupRows.querySelectorAll(".track-import-choice-switch");
-    for (var i = 0; i < tgs.length; i++) {
-      imChoices[tgs[i].dataset.vid] = overwrite ? "overwrite" : "skip";
-      applyChoiceUi(tgs[i], tgs[i].previousElementSibling, overwrite);
-    }
-    applyChoiceUi(refs.imBulk, refs.imBulkLabel, overwrite);
-  }
-
-  function runImport() {
-    if (!imData) return;
+  function applyImportList(list, choices) {
     var added = 0, over = 0, skipped = 0;
-    imData.forEach(function (x) {
+    list.forEach(function (x) {
       var ex = findItemByVideoId(x.videoId);
       if (ex) {
-        if (imChoices[x.videoId] === "skip") { skipped++; return; }
+        if (choices && choices[x.videoId] === "skip") { skipped++; return; }
         if (x.title) ex.title = x.title;
         ex.url = x.url;
         if (x.markers) {
@@ -2164,41 +1985,25 @@
       }
     });
     saveItems();
-    renderList();
-    renderMarkers();
-    var msg = "インポート完了：新規 " + added + " / 上書き " + over + (skipped ? " / スキップ " + skipped : "");
-    resetImportView();
-    setStatus(refs.imStatus, msg, "success");
+    if (root) { renderList(); renderMarkers(); }
+    return { added: added, over: over, skipped: skipped };
   }
 
-  function bindBackupImport() {
-    refs.bkAll.addEventListener("click", function () {
-      items.forEach(function (it) { bkSelected[it.id] = true; }); renderBackupList();
-    });
-    refs.bkNone.addEventListener("click", function () {
-      items.forEach(function (it) { bkSelected[it.id] = false; }); renderBackupList();
-    });
-    refs.bkRun.addEventListener("click", downloadBackup);
-
-    refs.imDrop.addEventListener("click", function () { refs.imFile.click(); });
-    refs.imFile.addEventListener("click", function (e) { e.stopPropagation(); });
-    refs.imFile.addEventListener("change", function () { loadImportFile(refs.imFile.files[0]); });
-    refs.imDrop.addEventListener("dragover", function (e) {
-      e.preventDefault(); e.stopPropagation(); refs.imDrop.classList.add("dragover");
-    });
-    refs.imDrop.addEventListener("dragleave", function () { refs.imDrop.classList.remove("dragover"); });
-    refs.imDrop.addEventListener("drop", function (e) {
-      e.preventDefault(); e.stopPropagation();
-      refs.imDrop.classList.remove("dragover");
-      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      loadImportFile(f);
-    });
-    refs.imBack.addEventListener("click", resetImportView);
-    refs.imRun.addEventListener("click", runImport);
-    refs.imBulk.addEventListener("click", function () {
-      setAllChoices(refs.imBulk.getAttribute("aria-checked") !== "true");
-    });
-  }
+  window.QNYouTubeBackup = {
+    list: function () {
+      return items.map(function (it) { return { id: it.id, title: it.title, markerCount: it.markers.length }; });
+    },
+    buildExport: buildExportObject,
+    // 読み込んだJSON（オブジェクト）をYouTubeの形式として整形する。YouTubeの形式でなければnull
+    parseImport: function (raw) {
+      if (raw && !Array.isArray(raw) && raw.format && raw.format !== EXPORT_FORMAT) return null;
+      var list = normalizeImport(raw);
+      return list && list.length ? list : null;
+    },
+    exists: function (videoId) { return !!findItemByVideoId(videoId); },
+    titleOf: function (videoId) { var it = findItemByVideoId(videoId); return it ? it.title : ""; },
+    applyImport: applyImportList
+  };
 
   // ---------- スペースキーで再生/一時停止（フォーカスがプレイヤー外でも） ----------
   // 公式の playVideo()/pauseVideo() を、利用者のキー操作を起点に呼ぶだけ（規約OK）。

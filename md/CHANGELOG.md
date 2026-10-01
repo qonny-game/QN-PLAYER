@@ -650,3 +650,13 @@
 - パネル格納（v3.14.0）：`prefers-reduced-motion` で動きを止める指定を削除（OSの「視覚効果を減らす」設定で格納がパッと切り替わっていた）。格納後の枠線の消し方もYouTubeと同じ（`border-right-color: transparent`）に。
 - **v3.14.0で入れた不具合の修正**：`#pcV2PanelBody` の `min-width:374px` がcontent-boxで、paddingぶん(40px)広がって414pxになり、Backup/Importなどの中身が右へはみ出して見切れていた。`box-sizing:border-box` を追加して374pxに。全パネル（Library/Markers/Text/Control/Backup/Import/Keyboard/Color）で幅374pxに収まることを確認。
 - 変更ファイル：`JS/player-ui-pc-v2.js`、`CSS/style-layout-pc-v2.css`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`、`md/DOM_ID_REFERENCE.md`。
+
+## 3.17.0 — サイドバー統一＋Backup/Import共通化（PLAYER/YouTube）
+- **サイドバー**：下段グループを本体(PLAYER)・YouTubeとも「Backup / Import / Keyboard / Color」の順に統一（YouTubeはKeyboardがColorの上に来ていなかった／Backup・Importは上段だった）。PL：`ICON_ITEMS`の`bottom:true`、YT：`SIDEBAR`の`bottom:true`＋`qn-apps.js`の`renderAppSideItems()`が`#pcV2IconBarBottom`のColorの直前へ差し込む。
+- **Backup/Import共通化**：PLAYERの既存Backup/Import画面を共通の1画面にした。YouTubeアプリのBackup/Importパネルは、その画面を`window.qnBackupMountInto(mode, hostEl, onDismiss)`で借りて表示（YouTube側の専用UIと関連関数は削除）。
+  - Backup：曲リストに「PLAYER」「YouTube」の見出しで並べ、両方を選ぶと1つのZIP（`markers.json`＋`audio/`＋`youtube.json`）に。片方だけなら従来の出力（PLAYER=ZIP/JSON、YouTube=JSON）。PLAYER側のZIP構成は従来と同じなので、旧版でも（youtube.jsonを無視して）読める。
+  - Import：ZIP/JSONの中身を自動判定。旧PLAYER ZIP／旧markers.json／旧YouTube JSONもそのまま読める。重複は上書き/スキップ（YouTube分は「[YouTube]」付きで同じ一覧に。選択キーは`yt:<videoId>`）。結果は【PLAYER】【YouTube】に分けて表示。
+  - YouTube側の窓口：`window.QNYouTubeBackup`（`qn-app-youtube.js`）。
+- YouTubeパネル内の見た目：本体の`#pcV2PanelBody`向けBackup/Importのcssを`.qn-yt-sec-backup/.qn-yt-sec-import`へミラー（`style-apps.css`末尾）。**本体側(`style-pcv2-panels.css`)のそのブロックを直したら、ここも同じに直すこと。**
+- 見出し「重複する曲」→「重複する項目」。
+- 変更ファイル：`JS/player-track-backup.js`、`JS/qn-app-youtube.js`、`JS/qn-apps.js`、`JS/player-ui-pc-v2.js`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`、`md/YOUTUBE_APP.md`。

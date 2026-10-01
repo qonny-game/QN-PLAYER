@@ -26,7 +26,7 @@
 ## 1. 現在できること（実装済み）
 
 ### 1-1. 入口とサイドバー
-- サイドバー先頭のアプリ名バッジ（＞付き）にマウスを載せる（SPはタップ）とアプリ一覧のフライアウトが出る → YOUTUBEを選ぶと、サイドバーが「Library / Markers / Backup / Import / Keyboard」＋Colorに切り替わる。
+- サイドバー先頭のアプリ名バッジ（＞付き）にマウスを載せる（SPはタップ）とアプリ一覧のフライアウトが出る → YOUTUBEを選ぶと、サイドバーが上段「Library / Markers」、下段「Backup / Import / Keyboard / Color」（本体と同じ並び）に切り替わる。
   先頭のバッジは現在のアプリ名を表示し、ここからいつでも他のアプリへ切り替えられる。仕組みは`PC_V2_FILE_INDEX.md`のqn-apps.jsの項。
 - アプリ表示中は本体の下段バーを隠し、本体のaudioを一時停止、キーボードショートカットと「曲追加」D&Dを無効化する（`body.qn-app-open`）。
 - Colorボタンは全アプリで常駐。アプリ表示中はPLAYERと同じ「パネル」として開く（Marker Memo Colorsだけ非表示）。
@@ -61,8 +61,9 @@
 - プレイヤーの**外**の自前UI。倍率はYouTube標準と同じ（`getAvailablePlaybackRates()`）、変更は`setPlaybackRate()`のみ。選択は`qn_yt_rate`に保存。
 
 ### 1-7. Backup / Import
-- Backup：リスト選択→含める項目（タイトル／マーカー・AB点）→Download（`qn-youtube-library_YYYYMMDD.json`）。
-- Import：JSONをドロップ/選択→videoIdが重複するものは上書き/スキップ（行ごと＋一括トグル）→Import。値は検証・整形して取り込む（不正なマーカーは捨てる）。
+- **v3.17.0〜：Backup/Importは本体(PLAYER)と共通の1画面**（実体は`JS/player-track-backup.js`。YouTubeのパネルは`window.qnBackupMountInto()`でその画面を借りる）。YouTube側は`window.QNYouTubeBackup`（`list`/`buildExport`/`parseImport`/`exists`/`titleOf`/`applyImport`）でデータの出し入れだけ提供する。
+- Backup：曲リストに「PLAYER」「YouTube」の見出しで両方が並ぶ。両方を選ぶと**1つのZIP**（`qnplayer_backup_YYYYMMDD.zip`＝`markers.json`＋`audio/`＋`youtube.json`）。YouTubeだけなら従来どおり`qn-youtube-library_YYYYMMDD.json`、PLAYERだけなら従来どおり。「設定データ」＝タイトル・マーカー・AB点（YouTube分も同じチェック）。
+- Import：ZIP/JSONの中身を自動判定（`markers.json`＝PLAYER／`youtube.json`またはformat=qn-youtube-library＝YouTube）。videoId／曲名が重複するものは上書き/スキップ（行ごと＋一括トグル）。値は検証・整形して取り込む（不正なマーカーは捨てる）。どちらのアプリから開いても同じ。
 - 形式は§4。含めるのはURL・手入力タイトル・マーカーのみ。
 
 ### 1-8. 画面スリープ防止

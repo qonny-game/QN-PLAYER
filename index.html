@@ -35,7 +35,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "3.16.0";
+  window.QN_APP_VERSION = "3.17.0";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -823,7 +823,7 @@
                曲名の表示スペースを広く取れるようにしている。 -->
           <div id="trackImportDuplicateList" class="track-import-duplicate-list" style="display:none;">
             <div class="track-import-duplicate-header">
-              <label class="export-section-label">重複する曲</label>
+              <label class="export-section-label">重複する項目</label>
               <div class="track-import-bulk-toggle-wrap">
                 <span id="trackImportBulkToggleLabel" class="track-import-choice-label">すべて上書き</span>
                 <button type="button" id="trackImportBulkToggle" class="glow-switch track-import-choice-switch" role="switch" aria-checked="true" title="すべてスキップに切り替え">

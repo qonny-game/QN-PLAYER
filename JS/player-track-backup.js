@@ -30,6 +30,16 @@
 //   qnplayer_library_backup_YYYYMMDD.json （音声データを含まない場合）
 //   … markers.json単体と同じ内容をそのまま
 //
+// 【v3.17.0〜】Backup/ImportはPLAYERとYouTubeアプリで共通の画面（この画面1つ）。
+//   - Backup: 曲リストの下に「YouTube」の動画リストも並ぶ（window.QNYouTubeBackup
+//     が qn-app-youtube.js から提供する list()/buildExport()）。両方を選んでDownload
+//     すると、1つのZIP（markers.json＋audio/＋youtube.json）で出力する。
+//     片方だけなら従来どおり（PLAYER=ZIPまたはmarkers.json、YouTube=JSON）。
+//   - Import: ZIP/JSONの中身を自動判定（markers.json=PLAYER／youtube.json=YouTube／
+//     旧形式のPLAYER ZIP・markers.json・YouTube JSONもそのまま読める）。
+//   - YouTubeアプリのBackup/Importアイコンは、この画面を
+//     window.qnBackupMountInto(mode, hostEl, onDismiss) で借りて表示する。
+//
 // 依存: player-core.js（playlist配列, savePlaylistTrack）、
 // player-ui-shared.js（hapticTap等）、player-playlist.js（renderPlaylist,
 // persistPlaylistOrder）。JSZip(JS/jszip.min.js)はこのファイルより前に
@@ -40,6 +50,44 @@
 // Backupモーダル
 // ============================================================
 const trackBackupModalOverlay = document.getElementById("trackBackupModalOverlay");
+// 中身(body/footer)の参照は最初に確保しておく（PC v2のパネルやYouTubeアプリの
+// パネルへ移した後も、ここから取れるようにするため）。
+const trackBackupBodyNode = trackBackupModalOverlay ? trackBackupModalOverlay.querySelector(".export-modal-body") : null;
+const trackBackupFooterNode = trackBackupModalOverlay ? trackBackupModalOverlay.querySelector(".export-modal-footer") : null;
+const _trackImportOverlayForRefs = document.getElementById("trackImportModalOverlay");
+const trackImportBodyNode = _trackImportOverlayForRefs ? _trackImportOverlayForRefs.querySelector(".export-modal-body") : null;
+const trackImportFooterNode = _trackImportOverlayForRefs ? _trackImportOverlayForRefs.querySelector(".export-modal-footer") : null;
+
+// 閉じる/完了した時の戻り先。YouTubeアプリがこの画面を借りている間は
+// window.qnBackupExternalDismiss（YouTube側がLibraryへ戻す）、それ以外は
+// PC v2のパネル（Libraryへ切り替え）。
+function qnBackupDismissCurrent() {
+  if (typeof window.qnBackupExternalDismiss === "function") window.qnBackupExternalDismiss();
+  else if (typeof window.qnPcv2DismissAuxPanel === "function") window.qnPcv2DismissAuxPanel();
+}
+
+// YouTubeアプリのパネル(hostEl)へ、このBackup/Import画面を借りて表示する。
+// 開くたびの初期化（全選択・項目チェック/読み込み状態のリセット）は
+// openBulk*Modal()に任せ、モーダル外枠のopenだけ外す（PC v2パネルと同じ方式）。
+window.qnBackupMountInto = function (mode, hostEl, onDismiss) {
+  if (!hostEl) return;
+  window.qnBackupExternalDismiss = typeof onDismiss === "function" ? onDismiss : null;
+  const isBackup = mode === "backup";
+  if (isBackup) openBulkBackupModal(); else openBulkImportModal();
+  const overlay = document.getElementById(isBackup ? "trackBackupModalOverlay" : "trackImportModalOverlay");
+  if (overlay) overlay.classList.remove("open");
+  const body = isBackup ? trackBackupBodyNode : trackImportBodyNode;
+  const footer = isBackup ? trackBackupFooterNode : trackImportFooterNode;
+  if (body) hostEl.appendChild(body);
+  if (footer) hostEl.appendChild(footer);
+};
+// YouTube側がパネルを切り替えた時に呼ぶ（借りている間だけのフックを外す）
+window.qnBackupReleaseExternal = function () { window.qnBackupExternalDismiss = null; };
+
+// YouTubeアプリのBackup/Import用の窓口（無ければnull）
+function ytBackupApi() {
+  return (window.QNYouTubeBackup && typeof window.QNYouTubeBackup.list === "function") ? window.QNYouTubeBackup : null;
+}
 const trackBackupModalCloseBtn = document.getElementById("trackBackupModalCloseBtn");
 const trackBackupCancelBtn = document.getElementById("trackBackupCancelBtn");
 const trackBackupRunBtn = document.getElementById("trackBackupRunBtn");
@@ -60,6 +108,8 @@ const trackBackupIncludeSettingsEl = document.getElementById("trackBackupInclude
 
 // 曲一覧のチェック状態。キーはtrack.name。開くたびに全曲trueでリセットする。
 let trackBackupSelectedNames = new Set();
+// YouTube動画のチェック状態（キーはYouTube側のitem.id）。同じく開くたびに全選択でリセット。
+let trackBackupSelectedYtIds = new Set();
 
 // ファイルサイズを「12.3 MB」のような表示用文字列に整形する。
 // 1000バイト区切り(MB/KB)ではなく1024バイト区切りにする（OSのファイル
@@ -77,23 +127,42 @@ function formatFileSize(bytes) {
 function updateTrackBackupSelectionSummary() {
   if (!Array.isArray(playlist)) return;
   const selectedTracks = playlist.filter(t => trackBackupSelectedNames.has(t.name));
+  const ytCount = trackBackupSelectedYtIds.size;
   if (trackBackupSelectedCountEl) {
-    trackBackupSelectedCountEl.textContent = `${selectedTracks.length}曲選択中`;
+    // 曲(PLAYER)と動画(YouTube)の両方を数える。片方だけの時は従来の表記。
+    trackBackupSelectedCountEl.textContent = ytCount > 0
+      ? (selectedTracks.length > 0 ? `${selectedTracks.length}曲 + ${ytCount}動画選択中` : `${ytCount}動画選択中`)
+      : `${selectedTracks.length}曲選択中`;
   }
   if (trackBackupTotalSizeEl) {
     const totalBytes = selectedTracks.reduce((sum, t) => sum + (t.file && t.file.size ? t.file.size : 0), 0);
     trackBackupTotalSizeEl.textContent = formatFileSize(totalBytes);
   }
   if (trackBackupRunBtn) {
-    trackBackupRunBtn.disabled = selectedTracks.length === 0;
+    trackBackupRunBtn.disabled = selectedTracks.length === 0 && ytCount === 0;
   }
+}
+
+function makeTrackBackupGroupLabel(text) {
+  const label = document.createElement("div");
+  label.className = "track-backup-group-label";
+  label.textContent = text;
+  return label;
 }
 
 function renderTrackBackupTrackList() {
   if (!trackBackupTrackListEl) return;
   trackBackupTrackListEl.innerHTML = "";
 
-  (Array.isArray(playlist) ? playlist : []).forEach(track => {
+  const tracks = Array.isArray(playlist) ? playlist : [];
+  const yt = ytBackupApi();
+  const ytList = yt ? yt.list() : [];
+  // YouTubeの動画がある時だけ、PLAYER / YouTube の見出しで分ける
+  const grouped = ytList.length > 0;
+
+  if (grouped) trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("PLAYER"));
+
+  tracks.forEach(track => {
     const row = document.createElement("label");
     row.className = "track-backup-track-row";
 
@@ -123,12 +192,45 @@ function renderTrackBackupTrackList() {
 
     trackBackupTrackListEl.appendChild(row);
   });
+
+  if (grouped) {
+    trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("YouTube"));
+    ytList.forEach(it => {
+      const row = document.createElement("label");
+      row.className = "track-backup-track-row";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = trackBackupSelectedYtIds.has(it.id);
+      checkbox.onchange = () => {
+        if (checkbox.checked) trackBackupSelectedYtIds.add(it.id);
+        else trackBackupSelectedYtIds.delete(it.id);
+        updateTrackBackupSelectionSummary();
+      };
+      row.appendChild(checkbox);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "track-backup-track-name";
+      nameSpan.textContent = it.title;
+      nameSpan.title = it.title;
+      row.appendChild(nameSpan);
+
+      const sizeSpan = document.createElement("span");
+      sizeSpan.className = "track-backup-track-size";
+      sizeSpan.textContent = it.markerCount + " markers";
+      row.appendChild(sizeSpan);
+
+      trackBackupTrackListEl.appendChild(row);
+    });
+  }
 }
 
 if (trackBackupSelectAllBtn) {
   trackBackupSelectAllBtn.onclick = () => {
     hapticTap();
     trackBackupSelectedNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
+    const ytA = ytBackupApi();
+    trackBackupSelectedYtIds = new Set(ytA ? ytA.list().map(it => it.id) : []);
     renderTrackBackupTrackList();
     updateTrackBackupSelectionSummary();
   };
@@ -137,6 +239,7 @@ if (trackBackupSelectNoneBtn) {
   trackBackupSelectNoneBtn.onclick = () => {
     hapticTap();
     trackBackupSelectedNames = new Set();
+    trackBackupSelectedYtIds = new Set();
     renderTrackBackupTrackList();
     updateTrackBackupSelectionSummary();
   };
@@ -148,6 +251,8 @@ function openBulkBackupModal() {
   // 開くたびに全曲選択・含める項目チェック済みの状態にリセットする
   // （前回の選択を引き継がない）。
   trackBackupSelectedNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
+  const ytOpen = ytBackupApi();
+  trackBackupSelectedYtIds = new Set(ytOpen ? ytOpen.list().map(it => it.id) : []);
   if (trackBackupIncludeAudioEl) trackBackupIncludeAudioEl.checked = true;
   if (trackBackupIncludeSettingsEl) trackBackupIncludeSettingsEl.checked = true;
 
@@ -163,9 +268,9 @@ function openBulkBackupModal() {
 function closeTrackBackupModal() {
   if (!trackBackupModalOverlay) return;
   trackBackupModalOverlay.classList.remove("open");
-  // v2.13.6〜：PC v2のサイドメニューパネルとして表示している場合は、
-  // パネル側を閉じる（player-ui-pc-v2.js側）。
-  if (typeof window.qnPcv2DismissAuxPanel === "function") window.qnPcv2DismissAuxPanel();
+  // v2.13.6〜：PC v2のサイドメニューパネル（またはYouTubeアプリのパネル）として
+  // 表示している場合は、パネル側を閉じる。
+  qnBackupDismissCurrent();
 }
 
 if (trackBackupModalCloseBtn) trackBackupModalCloseBtn.onclick = closeTrackBackupModal;
@@ -209,10 +314,23 @@ function loadStoredNoteTextFor(fileName) {
   }
 }
 
+function downloadBlobAs(blob, name) {
+  const downloadUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+}
+
 async function runTrackBackup() {
   const targetTracks = (Array.isArray(playlist) ? playlist : []).filter(t => trackBackupSelectedNames.has(t.name));
-  if (targetTracks.length === 0) {
-    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "曲を1つ以上選択してください。";
+  const yt = ytBackupApi();
+  const ytIds = yt ? yt.list().map(it => it.id).filter(id => trackBackupSelectedYtIds.has(id)) : [];
+  if (targetTracks.length === 0 && ytIds.length === 0) {
+    if (trackBackupStatusEl) trackBackupStatusEl.textContent = "曲または動画を1つ以上選択してください。";
     return;
   }
 
@@ -221,14 +339,18 @@ async function runTrackBackup() {
     settings: trackBackupIncludeSettingsEl ? trackBackupIncludeSettingsEl.checked : false
   };
 
-  if (!opts.audio && !opts.settings) {
+  // PLAYERの曲があるのに何も含めない設定は不可（YouTubeだけの時は、URLだけの出力も許す）
+  if (targetTracks.length > 0 && !opts.audio && !opts.settings) {
     if (trackBackupStatusEl) trackBackupStatusEl.textContent = "少なくとも1項目を選択してください。";
     return;
   }
 
-  // 音声データを含める場合のみZIP化するためJSZipが要る。含めない場合は
-  // markers.json単体で出力するためJSZip自体を使わない。
-  if (opts.audio && typeof JSZip === "undefined") {
+  // ZIP化が必要か：PLAYERの音声を含める／PLAYERとYouTubeを同時に出す
+  const hasPlayer = targetTracks.length > 0;
+  const hasYt = ytIds.length > 0;
+  const includeAudio = hasPlayer && opts.audio;
+  const needZip = includeAudio || (hasPlayer && hasYt);
+  if (needZip && typeof JSZip === "undefined") {
     if (trackBackupStatusEl) trackBackupStatusEl.textContent = "JSZipが読み込まれていません。";
     return;
   }
@@ -241,64 +363,71 @@ async function runTrackBackup() {
   if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
 
   try {
-    const tracksForExport = targetTracks.map(track => {
-      const trackData = { name: track.name };
-
-      if (opts.settings) {
-        const storedPins = loadStoredPinsFor(track.name);
-        trackData.title = track.title || null;
-        trackData.artist = track.artist || null;
-        trackData.markers = storedPins.map(p => ({
-          time: p.t,
-          enabled: p.enabled !== false,
-          color: p.color || null,
-          memo: p.memo || ""
-        }));
-        // v3.8.0〜：A点/B点（マーカーとは別の点。秒。無ければnull）
-        const storedAB = loadStoredABFor(track.name);
-        trackData.abA = storedAB.a;
-        trackData.abB = storedAB.b;
-        trackData.noteText = loadStoredNoteTextFor(track.name);
-      }
-
-      return trackData;
-    });
-
-    const exportData = {
-      version: "1.0",
-      exportDate: new Date().toISOString(),
-      tracks: tracksForExport
-    };
-    const markersJsonText = JSON.stringify(exportData, null, 2);
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 
-    let downloadBlob;
-    let downloadName;
+    // --- PLAYER側のmarkers.json（従来と同じ形式） ---
+    let markersJsonText = null;
+    if (hasPlayer) {
+      const tracksForExport = targetTracks.map(track => {
+        const trackData = { name: track.name };
 
-    if (opts.audio) {
-      // 音声データを含む場合は、従来通りmarkers.json + audio/フォルダの
-      // ZIP形式で出力する（音声実体があるためテキストのみでは完結しない）。
-      const zip = new JSZip();
-      const audioFolder = zip.folder("audio");
-      targetTracks.forEach(track => audioFolder.file(track.name, track.file));
-      zip.file("markers.json", markersJsonText);
-      downloadBlob = await zip.generateAsync({ type: "blob" });
-      downloadName = `qnplayer_library_backup_${dateStr}.zip`;
-    } else {
-      // 音声データを含めない場合はZIPにせず、markers.json単体をそのまま
-      // ダウンロードする（曲名/マーカー/メモだけを軽量に共有したい用途）。
-      downloadBlob = new Blob([markersJsonText], { type: "application/json" });
-      downloadName = `qnplayer_library_backup_${dateStr}.json`;
+        if (opts.settings) {
+          const storedPins = loadStoredPinsFor(track.name);
+          trackData.title = track.title || null;
+          trackData.artist = track.artist || null;
+          trackData.markers = storedPins.map(p => ({
+            time: p.t,
+            enabled: p.enabled !== false,
+            color: p.color || null,
+            memo: p.memo || ""
+          }));
+          // v3.8.0〜：A点/B点（マーカーとは別の点。秒。無ければnull）
+          const storedAB = loadStoredABFor(track.name);
+          trackData.abA = storedAB.a;
+          trackData.abB = storedAB.b;
+          trackData.noteText = loadStoredNoteTextFor(track.name);
+        }
+
+        return trackData;
+      });
+
+      markersJsonText = JSON.stringify({
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+        tracks: tracksForExport
+      }, null, 2);
     }
 
-    const downloadUrl = URL.createObjectURL(downloadBlob);
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-    a.download = downloadName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(downloadUrl);
+    // --- YouTube側のJSON（YouTubeアプリの形式。設定データ=タイトル・マーカー・AB点） ---
+    const ytJsonText = hasYt ? JSON.stringify(yt.buildExport(ytIds, opts.settings), null, 2) : null;
+
+    if (needZip) {
+      // PLAYER(markers.json＋audio/)とYouTube(youtube.json)を1つのZIPにまとめる。
+      // PLAYER側の構成は従来のZIPと同じなので、古いバージョンでも（youtube.jsonを
+      // 無視して）読み込める。
+      const zip = new JSZip();
+      if (hasPlayer) {
+        zip.file("markers.json", markersJsonText);
+        if (includeAudio) {
+          const audioFolder = zip.folder("audio");
+          targetTracks.forEach(track => audioFolder.file(track.name, track.file));
+        }
+      }
+      if (hasYt) zip.file("youtube.json", ytJsonText);
+      const blob = await zip.generateAsync({ type: "blob" });
+      downloadBlobAs(blob, hasYt
+        ? `qnplayer_backup_${dateStr}.zip`
+        : `qnplayer_library_backup_${dateStr}.zip`);
+    } else if (hasPlayer) {
+      // 音声データを含めない場合はZIPにせず、markers.json単体をそのまま
+      // ダウンロードする（曲名/マーカー/メモだけを軽量に共有したい用途）。
+      downloadBlobAs(new Blob([markersJsonText], { type: "application/json" }),
+        `qnplayer_library_backup_${dateStr}.json`);
+    } else {
+      // YouTubeだけ：従来どおりJSON単体
+      downloadBlobAs(new Blob([ytJsonText], { type: "application/json" }),
+        `qn-youtube-library_${dateStr}.json`);
+    }
 
     hapticSuccess();
     closeTrackBackupModal();
@@ -341,6 +470,10 @@ const trackImportBulkToggleLabelEl = document.getElementById("trackImportBulkTog
 let trackImportParsedData = null;
 let trackImportAudioFiles = null;
 let trackImportDuplicateChoices = new Map();
+// 読み込んだYouTube分（YouTubeアプリの形式を整形したリスト。無ければnull）。
+// 重複の選択は trackImportDuplicateChoices に "yt:<videoId>" のキーで入れる
+// （PLAYERの曲名キーとぶつからないようにするため）。
+let trackImportYtList = null;
 
 // Cancel/Backボタン(#trackImportCancelBtn)は、ファイル読み込み前は
 // モーダルを閉じる「Cancel」、読み込み後は選び直すための「Back」に
@@ -391,7 +524,7 @@ function openBulkImportModal() {
 function closeTrackImportModal() {
   if (!trackImportModalOverlay) return;
   trackImportModalOverlay.classList.remove("open");
-  if (typeof window.qnPcv2DismissAuxPanel === "function") window.qnPcv2DismissAuxPanel();
+  qnBackupDismissCurrent();
 }
 
 if (trackImportModalCloseBtn) trackImportModalCloseBtn.onclick = closeTrackImportModal;
@@ -404,6 +537,7 @@ if (trackImportModalOverlay) {
 function resetImportState() {
   trackImportParsedData = null;
   trackImportAudioFiles = null;
+  trackImportYtList = null;
   trackImportDuplicateChoices = new Map();
   if (trackImportDropZoneEl) trackImportDropZoneEl.style.display = "flex";
   if (trackImportLoadedInfoEl) trackImportLoadedInfoEl.style.display = "none";
@@ -465,39 +599,56 @@ async function handleTrackImportFileSelected(file) {
   if (trackImportStatusEl) trackImportStatusEl.textContent = "読み込み中...";
 
   try {
-    let parsed;
+    let parsed = null;       // PLAYER（markers.json）
+    let ytList = null;       // YouTube（youtube.json）
     const audioMap = new Map();
+    const yt = ytBackupApi();
 
     if (isZip) {
       const zip = await JSZip.loadAsync(file);
       const markersEntry = zip.file("markers.json");
-      if (!markersEntry) {
-        if (trackImportStatusEl) trackImportStatusEl.textContent = "markers.jsonが見つかりません。";
+      const ytEntry = zip.file("youtube.json");
+      if (!markersEntry && !ytEntry) {
+        if (trackImportStatusEl) trackImportStatusEl.textContent = "markers.jsonまたはyoutube.jsonが見つかりません。";
         return;
       }
-      const markersText = await markersEntry.async("string");
-      parsed = JSON.parse(markersText);
+      if (markersEntry) {
+        parsed = JSON.parse(await markersEntry.async("string"));
 
-      // audio/フォルダ配下のファイルを、ファイル名をキーにしたMapへ集める。
-      const audioFolderFiles = zip.folder("audio") ? zip.folder("audio").file(/.*/) : [];
-      for (const entry of audioFolderFiles) {
-        const blob = await entry.async("blob");
-        const baseName = entry.name.split("/").pop();
-        audioMap.set(baseName, blob);
+        // audio/フォルダ配下のファイルを、ファイル名をキーにしたMapへ集める。
+        const audioFolderFiles = zip.folder("audio") ? zip.folder("audio").file(/.*/) : [];
+        for (const entry of audioFolderFiles) {
+          const blob = await entry.async("blob");
+          const baseName = entry.name.split("/").pop();
+          audioMap.set(baseName, blob);
+        }
+      }
+      if (ytEntry && yt) {
+        ytList = yt.parseImport(JSON.parse(await ytEntry.async("string")));
       }
     } else {
-      // markers.json単体でのインポート。音声データは含まれないため、
-      // 既存曲への上書き（メタデータ/マーカー/メモのみ）専用になる
-      // （音声実体が無い新規曲は、この後の重複判定・runTrackImport側の
-      // 「音声なしのためスキップ」ロジックがそのまま処理する）。
-      const jsonText = await file.text();
-      parsed = JSON.parse(jsonText);
+      // JSON単体でのインポート。中身を見て、PLAYER（tracks配列）かYouTube
+      // （format: qn-youtube-library）かを自動判定する。
+      // PLAYERのJSON単体は音声データを含まないため、既存曲への上書き
+      // （メタデータ/マーカー/メモのみ）専用になる（音声実体が無い新規曲は、
+      // runTrackImport側の「音声なしのためスキップ」ロジックが処理する）。
+      const raw = JSON.parse(await file.text());
+      if (raw && Array.isArray(raw.tracks)) {
+        parsed = raw;
+      } else if (yt) {
+        ytList = yt.parseImport(raw);
+      }
     }
 
-    if (!parsed || !Array.isArray(parsed.tracks)) {
+    const hasPlayerData = !!(parsed && Array.isArray(parsed.tracks));
+    const hasYtData = !!(ytList && ytList.length);
+    if (!hasPlayerData && !hasYtData) {
       if (trackImportStatusEl) trackImportStatusEl.textContent = "ファイルの内容を読み取れませんでした。";
       return;
     }
+    // YouTubeだけの時も、以降の処理が共通で使えるよう空のtracksを持たせる
+    if (!hasPlayerData) parsed = { tracks: [] };
+    trackImportYtList = hasYtData ? ytList : null;
 
     trackImportParsedData = parsed;
     trackImportAudioFiles = audioMap;
@@ -512,17 +663,33 @@ async function handleTrackImportFileSelected(file) {
     if (trackImportDropZoneEl) trackImportDropZoneEl.style.display = "none";
     if (trackImportLoadedInfoEl) trackImportLoadedInfoEl.style.display = "flex";
     if (trackImportLoadedFileNameEl) trackImportLoadedFileNameEl.textContent = file.name;
-    if (trackImportLoadedFileCountEl) trackImportLoadedFileCountEl.textContent = `${parsed.tracks.length}曲`;
+    if (trackImportLoadedFileCountEl) {
+      const parts = [];
+      if (parsed.tracks.length > 0 || !hasYtData) parts.push(`PLAYER ${parsed.tracks.length}曲`);
+      if (hasYtData) parts.push(`YouTube ${ytList.length}件`);
+      trackImportLoadedFileCountEl.textContent = parts.join(" / ");
+    }
     setTrackImportRunBtnMode("import");
     updateTrackImportCancelBtnMode();
 
     // 既存ライブラリとの重複を検出し、曲ごとの上書き/スキップ選択UIを出す。
     const existingNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
-    const duplicateNames = parsed.tracks.map(t => t.name).filter(name => existingNames.has(name));
+    const duplicateEntries = parsed.tracks
+      .map(t => t.name)
+      .filter(name => existingNames.has(name))
+      .map(name => ({ key: name, label: name }));
+    // YouTube側の重複（同じ動画IDが既にある）
+    if (trackImportYtList && yt) {
+      trackImportYtList.forEach(x => {
+        if (yt.exists(x.videoId)) {
+          duplicateEntries.push({ key: "yt:" + x.videoId, label: "[YouTube] " + (x.title || yt.titleOf(x.videoId) || x.videoId) });
+        }
+      });
+    }
 
-    if (duplicateNames.length > 0) {
-      duplicateNames.forEach(name => trackImportDuplicateChoices.set(name, "overwrite"));
-      renderTrackImportDuplicateRows(duplicateNames);
+    if (duplicateEntries.length > 0) {
+      duplicateEntries.forEach(e => trackImportDuplicateChoices.set(e.key, "overwrite"));
+      renderTrackImportDuplicateRows(duplicateEntries);
       if (trackImportDuplicateListEl) trackImportDuplicateListEl.style.display = "flex";
     }
   } catch (err) {
@@ -531,21 +698,22 @@ async function handleTrackImportFileSelected(file) {
   }
 }
 
-function renderTrackImportDuplicateRows(names) {
+function renderTrackImportDuplicateRows(entries) {
   if (!trackImportDuplicateRowsEl) return;
   trackImportDuplicateRowsEl.innerHTML = "";
 
-  names.forEach(name => {
+  // entries: [{ key: 選択のキー, label: 表示名 }]
+  entries.forEach(entry => {
     const row = document.createElement("div");
     row.className = "track-import-duplicate-row";
 
     const nameSpan = document.createElement("span");
     nameSpan.className = "track-import-duplicate-name";
-    nameSpan.textContent = name;
-    nameSpan.title = name;
+    nameSpan.textContent = entry.label;
+    nameSpan.title = entry.label;
     row.appendChild(nameSpan);
 
-    row.appendChild(createTrackImportChoiceToggle(name));
+    row.appendChild(createTrackImportChoiceToggle(entry.key));
 
     trackImportDuplicateRowsEl.appendChild(row);
   });
@@ -719,8 +887,28 @@ async function runTrackImport() {
 
     if (typeof renderPlaylist === "function") renderPlaylist();
 
-    let summary = `新規追加: ${addedCount}件\n上書き: ${overwrittenCount}件\nスキップ: ${skippedCount}件`;
-    if (noAudioSkippedCount > 0) summary += `\n音声なしのためスキップ: ${noAudioSkippedCount}件`;
+    // --- YouTube分（YouTubeアプリの保存先へ反映） ---
+    let ytResult = null;
+    const ytApi = ytBackupApi();
+    if (trackImportYtList && ytApi) {
+      const ytChoices = {};
+      trackImportYtList.forEach(x => {
+        const c = trackImportDuplicateChoices.get("yt:" + x.videoId);
+        if (c) ytChoices[x.videoId] = c;
+      });
+      ytResult = ytApi.applyImport(trackImportYtList, ytChoices);
+    }
+
+    const hasPlayerPart = trackImportParsedData.tracks.length > 0 || !ytResult;
+    let summary = "";
+    if (hasPlayerPart) {
+      summary = `新規追加: ${addedCount}件\n上書き: ${overwrittenCount}件\nスキップ: ${skippedCount}件`;
+      if (noAudioSkippedCount > 0) summary += `\n音声なしのためスキップ: ${noAudioSkippedCount}件`;
+    }
+    if (ytResult) {
+      const ytLine = `新規追加: ${ytResult.added}件\n上書き: ${ytResult.over}件\nスキップ: ${ytResult.skipped}件`;
+      summary = hasPlayerPart ? `【PLAYER】\n${summary}\n【YouTube】\n${ytLine}` : ytLine;
+    }
     if (trackImportSummaryEl) {
       trackImportSummaryEl.textContent = summary;
       trackImportSummaryEl.style.display = "block";
