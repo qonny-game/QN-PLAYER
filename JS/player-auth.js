@@ -14,7 +14,8 @@ import {
   getDoc,
   setDoc,
   serverTimestamp,
-  deleteField
+  deleteField,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // ---------- firebaseConfig ----------
@@ -77,11 +78,37 @@ async function saveUnlockUntilToFirestore(uid, unlockUntil, planType) {
   }
 }
 
+// ---------- 同期(users/{uid}/sync/{docId}) ----------
+// 今は自分のUIDだけ。Firestoreルール側でも同じUIDだけに絞っている(md/SYNC.md)。一般公開時はここ+ルールを開放
+const SYNC_UIDS = ["ns3F3fcutTeI05tMHwF2zu5vtR63"];
+const SYNC_DOC_MAX_CHARS = 900000; // Firestore 1ドキュメント上限(1MiB)の手前で止める
+function isSyncUser() {
+  return !!auth.currentUser && SYNC_UIDS.indexOf(auth.currentUser.uid) !== -1;
+}
+// 読む→mergeFn(既存データorNull)→書く、を1トランザクションで行う(別端末と同時に書いても上書き事故が起きない)
+// mergeFn は純粋関数にすること(競合時に再実行される)。戻り値 {write: オブジェクト|省略, result: 任意}。resultを返す
+async function syncTransact(docId, mergeFn) {
+  const user = auth.currentUser;
+  if (!user || SYNC_UIDS.indexOf(user.uid) === -1) throw new Error("sync not allowed");
+  const ref = doc(db, "users", user.uid, "sync", docId);
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    const out = mergeFn(snap.exists() ? snap.data() : null);
+    if (out && out.write) {
+      if (JSON.stringify(out.write).length > SYNC_DOC_MAX_CHARS) throw new Error("sync doc too large");
+      tx.set(ref, Object.assign({}, out.write, { updatedAt: serverTimestamp() }));
+    }
+    return out ? out.result : null;
+  });
+}
+
 window.QN_AUTH = {
   auth,
   currentUser: null,
   fetchUnlockUntilFromFirestore,
-  saveUnlockUntilToFirestore
+  saveUnlockUntilToFirestore,
+  isSyncUser,
+  syncTransact
 }; // ---------- DOM要素 ----------
 const btnLoginGoogle = document.getElementById("btnLoginGoogle");
 const btnLogout = document.getElementById("btnLogout");

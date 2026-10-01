@@ -70,6 +70,9 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 ### SP幅
 パネルを開いても**プレイヤーは画面上部に残す**（`max(200px,30dvh)`、最低200px、覆わない）。パネルはその下。パネル中は自前シークバー等とフッターを隠す。Colorパネルもプレイヤーの直下から始まる。プレイヤーの要素には`data-qn-keep-visible`が付いている。PC幅は、サイドアイコンの再押下でパネルを格納できる（`qn_yt_panel_collapsed`。プレイヤーの幅は`--qn-yt-player-w`で固定）。
 
+### 同期（v3.26.0〜）
+ログイン中の自分のUIDだけ、LibraryをFirestoreで端末間同期（動画ID・URL・customTitle・マーカー・A/B点・skip・並び順。YouTube由来タイトルは含めない）。未ログインは従来どおりローカル完結。仕組み・ルール・合体規則は`md/SYNC.md`。Libraryに「☁ 同期済み HH:MM」を表示。
+
 ### フッター・その他
 - `.qn-yt-legal`（Libraryパネル内）：「権利者に無断でアップロードされた動画は使用しないでください」の注意書き(§2-6)、YouTube API Services利用の明示、YouTube利用規約・Googleプライバシーポリシーへのリンク、「保存データは端末内のみ・YouTubeと通信する」旨。
 - 画面スリープ防止：`QNWake`（再生中PLAYINGだけ保持）。
@@ -142,13 +145,14 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 | キー | 内容 |
 |---|---|
 | `qn_yt_items` | Libraryの配列（下記） |
+| `qn_yt_sync_meta` | 同期の補助情報(削除tombstone・並びorderAt・最終同期) |
 | `qn_yt_title_cache` | YouTube由来タイトルの短期キャッシュ(28日で削除。Backup/同期対象外) |
 | `qn_yt_rate` / `qn_yt_autonext` / `qn_yt_preroll` / `qn_yt_panel_collapsed` | 再生スピード / Auto Next / プリロール秒(0〜5) / PC幅のパネル格納 |
 | `qn_marker_preset_colors_v1` / `qn_marker_custom_presets_v1` | 本体と共通のメモプリセット色／カスタムプリセット |
 
 ```json
 [{ "id": "item_xxx", "type": "youtube", "videoId": "xxxxxxxxxxx", "url": "https://youtu.be/xxxxxxxxxxx",
-   "customTitle": "利用者が手入力したタイトル(任意。無ければYouTube由来を表示)", "skip": true,
+   "customTitle": "利用者が手入力したタイトル(任意。無ければYouTube由来を表示)", "skip": true, "updatedAt": 1790000000000,
    "markers": [{ "id": "m_xxx", "time": 83.5, "label": "Chorus", "color": "red", "enabled": false }],
    "loopA": 60.0, "loopB": null, "createdAt": 1790000000000 }]
 ```

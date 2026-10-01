@@ -55,6 +55,8 @@
     } catch (e) { return []; }
   }
   function saveItems() {
+    trackLocalChanges();
+    scheduleSync();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
     catch (e) { showMessage("保存に失敗しました(容量またはブラウザ設定を確認)"); }
   }
@@ -274,6 +276,7 @@
                 '<button type="button" data-yt="saveBtn" class="qn-yt-btn primary">Save</button>' +
               '</div>' +
               '<div class="qn-yt-message" data-yt="message" role="status"></div>' +
+              '<div class="qn-yt-sync" data-yt="syncStatus"></div>' +
             '</div>' +
             '<div class="qn-yt-libbox" data-yt="itemList"></div>' +
             '<p class="qn-yt-empty" data-yt="emptyList">まだ保存されていません</p>' +
@@ -309,7 +312,7 @@
             '<p>このアプリはYouTube API Servicesを利用しています。</p>' +
             '<p><a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube利用規約</a>' +
             ' ・ <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Googleプライバシーポリシー</a></p>' +
-            '<p>Libraryやマーカーなどの保存データは、この端末のブラウザにだけ保存され、当サイトのサーバーへは送信されません。' +
+            '<p>Libraryやマーカーなどの保存データは、この端末のブラウザにだけ保存されます。ログインして同期を有効にした場合のみ、動画ID・マーカー・A/B点・並び順・手入力タイトルがGoogle Firebaseにも保存されます(YouTube由来のタイトル・サムネイルは含みません)。' +
             '動画の再生・サムネイル・タイトルの表示のため、YouTubeと通信します。</p>' +
           '</footer>' +
         '</div>' +
@@ -438,6 +441,8 @@
       }).observe(refs.seekTracks);
     }
     bindEvents();
+    refs.syncStatus.addEventListener("click", function () { if (syncState === "error") syncNow(); });
+    setSyncStatus(syncState);
     updateDisplay(0);
     renderList();
     renderMarkers();
@@ -2106,6 +2111,7 @@
   function onShow() {
     bindSpace(true);
     ensureTitles();
+    syncIfStale();
     var want = panelState || (isSp() ? "none" : "library");
     setPanel(want);
     applyCollapse();
@@ -2124,6 +2130,257 @@
       if (player && playerReady && typeof player.pauseVideo === "function") player.pauseVideo();
     } catch (e) {}
   }
+
+  // ---------- 同期(ログイン中の自分だけ。Firestore users/{uid}/sync/youtube の1ドキュメント。詳細md/SYNC.md) ----------
+  // ローカルが基本。同期するのはvideoId/URL/customTitle/マーカー/A・B点/skip/並び順だけ(YouTube由来タイトル・サムネは含めない)。
+  // 合体ルール: 動画ごとにupdatedAtが新しい方(同時刻はサーバー側)。削除はtombstone(deleted)で伝える。並びはorderAtが新しい方。
+  var SYNC_DOC = "youtube", SYNC_META_KEY = "qn_yt_sync_meta", TOMB_TTL_MS = 180 * 24 * 60 * 60 * 1000;
+  var syncMeta = { tomb: {}, orderAt: 0, lastSync: 0 };
+  var knownSigs = {}, knownOrder = "", localVersion = 0;
+  var syncUser = false, syncing = false, syncAgain = false, syncTimer = 0, lastSyncTry = 0, syncState = "";
+
+  function isFiniteNum(v) { return typeof v === "number" && isFinite(v); }
+  // 同期用の整形(キー順固定=比較・署名に使う)。ローカルのitemもリモートの値もこれを通す
+  function mkPayload(src) {
+    var p = { videoId: src.videoId, url: src.url };
+    if (src.customTitle) p.customTitle = src.customTitle;
+    var ms = Array.isArray(src.markers) ? src.markers : [];
+    p.markers = ms.map(function (m) {
+      var o = { id: m.id, time: m.time, label: m.label || "" };
+      if (m.color) o.color = m.color;
+      if (m.enabled === false) o.enabled = false;
+      return o;
+    });
+    p.loopA = abTimeOf(src.loopA, ms);
+    p.loopB = abTimeOf(src.loopB, ms);
+    if (src.skip) p.skip = true;
+    p.createdAt = isFiniteNum(src.createdAt) ? src.createdAt : 0;
+    p.updatedAt = isFiniteNum(src.updatedAt) ? src.updatedAt : 0;
+    return p;
+  }
+  function sigOf(it) { var p = mkPayload(it); p.updatedAt = 0; return JSON.stringify(p); }
+  function orderSig() { return items.map(function (it) { return it.videoId; }).join(","); }
+
+  function loadSyncMeta() {
+    try {
+      var m = JSON.parse(localStorage.getItem(SYNC_META_KEY) || "{}");
+      if (m && typeof m === "object") {
+        if (m.tomb && typeof m.tomb === "object") {
+          Object.keys(m.tomb).forEach(function (k) { if (isFiniteNum(m.tomb[k])) syncMeta.tomb[k] = m.tomb[k]; });
+        }
+        if (isFiniteNum(m.orderAt)) syncMeta.orderAt = m.orderAt;
+        if (isFiniteNum(m.lastSync)) syncMeta.lastSync = m.lastSync;
+      }
+    } catch (e) {}
+  }
+  function saveSyncMeta() {
+    try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(syncMeta)); } catch (e) {}
+  }
+  function persistItemsRaw() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) {}
+  }
+  function initSyncState() {
+    loadSyncMeta();
+    var fixed = false;
+    items.forEach(function (it) {
+      if (!isFiniteNum(it.updatedAt)) { it.updatedAt = isFiniteNum(it.createdAt) ? it.createdAt : Date.now(); fixed = true; }
+      knownSigs[it.videoId] = sigOf(it);
+    });
+    knownOrder = orderSig();
+    if (fixed) persistItemsRaw();
+  }
+  // saveItems()から呼ぶ: 前回との差分を見て、変わった動画のupdatedAt・消えた動画のtombstone・並び替えのorderAtを更新(各所の保存処理を個別に直さなくて済む)
+  function trackLocalChanges() {
+    var now = Date.now(), seen = {}, dirty = false;
+    items.forEach(function (it) {
+      seen[it.videoId] = true;
+      var sig = sigOf(it);
+      if (knownSigs[it.videoId] !== sig) {
+        it.updatedAt = Math.max(now, (it.updatedAt || 0) + 1);
+        knownSigs[it.videoId] = sig;
+        if (syncMeta.tomb[it.videoId] !== undefined) delete syncMeta.tomb[it.videoId];
+        dirty = true;
+      }
+    });
+    Object.keys(knownSigs).forEach(function (vid) {
+      if (!seen[vid]) { delete knownSigs[vid]; syncMeta.tomb[vid] = now; dirty = true; }
+    });
+    var os = orderSig();
+    if (os !== knownOrder) { knownOrder = os; syncMeta.orderAt = now; dirty = true; }
+    if (dirty) saveSyncMeta();
+    localVersion++;
+  }
+
+  function buildLocalState() {
+    var st = { items: {}, deleted: {}, order: [], orderAt: syncMeta.orderAt };
+    items.forEach(function (it) { st.items[it.videoId] = mkPayload(it); st.order.push(it.videoId); });
+    Object.keys(syncMeta.tomb).forEach(function (k) { st.deleted[k] = syncMeta.tomb[k]; });
+    return st;
+  }
+  // リモートのドキュメントを検証・整形(壊れた値は捨てる)
+  function parseRemote(data) {
+    var st = { items: {}, deleted: {}, order: [], orderAt: 0 };
+    if (!data || typeof data !== "object") return st;
+    var ri = data.items && typeof data.items === "object" ? data.items : {};
+    Object.keys(ri).forEach(function (vid) {
+      if (!/^[A-Za-z0-9_-]{11}$/.test(vid) || !ri[vid] || typeof ri[vid] !== "object") return;
+      var r = ri[vid];
+      var norm = normalizeImport([{ videoId: vid, url: r.url, customTitle: r.customTitle, markers: Array.isArray(r.markers) ? r.markers : [], loopA: r.loopA, loopB: r.loopB }]);
+      if (!norm || !norm[0]) return;
+      var o = norm[0];
+      o.skip = r.skip === true;
+      o.createdAt = r.createdAt;
+      o.updatedAt = r.updatedAt;
+      st.items[vid] = mkPayload(o);
+    });
+    var rd = data.deleted && typeof data.deleted === "object" ? data.deleted : {};
+    Object.keys(rd).forEach(function (vid) { if (isFiniteNum(rd[vid])) st.deleted[vid] = rd[vid]; });
+    if (Array.isArray(data.order)) data.order.forEach(function (vid) { if (typeof vid === "string" && st.items[vid] && st.order.indexOf(vid) < 0) st.order.push(vid); });
+    if (isFiniteNum(data.orderAt)) st.orderAt = data.orderAt;
+    return st;
+  }
+  function canonicalState(st) {
+    function sortedObj(o) { var r = {}; Object.keys(o).sort().forEach(function (k) { r[k] = o[k]; }); return r; }
+    return JSON.stringify({ items: sortedObj(st.items), deleted: sortedObj(st.deleted), order: st.order, orderAt: st.orderAt });
+  }
+  // 2つの状態を合体(純粋関数)。同時刻はリモート優先(両端末が同じ結果に収束してピンポン書き込みしないため)
+  function mergeStates(L, R) {
+    var now = Date.now(), deleted = {}, out = { items: {}, deleted: deleted, order: [], orderAt: Math.max(L.orderAt, R.orderAt) };
+    [L.deleted, R.deleted].forEach(function (d) {
+      Object.keys(d).forEach(function (vid) { if (deleted[vid] === undefined || d[vid] > deleted[vid]) deleted[vid] = d[vid]; });
+    });
+    var ids = {};
+    Object.keys(L.items).forEach(function (v) { ids[v] = true; });
+    Object.keys(R.items).forEach(function (v) { ids[v] = true; });
+    Object.keys(ids).forEach(function (vid) {
+      var l = L.items[vid], r = R.items[vid];
+      var best = l && r ? (l.updatedAt > r.updatedAt ? l : r) : (l || r);
+      if (deleted[vid] !== undefined && deleted[vid] >= best.updatedAt) return; // 削除の方が新しい
+      out.items[vid] = best;
+      delete deleted[vid];
+    });
+    Object.keys(deleted).forEach(function (vid) { if (now - deleted[vid] > TOMB_TTL_MS) delete deleted[vid]; });
+    var useRemote = R.order.length && R.orderAt >= L.orderAt;
+    var base = useRemote ? R.order : L.order, other = useRemote ? L.order : R.order, seen = {};
+    function add(vid) { if (out.items[vid] && !seen[vid]) { seen[vid] = true; out.order.push(vid); } }
+    base.forEach(add);
+    other.forEach(add);
+    Object.keys(out.items).filter(function (v) { return !seen[v]; })
+      .sort(function (a, b) { return (out.items[a].createdAt - out.items[b].createdAt) || (a < b ? -1 : 1); })
+      .forEach(add);
+    return out;
+  }
+  function serializeState(st) {
+    var items2 = {};
+    Object.keys(st.items).forEach(function (vid) { var p = JSON.parse(JSON.stringify(st.items[vid])); delete p.videoId; items2[vid] = p; });
+    return { v: 1, items: items2, deleted: st.deleted, order: st.order, orderAt: st.orderAt };
+  }
+
+  function syncBusy() {
+    if (!root) return false;
+    if (seeking) return true;
+    return !!((refs.itemList && refs.itemList.querySelector("input")) || (refs.markerList && refs.markerList.querySelector("input")));
+  }
+  // 合体結果をローカルに反映。表示中の動画は(再生を止めずに)マーカー/A・Bだけ差し替える
+  function applyMergedLocal(m) {
+    var byVid = {};
+    items.forEach(function (it) { byVid[it.videoId] = it; });
+    var next = [];
+    m.order.forEach(function (vid) {
+      var P = JSON.parse(JSON.stringify(m.items[vid])), it = byVid[vid];
+      if (it) {
+        if (sigOf(it) !== sigOf(P)) {
+          it.url = P.url;
+          if (P.customTitle) it.customTitle = P.customTitle; else delete it.customTitle;
+          it.markers = P.markers; it.loopA = P.loopA; it.loopB = P.loopB;
+          if (P.skip) it.skip = true; else delete it.skip;
+          it.createdAt = P.createdAt;
+        }
+        it.updatedAt = P.updatedAt;
+      } else {
+        it = { id: uid("item"), type: "youtube", videoId: vid, url: P.url, markers: P.markers, loopA: P.loopA, loopB: P.loopB, createdAt: P.createdAt, updatedAt: P.updatedAt };
+        if (P.customTitle) it.customTitle = P.customTitle;
+        if (P.skip) it.skip = true;
+      }
+      next.push(it);
+    });
+    items = next;
+    knownSigs = {};
+    items.forEach(function (it) { knownSigs[it.videoId] = sigOf(it); });
+    knownOrder = orderSig();
+    syncMeta.tomb = m.deleted; syncMeta.orderAt = m.orderAt; syncMeta.lastSync = Date.now();
+    saveSyncMeta();
+    persistItemsRaw();
+    if (current) {
+      var cur = current.itemId ? findItem(current.itemId) : null;
+      if (!cur) cur = findItemByVideoId(current.videoId);
+      if (cur) {
+        current.itemId = cur.id;
+        current.markers = cur.markers;
+        current.loopA = abTimeOf(cur.loopA, cur.markers);
+        current.loopB = abTimeOf(cur.loopB, cur.markers);
+      } else current.itemId = null;
+    }
+    if (root) { renderList(); renderMarkers(); updateDisplay(currentPos()); }
+    ensureTitles();
+  }
+
+  function setSyncStatus(state) {
+    syncState = state;
+    if (!refs.syncStatus) return;
+    var el = refs.syncStatus, t = "";
+    el.classList.remove("err");
+    if (state === "syncing") t = "☁ 同期中…";
+    else if (state === "ok") {
+      var d = new Date(syncMeta.lastSync || Date.now());
+      t = "☁ 同期済み " + (d.getHours() < 10 ? "0" : "") + d.getHours() + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+    } else if (state === "error") { t = "☁ 同期できませんでした(タップで再試行)"; el.classList.add("err"); }
+    el.textContent = t;
+  }
+
+  function syncNow() {
+    var A = window.QN_AUTH;
+    if (!syncUser || !A || typeof A.syncTransact !== "function") return;
+    if (syncing) { syncAgain = true; return; }
+    syncing = true; lastSyncTry = Date.now();
+    setSyncStatus("syncing");
+    var startVer = localVersion, local = buildLocalState(), localCanon = canonicalState(local);
+    A.syncTransact(SYNC_DOC, function (raw) {
+      var remote = parseRemote(raw), merged = mergeStates(local, remote);
+      var rc = canonicalState(remote), mc = canonicalState(merged);
+      return { write: (rc !== mc || !raw) ? serializeState(merged) : null, result: { merged: merged, canon: mc } };
+    }).then(function (res) {
+      if (localVersion !== startVer) { syncAgain = true; return; }       // 通信中にローカルが変わった→もう一度
+      if (syncBusy()) { setTimeout(syncNow, 3000); return; }             // 入力中/ドラッグ中は画面を壊さないよう後で反映
+      if (res.canon !== localCanon) applyMergedLocal(res.merged);
+      else { syncMeta.lastSync = Date.now(); saveSyncMeta(); }
+      setSyncStatus("ok");
+    }).catch(function (err) {
+      console.error("[QN_YT_SYNC]", err);
+      setSyncStatus("error");
+    }).then(function () {
+      syncing = false;
+      if (syncAgain) { syncAgain = false; setTimeout(syncNow, 500); }
+    });
+  }
+  function scheduleSync() {
+    if (!syncUser) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncNow, 1500);
+  }
+  function syncIfStale() {
+    if (syncUser && Date.now() - lastSyncTry > 20000) syncNow();
+  }
+  function onAuthChanged(user) {
+    syncUser = !!(user && window.QN_AUTH && typeof window.QN_AUTH.isSyncUser === "function" && window.QN_AUTH.isSyncUser());
+    if (syncUser) syncNow(); else setSyncStatus("");
+  }
+  window.addEventListener("qn-auth-changed", function (e) { onAuthChanged(e && e.detail && e.detail.user); });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") syncIfStale(); });
+  window.addEventListener("focus", syncIfStale);
+  window.addEventListener("online", function () { if (syncUser) syncNow(); });
+  initSyncState();
+  if (window.QN_AUTH && window.QN_AUTH.currentUser) onAuthChanged(window.QN_AUTH.currentUser);
 
   // 起動時: 期限切れ(28日)のYouTube由来タイトルのキャッシュを必ず削除
   purgeTitleCache();

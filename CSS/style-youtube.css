@@ -184,6 +184,15 @@
   color: #34d399;
 }
 
+.qn-yt-sync {
+  min-height: 18px;
+  font-size: var(--fs-small);
+  color: var(--icon-muted);
+  cursor: default;
+}
+.qn-yt-sync:empty { display: none; }
+.qn-yt-sync.err { color: var(--danger, #ef4444); cursor: pointer; }
+
 .qn-yt-empty {
   margin: 4px 0 12px;
   font-size: var(--fs-small);

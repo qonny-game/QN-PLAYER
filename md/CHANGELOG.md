@@ -14,3 +14,4 @@
 - 3.23.2 テーマ色背景のボタン(サイドバーのホバー/アプリ名バッジ/フライアウト等)の文字・アイコン色を黒→白に変更(--sidebar-on-accent)。
 - 3.24.0 ライブラリをフォルダ分け可能に(1階層・1曲=1フォルダ。データはネスト拡張可能な形)。見出しの開閉、NEW FOLDERで作成、EDITで改名/▲▼並び替え/✕削除(中の曲は未分類へ)、曲を選んでMOVEで移動。Auto Nextの範囲を「フォルダ内/全体」で切替(Libraryヘッダーの NEXT ボタン。前/次ボタン・メディアキーも同じ範囲)。Backup/Importにフォルダ名を含む(旧バックアップはそのまま読める)。無料版はフォルダ作成・移動を不可。
 - 3.25.0 YouTubeタイトル自動取得。Saveのタイトル欄は空欄OK(空欄=oEmbedで自動取得。手入力済みでも空欄Saveで自動に戻る)。手入力は`customTitle`に分離(旧`title`は起動時に自動移行、"(無題)"は破棄)。YouTube由来タイトルは端末ローカルに28日キャッシュ(`qn_yt_title_cache`)、起動時/アプリ表示時に期限切れを削除。Backup/Importは`customTitle`のみ(旧`title`も読める)。
+- 3.26.0 YouTube Libraryの同期(自分のUIDのみ)。Firestore `users/{uid}/sync/youtube`、動画ごとのupdatedAt・削除tombstone・並びorderAtで合体。`player-auth.js`に`syncTransact`/`isSyncUser`を追加。Libraryに同期状態表示。詳細md/SYNC.md。
