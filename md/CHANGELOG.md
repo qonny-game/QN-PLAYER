@@ -586,3 +586,17 @@
 - `style-apps.css`の`@media (prefers-reduced-motion: reduce)`でフライアウトとスクリムのtransitionを無効にしていたため、OSの「アニメーション効果」がOFF（Windows）／「視差効果を減らす」ON（Mac）のPCでは、アニメーションなしでパッと出ていた。この指定を削除し、OS設定に関わらず常にスライド表示するようにした。
 - 確認：ヘッドレスChromeで、通常設定では約260msで左から滑り出し、旧CSSの「視差効果を減らす」設定では最初のフレームで表示完了（アニメーションなし）になることを再現済み。
 - 変更ファイル：`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.12.0 — YouTubeパネル格納中の動画センタリング／YouTubeスクロールバー／PL下部Speed/Keyステッパーを詰める
+- YouTube：パネルを畳んだ時、動画（プレイヤー領域）がステージの中央に来るように修正（左寄せだった）。
+- YouTube：パネル・ステージのスクロールバーを、細いダーク配色（テーマに合わせた半透明の丸いつまみ）に変更。ブラウザ標準の見た目をやめた。
+- PLAYER下部バー：Speed/Keyの「1.00x Speed」を2行（値／名前）にして幅を縮め、−＋がアイコンに近づくよう余白も調整。
+- 変更ファイル：`JS/player-ui-pc-v2.js`、`CSS/style-layout-pc-v2.css`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.12.1 — PLAYER下部バー：すべてのアイコンに文字ラベル（YouTubeと同じデザイン要素に統一）
+- 下部バー右側の Volume / Speed / Key / EQ に文字ラベルを表示（これまでCSSで非表示だった）。アイコンの上下余白・最小高さも他のボタンとそろえた。
+- 変更ファイル：`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.12.2 — YouTubeのスクロールバーをPLAYERと同じ値に
+- PLAYERパネル(`#pcV2PanelBody`)のスクロールバー（幅8px・透明トラック・`rgba(255,255,255,.14)`の丸いつまみ・ホバー`.24`・Firefox用`scrollbar-color`）と同じ値をYouTubeのパネル/ステージに適用（v3.12.0の仮デザインを置き換え）。
+- 変更ファイル：`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。

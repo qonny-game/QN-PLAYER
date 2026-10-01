@@ -1667,3 +1667,21 @@ body.qn-app-open #pcV2TimeRow {
   z-index: 1;
 }
 .qn-yt-loop-pre[hidden] { display: none; }
+
+/* v3.12.0：YouTubeパネル格納中は、動画（プレイヤー領域）をステージの中央に置く */
+.qn-yt.qn-yt-collapsed .qn-yt-player-wrap { margin-left: auto; margin-right: auto; }
+
+/* v3.12.2：YouTubeのスクロールバーを、PLAYERのパネル(#pcV2PanelBody、style-pcv2-panels.css)と同じ値にそろえる */
+.qn-yt-panel-scroll, .qn-yt-stage, .qn-yt .qn-yt-bar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.qn-yt-panel-scroll::-webkit-scrollbar, .qn-yt-stage::-webkit-scrollbar { width: 8px; }
+.qn-yt-panel-scroll::-webkit-scrollbar-track, .qn-yt-stage::-webkit-scrollbar-track { background: transparent; }
+.qn-yt-panel-scroll::-webkit-scrollbar-thumb, .qn-yt-stage::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+}
+.qn-yt-panel-scroll::-webkit-scrollbar-thumb:hover, .qn-yt-stage::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+}

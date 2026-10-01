@@ -634,8 +634,12 @@ body.pc-v2-active > .app-container {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  display: none;
+  display: block;      /* v3.12.1〜：全アイコンに文字ラベルを表示（YouTubeアプリの下段バーと同じ） */
+  white-space: nowrap;
 }
+/* アイコンの上下余白もYouTube/他のボタン(.loopbtn)と揃え、ラベルの高さをそろえる */
+#pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn) svg { margin: 6px auto; box-sizing: content-box; }
+#pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn) { min-height: 57px; }
 
 
 /* Volumeポップアップ(縦スライダー) */
@@ -1502,12 +1506,20 @@ html {
 /* v3.10.0：下段バーのSpeed/Key ステッパー（−［アイコン＋値］＋） */
 #pcV2BottomBar .pcv2-stepper { display: inline-flex; align-items: center; gap: 0; }
 #pcV2BottomBar .pcv2-step-btn { min-width: 26px; padding-left: 4px; padding-right: 4px; font-size: 18px; line-height: 1; }
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span { min-width: 3.2em; text-align: center; font-variant-numeric: tabular-nums; }
 
 /* v3.10.1：Speed/Keyステッパーの値表示（.pcv2-ctrl-btn spanは通常非表示なのでここだけ表示）と、Set A/Set B/Clear ABのラベル */
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span { display: block; white-space: nowrap; }
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span b { font-weight: 700; }
 #pcV2BottomBar .pcv2-step-btn { font-size: 18px; min-height: 0; align-self: center; }
 #pcV2BottomBar #setABtn .top-controls-btn-label,
 #pcV2BottomBar #setBBtn .top-controls-btn-label,
 #pcV2BottomBar #clearABBtn .top-controls-btn-label { display: block; white-space: nowrap; }
+
+/* v3.12.0：Speed/Keyステッパーを詰める。値(1.00x)と名前(SPEED)を2行にして、アイコンの下に積む（−＋がアイコンに近づく） */
+#pcV2BottomBar .pcv2-stepper { gap: 0; margin: 0 2px; }
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { padding-left: 0; padding-right: 0; }
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 36px; line-height: 1.15; text-align: center; white-space: nowrap;
+}
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span b { font-weight: 700; font-variant-numeric: tabular-nums; }
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span i { font-style: normal; text-transform: uppercase; font-size: 8px; letter-spacing: 0.4px; opacity: 0.85; }
+#pcV2BottomBar .pcv2-step-btn { min-width: 20px; padding: 8px 2px; }
