@@ -637,3 +637,8 @@
 - `switchPanel()` の先頭で「格納中なら展開」（Speed/Key/EQの右クリック、Backup/Import完了後のLibrary復帰など外部呼び出しの取りこぼし防止）。初期表示のみ `keepCollapsed` で保存状態を維持。
 - SP幅は従来どおり（格納クラスは付けない）。PC⇄SPをまたぐ時は `applyCollapse()` で付け外し。Seekbarアイコンは元々PC幅で非表示のため、§8-6は対応不要。
 - 変更ファイル：`JS/player-ui-pc-v2.js`、`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`、`md/PC_V2_FILE_INDEX.md`、`md/DOM_ID_REFERENCE.md`、`md/PLAYER_LAYOUT_V3_SPEC.md`。
+
+## 3.15.0 — 時刻表示を曲名の行へ移設／狭い時はVolume・Speed・Key・EQを非表示
+- PC幅：時刻表示（`.time-controls-row`）を下段バーから、波形エリア先頭行（新設 `#pcV2WaveHead`、左＝曲名 `#appTitle`／右＝時刻）の右端へ移設。SP幅は従来どおり `#pcV2TimeRow`。`syncTimeRowPosition()` のPC分岐を変更し、`#pcV2WaveHead` 生成直後にも1回呼ぶ。
+- PC幅でウインドウが狭い時は、下段バーの右グループ（`#pcV2BottomBarGroupRight`＝Volume/Speed/Key/EQ）とspacerを非表示（操作はControlパネルで可能）。境目：パネル展開中は画面幅1340px以下、格納中は960px以下（バー全体の必要幅は約883px）。広い時は従来どおり表示。
+- 変更ファイル：`JS/player-ui-pc-v2.js`、`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`、`md/DOM_ID_REFERENCE.md`。

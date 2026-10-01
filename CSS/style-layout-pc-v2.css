@@ -262,6 +262,29 @@ body.pc-v2-active > .app-container {
 }
 
 
+/* 【v3.15.0】波形エリア先頭行：左＝曲名、右＝時刻表示（PC幅）。 */
+#pcV2WaveHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+#pcV2WaveHead #appTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#pcV2WaveHead .time-controls-row {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+#pcV2WaveHead #timeDisplay .time-val { font-size: 14px; }
+#pcV2WaveHead #timeDisplay .time-dur { font-size: 13px; }
+
+
 /* 移植された#appTitleは元々サイドバー幅前提のマージンを持つため、
    波形エリア幅いっぱいで見やすいよう上下の余白だけ揃える */
 #pcV2WaveArea #appTitle {
@@ -313,14 +336,14 @@ body.pc-v2-active > .app-container {
 }
 
 
-#pcV2TimeRow .time-controls-row {
+#pcV2TimeRow .time-controls-row, #pcV2WaveHead .time-controls-row {
   padding: 0;
   margin-left: 0;
   flex-shrink: 0;
 }
 
 
-#pcV2TimeRow #timeDisplay {
+#pcV2TimeRow #timeDisplay, #pcV2WaveHead #timeDisplay {
   justify-content: flex-start;
   align-items: baseline;
   gap: 3px;
@@ -328,20 +351,20 @@ body.pc-v2-active > .app-container {
 }
 
 
-#pcV2TimeRow #timeDisplay .time-val {
+#pcV2TimeRow #timeDisplay .time-val, #pcV2WaveHead #timeDisplay .time-val {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-bright);
 }
 
 
-#pcV2TimeRow #timeDisplay .time-sep {
+#pcV2TimeRow #timeDisplay .time-sep, #pcV2WaveHead #timeDisplay .time-sep {
   font-size: 11px;
   color: #55555f;
 }
 
 
-#pcV2TimeRow #timeDisplay .time-dur {
+#pcV2TimeRow #timeDisplay .time-dur, #pcV2WaveHead #timeDisplay .time-dur {
   font-size: 12px;
   font-weight: 400;
   color: var(--icon-muted);
@@ -546,6 +569,25 @@ body.pc-v2-active > .app-container {
   }
   #pcV2BottomBar .pcv2-ctrl-spacer {
     min-width: 16px;
+  }
+}
+
+
+/* 【v3.15.0】PC幅でウインドウが狭い時は、Volume/Speed/Key/EQ（右グループ）を
+   非表示にしてバーをすっきりさせる（操作はControlパネルで可能）。
+   右カラム幅＝画面幅−451px（パネル展開時）/ −76px（格納時）。バー全体の必要幅は
+   約883px（v3.15.0時点・右グループ込み）なので、収まらなくなる境目で隠す：
+   パネル展開中は1340px以下、格納中は960px以下。 */
+@media screen and (min-width: 901px) and (max-width: 1340px) {
+  #pcV2Layout:not(.pcv2-collapsed) #pcV2BottomBarGroupRight,
+  #pcV2Layout:not(.pcv2-collapsed) #pcV2BottomBar > .pcv2-ctrl-spacer {
+    display: none;
+  }
+}
+@media screen and (min-width: 901px) and (max-width: 960px) {
+  #pcV2BottomBarGroupRight,
+  #pcV2BottomBar > .pcv2-ctrl-spacer {
+    display: none;
   }
 }
 

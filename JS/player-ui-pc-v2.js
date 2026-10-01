@@ -440,7 +440,7 @@
     // PC幅ではこの行自体を使わず、時刻表示はgroup1(Repeatの右)に留まる。
     const timeRow = el('<div id="pcV2TimeRow"></div>');
 
-    const rightGroup = el('<div class="pcv2-ctrl-group"></div>');
+    const rightGroup = el('<div class="pcv2-ctrl-group" id="pcV2BottomBarGroupRight"></div>');
     // Volume（新規：ポップアップ式の縦スライダー。既存にPC向けVolume UIが
     // 無かったため、controlVolume(#controlVolumeスライダー、Controlパネル内)
     // の値を操作する簡易UIとして新設する）
@@ -642,9 +642,15 @@
     markAnchor("appTitle", appTitle);
     markAnchor("vbarContainer", vbarContainer);
 
-    [appTitle, vbarContainer].forEach(elmt => {
-      if (elmt) waveArea.appendChild(elmt);
-    });
+    // 【v3.15.0】波形エリアの先頭行：左＝曲名(#appTitle)、右＝時刻表示
+    // （PC幅。syncTimeRowPosition()が時刻表示行をここへ移す）。
+    const waveHead = el('<div id="pcV2WaveHead"></div>');
+    if (appTitle) waveHead.appendChild(appTitle);
+    waveArea.appendChild(waveHead);
+    if (vbarContainer) waveArea.appendChild(vbarContainer);
+    // waveHeadができたので、時刻表示行の置き場所を確定する
+    // （上のsyncTimeRowPosition()の初回呼び出しは、まだwaveHeadが無く何もしない）
+    syncTimeRowPosition();
 
     // --- シークバーエリア右下の+ADD AUDIOボタン ---
     // 初回起動時、波形が空の状態でも「ここでファイルを追加すればいい」と
@@ -993,8 +999,8 @@
     const timeDisplay = document.getElementById("timeDisplay");
     const timeControlsRow = timeDisplay ? timeDisplay.closest(".time-controls-row") : null;
     const timeRow = document.getElementById("pcV2TimeRow");
-    const group1 = document.querySelector("#topControls .pcv2-ctrl-group");
-    if (!timeControlsRow || !timeRow || !group1) return;
+    const waveHead = document.getElementById("pcV2WaveHead");
+    if (!timeControlsRow || !timeRow || !waveHead) return;
 
     const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
     if (isSpWidth) {
@@ -1002,8 +1008,9 @@
         timeRow.appendChild(timeControlsRow);
       }
     } else {
-      if (timeControlsRow.parentElement !== group1) {
-        group1.appendChild(timeControlsRow);
+      // 【v3.15.0】PC幅：波形エリア先頭行の右端（曲名と同じ行）
+      if (timeControlsRow.parentElement !== waveHead) {
+        waveHead.appendChild(timeControlsRow);
       }
     }
   }
