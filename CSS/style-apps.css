@@ -1452,7 +1452,7 @@ body.qn-app-open #pcV2TimeRow {
   .qn-yt-seekpop-btn:hover { color: var(--text-bright); }
 }
 @media screen and (max-width: 900px) {
-  .qn-yt-seekpop-btn { min-width: 60px; padding: 8px 10px; }
+  .qn-yt-seekpop-btn { min-width: 54px; padding: 8px 6px; }
   .qn-yt-seekpop-btn b { font-size: 24px; line-height: 30px; }
   .qn-yt-seekpop-btn span { font-size: 11px; }
 }
@@ -1547,6 +1547,11 @@ body.qn-app-open #pcV2TimeRow {
 
 /* ポップアップ：既存マーカー上では＋Markerを隠す */
 .qn-yt-seekpop-btn[hidden] { display: none; }
+.qn-yt-seekpop-del b { color: var(--icon-muted); }
+.qn-yt-seekpop-btn b svg { color: var(--icon-muted); width: 20px; height: 26px; fill: currentColor; display: block; }
+.qn-yt-seekpop-btn b { display: flex; align-items: center; justify-content: center; }
+.qn-yt-seekpop-dot { display: block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); }
+.qn-yt-seekpop-del.is-armed, .qn-yt-seekpop-del.is-armed b { color: var(--danger, #ff5a5a); }
 
 /* 下段バーが横に長くなったため、ボタンの左右余白を少し詰める */
 @media screen and (min-width: 901px) {

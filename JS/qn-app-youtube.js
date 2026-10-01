@@ -1300,6 +1300,7 @@
       var el = document.createElement("div");
       if (m.enabled !== false) {
         el.className = "qn-yt-marker" + (current.loopA === m.id ? " is-loop-a" : "") + (current.loopB === m.id ? " is-loop-b" : "");
+        el.dataset.mid = m.id;
         el.title = fmt(m.time) + " " + (m.label || "");
         if (hex) el.style.setProperty("--marker-color", hex);
         fillMarkerLabel(el, m, i);
@@ -1630,6 +1631,9 @@
         '<button type="button" class="qn-yt-seekpop-btn" data-pop="A" title="この位置をA点(ループ開始)に"><b>A</b><span>Start</span></button>' +
         '<button type="button" class="qn-yt-seekpop-btn" data-pop="B" title="この位置をB点(ループ終了)に"><b>B</b><span>End</span></button>' +
         '<button type="button" class="qn-yt-seekpop-btn" data-pop="M" title="この位置にマーカーを追加"><b>＋</b><span>Marker</span></button>' +
+        '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="D" title="このマーカーを削除" hidden><b>－</b><span>Marker</span></button>' +
+        '<button type="button" class="qn-yt-seekpop-btn" data-pop="C" title="マーカーの色を変える" hidden><b><i class="qn-yt-seekpop-dot"></i></b><span>Color</span></button>' +
+        '<button type="button" class="qn-yt-seekpop-btn" data-pop="H" title="このマーカーを非表示にする（Markersパネルの目で再表示）" hidden><b>' + SVG_EYE_ON + '</b><span>Hide</span></button>' +
       '</div>';
     document.body.appendChild(seekPop);
     seekPop.addEventListener("pointerdown", function (e) { e.stopPropagation(); resetSeekPopTimer(); });
@@ -1637,6 +1641,9 @@
       var b = e.target.closest ? e.target.closest("[data-pop]") : null;
       if (!b) return;
       var k = b.getAttribute("data-pop");
+      if (k === "D") { seekPopDelete(b); return; }
+      if (k === "C") { seekPopColor(); return; }
+      if (k === "H") { seekPopHide(); return; }
       if (k === "A" || k === "B" || k === "M") seekPopAction(k);
     });
     // 外側のタップ・Esc・スクロールで閉じる
@@ -1657,6 +1664,7 @@
   }
 
   function hideSeekPop() {
+    armSeekPopDel(false);
     if (seekPopTimer) { clearTimeout(seekPopTimer); seekPopTimer = null; }
     if (seekPop) seekPop.hidden = true;
   }
@@ -1668,6 +1676,11 @@
     seekPopMarkerId = marker ? marker.id : null;
     pop.querySelector('[data-pop="time"]').textContent = fmt(seekPopTime);
     pop.querySelector('[data-pop="M"]').hidden = !!marker; // 既存マーカー上では＋Markerは不要
+    pop.querySelector('[data-pop="D"]').hidden = !marker;  // 既存マーカー上だけ－Marker(削除)
+    pop.querySelector('[data-pop="C"]').hidden = !marker;  // Color / Hide も既存マーカー上だけ
+    pop.querySelector('[data-pop="H"]').hidden = !marker;
+    if (marker) pop.querySelector(".qn-yt-seekpop-dot").style.background = markerColorHex(marker) || "#3a3a48";
+    armSeekPopDel(false);
     pop.hidden = false;
     // 位置：押した場所の真上（収まらなければ真下）。画面端では内側へ寄せる。
     var w = pop.offsetWidth, h = pop.offsetHeight, gap = 10;
@@ -1679,6 +1692,60 @@
     pop.style.left = left + "px";
     pop.style.top = top + "px";
     resetSeekPopTimer();
+  }
+
+  // －Marker：1回目で「Sure?」(赤)、3秒以内にもう1回押すと削除（誤タップ防止）
+  var seekPopDelArmed = false, seekPopDelTimer = null;
+  function armSeekPopDel(on) {
+    seekPopDelArmed = on;
+    if (seekPopDelTimer) { clearTimeout(seekPopDelTimer); seekPopDelTimer = null; }
+    if (!seekPop) return;
+    var b = seekPop.querySelector('[data-pop="D"]');
+    b.classList.toggle("is-armed", on);
+    b.querySelector("span").textContent = on ? "Sure?" : "Marker";
+    if (on) seekPopDelTimer = setTimeout(function () { armSeekPopDel(false); }, 3000);
+  }
+  function seekPopDelete() {
+    if (!seekPopMarkerId) return;
+    if (!seekPopDelArmed) { armSeekPopDel(true); resetSeekPopTimer(); return; }
+    var id = seekPopMarkerId, m = findMarker(id);
+    hideSeekPop();
+    if (!current || !m) return;
+    current.markers = current.markers.filter(function (x) { return x.id !== id; });
+    // 消えたマーカーを指すA/B点は外す（A-Bループ中なら解除）
+    if (current.loopA === id) current.loopA = null;
+    if (current.loopB === id) current.loopB = null;
+    if (!current.loopA || !current.loopB) { if (current.loopMode === "ab") setLoopMode("off"); }
+    // 区間ループ中は、区間を引き直す（消したマーカーが境界だった場合）
+    if (current.loopMode === "sec") { var r = sectionRangeAt(currentPos()); if (r) current.secRange = r; else setLoopMode("off"); }
+    var it = current.itemId ? findItem(current.itemId) : null;
+    if (it) it.markers = current.markers;
+    persistMarkers(); persistLoop();
+    renderMarkers();
+    ytToast("Marker削除 " + fmt(m.time));
+  }
+
+  // Color：ポップアップを閉じ、シークバー上のそのマーカーを基準に色選択ポップアップを開く（Markersパネルの色ボタンと同じ部品）
+  function seekPopColor() {
+    var id = seekPopMarkerId, m = id ? findMarker(id) : null;
+    hideSeekPop();
+    if (!m || typeof openColorChoicePopup !== "function") return;
+    var anchor = refs.markerLayer.querySelector('[data-mid="' + id + '"]');
+    if (!anchor) return;
+    openColorChoicePopup(anchor, m.color || null, function (name) {
+      if (name) m.color = name; else delete m.color;
+      persistMarkers(); renderMarkers();
+    });
+  }
+
+  // Hide：マーカーを非表示（Markersパネルの目と同じ enabled=false）。ループの基準には使えなくなる点は従来どおり
+  function seekPopHide() {
+    var id = seekPopMarkerId, m = id ? findMarker(id) : null;
+    hideSeekPop();
+    if (!m) return;
+    m.enabled = false;
+    persistMarkers(); renderMarkers();
+    ytToast("Marker非表示 " + fmt(m.time) + "（Markersパネルの目で再表示）");
   }
 
   function seekPopAction(kind) {

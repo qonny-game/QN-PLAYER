@@ -517,3 +517,11 @@
 ## 3.4.3 — YouTube: 区間ループが再生位置に追従
 - Sectionモード中に別の区間へシーク（マーカー移動・シークバー操作）すると、その位置の区間へループ対象が自動で切り替わる（帯・トースト更新）。区間の終わりでは従来どおり先頭へ折り返す。
 - 変更ファイル：`JS/qn-app-youtube.js`、`index.html`（バージョンのみ）。
+
+## 3.4.4 — YouTube: シークバーポップアップに－Marker（削除）
+- 既存マーカー上のA/Bポップアップに「－ Marker」を追加。2回押し（Sure?）で削除。A/B点・ループ状態も整合。
+- 変更ファイル：`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`（バージョンのみ）。
+
+## 3.4.5 — YouTube: ポップアップに Color / Hide
+- 既存マーカー上のポップアップに、色変更（Color）と非表示（Hide）を追加。
+- 変更ファイル：`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`（バージョンのみ）。
