@@ -1,53 +1,30 @@
-/* ============================================================
-   style-apps.css
-   アプリ名バッジ(＞)／アプリ一覧フライアウト(#qnAppFlyout)／
-   アプリ表示領域(#qnAppHost)／トースト。
-   JS側は JS/qn-apps.js。YouTubeアプリ専用の見た目は style-youtube.css。
+/* style-apps.css — アプリ名バッジ/フライアウト(#qnAppFlyout)/アプリ表示領域(#qnAppHost)/トースト。JSはqn-apps.js、YouTube専用はstyle-youtube.css。項目は.pcv2-icon-itemを流用。配色はstyle-core.cssの:rootトークン(テーマ追従) */
 
-   【方針】
-   - アプリ一覧の項目は通常のサイドバーアイコンと同じ .pcv2-icon-item を
-     そのまま使う（見た目・サイズ・SP幅の横並びも自動で同じになる）。
-     ここでは「フライアウトの置き場」と、準備中・選択中の状態だけを足す。
-   - 配色・角丸・文字サイズは style-core.css の :root トークン
-     (--accent-primary / --border-subtle / --radius-* / --fs-* 等)を使う。
-     テーマ(Colorパネル)を変えると、このファイルの色も一緒に変わる。
-   ============================================================ */
+/* ---------- サイドバー: アプリ表示中 ---------- */
 
-/* ---------- サイドバー：アプリ表示中 ---------- */
-
-/* アプリ表示中(PLAYER以外)は、そのアプリ専用の項目(.qn-appside-item)とバッジだけ出す */
 #pcV2IconBar.qn-app-sidebar > .pcv2-icon-item:not(.qn-appside-item):not(#qnAppBadge) {
   display: none;
 }
 
-/* 下段グループ(Keyboard/Color)は、Color(常駐)だけ残す */
 #pcV2IconBar.qn-app-sidebar #pcV2IconBarBottom > .pcv2-icon-item:not([data-panel-id="color"]):not(.qn-appside-item) {
   display: none;
 }
 
-/* ---------- アプリ一覧フライアウト（バッジにホバー／タップで開く） ----------
-   body直下の position:fixed。
-   PC幅=サイドバーの右に、サイドバーと同じ縦幅いっぱいで重ねて表示（左からにゅっと）。
-   SP幅=アイコンバーの真上に幅いっぱいで表示（下からにゅっと）。位置はJSが実測で入れる。
-   「ここに出た」を分かりやすくするため、背景をほんのりテーマ色寄りの暗色にし、
-   縁にテーマ色のラインを引き、画面全体を薄暗くする幕(#qnAppScrim)も敷く。
-   アニメーションは clip-path（サイドバーの縁から「生えてくる」ように見える）＋少しだけ移動。 */
+/* ---------- アプリ一覧フライアウト ----------
+body直下fixed。PC=サイドバー右に重ねる(clip-pathで縁から出る)、SP=アイコンバー真上。位置はJSが実測。#qnAppScrimで暗幕 */
 #qnAppFlyout {
   position: fixed;
-  z-index: 320;              /* #qnColorPop(300)・幕(310)より上 */
+  z-index: 320; /* z-index: #qnColorPop(300)・幕(310)より上 */
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   width: 84px;
-  padding: 16px 0;            /* サイドバー(#pcV2IconBar)と同じ上下余白 */
+  padding: 16px 0;
   gap: 4px;
   background: color-mix(in srgb, var(--accent-primary) 7%, #050507);
   border-right: 2px solid var(--accent-primary);
   box-shadow: 14px 0 36px rgba(0, 0, 0, 0.6);
-  /* サイドバーの縁の「内側から」スライドして出てくる：
-     自分を左へ全幅ぶんずらし(transform)、同時に「縁より左側」を切り落とす(clip-path)。
-     同じ時間・同じイージングで動かすので、縁の下から押し出されるように見える（フェードではない）。 */
   transform: translateX(-100%);
   clip-path: inset(0 -48px 0 100%);
   transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
@@ -59,7 +36,6 @@
   clip-path: inset(0 -48px 0 0);
 }
 
-/* SP幅：アイコンバーの上に、幅いっぱいの横並び（下からにゅっと） */
 #qnAppFlyout.qn-flyout-sp {
   flex-direction: row;
   width: auto;
@@ -81,7 +57,6 @@
   flex-shrink: 0;
 }
 
-/* 薄暗い幕：フライアウト以外を暗くして「出た」ことを知らせる（クリックは素通し） */
 #qnAppScrim {
   position: fixed;
   inset: 0;
@@ -95,11 +70,8 @@
 #qnAppScrim.qn-scrim-in { opacity: 1; }
 #qnAppScrim.qn-scrim-sp { background: rgba(0, 0, 0, 0.55); }
 
-/* v3.11.1：以前ここに「OSの視覚効果が減らす設定なら動かさない(transition:none)」を入れていたが、
-   PCのWindows（アニメーション効果オフ）等でフライアウトが「シュッ」と出ず一瞬でパッと表示される原因になっていた。
-   小さなスライドなので、OS設定に関わらず常にアニメーションさせる。 */
+/* v3.11.1: OS視覚効果低減でもtransition:noneにしない(Windowsでフライアウトが一瞬でパッと出る原因だった) */
 
-/* バッジの「＞」（サブメニューがあるよの印） */
 #pcV2IconBar #qnAppBadge {
   position: relative;
 }
@@ -114,7 +86,6 @@
   opacity: 0.85;
   transition: transform 120ms ease;
 }
-/* SP幅は横並びバーの上にフライアウトが出るので、印は「＾」向き */
 @media screen and (max-width: 900px) {
   #qnAppBadge .qn-badge-chev {
     right: 50%;
@@ -128,7 +99,6 @@
   #qnAppBadge.qn-badge-open .qn-badge-chev { transform: rotate(90deg); }
 }
 
-/* Colorパネル（アプリ表示中/一覧中。PLAYERのパネルと同じ見た目で、テーマ切替セクションを借りて表示） */
 #qnColorPop {
   position: fixed;
   z-index: 300;
@@ -159,12 +129,9 @@
 }
 #qnColorPop .qn-menu-section { border-bottom: none; padding-bottom: 0; }
 #qnColorPop .qn-menu-section-label { display: none; }
-/* v3.20.0：Marker Memo Colors もPLAYERと同じく表示する（以前はアプリ表示中だけ隠していた） */
-/* SPはヘッダーを省スペースに */
 #qnColorPop.qn-colorpanel-sp .qn-colorpanel-head { padding: 8px 16px; }
 
-/* 現在開いているアプリ（.active と同じ見た目。.active は本体側のJSが
-   data-panel-id を持たない要素から外してしまうため、別クラスにしている） */
+/* 現在のアプリ。.activeは本体JSがdata-panel-id無し要素から外すため別クラス */
 .pcv2-icon-item.qn-app-active {
   color: var(--accent-primary);
 }
@@ -179,7 +146,6 @@
   background: var(--accent-primary);
 }
 
-/* 準備中のアプリ（TUNER / PITCH 等）は少し薄く */
 .pcv2-icon-item.qn-app-soon {
   opacity: 0.45;
 }
@@ -188,11 +154,8 @@
   opacity: 0.7;
 }
 
-/* ---------- サイドバー／アプリバーのホバー・バッジの色（v2.18.1） ----------
-   ・ホバー時：背景=テーマカラー、文字・アイコン=背景色と同じ黒(#0a0a0c)に統一
-     （通常のサイドバー、アプリ一覧、アプリ専用サイドバーの全部が対象）。
-     タッチ端末ではタップ後に:hoverが残ってしまうため、ホバー可能な端末だけに適用。
-   ・アプリ名バッジ(#qnAppBadge)だけは常にテーマカラー背景＋黒文字にして、他の項目と差別化する。 */
+/* ---------- ホバー/バッジ色(v2.18.1) ----------
+ホバー=背景テーマ色+文字黒(#0a0a0c)。ホバー可能端末のみ(タッチは:hoverが残る)。#qnAppBadgeは常にテーマ背景+黒文字 */
 :root {
   --sidebar-on-accent: #0a0a0c;
 }
@@ -202,7 +165,6 @@
   color: var(--sidebar-on-accent);
 }
 
-/* 現在のアプリ名バッジ：サイドバーの先頭。PC幅は下に少し余白、SP幅は右に少し余白 */
 #pcV2IconBar #qnAppBadge {
   margin-bottom: 8px;
 }
@@ -239,7 +201,6 @@
 }
 
 @media screen and (max-width: 900px) {
-  /* SP幅は横並び。選択中の下線は本体側の .active と同じ位置に */
   .pcv2-icon-item.qn-app-active::before {
     left: 8px;
     right: 8px;
@@ -279,19 +240,17 @@
 
 /* ---------- アプリ表示領域 ---------- */
 
-/* アプリ表示中は、本体の再生系バーを隠して領域を広げる（音声は一時停止済み）。
-   ※ display:none にするだけで、DOMや状態は一切変えない。 */
+/* アプリ表示中は本体の再生系バーをdisplay:noneで隠すだけ(DOM/状態は変えない) */
 body.qn-app-open #pcV2BottomBar,
 body.qn-app-open #pcV2BottomBarAnchorTabs,
 body.qn-app-open #pcV2TimeRow {
   display: none !important;
 }
 
-/* 位置(top/left/right/bottom)は qn-apps.js の layoutHost() が実測して入れる */
+/* 位置はqn-apps.js layoutHost()が実測 */
 #qnAppHost {
   position: fixed;
-  /* 波形上のマーカーラベル(.vbar-label z-index:51)や、SP幅のパネル
-     オーバーレイ(100)より手前、ヘッダー(200)より奥。 */
+  /* z-index: .vbar-label(51)・SPパネルオーバーレイ(100)より手前、ヘッダー(200)より奥 */
   z-index: 150;
   background: #0a0a0c;
   overflow: hidden;

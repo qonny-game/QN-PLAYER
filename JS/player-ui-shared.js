@@ -1,22 +1,7 @@
-// ============================================================
-// player-ui-shared.js
-// PC版・SP版共通のUI操作（DOM操作・イベントハンドラ・画面レイアウト調整）。
-// player-core.jsが提供する変数・関数（audio, playlist, currentSpeed,
-// setAppTitle, updatePlaybackRate 等）に依存するため、必ずplayer-core.jsの
-// 後に読み込むこと。
-//
-// このファイルの中には、isMobileLayout()でPC/SPの分岐を行っている関数が
-// 含まれる（例: renderPins等）。将来的にPC専用/SP専用ファイルへ分割する場合は、
-// これらの分岐を持つ関数を書き直す必要がある点に注意。
-// 下記のSECTIONコメントは、将来の分割時の切り出し単位の目安として付けている。
-// ============================================================
+// player-ui-shared.js — PC/SP共通のUI操作。player-core.jsの後に読み込む。isMobileLayout()でPC/SP分岐する関数あり(renderPins等)。SECTIONコメントは将来分割時の切り出し目安
 
 
-// 初回案内オーバーレイ(welcomeOverlay)は撤去済み（シークバーエリア右下の
-// +ADD AUDIOボタン(#pcV2WaveAddAudioBtn、player-ui-pc-v2.js側)に一本化した
-// ため）。hideWelcomeOverlay()自体は他ファイル(loadFile内)からの呼び出しが
-// 残っているため、関数としては残し、対象要素が存在しない場合は何もしない
-// 安全な実装にしている。
+// welcomeOverlayは撤去済み(+ADD AUDIOへ一本化)。hideWelcomeOverlay()はloadFile等から呼ばれるので残す。要素が無ければ何もしない
 function hideWelcomeOverlay() {
   const overlay = document.getElementById("welcomeOverlay");
   if (overlay) overlay.classList.add("hidden");
@@ -24,8 +9,6 @@ function hideWelcomeOverlay() {
 
 
 
-// 波形表示専用のデコード。低サンプルレートのOfflineAudioContextを使い、
-// 対応していない環境では従来通り共有AudioContextにフォールバックする。
 async function decodeForWaveform(arrayBuffer) {
   const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (OfflineCtx) {
@@ -34,7 +17,6 @@ async function decodeForWaveform(arrayBuffer) {
         const offline = new OfflineCtx(1, 1, rate);
         return await offline.decodeAudioData(arrayBuffer.slice(0));
       } catch (err) {
-        // このサンプルレートが非対応なら次の候補へ
       }
     }
   }
@@ -46,25 +28,17 @@ async function decodeWaveform(file, token) {
   try {
     const arrayBuffer = await file.arrayBuffer();
     if (token !== waveformDecodeToken) return;
-    // 【v2.13.4 負荷対策】以前はgetAudioCtx()（再生用の共有AudioContext）で
-    // デコードしていたため、EQ等を一切使わない通常再生でも曲を読み込んだ瞬間に
-    // リアルタイムのAudioContextが生成・常駐し（しかも再生中は2秒ごとの監視で
-    // resumeされ続け）、iOS Safariで「Web Audioに触れない」設計が崩れていた。
-    // また44.1/48kHzのままデコードすると、3分のステレオ曲で約60MBのPCMが
-    // 一時的に確保される。波形表示は4000本のピークしか使わないため、
-    // 低サンプルレートのOfflineAudioContext（音は出ない・常駐しない）で
-    // デコードしてメモリ量を1/5程度に抑える。
+    // 【v2.13.4 負荷対策】共有AudioContext(getAudioCtx)でデコードしない(通常再生でWeb Audioが常駐しiOS Safariで問題)。波形は4000ピークしか使わないので低サンプルレートのOfflineAudioContextでデコードしメモリを約1/5に
     const audioBuffer = await decodeForWaveform(arrayBuffer);
 
-    if (token !== waveformDecodeToken) return; // 別ファイルが読み込まれていたら破棄
+    if (token !== waveformDecodeToken) return;
 
     const channelCount = audioBuffer.numberOfChannels;
     const rawLength = audioBuffer.length;
-    const samples = 4000; // 波形の解像度（全体でこの本数のピークを算出）
+    const samples = 4000;
     const blockSize = Math.max(1, Math.floor(rawLength / samples));
     const peaks = new Float32Array(samples);
 
-    // 全チャンネルをミックスして振幅の最大値を取る
     const channelData = [];
     for (let c = 0; c < channelCount; c++) {
       channelData.push(audioBuffer.getChannelData(c));
@@ -83,7 +57,6 @@ async function decodeWaveform(file, token) {
       peaks[i] = max;
     }
 
-    // 正規化（最大値を1.0にする）
     let peakMax = 0;
     for (let i = 0; i < samples; i++) {
       if (peaks[i] > peakMax) peakMax = peaks[i];
@@ -106,9 +79,6 @@ async function decodeWaveform(file, token) {
 
 function drawWaveform() {
   if (!waveformPeaks || !audio.duration) return;
-  // PC v2側(player-ui-pc-v2.js)の上書き描画は「変化がなければ描き直さない」
-  // 方式のため、ここでcanvasを描き直したことを知らせるカウンタを進める
-  // （これが無いと、この関数の灰色描画でPC v2の色付き波形が消えたままになる）。
   window.__qnWaveformDrawCount = (window.__qnWaveformDrawCount || 0) + 1;
   const dur = audio.duration;
   const { s1, s2, s3, s4, s5 } = getSegments(dur);
@@ -145,9 +115,6 @@ function drawWaveform() {
 
     for (let i = 0; i < sliceCount; i++) {
       const peak = waveformPeaks[startIdx + i] || 0;
-      // 下から上へ伸びるボリューム波形（イコライザー風）。以前は中央基準の
-      // 上下対称バーだったが、下端(canvas.height)を基準に音量分だけ上に
-      // 伸びる形に変更した。
       const barHeight = Math.max(2 * dpr, peak * canvas.height * 0.85);
       const x = i * (canvas.width / sliceCount);
       ctx2d.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
@@ -159,7 +126,6 @@ window.addEventListener("resize", () => {
   if (waveformPeaks) drawWaveform();
 });
 
-// Volume persistence
 const savedVolume = localStorage.getItem("mp3player_volume");
 if (savedVolume !== null) {
   audio.volume = parseFloat(savedVolume);
@@ -172,7 +138,6 @@ const controlVolumeDisplay = document.getElementById("controlVolumeDisplay");
 if (volumeDisplay) volumeDisplay.textContent = audio.volume.toFixed(2);
 if (controlVolumeDisplay) controlVolumeDisplay.textContent = audio.volume.toFixed(2);
 
-// VOL/SPEED/KEYボタン内に現在値を表示する共通ヘルパー（Basic欄側のトグルボタンの値表示のみ）
 function updateAvToggleValue(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
@@ -180,8 +145,6 @@ function updateAvToggleValue(id, text) {
 
 updateAvToggleValue("volToggleValue", Math.round(audio.volume * 100) + "%");
 
-// Volumeスライダー：Basic欄(#volume)とCONTROLタブ(#controlVolume)、両方の入力要素を
-// 同じ値に同期させる。どちらを動かしても、audio.volumeへの反映と、もう片方への値のミラーを行う。
 function applyVolumeChange(val) {
   audio.volume = val;
   if (volumeDisplay) volumeDisplay.textContent = val.toFixed(2);
@@ -203,19 +166,9 @@ function applyVolumeChange(val) {
 
 document.getElementById("fileInput").onchange = e => addFilesToPlaylist(Array.from(e.target.files));
 
-// ドラッグ&ドロップでのファイル追加処理は player-ui-pc-v2.js に移動済み
-// （旧player-ui-pc.js。ファイル整理により統合）
 
 
-// player-playlist.js に分割移動済み（Playlist機能：追加・描画・削除・並び替え・再生切り替え）
-
-
-// 直前にaudio.srcへ設定したオブジェクトURL。曲を切り替える際に解放するために保持しておく。
-// URL.createObjectURL()で作ったURLは、revokeObjectURL()で明示的に解放しない限り、
-// そのファイルのデータがページを閉じるまでメモリ上に residentし続ける。
-// 曲を切り替えるたびに解放を忘れると「曲数 × ファイルサイズ」分のメモリが積み上がり、
-// 特にモバイル環境（iOS SafariのPWA化時など）で長時間利用した際にメモリ不足による
-// ページのクラッシュ/強制再読み込みを引き起こす。
+// 直前のobjectURL。曲切替時にrevokeObjectURL()で必ず解放(忘れると曲数×サイズ分メモリが積み上がりモバイルでクラッシュ)
 let currentObjectUrl = null;
 
 function loadFile(file) {
@@ -224,12 +177,8 @@ function loadFile(file) {
   setAppTitle(file.name);
   hideWelcomeOverlay();
 
-  // 曲を切り替えるため、ループ折り返し判定の対象区間インデックスを破棄する
-  // （旧曲のpins配列に基づくインデックスを新曲へ引き継がないようにする）。
   loopActiveMarkerIndex = null;
 
-  // 前の曲のオブジェクトURLをここで解放する。audio.srcを新しいURLに差し替えた後だと
-  // 再生中のデータを引き剥がすことになるため、差し替えの直前に解放しておく。
   if (currentObjectUrl) {
     URL.revokeObjectURL(currentObjectUrl);
     currentObjectUrl = null;
@@ -241,25 +190,13 @@ function loadFile(file) {
   audio.load();
   updatePlaybackRate();
 
-  // setupAudioGraph()（Web Audio APIへの接続、EQ/位相ボコーダー用）は、ここでは呼ばない。
-  // 曲の読み込み時に毎回呼んでいたが、これによりEQを一切使わない場合でも常時
-  // <audio>要素がWeb Audio APIのグラフに接続された状態になり、iOS Safari
-  // （Chromeでは同じ端末・同じPWA化でも再現しないため、Safari固有の問題と判明している）で
-  // 長時間再生後にページがクラッシュ/強制再読み込みされる不具合の原因になっていた。
-  // 今はEQボタンが実際に押された瞬間（setupAudioGraphOnDemand、下記）にのみ接続する。
+  // setupAudioGraph()は曲読込時に呼ばない(常時Web Audio接続だとiOS Safariで長時間再生後にクラッシュ。Safari固有)。EQボタン等の実操作時のみ(setupAudioGraphOnDemand)
 
-  // 波形解析（非同期・別トークンで前回分を無効化）
   waveformPeaks = null;
   waveformDecodeToken++;
   decodeWaveform(file, waveformDecodeToken);
 
-  // 【v2.13.6】マーカー・テキストメモの読み込みは、音声のメタデータ読み込み
-  // (loadedmetadata)を待たず、曲を切り替えた瞬間に同期で行う。
-  // 以前はonloadedmetadataの中で読んでいたため、読み込みが遅い・失敗した
-  // 場合（GOTCHAS.mdの不具合など）に、曲名(currentFileName)だけ新しい曲に
-  // 切り替わり、テキスト欄には前の曲の内容が残ったままになっていた。
-  // その状態で編集すると、前の曲のテキストが新しい曲名のキーで保存され、
-  // 「全曲で同じテキストが表示される」状態になってしまう（GOTCHAS.md）。
+  // 【v2.13.6】マーカー/テキストメモ読込は曲切替の瞬間に同期で行う(loadedmetadata待ちだと失敗時に曲名だけ新しく本文が前の曲のままになり、編集すると新しい曲名キーで保存される。GOTCHAS.md)
   const savedPins = localStorage.getItem("mp3_pins_" + file.name);
   if (savedPins) {
     try {
@@ -269,14 +206,10 @@ function loadFile(file) {
   } else {
     pins = [];
   }
-  // v3.8.0〜：A点/B点（マーカーとは別の点）も曲ごとに読み込む
   loadABFor(file.name);
   if (typeof renderPinList === "function") renderPinList();
 
-  // player-text.js側のトップレベル変数noteTextAreaElに依存すると、
-  // <script>の読み込み順に実行結果が左右されてしまうため、ここでは
-  // 都度DOM取得することでファイル間の初期化順序に依存しないようにする。
-  // フルスクリーン表示中なら、そちらの表示も新しい曲の内容に揃える。
+  // noteTextAreaEl(player-text.js)に依存せず都度DOM取得(読み込み順非依存)。フルスクリーン表示中ならそちらも更新
   const noteTextForLoad = localStorage.getItem("mp3_text_" + file.name) || "";
   const noteTextAreaElForLoad = document.getElementById("noteTextArea");
   if (noteTextAreaElForLoad) noteTextAreaElForLoad.value = noteTextForLoad;
@@ -293,7 +226,7 @@ function loadFile(file) {
     if (window.__qnAudioCtx && window.__qnAudioCtx.state === "suspended") {
       window.__qnAudioCtx.resume().catch(() => {});
     }
-    // 読み込み完了後に自動再生はしない。ユーザーがPlayを押すまで待機状態のまま。
+    // 読込後は自動再生しない(Play待ち)
     updatePlayButtonState();
   };
 }
@@ -302,7 +235,7 @@ function loadFile(file) {
 
 function updatePlayButtonState() {
   const playBtn = document.getElementById("playToggle");
-  updateMediaSessionPlaybackState(); // Media Session連携。不要なら本行を削除するだけでよい。
+  updateMediaSessionPlaybackState();
   if (!playBtn) return;
 
   const label = playBtn.querySelector(".top-controls-btn-label");
@@ -326,8 +259,7 @@ function updatePlayButtonState() {
 
 function togglePlay() {
   hapticTap();
-  // ユーザー操作の直接のトリガーであるこの箇所で、AudioContextの一時停止を確実に解除する
-  // （resumeはユーザー操作をきっかけに呼ぶ必要があるため、ここが最も確実なタイミング）。
+  // ユーザー操作の直接起点でAudioContextをresume
   if (window.__qnAudioCtx && window.__qnAudioCtx.state === "suspended") {
     window.__qnAudioCtx.resume().catch(() => {});
   }
@@ -340,13 +272,6 @@ function togglePlay() {
   updatePlayButtonState();
 }
 
-// ============================================================
-// Media Session API（ロック画面・通知に曲名や再生コントロールを表示する）
-// この節は既存の再生ロジックに変更を加えず、navigator.mediaSessionへ情報を渡すだけの独立した機能。
-// 非対応ブラウザでは"mediaSession" in navigatorがfalseになり、何もせず安全にスキップされる。
-// 不要になった場合はこのブロックと、setAppTitle内のupdateMediaSessionMetadata()呼び出し1行を
-// 削除するだけで元に戻せる。
-// ============================================================
 function updateMediaSessionMetadata(name) {
   if (!("mediaSession" in navigator)) return;
   try {
@@ -355,7 +280,6 @@ function updateMediaSessionMetadata(name) {
       artist: "QNPLAYER"
     });
   } catch (e) {
-    // MediaMetadata非対応環境などは無視する
   }
 }
 
@@ -365,7 +289,6 @@ function updateMediaSessionPlaybackState() {
 }
 
 if ("mediaSession" in navigator) {
-  // ロック画面・通知のコントロールボタンから、既存のtogglePlay等をそのまま呼ぶ
   navigator.mediaSession.setActionHandler("play", () => togglePlay());
   navigator.mediaSession.setActionHandler("pause", () => togglePlay());
   navigator.mediaSession.setActionHandler("previoustrack", () => {
@@ -378,9 +301,6 @@ if ("mediaSession" in navigator) {
   });
 }
 
-// 再生中、AudioContextがBluetooth接続の瞬断等で予期せず"suspended"状態になった場合に
-// 自動的にresume()する定期監視。再生開始で監視を始め、一時停止/終了で止める
-// （止まっている間は監視する意味がないうえ、無駄なタイマーを残さないため）。
 let audioContextWatchTimer = null;
 function startAudioContextWatch() {
   if (audioContextWatchTimer) return;
@@ -407,10 +327,7 @@ audio.onpause = () => {
   stopAudioContextWatch();
 };
 audio.onended = () => {
-  // iOS(Safari/Chrome)では、Bluetooth接続の瞬断・オーディオセッションの再構築などが起きた際に、
-  // 実際には曲の途中なのに"ended"イベントが誤って発火することがある（既知の挙動）。
-  // 本当に曲が終わったのかを、currentTimeがdurationのごく近く(1秒以内)にあるかで確認し、
-  // 途中で誤発火した場合は次の曲に進めず、同じ曲の同じ位置から再生を再開する。
+  // iOSはBluetooth瞬断等で曲の途中に"ended"が誤発火する。currentTimeがdurationの1秒以内か確認し、途中なら次曲へ進まず同位置から再開
   const dur = audio.duration;
   const ct = audio.currentTime;
   const reallyEnded = !dur || !isFinite(dur) || (dur - ct) < 1;
@@ -425,36 +342,30 @@ audio.onended = () => {
   updatePlayButtonState();
 
   if (repeatMode === "one") {
-    // 1曲リピート：同じ曲を繰り返す（現在の曲自体がOFFになっていても、
-    // 既に選んで再生していた曲なのでそのままリピートする）
     audio.currentTime = 0;
     audio.play();
     updatePlayButtonState();
     return;
   }
 
-  // 通常再生・全体リピートいずれの場合も、OFFの曲は自動的にスキップして次のON曲を探す。
-  // repeatMode==="all"の時だけ、末尾まで来たら先頭に戻ってループを続ける(wrapAround)。
   const wrapAround = repeatMode === "all";
   const nextIndex = findEnabledTrackIndex(currentPlaylistIndex, 1, wrapAround);
   if (nextIndex !== -1) {
     playTrackAt(nextIndex);
   } else {
-    // 次のON曲が見つからない場合（残り全部OFF、またはoffモードで末尾に到達）はそのまま停止するため、
-    // 再生中の監視も一緒に止める（onpauseは発火しないため、ここで明示的に止める必要がある）。
+    // 次のON曲が無く停止する場合は再生中監視も明示的に止める(onpauseが発火しないため)
     stopAudioContextWatch();
   }
 };
 
-// 【v2.13.5 保険】曲の読み込みに失敗した（playlist側のFileが読めなくなって
-// いた）場合、IndexedDBから音声を読み直して1回だけ再試行する（GOTCHAS.md）。
+// 【v2.13.5 保険】読込失敗時はIndexedDBから読み直して1回だけ再試行(GOTCHAS.md)
 let lastAudioRecoveryName = null;
 audio.addEventListener("error", async () => {
   if (typeof currentPlaylistIndex === "undefined" || currentPlaylistIndex < 0) return;
   const track = playlist[currentPlaylistIndex];
   if (!track || !track.file) return;
   const name = track.file.name;
-  if (lastAudioRecoveryName === name) return; // 同じ曲で無限に再試行しない
+  if (lastAudioRecoveryName === name) return; // 同じ曲で無限再試行しない
   lastAudioRecoveryName = name;
   console.warn("Audio load failed — reloading track data from storage:", name);
   const fresh = typeof reloadTrackFileFromDB === "function" ? await reloadTrackFileFromDB(name) : null;
@@ -468,14 +379,8 @@ audio.addEventListener("loadedmetadata", () => { lastAudioRecoveryName = null; }
 document.getElementById("playToggle").onclick = togglePlay;
 
 
-// player-markers.js に分割移動済み（Marker追加/前後ジャンプ）
-
 
 const prevTrackBtn = document.getElementById("prevTrackBtn");
-// playPrevTrack/playNextTrackはplayer-playlist.js側の関数。この時点(スクリプト
-// 読み込み時)ではまだ定義されていない可能性があるため、直接の関数参照ではなく
-// 無名関数でラップして遅延呼び出しにする（クリックされた時点なら全スクリプトの
-// 読み込みが完了しているため安全）。
 if (prevTrackBtn) prevTrackBtn.onclick = () => playPrevTrack();
 
 const nextTrackBtn = document.getElementById("nextTrackBtn");
@@ -483,8 +388,7 @@ if (nextTrackBtn) nextTrackBtn.onclick = () => playNextTrack();
 
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-  // MOREのアプリ（YouTube等）を開いている間は、本体のショートカット
-  // （Space=再生、P/M=マーカー追加 等）を無効にする（qn-apps.js参照）。
+  // アプリ(YouTube等)表示中は本体ショートカットを無効(qn-apps.js参照)
   if (document.body.classList.contains("qn-app-open")) return;
 
   const activePins = pins.filter(p => p.enabled);
@@ -581,8 +485,6 @@ document.addEventListener("keydown", e => {
   }
   else if (!e.ctrlKey && e.key >= "1" && e.key <= "9") {
     const index = parseInt(e.key) - 1;
-    // リストに表示されている番号（1〜9、OFFのマーカーも含む通し番号）と一致させるため、
-    // ONのものだけを抜き出したactivePinsではなく、pins配列を直接参照する。
     if (pins[index] !== undefined) {
       e.preventDefault();
       beginSeek();
@@ -596,31 +498,19 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// #controlVolume(旧volumeInput)のPC v2向けイベントハンドラは
-// player-ui-pc-v2.js（Volumeポップアップ部分）にある
 
 
 
 
-// player-controls.js に分割移動済み（Speed/AutoSpeed/Key/AVポップアップ共通処理）
 
 
-
-
-// updateBarsは再生中、毎フレーム(最大60回/秒)呼ばれ続けるため、その中で使う配列・DOM参照は
-// 毎回生成/検索せず使い回す。小さなオブジェクトでも長時間の蓄積はガベージコレクションの
-// 頻度を押し上げ続け、モバイル環境（特にiOS SafariのPWA化時）でのメモリ圧迫要因になり得るため。
-//
-// さらに、時刻表示・シークバー（.vbar-fill）の見た目更新は人の目には10回/秒程度でも
-// 十分滑らかに見えるため、UPDATE_BARS_VISUAL_INTERVAL_MS間隔に間引く。
-// 一方でマーカー区間ループの折り返し判定はタイミングの正確さが重要なため、これは間引かず
-// 毎フレーム行う（見た目の更新頻度とループ精度を分離することで、両方を両立させている）。
+// updateBarsは毎フレーム呼ばれる: 配列/DOM参照は使い回す(GC抑制)。時刻・.vbar-fillの見た目はUPDATE_BARS_VISUAL_INTERVAL_MSで間引く。マーカー区間ループの折り返し判定は精度のため間引かず毎フレーム
 const updateBarsFillEls = [1, 2, 3, 4, 5, 6].map(i => document.getElementById(`fill${i}`));
 const updateBarsCurrentValEl = document.getElementById("currentTimeVal");
 const updateBarsDurationValEl = document.getElementById("durationVal");
 const updateBarsP = [0, 0, 0, 0, 0, 0];
 const updateBarsThresholds = [0, 0, 0, 0, 0, 0, 0];
-const UPDATE_BARS_VISUAL_INTERVAL_MS = 100; // 10回/秒程度
+const UPDATE_BARS_VISUAL_INTERVAL_MS = 100;
 let lastVisualUpdateTime = 0;
 let lastCurrentTimeText = null;
 let lastDurationText = null;
@@ -637,9 +527,6 @@ function updateBars() {
   if (now - lastVisualUpdateTime >= UPDATE_BARS_VISUAL_INTERVAL_MS) {
     lastVisualUpdateTime = now;
 
-    // 【v2.14.1】値が変わった時だけDOMへ書く。textContentへの代入は同じ
-    // 文字列でもテキストノードを作り直してレイアウト/再描画を発生させる
-    // ため、停止中も10回/秒ずっと再描画が起きていた。
     if (updateBarsCurrentValEl && updateBarsDurationValEl) {
       const ctText = formatTime(ct);
       const durText = formatTime(dur);
@@ -681,10 +568,7 @@ function updateBars() {
     }
   }
 
-  // マーカー区間ループの折り返し判定はタイミングの正確さが重要なため、見た目更新の間引きとは
-  // 独立して毎フレーム行う。ループがOFFの間はこの配列生成自体が無駄になるため、
-  // loopEnabledの判定を先に行う。
-  // v3.7.0〜：A-Bループ（A点〜B点）。折り返し処理はloopWrapAB()。
+  // 折り返し判定は毎フレーム(間引かない)。loopEnabled判定を先に(OFFなら配列生成しない)。v3.7.0〜: A-Bループはloop WrapAB()
   if (loopEnabled && loopMode === "ab" && !isSeeking && !isJumping && !audio.paused) {
     const abr = getABRange();
     if (abr) loopWrapAB(abr, ct);
@@ -696,13 +580,7 @@ function updateBars() {
     if (activePins.length >= 2) {
       const preroll = typeof loopPreRollSeconds === "number" ? loopPreRollSeconds : 0;
 
-      // 対象区間がまだ決まっていない、または現在地(ct)がその区間の
-      // 許容範囲(pre/post-roll込み)から外れている場合は、現在地から
-      // 改めてどのマーカーペアの内側にいるかを計算し直す。
-      // 「外れている」を判定に使うのは、マーカーの追加/削除/シーク/
-      // 曲切替など対象区間を無効化すべきあらゆる操作を個別に検知せずとも、
-      // 結果として区間外にいれば自動的に正しい区間へ追従できるようにするため。
-      // （判定ルールはYouTubeアプリと共通：JS/qn-marker-core.js）
+      // 対象区間未決定、またはctがpre/post-roll込みの許容範囲外なら現在地から再計算(個別イベントを検知せずとも区間外なら自動追従)。判定ルールはYouTubeと共通(qn-marker-core.js)
       const inCurrentRange = QNMarkerCore.inSectionRange(activePins, loopActiveMarkerIndex, ct, preroll, audio.duration);
 
       if (!inCurrentRange) {
@@ -713,16 +591,10 @@ function updateBars() {
       const i = loopActiveMarkerIndex;
       const start = activePins[i];
       const end = activePins[i + 1];
-      // 折り返し判定自体は「マーカーの何秒後まで聴かせるか(postroll)」を
-      // 反映してendPlaybackより後ろにずらす。ジャンプ先(jumpTarget)は
-      // 「マーカーの何秒前から聴かせるか(preroll)」を反映してstartより
-      // 前にずらす。どちらも区間の外(前のマーカーより前・曲末尾より後)に
-      // はみ出さないようclampする。
       const jumpTarget = Math.max(0, start - preroll);
       const endPlayback = Math.min(audio.duration || end, end + preroll);
 
       if (prevTime < endPlayback && ct >= endPlayback) {
-        // シェアウェア制限：無料版はAB間ループ5回で自動停止。
         let stoppedByShareware = false;
         if (typeof isUnlocked === "function" && !isUnlocked()) {
           swAbLoopCount++;
@@ -739,10 +611,7 @@ function updateBars() {
         if (!stoppedByShareware) {
           audio.currentTime = jumpTarget;
           isJumping = true;
-          // このマーカー(区間の開始側)に設定された色をそのまま引き継ぐ。
-          // {start, end}だけを渡すとcolorがundefinedになり、renderSegments
-          // 内のif (active.color && ...)判定が外れてデフォルトカラーに
-          // フォールバックしてしまう（2周目以降で色が消えるバグの原因）。
+          // 開始側マーカーのcolorを引き継ぐ({start,end}だけだとcolor undefinedでrenderSegmentsがデフォルト色になり2周目以降で色が消える)
           renderSegments({ start, end, color: activePinObjs[i].color || null });
           notifyLoopCompleted();
           setTimeout(() => {
@@ -754,15 +623,10 @@ function updateBars() {
   }
 
   prevTime = audio.currentTime;
-  // renderSegments()は区間が実際に変わった時だけ呼ぶ（マーカー追加/削除/シーク/Loop切替時）。
-  // 毎フレーム呼ぶとDOM要素(.segmentHighlight)が再生成され続け、
-  // スマホでのタップ・ドラッグ操作の途中でイベントターゲットが失われて操作不能になるため。
 }
 
 updateBars();
 
-// A-Bループの折り返し。マーカー区間ループと同じ「プリロール/ポストロール」「無料版の回数制限」
-// 「オートスピードの周回カウント」を適用する（updateBars()から毎フレーム呼ばれる）。
 function loopWrapAB(abr, ct) {
   const preroll = typeof loopPreRollSeconds === "number" ? loopPreRollSeconds : 0;
   const jumpTarget = Math.max(0, abr.start - preroll);
@@ -788,7 +652,6 @@ function loopWrapAB(abr, ct) {
   setTimeout(() => { isJumping = false; }, 200);
 }
 
-// v3.10.0〜：A-Bループ中に、A〜Bの外側をクリック（シーク）したらループをOFFにする（A/B点は残す）。
 function abLeaveIfOutside(t) {
   if (!loopEnabled || loopMode !== "ab") return;
   const abr = typeof getABRange === "function" ? getABRange() : null;
@@ -809,9 +672,6 @@ function calcTimeFromBarPosition(bar, barIndex, clientX) {
 
 document.querySelectorAll(".vbar").forEach((bar, index) => {
   bar.addEventListener("click", e => {
-    // マーカー線のクリック直後(player-markers.jsのstartDragPin内で処理済み)に、DOM作り直しの
-    // 影響で波形バー側へ届いたclickは無視する（マーカーとは別の位置へシークされたり、
-    // ポップアップが＋Marker用に置き換わるのを防ぐ）。
     if (typeof lastPinTapAt !== "undefined" && Date.now() - lastPinTapAt < 400) return;
     beginSeek();
 
@@ -829,30 +689,17 @@ document.querySelectorAll(".vbar").forEach((bar, index) => {
       isSeeking = false;
     }, 150);
 
-    // v3.5.0〜：その位置に＋Markerのポップアップも出す（player-markers.js）
     if (typeof showPinPopup === "function") showPinPopup(clickedTime, bar, e.clientX, null);
   });
 });
 
-
-// player-controls.js に分割移動済み（Loop/Repeat）
-
-// addPinBtnのonclick登録は player-markers.js に分割移動済み
 
 
 
 const isMobileLayout = () => window.matchMedia("(max-width: 768px)").matches;
 
 
-// player-markers.js に分割移動済み（Marker移動/カラーピッカー/メモ編集/ループ区間描画）
 
-
-// Keyboard Shortcuts は player-theme.js が window.QN_SHORTCUTS を読んで自動生成する（index.html側で定義）
-
-// スマホ専用タブ切り替え（Time&Vol / Speed&Key / Markers / Playlist）
-// Markers/Playlistのタブ切り替え。PC/SP完全に同じレイアウトに統一されたため、
-// 以前あった「SP幅だけ選択中タブを#mobileTabSlotへ移動する」複雑な仕組みは不要になった。
-// 今は単純に、選択中のパネルにだけ.mobile-tab-activeを付けてCSS側で表示を切り替えるだけで済む。
 const mobileTabBtns = document.querySelectorAll(".mobile-tab-btn");
 let currentMobileTab = "playlist";
 
@@ -869,36 +716,15 @@ function setMobileTab(tabName) {
     btn.classList.toggle("active", btn.getAttribute("data-tab") === tabName);
   });
   applyMobileTabLayout();
-  // updateSidebarHeightForTextTabはplayer-text.js側の関数。setMobileTab自体は
-  // このファイル読み込み中に初期化目的で即時呼び出しされる箇所があり（下記参照）、
-  // その時点ではまだplayer-text.jsが読み込まれていない可能性があるため、
-  // 存在チェックしてから呼ぶ。
   if (typeof updateSidebarHeightForTextTab === "function") {
     updateSidebarHeightForTextTab();
   }
 }
 
 
-// player-text.js に分割移動済み（Textタブ自動保存登録）
-
-// #sidebarSection自体はPC v2が土台として使い続けるため要素参照は残す
-// （player-text.js側でも高さ調整等に使われている）。
-// SP幅限定の右端サイドバー開閉ナビ(sidebarToggleTabs/sidebarOverlay/
-// sp-status-panel、およびそれを開閉していたopenSidebar/closeSidebar/
-// updateSidebarToggleActiveState関数)は撤去。旧SP版専用の仕組みで、
-// PC v2では使っておらず、SP版自体もゼロから作り直す前提のため、
-// 居座っていた古い実装として削除した。
 const sidebarSection = document.getElementById("sidebarSection");
 
-// Play/Repeat/前後曲送りの三分割ボタンは、PC/SP完全に同じレイアウト（topControls内に常時表示）に
-// 統一されたため、以前あった「PC幅⇔SP幅で#playbackButtonsGroupを移動する」ロジックは不要になり、
-// 呼び出し元も含めて完全に削除した。
-
-// ============================================================
-// EQセクションはPC/SP問わず常にEQモーダル内（元の位置）に留める。
-// SP版では画面のスクロールとEQスライダーのドラッグ操作が競合し、
-// スクロールできなくなる問題があったため、モーダルの中に閉じ込めて解決している。
-// ============================================================
+// EQセクションは常にEQモーダル内に留める(SPでスクロールとEQスライダーのドラッグが競合するため)
 const eqInlineSection = document.getElementById("eqInlineSection");
 let eqInlineOrigin = null;
 if (eqInlineSection) {
@@ -939,21 +765,10 @@ function syncTopControlsSpacerHeight() {
 
   const h = topControls.getBoundingClientRect().height;
 
-  // PC/SP共通：topControlsは常時画面下部にposition: fixedで固定されているため、
-  // ページ本体（body）の最下部にその高さ分の余白を必ず確保する。
-  // これがないと、PC幅でサイドバーの中身（マーカーやプレイリスト）が増えて
-  // ページ全体がスクロールした際、一番下の項目がtopControlsの裏に隠れてしまう。
+  // topControlsはfixed。body下端にその高さ分の余白を確保(無いと最下部の項目が裏に隠れる)
   spacer.style.height = h + "px";
 
-  // 【大手術後の対応】この関数は本来、.app-container内でtopControlsが
-  // position:fixedで浮くこと前提の「隠れてしまう分の余白」補正。
-  // PC v2のbuild()はmobile-tab-panel等をmarkAnchor/restoreAnchorで
-  // .app-containerの外（#pcV2PanelBody内）へ実際に移動させるため、
-  // 移動済みの要素にここでpadding-bottomを付けてしまうと、PC v2の
-  // パネル下部に不要な余白ができるバグになる。
-  // body.pc-v2-activeクラスでの判定はスクリプト読み込み順（この関数の
-  // 初回実行がPC v2のbuild()より先に走る）に左右され取りこぼすため、
-  // 各要素ごとに実際に.app-containerの中に留まっているかで判定する。
+  // 各要素が実際に.app-container内に留まっているかで判定する(body.pc-v2-activeでの判定は読み込み順で取りこぼす。PC v2は要素を#pcV2PanelBody内へ移すので、移動済み要素にpadding-bottomを付けると不要な余白になる)
   mobileTabPanels.forEach(panel => {
     const stillInAppContainer = !!panel.closest(".app-container");
     if (!stillInAppContainer) {
@@ -961,12 +776,7 @@ function syncTopControlsSpacerHeight() {
       return;
     }
     if (isMobileLayout()) {
-      // SP幅ではbody自体はスクロールしない(overflow: hidden)ため、bodyへのpadding-bottomは意味を持たない。
-      // 実際にスクロールするのは.sidebar-section内側の.mobile-tab-panel（タブの中身）なので、
-      // そちら自身にtopControlsの高さ分の余白を確保し、スクロール最下部のコンテンツが
-      // topControls(画面下部固定)の裏に隠れないようにする。
-      // （.sidebar-section自体はoverflow: hiddenでスクロールしない外枠のため、
-      //   そちらにpadding-bottomを入れても実際のスクロール領域には反映されない）
+      // SP幅はbodyがoverflow:hiddenでスクロールしない。実スクロールは.sidebar-section内の.mobile-tab-panelなので、そちらにtopControls高さ分の余白(.sidebar-sectionにpaddingしても無効)
       panel.style.paddingBottom = (h + 8) + "px";
     } else {
       panel.style.paddingBottom = "";
@@ -977,7 +787,6 @@ function syncTopControlsSpacerHeight() {
     if (sidebarSection) sidebarSection.style.paddingBottom = "";
     document.body.style.paddingBottom = "";
   } else {
-    // PC幅ではページ本体(body)自体がスクロールするため、上のspacer(bodyの最後尾の余白)だけで十分。
     document.body.style.paddingBottom = "";
     if (sidebarSection) sidebarSection.style.paddingBottom = "";
   }
@@ -989,18 +798,13 @@ window.onload = async () => {
   updatePlayButtonState();
   syncTopControlsSpacerHeight();
 
-  // スプラッシュ表示中に初期化（IndexedDBからのプレイリスト復元）を進める。
-  // 初期化がどれだけ速く終わっても、ロゴがふわっと出て消える演出として
-  // 最低限視認できるよう、最短表示時間(splashMinDurationMs)を設ける。
-  // ロゴのフェードイン演出自体が1.1s(CSS側 splashLogoIn)のため、それより
-  // 短いとアニメーション完了前にフェードアウトが始まってしまう。
   const splashStart = Date.now();
   const splashMinDurationMs = 1400;
 
   try {
     await restorePlaylistFromStorage();
   } catch (e) {
-    // 復元に失敗した場合もスプラッシュだけは必ず消す（エラー自体はconsoleに残す）。
+    // 復元失敗でもスプラッシュは必ず消す(エラーはconsole)
     console.error("restorePlaylistFromStorage failed:", e);
   }
 
@@ -1009,21 +813,16 @@ window.onload = async () => {
   setTimeout(hideSplashOverlay, remaining);
 };
 
-// 起動時スプラッシュをフェードアウトさせる。CSS側のtransitionで実際の
-// 見た目のフェードを行い、完了後にdisplay:noneへ切り替えてクリックや
-// レイアウトへの影響を完全に無くす。
 function hideSplashOverlay() {
   const splash = document.getElementById("splashOverlay");
   if (!splash) return;
   splash.classList.add("splash-fade-out");
   setTimeout(() => {
     splash.style.display = "none";
-  }, 550); // CSS側のtransition/ロゴのsplashLogoOut(共に0.5s)より少し長めに待ってから完全に消す
+  }, 550);
 }
 
-// 起動時、IndexedDBに保存されている曲を全てプレイリストへ復元する。
-// addFilesToPlaylistと違い、復元時は自動再生しない（ユーザー操作なしのplay()はブラウザにブロックされ得るうえ、
-// 意図せず音が鳴るのを避けるため）。また復元した曲を再度IndexedDBに書き戻す必要はない。
+// 起動時にIndexedDBの全曲を復元。自動再生しない(ユーザー操作なしplay()はブロックされ、意図せず鳴るのも避ける)。IndexedDBへ書き戻さない
 async function restorePlaylistFromStorage() {
   const savedTracks = await loadAllPlaylistTracks();
   if (savedTracks.length === 0) return;
@@ -1033,7 +832,6 @@ async function restorePlaylistFromStorage() {
   });
   renderPlaylist();
 
-  // 長さ(duration)はIndexedDBに保存していないため、復元時に読み直す。
   playlist.forEach(track => {
     if (typeof readAudioDuration === "function") {
       readAudioDuration(track.file).then(dur => {
@@ -1045,20 +843,11 @@ async function restorePlaylistFromStorage() {
     }
   });
 
-  // 1曲目を選曲済み状態にする（タイトル表示・波形読み込みまで行うが、
-  // autoplay: falseにより自動再生はしない。ページを開いた直後に
-  // 意図せず音が鳴らないようにするため）。
+  // 1曲目を選曲済みにする(autoplay:false)
   playTrackAt(0, false);
 }
 
-// ============================================================
-// ハプティクス（対応デバイスのみ、非対応環境では何も起きず安全に無視される）
-// docs/ui-motion-haptics-design.md の4パターンに対応：
-//   tap     : ボタン全般の押下、タブ切替、ポップアップ開閉、スウォッチ選択
-//   tick    : スライダーが目盛りの区切りを跨いだ瞬間（呼び出し側で間引くこと）
-//   success : マーカー追加、Export完了など「達成」の区切り
-//   warning : 削除確認、エラー、範囲の上限/下限到達など注意を引きたい場面
-// ============================================================
+// ハプティクス(非対応は無視): tap=押下/タブ切替/ポップアップ開閉/スウォッチ選択、tick=スライダー目盛り跨ぎ(呼び出し側で間引く)、success=マーカー追加/Export完了、warning=削除確認/エラー/上限下限到達
 function hapticTap() {
   if (navigator.vibrate) navigator.vibrate(10);
 }
@@ -1072,27 +861,11 @@ function hapticWarning() {
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 20]);
 }
 
-// player-export.js に分割移動済み（Exportモーダル・実行処理）
 
 
-
-// player-text.js に分割移動済み（Textタブ：フルスクリーン表示＋文字サイズ調整）
-
-// ============================================================
-// Speed/Volume/EQバンドスライダーのCSS変数(--range-progress)更新。
-// style-core.css側で.control-card input[type="range"]::-webkit-slider-
-// runnable-trackが、style-control-eq.css側で.eq-vsliderのbackgroundが、
-// この変数を見て進捗より左側だけaccent-primary色に塗り分ける仕組みに
-// なっている。
-// resetSpeedAndKey()等、JS側で.valueを直接書き換える箇所があり、その
-// 全てにイベント発火の手当てをするのは漏れやすいため、軽量な
-// requestAnimationFrameループで継続的に同期する（値が変わった時だけ
-// スタイル更新するので負荷は小さい）。
 (function syncRangeProgressLoop() {
   const targets = Array.from(document.querySelectorAll(".control-card input[type=\"range\"], .eq-vslider"));
   const lastValues = new Map();
-  // 【v2.13.4 負荷対策】毎フレーム(60〜120回/秒)の常時監視は不要なため、
-  // 約5回/秒に間引く（値の変化に対する見た目の追従はこれで十分）。
   let lastTickAt = 0;
   function tick(now) {
     requestAnimationFrame(tick);

@@ -1,16 +1,6 @@
-/* ============================================================
-   style-text.css
-   Textタブ（歌詞・メモ等の自由入力）：textarea本体、フルスクリーン表示
-   オーバーレイ、文字サイズ調整ボタン等の共通アイコンボタン(.tab-icon-btn)。
-   ============================================================ */
+/* style-text.css — Textタブ(textarea/フルスクリーン/文字サイズボタン/.tab-icon-btn) */
 
 
-/* Textタブ：歌詞・メモ等を自由入力するtextarea。カード系UIと同じ配色・角丸で揃える。
-   入力のたびにsaveNoteText()（player-ui-shared.js）が発火し、ファイル名キーで
-   localStorageへ自動保存される（Saveボタンは持たない）。
-   サイドバーを開いた通常状態ではmin-heightの範囲で中身なりの高さ、Textタブが
-   選択されている間（.sidebar-section.text-tab-active）はflex:1で残り高さいっぱいに広がる
-   （上の.sidebar-section.text-tab-active .note-textarea側で上書き）。 */
 .note-textarea {
   width: 100%;
   min-height: 320px;
@@ -23,8 +13,6 @@
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: var(--fs-body);
   line-height: 1.6;
-  /* 上下方向のみ手動リサイズ可能にする。左右方向にはみ出す/縮む伸縮は
-     レイアウトが崩れるため不可にする。 */
   resize: vertical;
 }
 .note-textarea::placeholder {
@@ -35,9 +23,6 @@
   border-color: var(--accent-primary);
 }
 
-/* Text関連の小さいアイコンボタン共通スタイル（フルスクリーン開閉・文字サイズ+/-）。
-   export-modal-closeと似た見た目だがサイズをやや小さくし、markers-heading-row内で
-   h3と並んでも違和感がないようにしている。 */
 .tab-icon-btn {
   flex-shrink: 0;
   width: 26px;
@@ -68,9 +53,7 @@
   transform: scale(0.9);
 }
 
-/* Textタブのフルスクリーン表示。画面全体を覆い、中に拡大表示用のtextareaを1つ持つ。
-   本体(#noteTextArea)とは値を相互同期させ（player-ui-shared.js）、文字サイズだけ
-   フルスクリーン側で独立して変更できるようにする（本体側のfont-sizeは変えない）。 */
+/* フルスクリーン: 本体#noteTextAreaと値を相互同期(player-ui-shared.js)。文字サイズはフルスクリーン側だけ独立(本体font-sizeは変えない) */
 .text-fullscreen-overlay {
   position: fixed;
   inset: 0;

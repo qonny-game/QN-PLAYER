@@ -1,19 +1,5 @@
-// ============================================================
-// player-marker-presets.js
-// player-markers.js の続き：マーカーメモのプリセット（チップ）、プリセットごとの
-// 自動カラー(Marker Memo Colors)、カスタムプリセット、メモ編集中のプリセット選択
-// ポップアップ(startPinMemoEdit)。
-// player-markers.js の直後に読み込むこと（前半の関数・定数をグローバルで共有する）。
-// ============================================================
+// player-marker-presets.js — player-markers.jsの続き: メモのプリセット/自動カラー(Marker Memo Colors)/カスタムプリセット/startPinMemoEdit。player-markers.jsの直後に読み込む(グローバル共有)
 
-// ============================================================
-// 【v2.15.0】マーカーメモのプリセットごとの自動カラー。
-// プリセット(チップ)を選んだ時、ここで設定された色をマーカーにも自動で付ける。
-// 設定はColorパネルの「Marker Memo Colors」から変更でき、localStorageの
-// MARKER_PRESET_COLORS_KEYに { プリセット名: 色キー|null } で保存する
-// （色キーはMARKER_COLOR_PALETTE＝QN_THEMESのname。nullは「色を付けない」）。
-// 初期値は色相が離れるように配色している。
-// ============================================================
 const MARKER_PRESET_COLORS_KEY = "qn_marker_preset_colors_v1";
 const MARKER_PRESET_COLOR_DEFAULTS = {
   "Intro": "emerald",
@@ -26,12 +12,6 @@ const MARKER_PRESET_COLOR_DEFAULTS = {
   "Outro": "indigo"
 };
 
-// ============================================================
-// 【v2.21.0】カスタムプリセット。ユーザーが自由に追加するメモ(+色)。
-// localStorageのMARKER_CUSTOM_PRESETS_KEYに [{label, color}] で保存する。
-// Colorパネルでは常に末尾へ「空欄の行」が1つ付き、入力すると次の空欄行が増える。
-// 組み込みプリセットと同名(大文字小文字無視)・重複は無効として扱う。
-// ============================================================
 const MARKER_CUSTOM_PRESETS_KEY = "qn_marker_custom_presets_v1";
 const MARKER_CUSTOM_PRESET_MAX = 30;
 const MARKER_CUSTOM_LABEL_MAXLEN = 30;
@@ -56,7 +36,6 @@ function saveMarkerCustomPresets(list) {
   try { localStorage.setItem(MARKER_CUSTOM_PRESETS_KEY, JSON.stringify(clean)); } catch (e) {}
 }
 
-// 実際にチップとして使うカスタム(重複・組み込みと同名を除く)
 function getValidMarkerCustomPresets() {
   const seen = new Set(MARKER_LABEL_PRESETS.map(l => l.toLowerCase()));
   const out = [];
@@ -69,7 +48,6 @@ function getValidMarkerCustomPresets() {
   return out;
 }
 
-// 組み込み＋カスタムのラベル一覧（チップの並び順）
 function getAllMarkerPresetLabels() {
   return MARKER_LABEL_PRESETS.concat(getValidMarkerCustomPresets().map(x => x.label));
 }
@@ -96,7 +74,6 @@ function setMarkerPresetColor(label, colorName) {
   try { localStorage.setItem(MARKER_PRESET_COLORS_KEY, JSON.stringify(current)); } catch (e) {}
 }
 
-// Colorパネル内の設定行（#qnMarkerPresetColorRows、index.html側）を組み立てる。
 function renderMarkerPresetColorSettings() {
   const rowsEl = document.getElementById("qnMarkerPresetColorRows");
   if (!rowsEl) return;
@@ -132,10 +109,10 @@ function renderMarkerPresetColorSettings() {
     rowsEl.appendChild(row);
   });
 
-  // ---- カスタム行（入力欄＋色）。末尾には常に空欄の行を1つ置く ----
+  // ---------- カスタム行（入力欄＋色）。末尾には常に空欄の行を1つ置く ----------
   const customs = loadMarkerCustomPresets();
-  customs.push({ label: "", color: null }); // 末尾の空欄
-  const state = customs; // 編集中の配列（入力のたびに更新）
+  customs.push({ label: "", color: null });
+  const state = customs;
 
   function persist() { saveMarkerCustomPresets(state); }
 
@@ -168,21 +145,18 @@ function renderMarkerPresetColorSettings() {
         entry.color = picked || null;
         paint();
         persist();
-        // 空欄行に色だけ先に選んだ場合も、行は残す（テキスト入力待ち）
       });
     };
 
     input.addEventListener("input", () => {
       entry.label = input.value;
       persist();
-      // 一番下の行に文字が入ったら、次の空欄行を足す
       if (entry === state[state.length - 1] && entry.label.trim() && state.length < MARKER_CUSTOM_PRESET_MAX + 1) {
         const blank = { label: "", color: null };
         state.push(blank);
         rowsEl.appendChild(buildCustomRow(blank));
       }
     });
-    // 確定(フォーカスアウト/Enter)時：中間の空欄行は詰めて整える
     input.addEventListener("change", () => {
       const last = state[state.length - 1];
       const hasEmptyMiddle = state.some((x, i) => i < state.length - 1 && !x.label.trim());
@@ -190,10 +164,9 @@ function renderMarkerPresetColorSettings() {
     });
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); input.blur(); }
-      e.stopPropagation(); // 画面のショートカットに奪われないように
+      e.stopPropagation();
     });
 
-    // 削除ボタン（文字が入っている行だけ表示。末尾の空欄行では非表示）
     const delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.className = "qn-marker-custom-del";
@@ -223,8 +196,7 @@ function renderMarkerPresetColorSettings() {
 renderMarkerPresetColorSettings();
 document.addEventListener("DOMContentLoaded", renderMarkerPresetColorSettings);
 
-// メモ編集中のプリセット選択ポップアップ（1つだけ開く）。
-var activePinMemoPresetPopup = null; // renderPinList()から先に参照され得るためvar（TDZ回避）
+var activePinMemoPresetPopup = null; // var: renderPinList()から先に参照され得る(TDZ回避)
 function closePinMemoPresetPopup() {
   if (activePinMemoPresetPopup) {
     activePinMemoPresetPopup.popup.remove();
@@ -235,7 +207,7 @@ function closePinMemoPresetPopup() {
 }
 
 function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
-  if (itemDiv.querySelector(".pin-memo-input")) return; // 既に編集中なら何もしない
+  if (itemDiv.querySelector(".pin-memo-input")) return;
 
   const input = document.createElement("input");
   input.type = "text";
@@ -245,17 +217,10 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   input.maxLength = 60;
 
   infoSpan.style.display = "none";
-  // infoSpanは.pin-label-row(ホバーで鉛筆を出す行ラッパー)の子なので、
-  // itemDiv(.pinItem本体)ではなくinfoSpan.parentNode基準で挿入する。
   infoSpan.parentNode.insertBefore(input, infoSpan);
   input.focus();
   input.select();
 
-  // 【v2.15.0】プリセットは行の中ではなく、入力欄の下に浮かぶポップアップで
-  // 表示する（以前は.pinItemの中に行として追加していたため、編集中だけ
-  // リストの行が縦に広がっていた）。チップを押したら、メモの確定・
-  // プリセットに設定された色の自動適用・ポップアップと編集モードの終了まで
-  // 一度に行う。
   const presetPopup = document.createElement("div");
   presetPopup.className = "pin-memo-preset-popup";
   const presetColors = getMarkerPresetColors();
@@ -309,15 +274,9 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
       chip.appendChild(dot);
     }
     chip.appendChild(document.createTextNode(label));
-    // pointerdownでpreventDefaultして入力欄のフォーカス（=編集状態）を
-    // 保ち、実際の適用はclickで行う。pointerdown時点で適用・ポップアップを
-    // 消すと、その後のclickが下にあるリスト行（マーカーへジャンプ等）に
-    // 落ちてしまうため。
     chip.addEventListener("pointerdown", (e) => {
       e.preventDefault();
       presetPointerActive = true;
-      // チップを押したまま外へ指を離した（clickにならなかった）場合の後始末：
-      // 押下フラグを戻し、入力欄からフォーカスが外れていれば通常どおり確定する。
       window.addEventListener("pointerup", () => {
         setTimeout(() => {
           if (!presetPointerActive) return;
@@ -368,9 +327,7 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
     }
   });
   input.addEventListener("blur", () => {
-    // プリセットチップを押している最中のフォーカス外れ（iOS等でpointerdownの
-    // preventDefaultが効かない場合）では確定しない。チップのclick側で
-    // applyPreset()が確定まで行う。
+    // iOSでpointerdownのpreventDefaultが効かない場合の対策: チップ押下中のblurでは確定しない(確定はapplyPreset())
     setTimeout(() => {
       if (presetPointerActive) return;
       commit();
@@ -379,8 +336,6 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   input.addEventListener("click", e => e.stopPropagation());
 }
 
-// シェアウェア制限：広告解除/サブスク購入した瞬間、マーカーの鍵アイコン表示・
-// 波形ロック表示を即座に更新するため、player-shareware.js側のリフレッシュ機構に登録する。
 if (typeof swRegisterRefreshCallback === "function") {
   swRegisterRefreshCallback(() => {
     if (typeof renderPinList === "function") renderPinList();

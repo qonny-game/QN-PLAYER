@@ -1,94 +1,49 @@
-// ============================================================
-// player-track-backup.js
-// PC v2サイドメニュー(#pcV2IconBar)のBackup/Importアイコン用。
-// Backup/Importはそれぞれ別モーダル(#trackBackupModalOverlay /
-// #trackImportModalOverlay)として独立している。
-//
-// - Backup: フローは「曲を選択（全選/全解除＋個別チェック、選択中の
-//   合計ファイルサイズを表示）→ 含める項目（音声データ / マーカー・
-//   テキストなどの設定）を選択 → Download」。
-//   「音声データ」にチェックが入っていればJSZipでZIP化(markers.json +
-//   audio/フォルダ)、チェックが外れていれば音声実体を含まないため
-//   ZIP化せずmarkers.json単体をそのまま出力する（曲名/マーカー/メモ
-//   だけを軽量に共有したい用途）。「マーカー・テキストなどの設定」を
-//   オフにすると、markers.json側には曲名(name)のみが入り、タイトル/
-//   アーティスト/マーカー/テキストメモは含まれない。
-// - Import: Backupで書き出したZIPまたはmarkers.json単体を読み込み、
-//   ライブラリに曲を追加し、マーカー・メタデータ・テキストメモを反映
-//   する。同名の曲が既にライブラリにある場合は、曲ごとに「上書き」か
-//   「スキップ」かを選ぶ。JSON単体インポートは音声実体を含まないため、
-//   新規曲は追加できず（再生できないため）、既存曲への上書きにのみ
-//   使える。インポート完了後はImportボタンが「Close」に変わり、結果
-//   を確認したらそのままモーダルを閉じられる。
-//
-// ZIP/JSONの構成は「インポートエクスポート機能.md」(将来の全曲一括
-// インポート/エクスポート機能)と互換になるよう合わせている：
-//   qnplayer_library_backup_YYYYMMDD.zip  （音声データを含む場合）
-//   ├── markers.json   … tracks配列に選択曲分のメタデータ・マーカーを格納
-//   └── audio/
-//       └── <各曲の元のファイル名>
-//   qnplayer_library_backup_YYYYMMDD.json （音声データを含まない場合）
-//   … markers.json単体と同じ内容をそのまま
-//
-// 【v3.17.0〜】Backup/ImportはPLAYERとYouTubeアプリで共通の画面（この画面1つ）。
-//   - Backup: 曲リストの下に「YouTube」の動画リストも並ぶ（window.QNYouTubeBackup
-//     が qn-app-youtube.js から提供する list()/buildExport()）。両方を選んでDownload
-//     すると、1つのZIP（markers.json＋audio/＋youtube.json）で出力する。
-//     片方だけなら従来どおり（PLAYER=ZIPまたはmarkers.json、YouTube=JSON）。
-//   - Import: ZIP/JSONの中身を自動判定（markers.json=PLAYER／youtube.json=YouTube／
-//     旧形式のPLAYER ZIP・markers.json・YouTube JSONもそのまま読める）。
-//   - YouTubeアプリのBackup/Importアイコンは、この画面を
-//     window.qnBackupMountInto(mode, hostEl, onDismiss) で借りて表示する。
-//
-// 依存: player-core.js（playlist配列, savePlaylistTrack）、
-// player-ui-shared.js（hapticTap等）、player-playlist.js（renderPlaylist,
-// persistPlaylistOrder）。JSZip(JS/jszip.min.js)はこのファイルより前に
-// 読み込むこと（音声データを含むBackup/ZIPインポート時のみ使用）。
-// ============================================================
+// player-track-backup.js — PC v2サイドメニューのBackup/Import(PLAYERとYouTube共通の1画面)。
+// Backup: 曲選択→含める項目(音声/設定)→Download。音声あり=ZIP(markers.json+audio/)、音声なし=markers.json単体。設定オフ=nameのみ。YouTubeがあればyoutube.jsonも同梱(window.QNYouTubeBackupのlist()/buildExport())。ZIP名: qnplayer_library_backup_YYYYMMDD.zip(.json)。
+// Import: ZIP/JSONを自動判定(markers.json=PLAYER, youtube.json=YouTube。旧形式も可)。同名曲は曲ごとに上書き/スキップ。JSON単体は音声なし→既存曲の上書きのみ。完了後ImportボタンはCloseに変わる。
+// YouTubeアプリはwindow.qnBackupMountInto(mode,hostEl,onDismiss)でこの画面を借りる。
+// 依存: player-core.js(playlist,savePlaylistTrack), player-ui-shared.js(hapticTap), player-playlist.js(renderPlaylist,persistPlaylistOrder)。JSZip(JS/jszip.min.js)を先に読み込む
 
-// ============================================================
-// Backupモーダル
-// ============================================================
-const trackBackupModalOverlay = document.getElementById("trackBackupModalOverlay");
-// 中身(body/footer)の参照は最初に確保しておく（PC v2のパネルやYouTubeアプリの
-// パネルへ移した後も、ここから取れるようにするため）。
-const trackBackupBodyNode = trackBackupModalOverlay ? trackBackupModalOverlay.querySelector(".export-modal-body") : null;
-const trackBackupFooterNode = trackBackupModalOverlay ? trackBackupModalOverlay.querySelector(".export-modal-footer") : null;
-const _trackImportOverlayForRefs = document.getElementById("trackImportModalOverlay");
-const trackImportBodyNode = _trackImportOverlayForRefs ? _trackImportOverlayForRefs.querySelector(".export-modal-body") : null;
-const trackImportFooterNode = _trackImportOverlayForRefs ? _trackImportOverlayForRefs.querySelector(".export-modal-footer") : null;
+// ---------- Backup/Import画面 ----------
+// 実体は#trackBackupHome/#trackImportHome(hidden)内のbody+footerが各1つだけ。表示時はqnBackupMount()でPC v2パネル/YouTubeパネルへ移す(複製しない=idが一意)。
+const trackBackupBodyNode = document.querySelector("#trackBackupHome .export-modal-body");
+const trackBackupFooterNode = document.querySelector("#trackBackupHome .export-modal-footer");
+const trackImportBodyNode = document.querySelector("#trackImportHome .export-modal-body");
+const trackImportFooterNode = document.querySelector("#trackImportHome .export-modal-footer");
 
-// 閉じる/完了した時の戻り先。YouTubeアプリがこの画面を借りている間は
-// window.qnBackupExternalDismiss（YouTube側がLibraryへ戻す）、それ以外は
-// PC v2のパネル（Libraryへ切り替え）。
+// 閉じる/完了の戻り先: YouTube借用中=window.qnBackupExternalDismiss(Libraryへ戻す)、他=PC v2パネル(Libraryへ)
 function qnBackupDismissCurrent() {
   if (typeof window.qnBackupExternalDismiss === "function") window.qnBackupExternalDismiss();
   else if (typeof window.qnPcv2DismissAuxPanel === "function") window.qnPcv2DismissAuxPanel();
 }
 
-// YouTubeアプリのパネル(hostEl)へ、このBackup/Import画面を借りて表示する。
-// 開くたびの初期化（全選択・項目チェック/読み込み状態のリセット）は
-// openBulk*Modal()に任せ、モーダル外枠のopenだけ外す（PC v2パネルと同じ方式）。
-window.qnBackupMountInto = function (mode, hostEl, onDismiss) {
+// stash退避用: 現在のbody/footer(PC v2のstashPanelContentsが使う)
+window.qnBackupParts = function () {
+  return { backupBody: trackBackupBodyNode, backupFooter: trackBackupFooterNode, importBody: trackImportBodyNode, importFooter: trackImportFooterNode };
+};
+// 表示の入口: 状態を初期化(prepare*)してからbody/footerをhostElへ移す。mode="backup"|"import"
+window.qnBackupMount = function (mode, hostEl) {
   if (!hostEl) return;
-  window.qnBackupExternalDismiss = typeof onDismiss === "function" ? onDismiss : null;
   const isBackup = mode === "backup";
-  if (isBackup) openBulkBackupModal(); else openBulkImportModal();
-  const overlay = document.getElementById(isBackup ? "trackBackupModalOverlay" : "trackImportModalOverlay");
-  if (overlay) overlay.classList.remove("open");
+  if (isBackup) prepareBackupView(); else prepareImportView();
   const body = isBackup ? trackBackupBodyNode : trackImportBodyNode;
   const footer = isBackup ? trackBackupFooterNode : trackImportFooterNode;
   if (body) hostEl.appendChild(body);
   if (footer) hostEl.appendChild(footer);
 };
-// YouTube側がパネルを切り替えた時に呼ぶ（借りている間だけのフックを外す）
+// YouTubeパネル用: 閉じる時の戻り先(onDismiss)も渡して借りる
+window.qnBackupMountInto = function (mode, hostEl, onDismiss) {
+  if (!hostEl) return;
+  window.qnBackupExternalDismiss = typeof onDismiss === "function" ? onDismiss : null;
+  window.qnBackupMount(mode, hostEl);
+};
+// YouTube側がパネル切替時に呼ぶ(借用中だけのフックを外す)
 window.qnBackupReleaseExternal = function () { window.qnBackupExternalDismiss = null; };
 
-// YouTubeアプリのBackup/Import用の窓口（無ければnull）
+// YouTubeアプリ用の窓口(無ければnull)
 function ytBackupApi() {
   return (window.QNYouTubeBackup && typeof window.QNYouTubeBackup.list === "function") ? window.QNYouTubeBackup : null;
 }
-const trackBackupModalCloseBtn = document.getElementById("trackBackupModalCloseBtn");
 const trackBackupCancelBtn = document.getElementById("trackBackupCancelBtn");
 const trackBackupRunBtn = document.getElementById("trackBackupRunBtn");
 const trackBackupStatusEl = document.getElementById("trackBackupStatus");
@@ -99,21 +54,13 @@ const trackBackupSelectNoneBtn = document.getElementById("trackBackupSelectNoneB
 const trackBackupSelectedCountEl = document.getElementById("trackBackupSelectedCount");
 const trackBackupTotalSizeEl = document.getElementById("trackBackupTotalSize");
 
-// 【v2.15.2】「含める項目」は音声データ / マーカー・テキストなどの
-// 設定、の2択に簡略化（以前は6項目を個別チェック＋推定サイズ表示＋
-// 折りたたみだったが、選択の手間が多く分かりにくいとの指摘を受けて
-// 統合した）。
 const trackBackupIncludeAudioEl = document.getElementById("trackBackupIncludeAudio");
 const trackBackupIncludeSettingsEl = document.getElementById("trackBackupIncludeSettings");
 
-// 曲一覧のチェック状態。キーはtrack.name。開くたびに全曲trueでリセットする。
 let trackBackupSelectedNames = new Set();
-// YouTube動画のチェック状態（キーはYouTube側のitem.id）。同じく開くたびに全選択でリセット。
+// YouTube動画のチェック状態(キー=item.id)。開くたび全選択でリセット
 let trackBackupSelectedYtIds = new Set();
 
-// ファイルサイズを「12.3 MB」のような表示用文字列に整形する。
-// 1000バイト区切り(MB/KB)ではなく1024バイト区切りにする（OSのファイル
-// サイズ表示に近く、ユーザーの感覚に合わせやすいため）。
 function formatFileSize(bytes) {
   if (!bytes || bytes <= 0) return "0 MB";
   const mb = bytes / (1024 * 1024);
@@ -129,7 +76,7 @@ function updateTrackBackupSelectionSummary() {
   const selectedTracks = playlist.filter(t => trackBackupSelectedNames.has(t.name));
   const ytCount = trackBackupSelectedYtIds.size;
   if (trackBackupSelectedCountEl) {
-    // 曲(PLAYER)と動画(YouTube)の両方を数える。片方だけの時は従来の表記。
+    // 曲(PLAYER)と動画(YouTube)の両方を数える
     trackBackupSelectedCountEl.textContent = ytCount > 0
       ? (selectedTracks.length > 0 ? `${selectedTracks.length}曲 + ${ytCount}動画選択中` : `${ytCount}動画選択中`)
       : `${selectedTracks.length}曲選択中`;
@@ -157,7 +104,7 @@ function renderTrackBackupTrackList() {
   const tracks = Array.isArray(playlist) ? playlist : [];
   const yt = ytBackupApi();
   const ytList = yt ? yt.list() : [];
-  // YouTubeの動画がある時だけ、PLAYER / YouTube の見出しで分ける
+  // YouTube動画がある時だけPLAYER/YouTubeの見出しで分ける
   const grouped = ytList.length > 0;
 
   if (grouped) trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("PLAYER"));
@@ -245,11 +192,9 @@ if (trackBackupSelectNoneBtn) {
   };
 }
 
-function openBulkBackupModal() {
-  if (!trackBackupModalOverlay) return;
+function prepareBackupView() {
+  if (!trackBackupBodyNode) return;
 
-  // 開くたびに全曲選択・含める項目チェック済みの状態にリセットする
-  // （前回の選択を引き継がない）。
   trackBackupSelectedNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
   const ytOpen = ytBackupApi();
   trackBackupSelectedYtIds = new Set(ytOpen ? ytOpen.list().map(it => it.id) : []);
@@ -261,30 +206,10 @@ function openBulkBackupModal() {
 
   if (trackBackupRunBtn) trackBackupRunBtn.textContent = "Download";
   if (trackBackupStatusEl) trackBackupStatusEl.textContent = "";
-
-  trackBackupModalOverlay.classList.add("open");
 }
 
-function closeTrackBackupModal() {
-  if (!trackBackupModalOverlay) return;
-  trackBackupModalOverlay.classList.remove("open");
-  // v2.13.6〜：PC v2のサイドメニューパネル（またはYouTubeアプリのパネル）として
-  // 表示している場合は、パネル側を閉じる。
-  qnBackupDismissCurrent();
-}
+if (trackBackupCancelBtn) trackBackupCancelBtn.onclick = qnBackupDismissCurrent;
 
-if (trackBackupModalCloseBtn) trackBackupModalCloseBtn.onclick = closeTrackBackupModal;
-if (trackBackupCancelBtn) trackBackupCancelBtn.onclick = closeTrackBackupModal;
-if (trackBackupModalOverlay) {
-  trackBackupModalOverlay.addEventListener("click", (e) => {
-    if (e.target === trackBackupModalOverlay) closeTrackBackupModal();
-  });
-}
-
-// localStorageに保存されているマーカー(pins)・テキストメモを、対象曲の
-// ファイル名キーで読み出す。現在再生中の曲であってもメモリ上のpins/
-// noteTextAreaは見ず、常にlocalStorageの保存値を正とする（保存済みの
-// 状態＝savePins/saveNoteTextが最後に書き込んだ内容をバックアップしたいため）。
 function loadStoredPinsFor(fileName) {
   try {
     const raw = localStorage.getItem("mp3_pins_" + fileName);
@@ -339,13 +264,13 @@ async function runTrackBackup() {
     settings: trackBackupIncludeSettingsEl ? trackBackupIncludeSettingsEl.checked : false
   };
 
-  // PLAYERの曲があるのに何も含めない設定は不可（YouTubeだけの時は、URLだけの出力も許す）
+  // PLAYER曲があるのに何も含めない設定は不可(YouTubeのみならURLだけ出力OK)
   if (targetTracks.length > 0 && !opts.audio && !opts.settings) {
     if (trackBackupStatusEl) trackBackupStatusEl.textContent = "少なくとも1項目を選択してください。";
     return;
   }
 
-  // ZIP化が必要か：PLAYERの音声を含める／PLAYERとYouTubeを同時に出す
+  // ZIP化が必要か: PLAYER音声を含める/PLAYERとYouTube同時
   const hasPlayer = targetTracks.length > 0;
   const hasYt = ytIds.length > 0;
   const includeAudio = hasPlayer && opts.audio;
@@ -365,7 +290,7 @@ async function runTrackBackup() {
   try {
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 
-    // --- PLAYER側のmarkers.json（従来と同じ形式） ---
+    // ---------- PLAYER側のmarkers.json（従来と同じ形式） ----------
     let markersJsonText = null;
     if (hasPlayer) {
       const tracksForExport = targetTracks.map(track => {
@@ -381,7 +306,6 @@ async function runTrackBackup() {
             color: p.color || null,
             memo: p.memo || ""
           }));
-          // v3.8.0〜：A点/B点（マーカーとは別の点。秒。無ければnull）
           const storedAB = loadStoredABFor(track.name);
           trackData.abA = storedAB.a;
           trackData.abB = storedAB.b;
@@ -398,13 +322,11 @@ async function runTrackBackup() {
       }, null, 2);
     }
 
-    // --- YouTube側のJSON（YouTubeアプリの形式。設定データ=タイトル・マーカー・AB点） ---
+    // ---------- YouTube側のJSON（YouTubeアプリの形式。設定データ=タイトル・マーカー・AB点） ----------
     const ytJsonText = hasYt ? JSON.stringify(yt.buildExport(ytIds, opts.settings), null, 2) : null;
 
     if (needZip) {
-      // PLAYER(markers.json＋audio/)とYouTube(youtube.json)を1つのZIPにまとめる。
-      // PLAYER側の構成は従来のZIPと同じなので、古いバージョンでも（youtube.jsonを
-      // 無視して）読み込める。
+      // PLAYER(markers.json+audio/)とYouTube(youtube.json)を1つのZIPへ。PLAYER側構成は従来と同じ(古い版はyoutube.jsonを無視して読める)
       const zip = new JSZip();
       if (hasPlayer) {
         zip.file("markers.json", markersJsonText);
@@ -419,18 +341,16 @@ async function runTrackBackup() {
         ? `qnplayer_backup_${dateStr}.zip`
         : `qnplayer_library_backup_${dateStr}.zip`);
     } else if (hasPlayer) {
-      // 音声データを含めない場合はZIPにせず、markers.json単体をそのまま
-      // ダウンロードする（曲名/マーカー/メモだけを軽量に共有したい用途）。
       downloadBlobAs(new Blob([markersJsonText], { type: "application/json" }),
         `qnplayer_library_backup_${dateStr}.json`);
     } else {
-      // YouTubeだけ：従来どおりJSON単体
+      // YouTubeのみ: JSON単体
       downloadBlobAs(new Blob([ytJsonText], { type: "application/json" }),
         `qn-youtube-library_${dateStr}.json`);
     }
 
     hapticSuccess();
-    closeTrackBackupModal();
+    qnBackupDismissCurrent();
   } catch (err) {
     console.warn("runTrackBackup failed:", err);
     if (trackBackupStatusEl) trackBackupStatusEl.textContent = "バックアップの作成に失敗しました。";
@@ -444,11 +364,7 @@ async function runTrackBackup() {
 
 if (trackBackupRunBtn) trackBackupRunBtn.onclick = runTrackBackup;
 
-// ============================================================
-// Importモーダル
-// ============================================================
-const trackImportModalOverlay = document.getElementById("trackImportModalOverlay");
-const trackImportModalCloseBtn = document.getElementById("trackImportModalCloseBtn");
+// ---------- Importモーダル ----------
 const trackImportCancelBtn = document.getElementById("trackImportCancelBtn");
 const trackImportRunBtn = document.getElementById("trackImportRunBtn");
 const trackImportStatusEl = document.getElementById("trackImportStatus");
@@ -464,20 +380,12 @@ const trackImportSummaryEl = document.getElementById("trackImportSummary");
 const trackImportBulkToggle = document.getElementById("trackImportBulkToggle");
 const trackImportBulkToggleLabelEl = document.getElementById("trackImportBulkToggleLabel");
 
-// 選択されたZIP/JSONから読み取った内容。parsedData: markers.jsonの中身、
-// audioFiles: Map<fileName, Blob>（audio/フォルダの中身、JSON単体の場合は空）。
-// duplicateChoices: Map<fileName, "overwrite"|"skip">（重複曲ごとの選択）。
 let trackImportParsedData = null;
 let trackImportAudioFiles = null;
 let trackImportDuplicateChoices = new Map();
-// 読み込んだYouTube分（YouTubeアプリの形式を整形したリスト。無ければnull）。
-// 重複の選択は trackImportDuplicateChoices に "yt:<videoId>" のキーで入れる
-// （PLAYERの曲名キーとぶつからないようにするため）。
+// 読み込んだYouTube分(整形済みリスト。無ければnull)。重複選択はtrackImportDuplicateChoicesに"yt:<videoId>"キー(PLAYER曲名キーと衝突回避)
 let trackImportYtList = null;
 
-// Cancel/Backボタン(#trackImportCancelBtn)は、ファイル読み込み前は
-// モーダルを閉じる「Cancel」、読み込み後は選び直すための「Back」に
-// なる（resetImportState()を呼んでドロップゾーン表示へ戻す）。
 function updateTrackImportCancelBtnMode() {
   if (!trackImportCancelBtn) return;
   if (trackImportParsedData) {
@@ -486,17 +394,11 @@ function updateTrackImportCancelBtnMode() {
     trackImportCancelBtn.dataset.mode = "back";
   } else {
     trackImportCancelBtn.textContent = "Cancel";
-    trackImportCancelBtn.onclick = closeTrackImportModal;
+    trackImportCancelBtn.onclick = qnBackupDismissCurrent;
     trackImportCancelBtn.dataset.mode = "cancel";
   }
 }
 
-// trackImportRunBtnの見た目と押した時の挙動をまとめて切り替える。
-// "import": 通常時、押すとrunTrackImportを実行する。
-// "importing": 実行中、無効化して待たせる。
-// "close": インポート完了後、押すとモーダルを閉じる（結果を確認して
-// そのまま終えられるようにするため、"Import"のまま無効化していた
-// 以前の挙動から変更した）。
 function setTrackImportRunBtnMode(mode) {
   if (!trackImportRunBtn) return;
   if (mode === "importing") {
@@ -506,7 +408,7 @@ function setTrackImportRunBtnMode(mode) {
   } else if (mode === "close") {
     trackImportRunBtn.disabled = false;
     trackImportRunBtn.textContent = "Close";
-    trackImportRunBtn.onclick = closeTrackImportModal;
+    trackImportRunBtn.onclick = qnBackupDismissCurrent;
   } else {
     trackImportRunBtn.disabled = !trackImportParsedData;
     trackImportRunBtn.textContent = "Import";
@@ -514,24 +416,10 @@ function setTrackImportRunBtnMode(mode) {
   }
 }
 
-function openBulkImportModal() {
-  if (!trackImportModalOverlay) return;
+function prepareImportView() {
+  if (!trackImportBodyNode) return;
   resetImportState();
   if (trackImportStatusEl) trackImportStatusEl.textContent = "";
-  trackImportModalOverlay.classList.add("open");
-}
-
-function closeTrackImportModal() {
-  if (!trackImportModalOverlay) return;
-  trackImportModalOverlay.classList.remove("open");
-  qnBackupDismissCurrent();
-}
-
-if (trackImportModalCloseBtn) trackImportModalCloseBtn.onclick = closeTrackImportModal;
-if (trackImportModalOverlay) {
-  trackImportModalOverlay.addEventListener("click", (e) => {
-    if (e.target === trackImportModalOverlay) closeTrackImportModal();
-  });
 }
 
 function resetImportState() {
@@ -599,8 +487,8 @@ async function handleTrackImportFileSelected(file) {
   if (trackImportStatusEl) trackImportStatusEl.textContent = "読み込み中...";
 
   try {
-    let parsed = null;       // PLAYER（markers.json）
-    let ytList = null;       // YouTube（youtube.json）
+    let parsed = null;
+    let ytList = null;
     const audioMap = new Map();
     const yt = ytBackupApi();
 
@@ -615,7 +503,6 @@ async function handleTrackImportFileSelected(file) {
       if (markersEntry) {
         parsed = JSON.parse(await markersEntry.async("string"));
 
-        // audio/フォルダ配下のファイルを、ファイル名をキーにしたMapへ集める。
         const audioFolderFiles = zip.folder("audio") ? zip.folder("audio").file(/.*/) : [];
         for (const entry of audioFolderFiles) {
           const blob = await entry.async("blob");
@@ -627,11 +514,7 @@ async function handleTrackImportFileSelected(file) {
         ytList = yt.parseImport(JSON.parse(await ytEntry.async("string")));
       }
     } else {
-      // JSON単体でのインポート。中身を見て、PLAYER（tracks配列）かYouTube
-      // （format: qn-youtube-library）かを自動判定する。
-      // PLAYERのJSON単体は音声データを含まないため、既存曲への上書き
-      // （メタデータ/マーカー/メモのみ）専用になる（音声実体が無い新規曲は、
-      // runTrackImport側の「音声なしのためスキップ」ロジックが処理する）。
+      // JSON単体インポート: tracks配列=PLAYER、format:qn-youtube-library=YouTubeと自動判定。PLAYERのJSON単体は音声なし→既存曲の上書き(メタ/マーカー/メモ)専用(音声なし新規はrunTrackImportがスキップ)
       const raw = JSON.parse(await file.text());
       if (raw && Array.isArray(raw.tracks)) {
         parsed = raw;
@@ -646,7 +529,7 @@ async function handleTrackImportFileSelected(file) {
       if (trackImportStatusEl) trackImportStatusEl.textContent = "ファイルの内容を読み取れませんでした。";
       return;
     }
-    // YouTubeだけの時も、以降の処理が共通で使えるよう空のtracksを持たせる
+    // YouTubeのみでも後続共通処理のため空tracksを持たせる
     if (!hasPlayerData) parsed = { tracks: [] };
     trackImportYtList = hasYtData ? ytList : null;
 
@@ -655,11 +538,6 @@ async function handleTrackImportFileSelected(file) {
 
     if (trackImportStatusEl) trackImportStatusEl.textContent = "";
 
-    // 読み込み後はドロップゾーンを隠し、代わりに読み込み済み情報を
-    // 表示する（ドロップ位置によって「通常のファイル追加」と「ZIP/JSON
-    // インポート」の挙動が入り乱れるのを避けるため、読み込み後は
-    // ドロップ自体を受け付ける場所を無くす）。選び直したい場合は
-    // Cancelボタンが「Back」になり、resetImportState()で元に戻す。
     if (trackImportDropZoneEl) trackImportDropZoneEl.style.display = "none";
     if (trackImportLoadedInfoEl) trackImportLoadedInfoEl.style.display = "flex";
     if (trackImportLoadedFileNameEl) trackImportLoadedFileNameEl.textContent = file.name;
@@ -672,13 +550,11 @@ async function handleTrackImportFileSelected(file) {
     setTrackImportRunBtnMode("import");
     updateTrackImportCancelBtnMode();
 
-    // 既存ライブラリとの重複を検出し、曲ごとの上書き/スキップ選択UIを出す。
     const existingNames = new Set((Array.isArray(playlist) ? playlist : []).map(t => t.name));
     const duplicateEntries = parsed.tracks
       .map(t => t.name)
       .filter(name => existingNames.has(name))
       .map(name => ({ key: name, label: name }));
-    // YouTube側の重複（同じ動画IDが既にある）
     if (trackImportYtList && yt) {
       trackImportYtList.forEach(x => {
         if (yt.exists(x.videoId)) {
@@ -702,7 +578,6 @@ function renderTrackImportDuplicateRows(entries) {
   if (!trackImportDuplicateRowsEl) return;
   trackImportDuplicateRowsEl.innerHTML = "";
 
-  // entries: [{ key: 選択のキー, label: 表示名 }]
   entries.forEach(entry => {
     const row = document.createElement("div");
     row.className = "track-import-duplicate-row";
@@ -719,13 +594,6 @@ function renderTrackImportDuplicateRows(entries) {
   });
 }
 
-// 上書き/スキップの1件分を、EQのON/OFFトグル(.glow-switch)と同じ
-// 小さい丸ノブ型スイッチ＋左に添える短いテキストラベルで表す
-// （以前はカプセル内に「上書き」「スキップ」両方のラベルを常時表示する
-// デザインだったが、場所を取りすぎるとの指摘を受け、状態を示す
-// テキストは1つだけに絞り、スイッチ自体も最小サイズにした。これで
-// 曲名の表示スペース(.track-import-duplicate-name)を広く取れる）。
-// aria-checked="true"=上書き(ON)、"false"=スキップ(OFF)。
 function createTrackImportChoiceToggle(name) {
   const wrap = document.createElement("div");
   wrap.className = "track-import-choice-wrap";
@@ -761,9 +629,6 @@ function createTrackImportChoiceToggle(name) {
   return wrap;
 }
 
-// 「すべて上書き」「すべてスキップ」：重複リスト全行の選択を一括で
-// 同じ側に揃える。少数だけ個別に変えたい場合のベース状態としても使える
-// （全部揃えてから、ごく一部だけ行ごとのスイッチでクリックし直す運用）。
 function setAllTrackImportDuplicateChoices(choice) {
   if (!trackImportDuplicateRowsEl) return;
   const overwrite = choice !== "skip";
@@ -807,18 +672,7 @@ async function runTrackImport() {
 
   try {
     const existingByName = new Map((Array.isArray(playlist) ? playlist : []).map(t => [t.name, t]));
-    // インポートで実際に変更された曲（新規追加/上書き）だけを、都度
-    // その場でIndexedDBへ直列保存する。以前はループ後にまとめて
-    // persistPlaylistOrder()を呼んでいたが、これは「並び順が変わった」
-    // 時のための処理で、ライブラリ全曲（インポートと無関係な曲も含む）の
-    // savedAtを振り直しながら音声Blobごと保存し直す重い処理になる。
-    // インポートでは並び順自体は変わらない（新規曲は末尾に追加される
-    // だけ、上書き曲は元の位置のまま）ため、変更された曲だけを保存すれば
-    // 十分。曲数が多いインポートほど、この違いが「保存が終わるまでの
-    // 時間」に直結し、その間に再生操作をすると音声のロードと
-    // IndexedDB書き込みがリソースを奪い合って再生できない/フリーズする
-    // という不具合（インポート後、アプリを再起動するまで不安定になる）
-    // につながっていた。
+    // 変更された曲(新規/上書き)だけ都度IndexedDBへ直列保存。persistPlaylistOrder()を使うな(全曲のsavedAt振り直し＋Blob再保存で重く、再生不能/フリーズの原因)。インポートでは並び順は変わらない
 
     for (const trackData of trackImportParsedData.tracks) {
       const name = trackData.name;
@@ -835,18 +689,14 @@ async function runTrackImport() {
       const audioBlob = trackImportAudioFiles ? trackImportAudioFiles.get(name) : null;
 
       if (isDuplicate) {
-        // --- 重複曲の上書き ---
+        // ---------- 重複曲の上書き ----------
         const existingTrack = existingByName.get(name);
         if (trackData.title !== undefined) existingTrack.title = trackData.title;
         if (trackData.artist !== undefined) existingTrack.artist = trackData.artist;
         if (audioBlob) {
           existingTrack.file = new File([audioBlob], name, { type: audioBlob.type || "audio/mpeg" });
         }
-        // 既存のsavedAt（＝現在の並び順）を保ったまま、この1曲分だけ
-        // 保存する。
-        // 【v2.13.5】音声ごと差し替えた場合だけIndexedDBの音声レコードも
-        // 書き直す（新しいBlobはメモリ上のデータなので安全）。メタデータだけの
-        // 上書きならIndexedDBには触れない（GOTCHAS.md）。
+        // 1曲だけ保存(savedAt維持)。【v2.13.5】音声ごと差し替え時のみIndexedDBの音声レコードを書き直す。メタのみ上書きならIndexedDBに触れない(GOTCHAS.md)
         if (audioBlob && typeof savePlaylistTrackAudioKeepingOrder === "function") {
           await savePlaylistTrackAudioKeepingOrder(existingTrack);
         } else if (typeof savePlaylistMetadataFor === "function") {
@@ -855,11 +705,8 @@ async function runTrackImport() {
         applyImportedMarkersAndText(name, trackData);
         overwrittenCount++;
       } else {
-        // --- 新規追加 ---
+        // ---------- 新規追加 ----------
         if (!audioBlob) {
-          // 音声データを含まないインポート(ZIPでチェックを外した場合や
-          // markers.json単体インポート)の場合、新規追加は音声実体が
-          // 無いと再生できないためスキップする。
           noAudioSkippedCount++;
           continue;
         }
@@ -874,9 +721,6 @@ async function runTrackImport() {
           favorite: false
         };
         playlist.push(newTrack);
-        // savedAt未指定＝現在時刻として保存され、末尾（最新）扱いになる
-        // （playlist配列上もpushで末尾に追加済みのため、実際の並び順と
-        // 一致する）。
         if (typeof savePlaylistTrack === "function") {
           await savePlaylistTrack(newTrack.file, undefined, newTrack.enabled, newTrack.title, newTrack.artist, newTrack.favorite);
         }
@@ -887,7 +731,7 @@ async function runTrackImport() {
 
     if (typeof renderPlaylist === "function") renderPlaylist();
 
-    // --- YouTube分（YouTubeアプリの保存先へ反映） ---
+    // ---------- YouTube分（YouTubeアプリの保存先へ反映） ----------
     let ytResult = null;
     const ytApi = ytBackupApi();
     if (trackImportYtList && ytApi) {
@@ -913,9 +757,6 @@ async function runTrackImport() {
       trackImportSummaryEl.textContent = summary;
       trackImportSummaryEl.style.display = "block";
     }
-    // インポート完了後は、ボタンを「Close」に切り替えてそのまま閉じられる
-    // ようにする（結果を確認したら、Backで別のファイルを選び直すか、この
-    // Closeでモーダルを閉じるかの2択になる）。
     setTrackImportRunBtnMode("close");
     hapticSuccess();
   } catch (err) {
@@ -925,10 +766,7 @@ async function runTrackImport() {
   }
 }
 
-// マーカー(位置/メモ)・テキストメモをlocalStorageへ反映する。
-// trackData.markersが無ければマーカーには触れない（ZIP/JSON側でチェックを
-// 外してエクスポートされた場合、既存のマーカーを消さないようにするため）。
-// 同様にnoteTextがundefinedならテキストメモにも触れない。
+// マーカー/メモをlocalStorageへ反映。trackData.markers無し=マーカーに触れない(消さない)、noteTextがundefined=メモに触れない
 function applyImportedMarkersAndText(name, trackData) {
   if (Array.isArray(trackData.markers)) {
     const pinsToSave = trackData.markers.map(m => ({
@@ -941,7 +779,7 @@ function applyImportedMarkersAndText(name, trackData) {
       localStorage.setItem("mp3_pins_" + name, JSON.stringify(pinsToSave));
     } catch (e) {}
   }
-  // v3.8.0〜：A点/B点（abA/abBが含まれている場合だけ反映。古いバックアップは触らない）
+  // v3.8.0〜: abA/abBがある時だけ反映(古いバックアップは触らない)
   if (trackData.abA !== undefined || trackData.abB !== undefined) {
     const a = typeof trackData.abA === "number" ? trackData.abA : null;
     const b = typeof trackData.abB === "number" ? trackData.abB : null;

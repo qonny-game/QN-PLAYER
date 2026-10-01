@@ -1,45 +1,7 @@
-// ============================================================
-// qn-apps.js  —  アプリ名バッジ ＆ アプリ一覧フライアウト ＆ アプリ表示領域
-//
-// 【何をするファイルか】（v3.0.0〜。旧MOREボタン／アプリ一覧モードは撤去）
-//   サイドバー(#pcV2IconBar)の先頭に、現在のアプリ名バッジ(#qnAppBadge)を置く。
-//   バッジには「＞」が付いており、サブメニュー（アプリ一覧）があることを示す。
-//   PC幅：バッジにマウスを載せると、サイドバーの右に同じデザインのフライアウト
-//         (#qnAppFlyout)が出て、パネルの上に重なる。クリックでも開く。
-//   SP幅／タッチ：バッジをタップするとアイコンバーの上に一覧が開く。
-//         もう一度タップ、または外側タップ／Escで閉じる。
-//   一覧のアプリを選ぶと、サイドバー右側〜画面下端の領域（#qnAppHost）が
-//   そのアプリの画面に切り替わる。PLAYER を選ぶと QNPLAYER 本体に戻る。
-//
-// 【アプリの足し方（今後も増える前提）】
-//   1) JS/qn-app-xxx.js を作り、次を呼ぶだけ：
-//        QNApps.register({
-//          id: "youtube",            // 一意ID
-//          label: "YouTube",         // サイドバーのラベル（大文字で表示される）
-//          icon: '<path d="..."/>',  // 24x24 viewBox の SVG path
-//          order: 10,                // 一覧の並び順（小さいほど上）
-//          ready: true,              // false なら「準備中」（押すとトースト表示）
-//          sidebar: [{id,label,icon}],  // アプリ表示中のサイドバー項目（本体のControl/Markers…に相当）
-//          onSidebar(itemId) {},     // その項目が押された時。選択表示は QNApps.setSideActive(itemId|null)
-//          shortcuts: [{key, action}],  // 任意。Keyboard表の行（"Space / K" のように " " 区切りで複数キー可）
-//          shortcutsNote: "注記",    // 任意。表の下に出す一言
-//            → Keyboardパネルの中身は QNApps.renderShortcuts(hostEl, "<id>") の1行で出る
-//          mount(viewEl) {},         // 初回表示時に1回だけ呼ばれる。viewEl に画面を作る
-//          onShow() {},              // 表示されるたびに呼ばれる
-//          onHide() {}               // 隠れるたびに呼ばれる
-//        });
-//   2) index.html に <script src="JS/qn-app-xxx.js"></script> を追加（qn-apps.js より後）。
-//   準備中アプリ（TUNER / PITCH）は、このファイル末尾の register で定義している。
-//   完成したら ready:true にして mount/onShow/onHide を持たせるか、
-//   専用ファイルに移して register し直す（同じ id で register すると置き換わる）。
-//
-// 【他ファイルとの接点】
-//   - #pcV2IconBar / #pcV2IconBarBottom / #pcV2IconBarSpacer / #pcV2Layout
-//     （player-ui-pc-v2.js の build() が作る。ここでは出来上がるのを待つだけ）
-//   - アプリ表示中は body.qn-app-open が付く。player-ui-shared.js のキーボード
-//     ショートカット（Space=再生 等）はこのクラスを見て無効化される。
-//   - アプリを開く時、QNPLAYER の audio は一時停止する。
-// ============================================================
+// qn-apps.js — アプリ名バッジ(#qnAppBadge)・アプリ一覧フライアウト(#qnAppFlyout)・アプリ表示領域(#qnAppHost)。
+// PC幅=バッジhover/クリックでフライアウト、SP/タッチ=タップでアイコンバー上に一覧(再タップ・外側タップ・Escで閉じる)。アプリ選択で#qnAppHostがそのアプリ画面に。PLAYER選択で本体へ戻る。
+// 【アプリ追加】JS/qn-app-xxx.jsでQNApps.register({id, label, icon(24x24 svg path), order(小さいほど上), ready(falseで準備中トースト), sidebar:[{id,label,icon}], onSidebar(itemId)(選択表示はQNApps.setSideActive(itemId|null)), shortcuts:[{key,action}]("Space / K"形式で複数キー可), shortcutsNote, mount(viewEl)(初回のみ), onShow(), onHide()})。Keyboardパネルの中身はQNApps.renderShortcuts(hostEl,"<id>")。index.htmlにqn-apps.jsより後で<script>追加。同idのregisterは置き換え。準備中アプリ(TUNER/PITCH)は末尾のregister。
+// 【接点】#pcV2IconBar/#pcV2IconBarBottom/#pcV2IconBarSpacer/#pcV2Layout(player-ui-pc-v2.js build()が作る。出来上がるのを待つ)。アプリ表示中はbody.qn-app-open(player-ui-shared.jsのショートカット無効化に使う)。アプリを開く時QNPLAYERのaudioは一時停止
 (function () {
   "use strict";
 
@@ -49,11 +11,11 @@
 
   var SP_QUERY = "(max-width: 900px)";
 
-  var apps = [];            // 登録済みアプリ（order順）
-  var current = null;       // 今開いているアプリ（null = QNPLAYER本体）
+  var apps = [];
+  var current = null;
   var iconBar = null, host = null, badgeBtn = null, flyout = null, scrim = null, flyoutOpen = false, flyoutHideTimer = null, flyoutTimer = null, toastEl = null, toastTimer = null;
-  var views = {};           // id -> viewEl
-  var mounted = {};         // id -> true
+  var views = {};
+  var mounted = {};
   var resizeObs = null;
 
   function $(id) { return document.getElementById(id); }
@@ -78,10 +40,6 @@
     return btn;
   }
 
-  // ---------- アプリ一覧フライアウト（バッジにホバー／タップで開く） ----------
-  // 見た目は通常のサイドバーと同じ .pcv2-icon-item を並べたもの。
-  // body直下に置き、PC幅ではバッジの右（パネルの上に重ねる）、
-  // SP幅ではアイコンバーの直上に出す。
   function ensureFlyout() {
     if (flyout) return flyout;
     flyout = document.createElement("div");
@@ -134,13 +92,11 @@
     flyout.classList.toggle("qn-flyout-sp", sp);
     if (scrim) scrim.classList.toggle("qn-scrim-sp", sp);
     if (sp) {
-      // SP：アイコンバーの真上に、幅いっぱいで下からにゅっと
       flyout.style.left = "0px";
       flyout.style.right = "0px";
       flyout.style.top = "auto";
       flyout.style.bottom = Math.max(0, window.innerHeight - br.top) + "px";
     } else {
-      // PC：サイドバーと同じ縦幅いっぱい（上端〜下端）で、右から左へにゅっと
       flyout.style.left = br.right + "px";
       flyout.style.right = "auto";
       flyout.style.top = br.top + "px";
@@ -148,7 +104,6 @@
     }
   }
 
-  // 「ここにアプリ一覧が出たよ」を分かりやすくする薄暗い幕（クリックは素通し）
   function ensureScrim() {
     if (scrim) return scrim;
     scrim = document.createElement("div");
@@ -168,7 +123,7 @@
     positionFlyout();
     flyout.hidden = false;
     scrim.hidden = false;
-    void flyout.offsetWidth; // 初期位置を確定させてからアニメーション開始
+    void flyout.offsetWidth;
     flyout.classList.add("qn-flyout-in");
     scrim.classList.add("qn-scrim-in");
     if (badgeBtn) {
@@ -187,7 +142,6 @@
       badgeBtn.classList.remove("qn-badge-open");
       badgeBtn.setAttribute("aria-expanded", "false");
     }
-    // アニメーション終了後に完全に隠す（その間に開き直されたら隠さない）
     if (flyoutHideTimer) clearTimeout(flyoutHideTimer);
     flyoutHideTimer = setTimeout(function () {
       flyoutHideTimer = null;
@@ -206,18 +160,12 @@
     if (flyoutTimer) { clearTimeout(flyoutTimer); flyoutTimer = null; }
   }
 
-  // サイドバーの表示状態は2通り：
-  //   本体(PLAYER)   : 通常のアイコン
-  //   アプリ表示中   : そのアプリ専用のアイコン(def.sidebar)
-  // どちらも先頭のバッジ（現在のアプリ名＋＞）から、アプリ一覧フライアウトを開く。
   function renderAppSideItems() {
     if (!iconBar) return;
     var old = document.querySelectorAll("#pcV2IconBar .qn-appside-item");
     for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
     if (!current || !current.sidebar) return;
     var spacer = $("pcV2IconBarSpacer");
-    // 下段グループ(#pcV2IconBarBottom)に置く項目（it.bottom）は、常駐のColorの直前へ。
-    // 本体(PLAYER)と同じ「Backup / Import / Keyboard / Color」の並びにするため（v3.17.0〜）。
     var bottomBox = $("pcV2IconBarBottom");
     var colorBtn = bottomBox ? bottomBox.querySelector('[data-panel-id="color"]') : null;
     current.sidebar.forEach(function (it) {
@@ -237,15 +185,13 @@
   function setSideActive(id) {
     sideActiveId = id;
     if (!iconBar) return;
-    var items = iconBar.querySelectorAll(".qn-appside-item");   // 下段グループの項目も含む（子孫）
+    var items = iconBar.querySelectorAll(".qn-appside-item");
     for (var i = 0; i < items.length; i++) {
       items[i].classList.toggle("qn-app-active", items[i].getAttribute("data-side-id") === id);
     }
   }
 
-  // ---------- 現在のアプリ名バッジ（サイドバーの先頭） ----------
-  // 「今どのアプリに居るか」を示す。右端の「＞」はサブメニュー（アプリ一覧）あり、の印。
-  // PC幅(マウス)：ホバーで開く／クリックでも開く。SP・タッチ：タップで開閉。
+  // ---------- アプリ名バッジ(サイドバー先頭。「＞」=サブメニューあり)。PC=hover/クリック、SP/タッチ=タップ開閉 ----------
   function buildBadge() {
     if (!iconBar || $("qnAppBadge")) return;
     badgeBtn = makeItemButton({ cls: "qn-app-badge" }, PLAYER_ICON, "Player", "Apps");
@@ -266,7 +212,6 @@
     badgeBtn.addEventListener("click", function () {
       haptic();
       if (flyoutOpen) {
-        // マウスのPC幅ではホバーで既に開いているので、クリックでは閉じない
         if (!(canHover() && !isSp())) closeFlyout();
       } else {
         openFlyout();
@@ -294,10 +239,7 @@
     window.dispatchEvent(new Event("resize"));
   }
 
-  // ---------- 表示領域(#qnAppHost)の位置合わせ ----------
-  // ホストは position: fixed。PC幅ではアイコンバーの右〜画面下端、SP幅では
-  // ヘッダー直下〜アイコンバー直上を覆う。アプリ表示中は下段バー等を
-  // CSSで隠す(style-apps.css)ので、#pcV2Layout の矩形がそのまま使える。
+  // #qnAppHostはfixed。PC=アイコンバー右〜下端、SP=ヘッダー直下〜アイコンバー直上。アプリ表示中は下段バー等をCSSで隠す(style-apps.css)ので#pcV2Layoutの矩形をそのまま使う
   function layoutHost() {
     if (!host) return;
     var layout = $("pcV2Layout"), bar = $("pcV2IconBar");
@@ -369,10 +311,9 @@
       var id = null;
       try { id = localStorage.getItem(LAST_APP_KEY); } catch (e) {}
       var app = id && id !== "player" ? findApp(id) : null;
-      // 準備中のアプリ・見つからないアプリは復元しない（本体のまま）
+      // 準備中・不明なアプリは復元しない(本体のまま)
       if (app && app.ready && !current) open(id);
     }
-    // 全スクリプト(各アプリの register)が実行された後に行う
     if (document.readyState === "complete") setTimeout(run, 0);
     else window.addEventListener("load", function () { setTimeout(run, 0); });
   }
@@ -380,7 +321,6 @@
   function open(id) {
     var app = findApp(id);
     if (!app) return;
-    // PLAYER＝本体に戻る
     if (id === "player") { close(); return; }
     if (!app.ready) { toast(app.label + " is coming soon"); return; }
     if (current && current.id === id) return;
@@ -405,7 +345,6 @@
     layoutHost();
     sideActiveId = null;
     refreshSidebar();
-    // 下段バー等を隠した結果レイアウトが変わるため、次フレームでも合わせ直す
     requestAnimationFrame(layoutHost);
 
     if (typeof app.onShow === "function") {
@@ -428,22 +367,16 @@
     document.body.classList.remove("qn-app-open");
     sideActiveId = null;
     refreshSidebar();
-    window.dispatchEvent(new Event("resize")); // 波形などの再計測
+    window.dispatchEvent(new Event("resize"));
   }
 
-  // ---------- Color(常駐) ----------
-  // Colorボタンは常にサイドバーに残す。PLAYER本体ではこれまで通りパネルを開くが、
-  // アプリ表示中はパネルが見えないため、テーマ切替セクションを
-  // その場のポップオーバーに借りて表示する（閉じたら元の場所へ戻す）。
   var colorPop = null, colorSec = null, colorHome = null, colorNext = null;
 
   function findColorSection() {
     return document.querySelector('.qn-menu-section[data-qn-section="theme"]');
   }
 
-  // PLAYERのパネルと同じ見た目・同じ位置（PC＝アイコンバー右の左カラム全高、
-  // SP＝アイコンバーの上）。SPでアプリが「常時表示すべきプレイヤー」
-  // ([data-qn-keep-visible])を持つ場合は、それを覆わないよう直下から始める。
+  // PLAYERパネルと同じ見た目・位置(PC=左カラム全高、SP=アイコンバー上)。SPで[data-qn-keep-visible]を持つ場合は覆わず直下から
   function positionColorPop() {
     if (!colorPop) return;
     var bar = $("pcV2IconBar"), layout = $("pcV2Layout");
@@ -491,8 +424,6 @@
       colorPop.innerHTML = '<div class="qn-colorpanel-head"><span class="pcv2-panel-header-title">Color</span></div>' +
         '<div class="qn-colorpanel-body"></div>';
       document.body.appendChild(colorPop);
-      // サイドバーの他の項目（アプリ専用アイコン/バッジ/MORE等）を押したらパネルを閉じる
-      // （PLAYERでパネルが切り替わるのと同じ挙動。Colorボタン自身は別処理）
       iconBar.addEventListener("click", function (e) {
         if (e.target.closest && e.target.closest('[data-panel-id="color"]')) return;
         closeColorPop();
@@ -514,7 +445,6 @@
     var bottom = $("pcV2IconBarBottom");
     if (!bottom || bottom.__qnColor) return;
     bottom.__qnColor = true;
-    // キャプチャ段階で先取りし、アプリ表示中だけ本体のパネル処理を止める
     bottom.addEventListener("click", function (e) {
       var b = e.target.closest && e.target.closest('[data-panel-id="color"]');
       if (!b || !current) return;
@@ -531,7 +461,6 @@
   function bindFlyoutGlobal() {
     if (flyoutGlobalBound) return;
     flyoutGlobalBound = true;
-    // 外側タップ／クリックで閉じる（バッジとフライアウト自身は除く）
     document.addEventListener("pointerdown", function (e) {
       if (!flyout || !flyoutOpen) return;
       var t = e.target;
@@ -543,12 +472,10 @@
     });
     window.addEventListener("resize", function () { if (flyoutOpen) positionFlyout(); });
     window.addEventListener("orientationchange", closeFlyout);
-    // サイドバーの他の項目を押したら閉じる（PLAYERでパネルが切り替わるのと同じ感覚）
     iconBar.addEventListener("click", function (e) {
       if (e.target.closest && e.target.closest("#qnAppBadge")) return;
       closeFlyout();
     });
-    // アイコンバー（SPで横スクロール）が動いたら位置がずれるので閉じる
     iconBar.addEventListener("scroll", closeFlyout, { passive: true });
   }
 
@@ -599,9 +526,7 @@
     renderAppItems();
   }
 
-  // ---------- 共通：ショートカット表（Keyboard） ----------
-  // 各アプリは「行のリスト」[{key, action}] と任意の注記文字列を渡すだけ。
-  // 表の見た目（<kbd>枠・"+ / -" は記号扱い）は全アプリ共通。PL/YT/今後のTUNER・PITCHで共用する。
+  // ---------- 共通ショートカット表(Keyboard): 各アプリは[{key,action}]+任意注記を渡すだけ。見た目は全アプリ共通 ----------
   var SHORTCUT_CONNECTORS = ["+", "/", "-"];
   function fillShortcutRows(tbody, list) {
     tbody.textContent = "";
@@ -619,8 +544,6 @@
       tbody.appendChild(tr);
     });
   }
-  // hostEl の中身を「ショートカット表（＋注記）」に置き換える。
-  // 2番目は「登録済みアプリのid（文字列）」か「行リスト」のどちらでもよい。
   function renderShortcuts(hostEl, listOrAppId, note) {
     if (!hostEl) return;
     var list = listOrAppId;
@@ -659,10 +582,8 @@
     layout: layoutHost
   };
 
-  // 先頭の「PLAYER」＝QNPLAYER本体に戻る項目（アプリ一覧でも本体を選べるように）
   register({ id: "player", label: "Player", icon: PLAYER_ICON, order: 0, ready: true });
 
-  // 準備中のアプリ（後日組み込み）。押すと "coming soon" のトーストを出す。
   register({
     id: "tuner", label: "Tuner", order: 20, ready: false,
     icon: '<path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>'

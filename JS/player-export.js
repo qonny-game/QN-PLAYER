@@ -1,24 +1,10 @@
-// ============================================================
-// player-export.js
-// エクスポート機能：エクスポートモーダルの開閉・状態管理（範囲/フォーマット選択等）、
-// 実行ボタン押下時のレンダリング〜ファイル書き出し。
-//
-// 依存: player-core.js（audioBufferToWavBlob, audioBufferToMp3Blob,
-// renderExportBuffer, suggestExportFileName等）、
-// player-ui-shared.js（hapticTap等の共通UI関数）。
-// ============================================================
+// player-export.js — 範囲書き出し(モーダル開閉/状態/レンダリング/保存)。依存: player-core.js(audioBufferToWavBlob,audioBufferToMp3Blob,renderExportBuffer,suggestExportFileName), player-ui-shared.js(haptic*)
 
 
-// ============================================================
-// エクスポート処理本体：AudioBuffer -> WAV変換、OfflineAudioContextでのレンダリング
-// ============================================================
-
-// AudioBufferをWAV(PCM 16bit, リトルエンディアン)形式のBlobに変換する。
+// ---------- エクスポート処理本体：AudioBuffer -> WAV変換、OfflineAudioContextでのレンダリング ----------
 
 
-// ============================================================
-// エクスポートモーダル：開閉と、Range/Effects/FileName等の状態管理
-// ============================================================
+// ---------- エクスポートモーダル：開閉と、Range/Effects/FileName等の状態管理 ----------
 const exportToggleBtn = document.getElementById("exportToggleBtn");
 const exportModalOverlay = document.getElementById("exportModalOverlay");
 const exportModalCloseBtn = document.getElementById("exportModalCloseBtn");
@@ -30,11 +16,7 @@ const exportFileNameInput = document.getElementById("exportFileName");
 const exportRunBtn = document.getElementById("exportRunBtn");
 const exportStatusEl = document.getElementById("exportStatus");
 
-// currentFileNameの拡張子を除いた部分を、エクスポートファイル名の初期値として使う
 
-
-// 有効なマーカー（ON状態）の一覧を、開始・終了それぞれのプルダウンに反映する。
-// 隣り合ったペアだけでなく、任意の2つのマーカーを自由に開始/終了として選べるようにする。
 function populateExportMarkerSelect() {
   const activePins = pins.filter(p => p.enabled).sort((a, b) => a.t - b.t);
   exportMarkerStartSelect.innerHTML = "";
@@ -67,7 +49,6 @@ function populateExportMarkerSelect() {
     exportMarkerEndSelect.appendChild(endOpt);
   });
 
-  // デフォルトは最初のマーカーを開始、最後のマーカーを終了にしておく（従来の全区間相当に近い初期値）
   exportMarkerStartSelect.value = "0";
   exportMarkerEndSelect.value = String(activePins.length - 1);
 
@@ -82,7 +63,6 @@ function setExportStatus(text, kind) {
   if (kind) exportStatusEl.classList.add(kind);
 }
 
-// Format(WAV/MP3)の切り替えに応じて、対応する詳細設定欄(サンプルレート/ビットレート)だけを表示する
 const exportFormatWav = document.getElementById("exportFormatWav");
 const exportFormatMp3 = document.getElementById("exportFormatMp3");
 const exportWavDetail = document.getElementById("exportWavDetail");
@@ -122,7 +102,6 @@ if (exportCancelBtn) {
   exportCancelBtn.onclick = () => closeExportModal();
 }
 if (exportModalOverlay) {
-  // オーバーレイの背景部分（モーダル本体の外側）をクリックしたら閉じる
   exportModalOverlay.onclick = (e) => {
     if (e.target === exportModalOverlay) closeExportModal();
   };
@@ -156,7 +135,6 @@ if (exportRunBtn) {
       return;
     }
 
-    // 書き出す範囲(開始・終了秒)を決定する
     let startTime = 0;
     let endTime = audio.duration || 0;
 
@@ -174,7 +152,6 @@ if (exportRunBtn) {
         setExportStatus("Invalid marker selection.", "error");
         return;
       }
-      // 開始・終了は任意の組み合わせを許すため、選んだ順序に関わらず時刻の小さい方を開始にする
       const t1 = activePins[startIdx].t;
       const t2 = activePins[endIdx].t;
       if (t1 === t2) {
@@ -201,8 +178,6 @@ if (exportRunBtn) {
     setExportStatus("Processing...");
 
     try {
-      // WAVは元ファイルのサンプルレートに関わらず選択したサンプルレートで出力する。
-      // MP3はビットレートのみの選択のため、サンプルレート自体は元ファイルのまま(undefined)にする。
       const renderedBuffer = await renderExportBuffer(startTime, endTime, applySpeed, applyKey, applyEq, isMp3 ? undefined : wavSampleRate);
       const blob = isMp3
         ? audioBufferToMp3Blob(renderedBuffer, mp3Bitrate)
@@ -216,7 +191,6 @@ if (exportRunBtn) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      // ダウンロード用のURLはこの後すぐには不要になるため、少し待ってから解放する
       setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       setExportStatus("Export complete.", "success");

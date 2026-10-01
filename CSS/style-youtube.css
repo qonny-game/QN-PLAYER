@@ -1,27 +1,17 @@
-/* ============================================================
-   style-youtube.css
-   YouTubeアプリ(.qn-yt*)専用。JS側は JS/qn-app-youtube.js。
-   style-apps.css（アプリ枠）の直後に読み込むこと（順序で上書きが決まる）。
-   ============================================================ */
+/* style-youtube.css — YouTubeアプリ(.qn-yt*)専用。JSはqn-app-youtube.js。style-apps.cssの直後に読む(順序で上書き) */
 
-/* ============================================================
-   YouTubeアプリ
-   PC幅：左にパネル(375px。#pcV2Panel と同じ幅)、右にステージ
-   SP幅：縦積み（ステージ → パネル）、全体が1本のスクロール
-   ============================================================ */
+/* PC=左パネル(375px、#pcV2Panelと同幅)+右ステージ。SP=縦積み(ステージ→パネル)、全体が1本スクロール */
 .qn-yt {
   flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: 375px 1fr;
-  /* v3.2.0〜：左=パネル(縦いっぱい)、右=ステージ＋その下にコントロールバー(右側だけに吸着) */
   grid-template-rows: minmax(0, 1fr) auto;
   color: var(--text-bright);
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: var(--fs-body);
 }
 
-/* --- 左：パネル（Library / Markers） --- */
 .qn-yt-panel {
   grid-column: 1;
   grid-row: 1 / span 2;
@@ -56,8 +46,6 @@
   padding: 16px 16px 4px 20px;
 }
 
-/* サイドバーの Library / Markers で、パネルに出す中身を切り替える
-   （本体の Library / Markers パネルと同じ「1度に1つ」方式） */
 .qn-yt-sec {
   display: none;
 }
@@ -70,7 +58,6 @@
   display: block;
 }
 
-/* 見出しと件数はパネル上部の見出し(.qn-yt-panel-header)に出すので、セクション側は隠す */
 .qn-yt-sec-head {
   display: none;
 }
@@ -92,7 +79,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 入力欄・ボタン */
 .qn-yt-input-block {
   padding-bottom: 8px;
 }
@@ -222,9 +208,7 @@
   color: #1a1204;
 }
 
-/* ---------- Backup / Import（本体のBackup/Importパネルと同じ部品を流用） ----------
-   部品のベース見た目は style-export.css（モーダル用）。ここでは本体の
-   #pcV2PanelBody.pcv2-panel-backup と同じ「枠なし・線区切り」に揃える。 */
+/* ---------- Backup/Import: 本体と同部品を流用(ベースはstyle-export.css)。#pcV2PanelBody.pcv2-panel-backupと同じ枠なし・線区切りに揃える ---------- */
 .qn-yt-panel .export-section-label {
   display: block;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
@@ -300,7 +284,6 @@
   margin-top: 16px;
 }
 
-/* --- 右：ステージ（プレイヤー＋自前UI） --- */
 .qn-yt-stage {
   grid-column: 2;
   grid-row: 1;
@@ -312,13 +295,12 @@
   flex-direction: column;
 }
 
-/* プレイヤー：切り抜き・隠蔽・重ね・変形なし(規約)。16:9。
-   角丸や overflow:hidden は付けない（プレイヤーの切り抜きに当たるため）。 */
+/* プレイヤー(規約): 切り抜き・隠蔽・重ね・変形禁止。16:9。角丸/overflow:hiddenを付けない(切り抜きに当たる) */
 .qn-yt-player-wrap {
   width: 100%;
   max-width: 1280px;
   aspect-ratio: 16 / 9;
-  min-height: 200px; /* 規約: 最小 200px */
+  min-height: 200px; /* 規約: 最小200px */
   background: #000;
   flex-shrink: 0;
 }
@@ -330,7 +312,7 @@
   display: block;
 }
 
-/* 自前UIはプレイヤーの外(下)に余白を空けて配置（規約） */
+/* 自前UIはプレイヤーの外(下)(規約) */
 .qn-yt-custom {
   margin-top: 24px;
   max-width: 1280px;
@@ -350,10 +332,7 @@
 }
 
 
-/* 3分割シークバー(3行)。見た目は本体(PLAYER)のシークバーと同じ：
-   角丸なし・#111の帯・再生済みはテーマ色・マーカーは縦線＋上に番号とメモ。
-   波形は使わない（YouTubeの音声・映像データには触れない）。
-   土台は style-core.css の .vbar / .vfill を流用し、PC v2 の #pcV2WaveArea .vbar と同じ上書きだけここに置く。 */
+/* 3分割シークバー: 本体のシークバーと同見た目(角丸なし・#111帯・再生済み=テーマ色・マーカー=縦線+上に番号/メモ)。波形は使わない(YouTubeの音声・映像データに触れない)。土台はstyle-core.cssの.vbar/.vfillを流用 */
 .qn-yt-seek {
   position: relative;
   display: flex;
@@ -390,7 +369,6 @@
   pointer-events: none;
 }
 
-/* マーカー区間：未再生は薄く、再生済みはマーカー色で進む */
 .qn-yt-range {
   position: absolute;
   top: 0;
@@ -408,7 +386,6 @@
 .qn-yt-range-bg { width: 100%; opacity: 0.22; }
 .qn-yt-range-on { width: 0; opacity: 0.95; }
 
-/* 現在位置：細い白線 */
 .qn-yt-head {
   position: absolute;
   top: -3px;
@@ -425,14 +402,12 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  /* A/Bがそろった区間：テーマ色の帯＋上下の太い線で、どこからどこまでか一目で分かるように */
   background: color-mix(in srgb, var(--accent-primary) 26%, transparent);
   box-shadow: inset 0 3px 0 var(--accent-primary), inset 0 -3px 0 var(--accent-primary);
   border-radius: 0;
   pointer-events: none;
   z-index: 1;
 }
-/* ループ中(ONの間)は、さらに濃く */
 .qn-yt-loop-range.is-on {
   background: color-mix(in srgb, var(--accent-primary) 42%, transparent);
 }
@@ -441,14 +416,12 @@
   display: none;
 }
 
-/* マーカーは3行の上に1枚のレイヤーで重ねる(行をまたいでドラッグ可能) */
 .qn-yt-marker-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-/* マーカー：本体の波形マーカーと同じ縦線(2px・マーカー色)。番号は線の真上、メモはその右。 */
 .qn-yt-marker {
   position: absolute;
   top: 0;
@@ -472,7 +445,6 @@
   background: var(--marker-color, var(--accent-primary));
 }
 
-/* 透明なつかみ判定（本体の .vbar-line::after と同じ） */
 .qn-yt-marker::after {
   content: "";
   position: absolute;
@@ -531,12 +503,12 @@
 }
 
 
-/* 将来の広告枠：プレイヤーから離れた位置に確保するだけ（今は高さ0・広告コードなし） */
+/* 将来の広告枠: プレイヤーから離れた位置(今は高さ0・広告コードなし) */
 .qn-yt-ad-slot {
   min-height: 0;
 }
 
-/* ---------- SP幅：縦積み ---------- */
+/* ---------- SP幅: 縦積み ---------- */
 @media screen and (max-width: 900px) {
   .qn-yt {
     display: flex;
@@ -558,10 +530,7 @@
   }
 
 
-  /* SP幅：パネルはサイドバーのアイコンで開閉する。開いている間は、
-     プレイヤーを画面上部に小さく残し（規約：プレイヤーを覆わない・隠さない・
-     最低200x200pxを保つ）、パネルはその下の残り領域に表示する。
-     ※ざっくり実装。高さの割合などは後日調整。 */
+  /* SP幅: パネル開時もプレイヤーを上部に小さく残す(規約: 覆わない・隠さない・最低200x200px)。パネルはその下の残り領域 */
   .qn-yt-panel {
     order: 2;
     border-right: none;
@@ -578,8 +547,6 @@
     overflow-y: auto;
   }
 
-  /* パネルが開いている間：全体はスクロールさせず、ステージ=小さなプレイヤーだけ、
-     自前UI(シークバー等)とフッターは隠す（パネルを閉じれば戻る） */
   .qn-yt:not([data-panel="none"]) {
     overflow: hidden;
   }
@@ -609,7 +576,6 @@
   }
 
 
-  /* 指で押しやすいよう、SP幅ではボタンを少し大きく */
   .qn-yt-btn {
     height: 34px;
   }
@@ -627,9 +593,7 @@
   }
 }
 
-/* ---------- Library / Markers：本体(PLAYER)のパネルと同じ行・同じ操作 ----------
-   行のベース見た目は style-playlist.css(.playlistItem) / style-markers.css(.pinItem) を流用。
-   本体側の「#pcV2PanelBody …」限定のルールだけ、ここで .qn-yt 用に再掲する。 */
+/* ---------- Library/Markers: 行ベースはstyle-playlist.css(.playlistItem)/style-markers.css(.pinItem)を流用。本体の「#pcV2PanelBody …」限定ルールだけ.qn-yt用に再掲 ---------- */
 .qn-yt-panel { position: relative; }
 
 .qn-yt-sec-library,
@@ -637,7 +601,6 @@
 .qn-yt-sec-library .qn-yt-input-block { padding: 16px 16px 12px 20px; }
 .qn-yt-sec-library .qn-yt-empty,
 .qn-yt-sec-markers .qn-yt-empty { margin: 16px 20px; }
-/* 右下のボタンに最後の行が隠れないよう、スクロール終端を伸ばす */
 .qn-yt[data-panel="library"] .qn-yt-panel-scroll,
 .qn-yt[data-panel="markers"] .qn-yt-panel-scroll { padding-bottom: 140px; }
 
@@ -645,7 +608,6 @@
 .qn-yt-libbox .playlistItem.drop-before { box-shadow: inset 0 2px 0 var(--accent-primary); }
 .qn-yt-libbox .playlistItem.drop-after { box-shadow: inset 0 -2px 0 var(--accent-primary); }
 
-/* 削除用の丸チェックは編集モード(EDIT→OK)の時だけ */
 .qn-yt-libbox .playlist-del-zone,
 .qn-yt-pinbox .pin-del-zone { display: none; }
 .qn-yt[data-edit="library"] .qn-yt-libbox .playlist-del-zone,
@@ -673,18 +635,15 @@
 }
 .qn-yt[data-edit="markers"] .qn-yt-pinbox .toggle-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* マーカー行：色 / 本文 / (A B) / 目 / 削除。編集中はA・Bを隠す */
 .qn-yt-pinbox .pinItem { grid-template-columns: auto 1fr auto auto auto; }
 .qn-yt-ab-cell { display: flex; gap: 4px; }
 .qn-yt[data-edit="markers"] .qn-yt-ab-cell { display: none; }
 .qn-yt[data-edit="markers"] .qn-yt-pinbox .pinItem { grid-template-columns: auto 1fr auto auto; }
-/* タッチ端末：編集モード中は鉛筆を常時表示 */
 @media (hover: none), (pointer: coarse) {
   .qn-yt[data-edit="markers"] .qn-yt-pinbox .pin-edit-btn { display: flex; }
 }
 .qn-yt-libbox .playlistItem.playing .playlist-title { color: var(--accent-primary); }
 
-/* 右下のフローティングボタン（EDIT / Delete / ADD MARKER） */
 .qn-yt-fab {
   position: absolute; right: 20px; bottom: 20px; z-index: 5;
   display: none; flex-direction: column; align-items: flex-end; gap: 10px;
@@ -696,7 +655,6 @@
 .qn-yt[data-panel="markers"]:not([data-edit]) .qn-yt-fab-add { display: flex; }
 .qn-yt[data-edit] .panel-fab-delete-btn { display: flex; }
 
-/* チャプター貼り付け（Markersパネルの上部） */
 .qn-yt-chapter { padding: 16px 16px 8px 20px; }
 .qn-yt-chapter-box { margin-top: 10px; }
 .qn-yt-chapter-box[hidden] { display: none; }
@@ -715,7 +673,6 @@
 .qn-yt-chapter .qn-yt-hint { margin: 8px 0; }
 
 
-/* Libraryのサムネイル：16:9のまま全体を表示（切り抜き・加工しない） */
 .qn-yt .playlist-thumb.qn-yt-thumb {
   width: 64px;
   height: 36px;
@@ -732,7 +689,6 @@
 .qn-yt .playlist-thumb.qn-yt-thumb.has-img img { opacity: 1; }
 .qn-yt .playlist-thumb.qn-yt-thumb.has-img svg { display: none; }
 
-/* フッター：規約リンク・保存データの説明 */
 .qn-yt-legal {
   margin: 28px 0 88px;
   padding-left: 16px;
@@ -746,8 +702,6 @@
 .qn-yt-legal p { margin: 0 0 6px; }
 .qn-yt-legal a { color: var(--accent-primary); text-decoration: underline; }
 
-/* ---------- Keyboardパネル（v3.1.0〜）：本体の .qn-shortcut-table を複製して使う。
-   本体側のCSSが効かない場合でも崩れないよう、最低限だけここでも指定する。 */
 .qn-yt-kbd .qn-menu-section { border-bottom: none; padding-bottom: 0; }
 .qn-yt-kbd .qn-menu-section-label { display: none; }
 .qn-yt-kbd .qn-shortcut-table { width: 100%; border-collapse: collapse; }
@@ -758,13 +712,7 @@
   line-height: 1.6;
 }
 
-/* ============================================================
-   シークバー下のコントロールバー（v3.2.0〜）
-   PLAYERの下段バー(#pcV2BottomBar / .pcv2-ctrl-btn / .tripleNavBtn)と同じデザイン：
-   枠なし・背景なしのフラットなアイコン＋英字。 再生系 │ マーカー系 │ スピード。
-   PC幅：ステージの下端に吸着（左のパネル/サイドバー側へは伸ばさない）。
-   SP幅：アイコンバーの直上に固定し、横スクロール。
-   ============================================================ */
+/* コントロールバー(v3.2.0〜): PLAYER下段バーと同デザイン。PC=ステージ下端に吸着(左パネル側へ伸ばさない)、SP=アイコンバー直上固定・横スクロール */
 .qn-yt-bar {
   grid-column: 2;
   grid-row: 2;
@@ -802,7 +750,6 @@
   position: relative;
   transition: transform var(--dur-press, 100ms) var(--ease-snap, ease);
 }
-/* アイコン領域の高さを32pxに揃え、中央(Play/+Marker)の大きいアイコンと文字の高さが揃うようにする */
 .qn-yt-bbtn svg,
 .qn-yt-bstep-mid svg {
   width: 20px;
@@ -830,7 +777,6 @@
 }
 
 
-/* スピード：［−］ 1x Speed ［＋］ （PLAYERのループ秒数ステッパーと同じ、枠なしフラット） */
 .qn-yt-bstep { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
 .qn-yt-bstep-mid {
   display: flex;
@@ -858,7 +804,6 @@
   .qn-yt-bstep-btn:hover { color: var(--text-bright); }
 }
 
-/* ---------- SP幅：PLAYERの下部バーと同じく、アイコンバーの直上に固定・横スクロール ---------- */
 @media screen and (max-width: 900px) {
   .qn-yt-bar {
     order: 4;
@@ -878,12 +823,10 @@
   .qn-yt-bbtn span, .qn-yt-bstep-mid span { font-size: 11px; }
   .qn-yt-bstep-btn { width: 30px; height: 44px; font-size: 22px; }
   .qn-yt-bspacer { flex: 0 0 12px; }
-  /* パネル(Library等)を開いている間は、自前UIと同じく隠す */
   .qn-yt:not([data-panel="none"]) .qn-yt-bar { display: none; }
 }
 
-/* ---------- シークバー1タップのポップアップ（A / B / +Marker）（v3.3.0〜） ----------
-   body直下のposition:fixed。押した位置の真上（収まらない時は真下）に出す。 */
+/* ---------- シークバー1タップのポップアップ(A/B/+Marker)(v3.3.0〜): body直下fixed、押した位置の真上(収まらなければ真下) ---------- */
 .qn-yt-seekpop {
   position: fixed;
   z-index: 330;
@@ -935,14 +878,10 @@
   .qn-yt-seekpop-btn span { font-size: 11px; }
 }
 
-/* ---------- PC幅：パネルの格納（v3.4.0〜） ----------
-   開いているパネルのアイコンをもう一度押すと、パネル(375px)が左へ縮んで消える。
-   プレイヤーは格納前の幅のまま（JSが --qn-yt-player-w に格納前の幅を入れる）。
-   シークバー・コントロールバー等は広がる。SP幅では使わない（クラスは付かない）。 */
+/* ---------- PC幅パネル格納(v3.4.0〜): パネル(375px)が左へ縮む。プレイヤーは格納前幅(JSが--qn-yt-player-wに入れる)。SP幅では使わない ---------- */
 .qn-yt { transition: grid-template-columns 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .qn-yt.qn-yt-collapsed { grid-template-columns: 0 1fr; }
 .qn-yt-panel { overflow: hidden; }
-/* 縮む途中で中身が潰れて折り返さないよう、中身は375px幅のまま右側を隠す */
 .qn-yt-panel > .qn-yt-panel-header,
 .qn-yt-panel > .qn-yt-panel-scroll { min-width: 374px; }
 .qn-yt.qn-yt-collapsed .qn-yt-panel {
@@ -958,14 +897,7 @@
   .qn-yt { transition: none; }
 }
 
-/* ============================================================
-   PC幅：プレイヤーを「縦いっぱい」に／シークバー3本まで1画面に収める（v3.5.0〜）
-   ステージ = プレイヤー領域(余った高さを全部使う) ＋ タイトル ＋ シークバー3本。
-   プレイヤーは16:9のまま、領域の横か縦のどちらかが枠に当たるまで最大に拡大
-   （container queries：領域の幅/高さから、収まる最大の16:9を計算）。
-   プレイヤーの最小は規約どおり200px（それ以下になる小さな窓ではステージがスクロール）。
-   SP幅は従来どおり（幅いっぱいの16:9・縦スクロール）。
-   ============================================================ */
+/* PC幅: プレイヤーを縦いっぱいに/シークバー3本まで1画面(v3.5.0〜)。ステージ=プレイヤー領域(余り高さ)+タイトル+シークバー3本。container queriesで収まる最大の16:9を計算。最小は規約どおり200px(それ以下の窓はステージがスクロール)。SPは従来(幅いっぱい16:9・縦スクロール) */
 @media screen and (min-width: 901px) {
   .qn-yt-stage { padding: 16px 24px 12px; }
   .qn-yt-player-wrap {
@@ -989,14 +921,12 @@
   .qn-yt-custom { margin-top: 12px; max-width: none; flex-shrink: 0; }
   .qn-yt-fetched-title { margin-bottom: 4px; }
   .qn-yt-seek { margin-bottom: 4px; }
-  /* 格納中(v3.4.0)は、従来どおりプレイヤー領域の幅を格納前のまま固定（広げない） */
 }
 
-/* タイトルが未取得の間は場所を取らない（プレイヤーとシークバーの隙間を詰める） */
 .qn-yt-fetched-title:empty { display: none; }
 
-/* ---------- A/B点のマーカー強調（v3.5.0〜） ---------- */
-/* v3.8.0〜：A/Bはマーカーではない独立した点(.qn-yt-abpt)。マーカーより太い線＋旗で区別する */
+/* ---------- A/B点の強調(v3.5.0〜) ---------- */
+/* v3.8.0〜: A/Bはマーカーではない独立点(.qn-yt-abpt)。マーカーより太い線+旗 */
 .qn-yt-abpt { z-index: 3; }
 .qn-yt-abpt::before { width: 4px; background: var(--accent-primary); }
 .qn-yt-marker-ab {
@@ -1017,14 +947,11 @@
   pointer-events: none;
   z-index: 2;
 }
-/* A旗は線の右（区間の内側）へ、B旗は線の左へ */
 .qn-yt-abpt.is-a .qn-yt-marker-ab { transform: translateX(2px); }
 .qn-yt-abpt.is-b .qn-yt-marker-ab { transform: translateX(calc(-100% - 2px)); }
 
-/* 下段バーの Set A / Set B：設定済みの間はテーマ色 */
 .qn-yt-bbtn.has-point { color: var(--accent-primary); }
 
-/* ポップアップ：既存マーカー上では＋Markerを隠す */
 .qn-yt-seekpop-btn[hidden] { display: none; }
 .qn-yt-seekpop-del b { color: var(--icon-muted); }
 .qn-yt-seekpop-btn b svg { color: var(--icon-muted); width: 20px; height: 26px; fill: currentColor; display: block; }
@@ -1036,15 +963,13 @@
 .qn-yt-seekpop-dot { display: block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); }
 .qn-yt-seekpop-del.is-armed, .qn-yt-seekpop-del.is-armed b { color: var(--danger, #ff5a5a); }
 
-/* 下段バーが横に長くなったため、ボタンの左右余白を少し詰める */
 @media screen and (min-width: 901px) {
   .qn-yt-bar { padding: 10px 12px; }
   .qn-yt-bbtn { padding: 8px 4px; }
   .qn-yt-bdiv { margin: 0 6px; }
 }
 
-/* ---------- PLAYER側 A/B（v3.7.0〜） ---------- */
-/* A点・B点（マーカーではない使い捨ての区切り位置。ドラッグで移動可）。A=旗が線の右、B=旗が線の左 */
+/* ---------- PLAYER側 A/B(v3.7.0〜) ---------- */
 .vbar-ab-pt {
   position: absolute;
   top: 0; bottom: 0;
@@ -1082,12 +1007,10 @@
   transform: translateX(3px);
 }
 .vbar-ab-pt.is-b .vbar-ab-flag { transform: translateX(calc(-100% - 3px)); }
-/* 下部バーのSet A/Set B：設定済みはテーマ色 */
 #pcV2BottomBar .ab-set-btn.has-point { color: var(--accent-primary); }
-/* ポップアップのA/B：設定済みの位置は地色で示す */
 .qn-yt-seekpop-btn.is-set { background: color-mix(in srgb, var(--accent-primary) 20%, transparent); border-radius: 8px; }
 
-/* ---------- ポップアップのColor：ラベル入力＋プリセット＋色（v3.9.0・PLAYER/YouTube共通） ---------- */
+/* ---------- ポップアップColor: ラベル入力+プリセット+色(v3.9.0・PLAYER/YouTube共通) ---------- */
 .qn-style-pop {
   z-index: 340;
   box-sizing: border-box;
@@ -1116,7 +1039,6 @@
 .qn-style-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .qn-style-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 
-/* YouTube下段バーのプリロール：PLAYERの下部バーと同じ「− 0s ＋」表示（v3.10.1） */
 .qn-yt-preroll { display: flex; align-items: center; gap: 0; flex-shrink: 0; padding: 8px 4px; }
 .qn-yt-preroll-btn {
   width: 20px; height: 20px; padding: 0;
@@ -1133,7 +1055,6 @@
 .qn-yt-preroll-value b { font-weight: 400; }
 .qn-yt-preroll-unit { font-size: 0.6em; margin-left: 1px; }
 
-/* YouTube：ループのプリロール/ポストロール範囲（PLAYERの.segmentHighlight-prerollと同じ薄い破線帯・v3.10.2） */
 .qn-yt-loop-pre {
   position: absolute;
   top: 0;
@@ -1146,10 +1067,8 @@
 }
 .qn-yt-loop-pre[hidden] { display: none; }
 
-/* v3.12.0：YouTubeパネル格納中は、動画（プレイヤー領域）をステージの中央に置く */
 .qn-yt.qn-yt-collapsed .qn-yt-player-wrap { margin-left: auto; margin-right: auto; }
 
-/* v3.12.2：YouTubeのスクロールバーを、PLAYERのパネル(#pcV2PanelBody、style-pcv2-panels.css)と同じ値にそろえる */
 .qn-yt-panel-scroll, .qn-yt-stage, .qn-yt .qn-yt-bar {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
@@ -1164,13 +1083,7 @@
   background: rgba(255, 255, 255, 0.24);
 }
 
-/* ============================================================
-   v3.12.6：PLAYER下部バー(#pcV2BottomBar)とYouTube下段バー(.qn-yt-bar)の寸法を1つの仕様にそろえる
-   （バーの高さ・ボタンの余白・アイコン/文字サイズ・区切り・隙間）。Speed/Keyのトグル（ステッパー）だけ例外。
-   このファイルは最後に読み込まれるので、両方の個別指定を上書きする。
-   PC幅 : バー padding 10px 12px／ボタン padding 8px 4px／アイコン20px(中央32px)・上下余白6px／ラベル9px／区切り余白6px
-   SP幅 : ボタン padding 10px／アイコン26px(中央38px)／ラベル11px
-   ============================================================ */
+/* v3.12.6: PLAYER下部バー(#pcV2BottomBar)とYouTube下段バー(.qn-yt-bar)の寸法を1仕様に(Speed/Keyトグルのみ例外)。最後に読まれるので個別指定を上書き。PC: バーpadding 10px 12px/ボタン 8px 4px/アイコン20px(中央32px)/ラベル9px/区切り余白6px。SP: ボタンpadding 10px/アイコン26px(中央38px)/ラベル11px */
 @media screen and (min-width: 901px) {
   #pcV2BottomBar, .qn-yt-bar { box-sizing: border-box; min-height: 80px; padding: 10px 12px; gap: 4px; }
   #pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn),
@@ -1200,10 +1113,7 @@
 }
 
 
-/* ============================================================
-   v3.16.0：PLAYER下部バーのラベル・Speed/Keyステッパーを、YouTube下段バーと同じ表示にそろえる
-   （PLは大文字化＋行の高さ9pxで、YouTubeより幅が広く・1px低く出ていた。Speed/Keyの2行表示でバーも高くなっていた）。
-   ============================================================ */
+/* v3.16.0: PLAYER下部バーのラベル・Speed/Keyステッパーもyoutube下段バーと同表示に(PLは大文字化+行高9pxで幅広・1px低かった) */
 #pcV2BottomBar .top-controls-btn-label,
 #pcV2BottomBar .pcv2-ctrl-btn span {
   text-transform: none;
@@ -1211,8 +1121,7 @@
   white-space: nowrap;
 }
 
-/* Speed/Keyの表示もYouTubeのSpeedと同じ1行（「1.00x Speed」）にして、バー全体の高さをYouTubeと同じ80pxにそろえる。
-   区切り線まわりの間隔（グループ4px＋区切り余白6px）もYouTubeと同じにする。 */
+/* Speed/Keyも1行(「1.00x Speed」)でバー高さをYouTubeと同じ80pxに。区切り周り(グループ4px+区切り余白6px)もYouTube準拠 */
 #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span {
   display: block;
   min-width: 0;
@@ -1223,7 +1132,6 @@
 #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { min-height: 59px; }
 #pcV2BottomBar #topControls.top-controls { gap: 4px; }
 
-/* v3.17.0：共通Backup画面の曲リストを「PLAYER / YouTube」で分ける見出し */
 .track-backup-group-label {
   padding: 8px 4px 4px;
   font-size: 10px;

@@ -28,7 +28,7 @@
 | ピン留め | お気に入り（`track.favorite`）。画鋲アイコン |
 | A/B／A-B Loop／Section | A/B点＝秒数だけの区切り（`mp3_ab_*`／YouTubeは`loopA/loopB`）。LOOPボタンで OFF→A-B→Section |
 | Marker Memo Colors／カスタムメモ | Colorパネル内。プリセット色とカスタムプリセット（`player-marker-presets.js`） |
-| 大手術 | PC v2レイアウトへの統一リファクタリング（`flattenForPc()`/`restoreForSp()`はその名残） |
+| 大手術 | PC v2レイアウトへの統一リファクタリング（旧SPレイアウトは廃止済み） |
 
 ## 「SP」「PC」「実機」
 - 「SP／スマホ／モバイル」＝画面幅が狭い状態（`@media (max-width:900px)`）。**UIの実装はPC v2だけ**で、SP幅は同じDOMをCSSで組み替えたもの（`AI_ASSISTANT_PROJECT_CONTEXT.md`§2）。「SP版を直して」と言われたら`style-layout-pc-v2-sp.css`や`player-ui-pc-v2.js`を見る。

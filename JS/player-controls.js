@@ -1,13 +1,4 @@
-// ============================================================
-// player-controls.js
-// つまみ系操作機能：Speed（再生速度）・AutoSpeed（自動加速）・Key（音程調整）・
-// VOL/SPEED/KEYポップアップの開閉共通処理・Loop（単一区間ループ）・
-// Repeat（Off/One/Allの巡回モード）。
-//
-// 依存: player-core.js（setupAudioGraph, updatePlaybackRate等）、
-// player-ui-shared.js（hapticTap等の共通UI関数, updateAvToggleValue,
-// renderSegments）。
-// ============================================================
+// player-controls.js — Speed/AutoSpeed/Key/VOL・SPEED・KEYポップアップ/Loop/Repeat。依存: player-core.js(setupAudioGraph,updatePlaybackRate), player-ui-shared.js(haptic*,updateAvToggleValue,renderSegments)
 
 const speedDisplay = document.getElementById("speedDisplay");
 const controlSpeedRange = document.getElementById("controlSpeedRange");
@@ -16,7 +7,6 @@ const spStatusSpeedValue = document.getElementById("spStatusSpeedValue");
 const SPEED_MIN = 0.5;
 const SPEED_MAX = 1.5;
 
-// Speedの表示・スライダー値を、Basic欄・CONTROLタブ・SP専用ステータス表示、全てに反映する
 function syncSpeedDisplays() {
   if (speedDisplay) speedDisplay.textContent = currentSpeed.toFixed(2);
   if (controlSpeedRange) controlSpeedRange.value = currentSpeed;
@@ -24,19 +14,10 @@ function syncSpeedDisplays() {
   if (spStatusSpeedValue) spStatusSpeedValue.textContent = currentSpeed.toFixed(2) + "x";
   updateAvToggleValue("speedToggleValue", currentSpeed.toFixed(2) + "x");
 }
-// 初期表示用に1回呼んでおく。updateAvToggleValueはplayer-ui-shared.js側の関数のため、
-// このファイルがplayer-ui-shared.jsより先に読み込まれる場合でも安全なよう、
-// トップレベルでの直接呼び出しではなくsyncSpeedDisplays()経由にしている
-// （syncSpeedDisplays自体はここでは呼ばれるだけで即実行はされないため、
-// 実際にupdateAvToggleValueが呼ばれるのはこの行の実行タイミング＝依然として
-// 読み込み順に依存する。根本対策はindex.html側の読み込み順をplayer-ui-shared.js
-// が先になるよう修正すること）。
+// updateAvToggleValueはplayer-ui-shared.js側。読み込み順依存(index.htmlでshared先が望ましい)
 syncSpeedDisplays();
 
 function setSpeed(value) {
-  // シェアウェア制限：無料版はSpeed変更不可。値を変えずにミニポップアップだけ表示する
-  // （実行しようとして初めてぶつかった制限ではなく、既にロック中の操作を
-  // 試したケースなので、画面を止めるフルモーダルではなくトーストにする）。
   if (typeof isUnlocked === "function" && !isUnlocked() && value !== 1.0) {
     swShowUnlockToast("無料版ではSpeed変更を利用できません。");
     syncSpeedDisplays();
@@ -48,13 +29,9 @@ function setSpeed(value) {
 }
 
 let lastSpeedTickValue = currentSpeed;
-// iOS Safari等では、スライダードラッグ中にaudio.playbackRateを高頻度で更新すると
-// 音声デコードが追いつかず「ぶつ切り」に聞こえる不具合があるため、
-// ドラッグ中は表示テキストだけ即座に更新し、実際の音声エンジンへの反映(updatePlaybackRate)は
-// 操作が一段落してから(最後のinputイベントから90ms後)にまとめて1回だけ行う。
+// iOS Safari: ドラッグ中のplaybackRate高頻度更新は音がぶつ切り。表示だけ即更新、実反映はinput停止90ms後に1回
 let speedApplyDebounceTimer = null;
 function handleSpeedRangeInput(e) {
-  // シェアウェア制限：無料版はSpeed変更不可。スライダーを1.0に戻し、ミニポップアップを表示する。
   if (typeof isUnlocked === "function" && !isUnlocked()) {
     e.target.value = 1.0;
     syncSpeedDisplays();
@@ -62,9 +39,7 @@ function handleSpeedRangeInput(e) {
     return;
   }
 
-  // CONTROLタブのスライダーは直接操作できるため、実際に操作された瞬間に
-  // Web Audio API接続を試みる必要がある
-  // （EQ/Speed/Keyのどれも操作しなければ接続されない、という設計自体は維持する）。
+  // スライダー操作時にWeb Audio接続を試みる(未操作なら接続しない設計を維持)
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
 
   currentSpeed = parseFloat(e.target.value);
@@ -81,7 +56,6 @@ function handleSpeedRangeInput(e) {
 }
 if (controlSpeedRange) controlSpeedRange.oninput = handleSpeedRangeInput;
 
-// v3.6.0: Speedの−＋ボタン（5%刻み。5%の倍数にそろえてから進める：1.03→+で1.05）
 const SPEED_STEP = 0.05;
 function snapSpeedStep(dir) {
   const q = currentSpeed / SPEED_STEP;
@@ -92,7 +66,6 @@ const controlSpeedDownBtn = document.getElementById("controlSpeedDownBtn");
 const controlSpeedUpBtn = document.getElementById("controlSpeedUpBtn");
 function stepSpeed(dir) {
   hapticTap();
-  // スライダー操作と同様、実際に操作された瞬間にWeb Audio API接続を試みる
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
   setSpeed(snapSpeedStep(dir));
 }
@@ -107,16 +80,9 @@ function resetSpeed() {
 const controlSpeedResetBtn = document.getElementById("controlSpeedResetBtn");
 if (controlSpeedResetBtn) controlSpeedResetBtn.onclick = resetSpeed;
 
-// ============================================================
-// Auto Speed：マーカー区間ループ(LOOP ON時)をN回通過するたびに、Speedをy%だけ自動で増減する。
-// ギター等の楽器練習で「同じフレーズを何度か通しで弾けるようになったら、少しずつテンポを上げる」
-// という操作を自動化するための機能。ループが1周する瞬間(updateBars内)からnotifyLoopCompleted()を
-// 呼んでもらうことでカウントし、既存のsetSpeed()をそのまま使ってSpeedへ反映する。
-// Basic欄・CONTROLタブ両方に同じUIがあるため、常にペアで値・状態を同期させる。
-// ============================================================
 const autoSpeedToggleBtns = [document.getElementById("autoSpeedToggleBtn"), document.getElementById("controlAutoSpeedToggleBtn")].filter(Boolean);
 const autoSpeedSettingsEls = [document.getElementById("autoSpeedSettings"), document.getElementById("controlAutoSpeedSettings")].filter(Boolean);
-const autoSpeedCardEls = [document.getElementById("controlAutoSpeedCard")].filter(Boolean); // OFF時に暗くする対象。Basic欄側は元々折りたたみなので対象外。
+const autoSpeedCardEls = [document.getElementById("controlAutoSpeedCard")].filter(Boolean);
 const autoSpeedEveryNInputs = [document.getElementById("autoSpeedEveryN"), document.getElementById("controlAutoSpeedEveryN")].filter(Boolean);
 const autoSpeedStepPercentInputs = [document.getElementById("autoSpeedStepPercent"), document.getElementById("controlAutoSpeedStepPercent")].filter(Boolean);
 const autoSpeedLimitInputs = [document.getElementById("autoSpeedLimit"), document.getElementById("controlAutoSpeedLimit")].filter(Boolean);
@@ -124,10 +90,9 @@ const autoSpeedStatusEls = [document.getElementById("autoSpeedStatus"), document
 const autoSpeedDirBtns = document.querySelectorAll(".auto-speed-dir-btn");
 
 let autoSpeedEnabled = false;
-let autoSpeedDirection = "up"; // "up" または "down"
+let autoSpeedDirection = "up";
 let autoSpeedLoopCount = 0;
 
-// 数値入力はBasic欄・CONTROLタブどちらから読んでも同じ値のはずなので、最初に見つかった方から読む
 function getAutoSpeedEveryN() {
   const n = parseInt(autoSpeedEveryNInputs[0].value, 10);
   return Number.isFinite(n) && n >= 1 ? n : 5;
@@ -163,8 +128,6 @@ function updateAutoSpeedStatus() {
   }
   autoSpeedStatusEls.forEach(el => { el.textContent = text; });
 
-  // SP専用ステータス表示：「5/5 +5%」のように、次の調整までの周回数とステップ幅を1行で見せる。
-  // OFFの間は、CONTROLタブを開けば設定できることが分かる程度の簡潔な表示にする。
   if (spStatusAutoSpeedValue) {
     if (!autoSpeedEnabled) {
       spStatusAutoSpeedValue.textContent = "OFF";
@@ -185,8 +148,6 @@ function setAutoSpeedEnabled(enabled) {
   autoSpeedLoopCount = 0;
   autoSpeedToggleBtns.forEach(btn => btn.setAttribute("aria-checked", String(enabled)));
   autoSpeedSettingsEls.forEach(el => el.classList.toggle("open", enabled));
-  // CONTROLタブのAuto Speedカードは常時展開表示のため、開閉ではなくopacity等で
-  // ON/OFFを表現する（ご要望：ONにするまでは暗くしておく）。
   autoSpeedCardEls.forEach(el => el.classList.toggle("auto-speed-active", enabled));
   updateAutoSpeedStatus();
 }
@@ -202,7 +163,6 @@ autoSpeedDirBtns.forEach(btn => {
   btn.onclick = () => {
     hapticTap();
     autoSpeedDirection = btn.getAttribute("data-dir");
-    // Basic欄・CONTROLタブ、両方の方向ボタン群を同じ状態に揃える
     autoSpeedDirBtns.forEach(b => b.classList.toggle("active", b.getAttribute("data-dir") === autoSpeedDirection));
     updateAutoSpeedStatus();
   };
@@ -210,7 +170,6 @@ autoSpeedDirBtns.forEach(btn => {
 
 [...autoSpeedEveryNInputs, ...autoSpeedStepPercentInputs, ...autoSpeedLimitInputs].forEach(input => {
   input.addEventListener("input", () => {
-    // Basic欄・CONTROLタブどちらを編集しても、もう片方の数値入力にも同じ値を反映する
     const pairArrays = [autoSpeedEveryNInputs, autoSpeedStepPercentInputs, autoSpeedLimitInputs];
     const pair = pairArrays.find(arr => arr.includes(input));
     if (pair) pair.forEach(el => { if (el !== input) el.value = input.value; });
@@ -221,7 +180,6 @@ autoSpeedDirBtns.forEach(btn => {
   });
 });
 
-// マーカー区間ループが1周した瞬間に呼ばれる。updateBars内のループ折り返し処理から呼ぶ。
 function notifyLoopCompleted() {
   if (!autoSpeedEnabled) return;
 
@@ -229,8 +187,6 @@ function notifyLoopCompleted() {
   const alreadyAtLimit = autoSpeedDirection === "up"
     ? currentSpeed >= limitRatio - 0.001
     : currentSpeed <= limitRatio + 0.001;
-  // 既に上限/下限に達している場合は、それ以上カウントを進める必要がない
-  // （ループは継続するが、Speedはこれ以上動かさない）
   if (alreadyAtLimit) {
     updateAutoSpeedStatus();
     return;
@@ -243,8 +199,6 @@ function notifyLoopCompleted() {
     const stepRatio = getAutoSpeedStepPercent() / 100;
     const delta = autoSpeedDirection === "up" ? stepRatio : -stepRatio;
     let nextSpeed = currentSpeed + delta;
-    // 上限/下限を超えないようにクランプする（setSpeed自体もSPEED_MIN/MAXでクランプするが、
-    // Auto Speed独自のLimit設定がSPEED_MIN/MAXの範囲内であることは保証されないため、ここでも行う）
     nextSpeed = autoSpeedDirection === "up"
       ? Math.min(nextSpeed, limitRatio)
       : Math.max(nextSpeed, limitRatio);
@@ -270,7 +224,6 @@ function renderKeyDisplay() {
 
   if (keyDisplay) keyDisplay.textContent = text;
   if (keyStepperFill) {
-    // 中央(0)を起点に、正なら右へ、負なら左へ伸びるバー
     keyStepperFill.style.width = pct + "%";
     keyStepperFill.style.left = left;
   }
@@ -285,21 +238,18 @@ function renderKeyDisplay() {
 }
 
 function setKeySemitones(value) {
-  // シェアウェア制限：無料版はKey変更不可。値を変えずにミニポップアップだけ表示する。
   if (typeof isUnlocked === "function" && !isUnlocked() && value !== 0) {
     swShowUnlockToast("無料版ではKey変更を利用できません。");
     return;
   }
 
-  // CONTROLタブのステッパーボタンは直接操作できるため、実際に操作された
-  // 瞬間にWeb Audio API接続を試みる必要がある。
+  // ステッパー操作時にWeb Audio接続を試みる
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
 
   const clamped = Math.max(KEY_MIN, Math.min(KEY_MAX, value));
   if (clamped !== currentKeySemitones) {
     hapticTick();
   } else if (value !== clamped) {
-    // 上限/下限に達していて、それ以上動かせない
     hapticWarning();
   }
   currentKeySemitones = clamped;
@@ -325,12 +275,7 @@ if (controlKeyResetBtn) controlKeyResetBtn.onclick = () => setKeySemitones(0);
 
 renderKeyDisplay();
 
-// ピッチシフト(位相ボコーダー)の準備が整ったらKEY/SPEED操作を有効化する。
-// 失敗時（AudioWorklet非対応ブラウザ等）は無効のまま維持する。
-// 対象はPC v2の実UI要素（controlKey*/controlSpeed*）と、シェアウェア無料版制限用の
-// ON/OFFトグル(controlKeyEnableToggle/controlSpeedEnableToggle)の両方。
-// 無料版制限とブラウザ非対応という別々の理由による無効化状態が重ならないよう、
-// 非対応時はトグルごとまとめて触れなくする。
+// ピッチシフト準備完了でKEY/SPEED有効化。非対応(AudioWorklet無し)は無効のまま。トグルごと触れなくする
 function updateKeyControlAvailability() {
   const keyElements = [controlKeyUpBtn, controlKeyDownBtn, controlKeyResetBtn, controlKeyEnableToggle];
   const speedElements = [controlSpeedRange, controlSpeedResetBtn, controlSpeedEnableToggle, controlSpeedDownBtn, controlSpeedUpBtn];
@@ -358,8 +303,6 @@ function updateKeyControlAvailability() {
         el.title = "Key change is unavailable in this browser (AudioWorklet not supported)";
       }
     });
-    // Speedもキー変更と同じ位相ボコーダーを経由するため、AudioWorklet非対応環境では
-    // 音質の悪いplaybackRateベースの簡易フォールバックは提供せず、Speed自体を無効化する。
     speedElements.forEach(el => {
       if (el) {
         el.disabled = true;
@@ -371,18 +314,11 @@ function updateKeyControlAvailability() {
 }
 
 
-// player-control-eq.js（旧player-eq.js）に分割移動済み（EQバンド制御・プリセット・モーダル開閉）
-
 const loopToggleBtn = document.getElementById("loopToggleBtn");
 
-// loopEnabled（単一マーカー区間のLoop）はブラウザを閉じても状態が残るよう
-// localStorageに保存する。曲ごとではなくアプリ全体の設定として扱う。
 const LOOP_ENABLED_STORAGE_KEY = "mp3player_loop_enabled";
 
-// v3.7.0〜：LOOPボタンは YouTubeアプリと同じ3モード「OFF → A-B → Section → OFF」。
-// Section＝従来のマーカー区間ループ（再生位置に追従）。A-B＝A点〜B点（マーカーにA/Bを割り当てる）。
-// A/Bが未設定の間は A-B を飛ばして OFF → Section → OFF。
-// 保存：LOOP_MODE_STORAGE_KEY（"off"|"ab"|"sec"）。旧キー(LOOP_ENABLED_STORAGE_KEY)も互換のため書き続ける。
+// LOOP: OFF→A-B→Section→OFF。A/B未設定ならA-Bを飛ばす。保存: LOOP_MODE_STORAGE_KEY(off|ab|sec)、旧LOOP_ENABLED_STORAGE_KEYも書き続ける
 const LOOP_MODE_STORAGE_KEY = "mp3player_loop_mode";
 
 function applyLoopButtonUI() {
@@ -393,7 +329,6 @@ function applyLoopButtonUI() {
   loopToggleBtn.title = !loopEnabled ? "Loop OFF (click: A-B / Section)" : (loopMode === "ab" ? "A-B Loop (click: Section)" : "Section Loop (click: OFF)");
 }
 
-// mode: "off" | "ab" | "sec"。persist=falseは「A/Bが無くなったので自動でOFFにした」時など、利用者の操作ではない切替。
 function setLoopModeState(mode, persist) {
   loopEnabled = mode !== "off";
   if (mode !== "off") loopMode = mode;
@@ -403,17 +338,13 @@ function setLoopModeState(mode, persist) {
       localStorage.setItem(LOOP_ENABLED_STORAGE_KEY, loopEnabled ? "1" : "0");
     } catch (e) {}
   }
-  // ループをONにする瞬間、AB間ループ回数カウンターをリセットする。
   if (typeof swAbLoopCount !== "undefined") swAbLoopCount = 0;
   if (typeof swUpdateLoopCounterUI === "function") swUpdateLoopCounterUI();
-  // ループ対象区間の固定インデックスもリセットし、ON時は現在地から
-  // 改めて対象区間を計算させる（OFF→ON時に古い区間を引きずらないため）。
   loopActiveMarkerIndex = null;
   applyLoopButtonUI();
   renderSegments();
 }
 
-// A点/B点が揃っていないのにA-Bモードのままになっている場合は、自動でOFFに戻す（保存はしない）。
 function syncLoopModeWithAB() {
   if (loopEnabled && loopMode === "ab" && !getABRange()) setLoopModeState("off", false);
 }
@@ -426,7 +357,6 @@ if (loopToggleBtn) {
     } else if (savedMode === "off") {
       loopEnabled = false;
     } else {
-      // 旧バージョンの保存値（ON/OFFのみ）からの引き継ぎ
       loopEnabled = localStorage.getItem(LOOP_ENABLED_STORAGE_KEY) === "1";
       loopMode = "sec";
     }
@@ -443,10 +373,6 @@ if (loopToggleBtn) {
   };
 }
 
-// マーカー区間ループの前後プリロール秒数（開始マーカーの何秒前から再生を
-// 始めるか／終了マーカーの何秒後まで再生してから折り返すか、前後共通）。
-// 0〜5秒、1秒刻み。ブラウザを閉じても状態が残るようloopEnabledと同様
-// localStorageに保存する（曲ごとではなくアプリ全体の設定）。
 let loopPreRollSeconds = 0;
 const LOOP_PREROLL_STORAGE_KEY = "mp3player_loop_preroll_seconds";
 const LOOP_PREROLL_MIN = 0;
@@ -472,7 +398,6 @@ function setLoopPreRollSeconds(value) {
   loopPreRollSeconds = Math.max(LOOP_PREROLL_MIN, Math.min(LOOP_PREROLL_MAX, value));
   try { localStorage.setItem(LOOP_PREROLL_STORAGE_KEY, String(loopPreRollSeconds)); } catch (e) {}
   applyLoopPreRollUI();
-  // 表示中のループ区間ハイライトにプリロール分の薄い表示を反映させる。
   if (typeof renderSegments === "function") renderSegments();
 }
 
@@ -499,8 +424,6 @@ if (loopPreRollControl) {
 
 const allRepeatToggleBtn = document.getElementById("allRepeatToggleBtn");
 
-// repeatMode（Off/One/All）もloopEnabledと同様、ブラウザを閉じても状態が残るよう
-// localStorageに保存する。
 const REPEAT_MODE_STORAGE_KEY = "mp3player_repeat_mode";
 
 const REPEAT_ICON_OFF = '<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>';
@@ -531,15 +454,12 @@ if (allRepeatToggleBtn) {
       repeatMode = savedRepeatMode;
     }
   } catch (e) {}
-  // シェアウェア制限：無料版に戻った場合（Premium期限切れ等）は起動時にOFF固定へ戻す。
   if (typeof isUnlocked === "function" && !isUnlocked() && repeatMode !== "off") {
     repeatMode = "off";
     try { localStorage.setItem(REPEAT_MODE_STORAGE_KEY, "off"); } catch (e) {}
   }
 
   allRepeatToggleBtn.onclick = () => {
-    // シェアウェア制限：無料版はリピートOFF固定。トグル動作自体をブロックし、
-    // ミニポップアップを表示する（repeatModeはoffのまま変化させない）。
     if (typeof isUnlocked === "function" && !isUnlocked()) {
       swShowUnlockToast("無料版ではトラックリピートを利用できません。");
       return;
@@ -553,15 +473,9 @@ if (allRepeatToggleBtn) {
 }
 
 
-// ============================================================
-// Speed/KeyのON/OFFトグルスイッチ。player-core.js側のspeedEffectEnabled/
-// keyEffectEnabledフラグを切り替え、updatePlaybackRate()で実際の音声へ
-// 反映する（UIのスライダー値・表示自体は変更しない）。
-// ============================================================
 const controlSpeedEnableToggle = document.getElementById("controlSpeedEnableToggle");
 if (controlSpeedEnableToggle) {
   controlSpeedEnableToggle.onclick = () => {
-    // シェアウェア制限：無料版はSpeed効果のON/OFF切り替え自体も不可。
     if (typeof isUnlocked === "function" && !isUnlocked()) {
       swShowUnlockToast("無料版ではSpeed変更を利用できません。");
       return;
@@ -576,7 +490,6 @@ if (controlSpeedEnableToggle) {
 const controlKeyEnableToggle = document.getElementById("controlKeyEnableToggle");
 if (controlKeyEnableToggle) {
   controlKeyEnableToggle.onclick = () => {
-    // シェアウェア制限：無料版はKey効果のON/OFF切り替え自体も不可。
     if (typeof isUnlocked === "function" && !isUnlocked()) {
       swShowUnlockToast("無料版ではKey変更を利用できません。");
       return;

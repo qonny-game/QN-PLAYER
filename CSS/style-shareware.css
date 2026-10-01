@@ -1,11 +1,5 @@
-/* ============================================================
-   style-shareware.css
-   プレミアムアンロックモーダル、および無料版制限下のロック表現
-   （鍵アイコン・グレーアウト・半透明）用スタイル。
-   既存のexport-modal / eq-modal と共通のダーク配色トークンに揃える。
-   ============================================================ */
+/* style-shareware.css — プレミアムアンロックモーダル・無料版ロック表現(鍵/グレーアウト/半透明)・ミニポップアップ・UPGRADE/解約/決済待ちバー。配色はexport-modal/eq-modal共通トークン */
 
-/* AB間ループ回数カウンター(#swLoopCounter)を波形右上に絶対配置するための基準。 */
 #vbarContainer {
   position: relative;
 }
@@ -74,8 +68,6 @@
   display: none;
 }
 
-/* 現在のプラン表示バッジ：説明文の下、プランカード一覧の上に表示する。
-   JS側(swOpenUnlockModal)がテキストを入れ、無料版の時はdisplay:noneで隠す。 */
 .sw-current-plan-badge {
   display: inline-block;
   margin: 0 auto 18px;
@@ -89,8 +81,6 @@
   text-align: center;
   white-space: nowrap;
 }
-/* バッジをモーダル中央に配置するため、親(.sw-unlock-modal-body)側で
-   text-align: centerを指定している（上記62行目付近）。 */
 .sw-current-plan-badge:empty {
   display: none;
 }
@@ -101,16 +91,6 @@
   gap: 12px;
   align-items: stretch;
 }
-
-/* サブスク購入後・永久ライセンス購入後：広告視聴カード2枚(#swUnlockAd1h/
-   #swUnlockAd24h)がdisplay:noneになり、月額/年額/永久の3枚だけが残る。
-   5列のトラックのままだと右側2列分が空白のまま残ってしまうため、
-   3列に切り替えて詰める（JS側player-shareware.jsのswOpenUnlockModalで
-   isUnlocked()の時にこのクラスを付与する）。 */
-/* 表示するプランカードの列数は、swOpenUnlockModal（player-shareware.js）が
-   実際に表示している枚数に応じてgrid-template-columnsをインラインで
-   直接書き換える（月額中は2枚、無料版は5枚、等、枚数の組み合わせが
-   複数あるため固定クラスではなく可変にしている）。 */
 
 .sw-pricing-card {
   position: relative;
@@ -228,8 +208,6 @@
   font-weight: 700;
 }
 
-/* 「日本限定価格」バッジ。「おすすめ」バッジと同居するカード（サブスク）では
-   右上に配置してぶつからないようにする。 */
 .sw-pricing-jp-badge {
   position: absolute;
   top: -11px;
@@ -283,14 +261,12 @@
   text-decoration: underline;
 }
 
-/* スマホ幅：4列だと窮屈になるので2列に折り返す */
 @media (max-width: 640px) {
   .sw-pricing-cards {
     grid-template-columns: 1fr;
   }
 }
 
-/* --- ロック表現：鍵アイコン --- */
 .sw-lock-icon {
   display: inline-flex;
   align-items: center;
@@ -306,7 +282,6 @@
   height: 100%;
 }
 
-/* プレイリスト項目：ロック中は半透明＋クリックでブロック */
 .playlistItem.sw-locked {
   opacity: 0.45;
   cursor: pointer;
@@ -316,7 +291,6 @@
   filter: grayscale(1);
 }
 
-/* マーカー項目：ロック中は半透明表示、タイムラインジャンプ不可 */
 .pinItem.sw-locked {
   opacity: 0.4;
 }
@@ -325,7 +299,6 @@
   cursor: pointer;
 }
 
-/* ループカウンター表示（AB間ループ: 3 / 5 回） */
 #swLoopCounter {
   position: absolute;
   top: 8px;
@@ -346,33 +319,13 @@
   display: block;
 }
 
-/* 無効化された操作コントロール（Key/Speed等）：見た目を暗くするだけで、
-   クリック自体は各関数側(setSpeed/setKeySemitones等)でガードしてモーダルを開く。
-   pointer-events: noneにしないのは、無効化中でもクリックさせてモーダルを
-   出す必要があるため。 */
+/* 無効化コントロール(Key/Speed等): 暗くするだけ。pointer-events:noneにしない(クリックでアンロックモーダルを出すため。ガードは各関数側 setSpeed/setKeySemitones等) */
 .sw-disabled-control {
   opacity: 0.45;
 }
 
-/* ============================================================
-   【検証用・一時的】swDebugPanel
-   リリース前にこのブロックとindex.html内の対応する<div id="swDebugPanel">、
-   player-shareware.js末尾のデバッグ用スクリプトを削除すること。
-   目立たせるため意図的に警告色（オレンジ）にしている。
-   ============================================================ */
-
-
-#swDebugStatus {
-  font-weight: 700;
-  color: var(--text-bright);
-  padding: 0 4px;
-  white-space: nowrap;
-}
-
 
 @media (max-width: 900px) {
-  /* 5列固定だと狭い画面でカードが極端に狭くなり文字が詰まるため、
-     900px以下は2列×3行に折り返す（1行に5枚収めるのはPC幅限定）。 */
   .sw-pricing-cards {
     grid-template-columns: repeat(5, 1fr);
   }
@@ -384,10 +337,6 @@
   }
 }
 
-/* ============================================================
-   ミニポップアップ（トースト）
-   画面中央下段に固定表示。フルモーダルより軽く、操作の流れを止めない。
-   ============================================================ */
 .sw-unlock-toast {
   position: fixed;
   left: 50%;
@@ -434,7 +383,6 @@
   color: color-mix(in srgb, var(--accent-primary, #3b82f6) 80%, white);
 }
 
-/* 幅が狭い場合、テキストとリンクを2行に折り返す */
 @media (max-width: 480px) {
   .sw-unlock-toast {
     white-space: normal;
@@ -446,10 +394,6 @@
   }
 }
 
-/* ============================================================
-   UPGRADEボタン（Googleアイコンのドロップダウン内フッター、ログアウトの上）
-   目立たせるため、EQ/デバッグパネルとは別系統の暖色グラデーションにする。
-   ============================================================ */
 #swUpgradeBtn {
   width: 100%;
   display: flex;
@@ -479,11 +423,6 @@
   transform: translateY(0);
 }
 
-/* ============================================================
-   解約ボタン（Googleアイコンのドロップダウン内、UPGRADEボタンの下）
-   monthly/yearly契約中のみ表示（JS側で制御）。
-   ログアウトボタンとは別に、控えめなグレー系にして誤タップを防ぐ。
-   ============================================================ */
 #btnCancelSubscription {
   width: 100%;
   display: flex;
@@ -506,12 +445,7 @@
   color: #d8d8de;
 }
 
-/* ============================================================
-   決済反映待ち通知バー（#swPurchasePendingNotice）
-   決済ボタンを押した直後、Stripe Webhookの反映待ちでポーリング中に
-   画面上部へ表示する控えめな通知。邪魔にならないよう、細めのバーで
-   画面最上部に固定表示する。
-   ============================================================ */
+/* 決済反映待ち通知バー(#swPurchasePendingNotice): Webhook反映ポーリング中に画面最上部へ細く固定表示 */
 .sw-purchase-pending-notice {
   position: fixed;
   top: 0;
@@ -533,8 +467,6 @@
   animation: sw-purchase-pending-slide-in 0.3s ease;
 }
 
-/* タイムアウトして「時間がかかっています」案内に切り替わった時は、
-   進行中を示す青系ではなく、少し落ち着いたグレー系にする。 */
 .sw-purchase-pending-notice.sw-purchase-pending-notice-delay {
   background: #3a3a42;
 }
@@ -544,13 +476,7 @@
   to { transform: translateY(0); }
 }
 
-/* ============================================================
-   「サブスクを続ける」ボタン（#btnCancelSubscription、既に解約手続き
-   済みの場合のみ、JS側でこのクラスが付く。player-shareware.js側の
-   swUpdatePlanRemainingUI参照）。
-   「解約する」の控えめなグレーとは対照的に、再開を後押しする前向きな
-   アクションであることが伝わるよう、アクセントカラー系にする。
-   ============================================================ */
+/* 「サブスクを続ける」(#btnCancelSubscription): 解約手続き済み時のみJSが付与(swUpdatePlanRemainingUI)。アクセント色系 */
 #btnCancelSubscription.sw-resume-subscription-btn {
   border-color: var(--accent-primary, #3b82f6);
   background: rgba(59, 130, 246, 0.12);

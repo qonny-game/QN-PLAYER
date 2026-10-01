@@ -1,9 +1,4 @@
-/* ============================================================
-   style-controls.css
-   つまみ系操作のUI：Loop（単一区間ループ）・Repeat（Off/One/All）・
-   再生ボタン(#playToggle)、Speed/AutoSpeed（自動加速）・Key（音程調整）。
-   .tripleNavBtn等、複数機能で共有される土台デザインは style-core.css 側に残っている。
-   ============================================================ */
+/* style-controls.css — Loop/Repeat/再生ボタン/Speed/AutoSpeed/Key。共有土台(.tripleNavBtn等)はstyle-core.css */
 
 .loopbtn {
   flex: 1;
@@ -70,9 +65,6 @@
   background: #16161b;
 }
 
-/* ON状態（Repeat All/One、Loop有効時）：文字・アイコンをアクセントカラーに、
-   背景・枠線も薄く色付けして「オンになっている」ことを一目でわかるようにする。
-   currentColor を使っている .loopbtn svg にも自動で反映される。 */
 .loopbtn.is-active {
   color: var(--accent-primary);
   background: color-mix(in srgb, var(--accent-primary) 14%, #16161b);
@@ -85,9 +77,6 @@
   border-color: var(--accent-primary);
 }
 
-/* Loopの前後プリロール秒数(0〜5s、1s刻み)を設定するステッパー。
-   loopToggleBtnのすぐ右に配置される（PC/SP共通、PC v2でもmarkerNavBtnの
-   子として一緒に移動するためレイアウトはそのまま使い回せる）。 */
 .loop-preroll-control {
   display: flex;
   align-items: center;
@@ -144,7 +133,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 0秒(オフ)の間はテキストを少し控えめに、1s以上でONっぽく強調する。 */
 .loop-preroll-control.is-active .loop-preroll-value {
   color: var(--accent-primary);
 }
@@ -180,8 +168,6 @@
   box-shadow: 0 0 0 1.5px var(--accent-primary);
 }
 
-/* 三分割ボタン（前へ/中央操作/次へ）。前後の曲送り、前後のマーカー移動の両方で使う汎用デザイン。 */
-
 .auto-speed-card {
   margin-top: 20px;
   padding-top: 18px;
@@ -189,17 +175,12 @@
   gap: 12px;
 }
 
-/* .control-card label { justify-content: flex-start; } (style-core.css)より
-   詳細度を上げるため、.control-cardを付けて.auto-speed-header単体より
-   確実に優先されるようにする。これが無いとjustify-content: space-between
-   が効かず、トグルがラベルのすぐ右に張り付いて見える（右端まで届かない）。 */
+/* 詳細度: style-core.cssの.control-card label{justify-content:flex-start}に勝つため.control-cardを付ける(無いとトグルが右端に届かない) */
 .control-card .auto-speed-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
-  /* トグル行自体の上下が詰まって窮屈に見えていたため、ゆとりを追加。
-     6px 0では改善が不十分だったため14px 0に拡大（ユーザー実機確認済み）。 */
   padding: 14px 0;
 }
 
@@ -212,12 +193,6 @@
   letter-spacing: normal;
 }
 
-/* 【変更済み】以前はAuto Speed詳細設定を常時展開表示し、OFF時は
-   カード全体を薄く(opacity: 0.45)して操作対象でないことを示していたが、
-   詳細設定(.auto-speed-settings)自体をOFF時に非表示にする設計に変更した
-   ため、この薄暗さ演出は不要になった（非表示なのでそもそも見えない）。 */
-
-/* ON/OFFがOFFの間は、下の詳細設定は触れる必要がないため折りたたんで隠す */
 .auto-speed-settings {
   display: none;
   flex-direction: column;
@@ -234,7 +209,6 @@
   gap: 8px;
 }
 
-/* Every/By/Limitの3項目を横並びで、各項目はタイトル→入力欄の縦積みにする */
 .auto-speed-row-triple {
   align-items: stretch;
   gap: 12px;
@@ -280,8 +254,6 @@
   font-weight: 600;
   text-align: center;
   box-sizing: border-box;
-  /* number inputのスピナー(上下矢印)は狭いポップアップ内でタップしづらく誤操作の元になるため、
-     ブラウザ標準のものは非表示にし、フリック入力/キーボード入力に任せる。 */
   -moz-appearance: textfield;
 }
 
@@ -334,8 +306,6 @@
 
 .mini-reset-btn {
   flex-shrink: 0;
-  /* 元は↺記号1文字だけの26x26正方形だったが、"RESET"という文言に変更した
-     ため、幅を可変にしてテキストに合わせて広げる。高さは既存の26pxを維持。 */
   width: auto;
   height: var(--btn-h);
   padding: 0 var(--btn-pad-x);
@@ -404,10 +374,6 @@
 }
 
 
-/* Auto SpeedのON/OFFトグルスイッチ(.glow-switch)。style-theme.cssの
-   .qn-glow-switchと同じデザインを、Controlタブ内で使うため
-   プレフィックス無しのクラス名で定義する（元々CSS定義自体が
-   存在せず、素のbutton要素として表示されてしまっていた）。 */
 .glow-switch {
   position: relative;
   width: 40px;
@@ -425,14 +391,7 @@
   background: var(--accent-primary, #3b82f6);
 }
 
-/* 【v2.16.3 負荷対策】ONの間のほんのり明滅する光。以前はbox-shadow自体を
-   アニメーションさせていたが、box-shadowはGPUだけで動かせない性質の
-   ため、表示中は毎フレーム（60〜120回/秒）スタイル再計算と再描画が
-   走っていた（Controlパネルを開いている間だけ「スタイル再計算/秒」が
-   約100になる原因、GOTCHAS.md）。光(box-shadow)は固定の擬似要素に持たせ、
-   その不透明度(opacity)だけを動かす。さらに、無限に動き続ける
-   アニメーションは（opacityであっても）表示中ずっとスタイル再計算を
-   発生させ得るため、明滅は2回で止める。 */
+/* 【v2.16.3 負荷対策】box-shadowをアニメさせない(毎フレーム再計算)。光は擬似要素に固定しopacityだけ動かす。明滅は2回で止める(無限アニメ禁止。GOTCHAS.md) */
 .glow-switch[aria-checked="true"]::after {
   content: "";
   position: absolute;
@@ -441,8 +400,6 @@
   box-shadow: 0 0 12px var(--accent-glow, rgba(59, 130, 246, 0.35));
   opacity: 0.6;
   pointer-events: none;
-  /* 無限ループにはせず、表示された時(パネルを開いた時・ONにした時)に
-     2回だけ明滅して、あとは柔らかく光ったまま止まる（GOTCHAS.md）。 */
   animation: glow-switch-pulse 3s ease-in-out 2;
 }
 

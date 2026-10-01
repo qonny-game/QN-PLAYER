@@ -1,9 +1,7 @@
-/* ============================================================
-   style-auth.css
-   ============================================================ */
+/* style-auth.css — ログインボタン/ポップアップ */
 
 #authContainer {
-  position: relative; /* ポップアップ位置決めの基準 */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -11,7 +9,6 @@
   flex-shrink: 0;
 }
 
-/* 未ログイン時ボタン */
 #btnLoginGoogle {
   display: flex;
   align-items: center;
@@ -37,7 +34,6 @@
   height: 16px;
 }
 
-/* ログイン時アバターボタン */
 #userInfo {
   position: relative;
   display: flex;
@@ -70,7 +66,6 @@
   border-color: var(--accent-primary, #3b82f6);
 }
 
-/* ポップアップメニュー */
 .user-dropdown {
   position: absolute;
   top: calc(100% + 10px);
@@ -81,7 +76,7 @@
   border-radius: var(--radius-popup);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   padding: 12px;
-  display: none; /* デフォルト非表示 */
+  display: none;
   flex-direction: column;
   gap: 10px;
   z-index: 1000;
@@ -140,7 +135,6 @@
   font-weight: 600;
 }
 
-/* プランバッジ */
 .sw-header-plan-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -157,7 +151,6 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* ログアウトボタン */
 #btnLogout {
   width: 100%;
   display: flex;

@@ -1,64 +1,16 @@
-// ============================================================
-// player-ui-pc-v2.js
-// QNPLAYER 2.0 PC版：左アイコンバー＋中央パネル＋右波形の3カラムレイアウト
-// （SP幅ではCSS側の@media(max-width:900px)で縦積み・オーバーレイパネルに
-// 切り替える。DOM構造・JSロジックはPC/SP共通）。
-//
-// 【方針】
-// 既存のDOM（#pinList, #playlistBox, #noteTextArea, Control系input,
-// EQバンド、Exportモーダルの中身）はロジック側がidで参照しているため、
-// 要素そのものは変更・複製せず、この骨組み(#pcV2Layout)の中へ「移動」する。
-// 移動後も既存のイベントハンドラはDOM要素にひもづいたまま動き続ける。
-//
-// 画面幅を問わず常時有効化する（大手術以前は901px以上のみだった）。
-//
-// 依存：player-core.js, player-ui-shared.js, player-control-eq.js, player-export.js
-// より後に読み込むこと（setMobileTab, openEqModal, openExportModal等の
-// 既存関数を呼び出すため）。
-//
-// 【統合済み】旧player-ui-pc.js（ファイル分割整理により統合）の内容は
-// ファイル末尾に残している：ドラッグ&ドロップでのファイル追加、および
-// #topControlsのPC幅レイアウト用flattenForPc/restoreForSp（このファイルの
-// build()が「先にフラット化された#topControls」を前提とする土台処理）。
-// ============================================================
+// player-ui-pc-v2.js — 左アイコンバー+中央パネル+右波形の3カラム(SP幅はCSS @media(max-width:900px)で縦積み。DOM/JSはPC/SP共通、常時有効)。
+// 【方針】既存DOM(#pinList,#playlistBox,#noteTextArea,Control系input,EQバンド,Exportモーダル中身)はidで参照されるので複製せず、骨組み(#pcV2Layout)へ「移動」する(イベントはそのまま生きる)。
+// 依存: player-core.js, player-ui-shared.js, player-control-eq.js, player-export.jsより後(setMobileTab,openEqModal,openExportModal等を呼ぶ)。末尾に旧player-ui-pc.js由来(D&D追加、flattenForPc/restoreForSp)を同居
 
 (function () {
-  // 【大手術】以前は"(min-width: 901px)"でPC幅のみ有効化していたが、
-  // SP幅でもPC v2の構造をそのまま使う（レイアウトはCSSの@media(max-width:900px)
-  // 側で縦積み・オーバーレイパネルに切り替える）方針に転換したため、
-  // 画面幅を問わず常時有効化する。"(min-width: 0px)"は常にtrueになる
-  // matchMediaで、将来また幅で分岐させたくなった場合に変更しやすいよう
-  // 定数として残している。
-  const PC_BREAKPOINT = "(min-width: 0px)";
-  const mql = window.matchMedia(PC_BREAKPOINT);
-
   let built = false;
   let currentPanel = "playlist";
-  // 【v3.14.0】PC幅のパネル格納（開いているパネルのアイコンをもう一度押すと
-  // パネル(375px)が左へ格納され、波形・下段バーが広がる）。状態は保存する。
-  // SP幅では使わない（クラスも付けない。SPは従来のオーバーレイ開閉）。
   const PANEL_COLLAPSED_KEY = "qn_panel_collapsed";
   let panelCollapsed = false;
   try { panelCollapsed = localStorage.getItem(PANEL_COLLAPSED_KEY) === "1"; } catch (e) {}
-  // 下段バーのSpeed/Key/EQトグルボタン要素への参照。Controlパネル側の
-  // トグルスイッチ(controlSpeedEnableToggle等)が直接操作された時にも
-  // 見た目を同期させるため、build()内で生成した時点でここに保持する。
   const bottomBarEffectButtons = {};
 
-  // アイコンバーに並べる項目。「Control」はSpeed/Key/EQを統合したパネル。
-  // panelType: "tab" = 既存の.mobile-tab-panel(#sidebarSection内)をそのまま表示
-  //            "eq"  = EQモーダルの中身(.export-modal-body)を表示
-  //            "export" = Exportモーダルの中身(.export-modal-body)を表示
-  //            "action" = パネルを開かず即座にアクションを実行するタイプ
-  //                      （現在は該当する項目なし。旧Add Fileがこれだったが、
-  //                      シークバーエリア右下の+ADD AUDIOボタンに一本化した
-  //                      ため撤去。将来また即実行系ボタンを追加する場合の
-  //                      ためロジックは残している）
-  //            "close" = パネルを開かず、開いていれば閉じる（波形/シークバーが
-  //                      見える基本画面に戻るためのショートカット。SP幅専用の
-  //                      挙動で、PC幅では常時パネル表示のため実質何もしない）
-  // 並び順（v3.1.0〜）：Library → Markers → Text → Control → Backup → Import
-  //（Seekbarは SP幅専用の先頭ショートカット、Exportは非表示）
+  // アイコンバー項目。panelType: tab=既存.mobile-tab-panel表示 / eq=EQモーダル中身 / export=Exportモーダル中身 / action=即実行(現在該当なし、ロジックのみ残す) / close=開いていれば閉じる(SP幅専用)。並び(v3.1.0〜): Library→Markers→Text→Control→Backup→Import(SeekbarはSP専用先頭、Exportは非表示)
   const ICON_ITEMS = [
     {
       id: "seekbar",
@@ -99,16 +51,12 @@
       label: "Export",
       panelType: "export",
       icon: '<path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>',
-      // 一旦サイドメニューから非表示にする（機能自体は温存：
-      // player-export.js側のロジック、panelType "export"の分岐処理、
-      // switchPanel内でのexportBody/exportFooter挿入は一切削らない）。
-      // 再度表示したくなったらこの行を削除するだけでよい。
       hidden: true
     },
     {
       id: "backup",
       label: "Backup",
-      bottom: true,   // v3.17.0〜：下段グループ（Keyboardの上）に置く
+      bottom: true,
       panelType: "backup",
       icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>'
     },
@@ -135,7 +83,7 @@
     const appContainer = document.querySelector(".app-container");
     if (!appContainer) { built = false; return; }
 
-    // --- 骨組みDOMを作成（既存要素はまだ動かさず、器だけ用意する） ---
+    // ---------- 骨組みDOMを作成（既存要素はまだ動かさず、器だけ用意する） ----------
     const layout = el('<div id="pcV2Layout"></div>');
     const iconBar = el('<div id="pcV2IconBar"></div>');
     const panel = el('<div id="pcV2Panel"></div>');
@@ -159,15 +107,9 @@
       iconBar.appendChild(btn);
     });
 
-    // アイコンバー下段：Keyboard Shortcuts / Color Theme
-    // #qnMenuMount内（player-theme.js/style-theme.cssが担当）のTheme/
-    // Shortcutsセクションを、パネルとして中央カラムに表示する
-    // （player-theme.js自体のロジック・DOM構造には手を入れず、該当
-    // セクションをDOMごと移動して表示するだけ）。
     const spacer = el('<div id="pcV2IconBarSpacer"></div>');
     const bottomGroup = el('<div id="pcV2IconBarBottom"></div>');
-    // 【v3.17.0】下段グループ：Backup / Import / Keyboard / Color（YouTubeアプリと同じ並び）。
-    // Backup/ImportはICON_ITEMS側のbottom:true項目（handleIconClick経由で開く）。
+    // 【v3.17.0】下段グループ: Backup/Import/Keyboard/Color(YouTubeと同じ並び)。Backup/ImportはICON_ITEMSのbottom:true項目
     ICON_ITEMS.filter(item => item.bottom && !item.hidden).forEach(item => {
       const btn = el(
         '<button type="button" class="pcv2-icon-item" data-panel-id="' + item.id + '" title="' + item.label + '">' +
@@ -194,18 +136,7 @@
     iconBar.appendChild(spacer);
     iconBar.appendChild(bottomGroup);
 
-    // --- アイコンバーの右端「まだ続きがある」ヒント矢印（SP幅専用） ---
-    // #pcV2IconBarは横スクロールするが、パッと見でスクロール可能なことに
-    // 気づきにくいため、右端に固定表示の矢印ヒントを重ねる。
-    // 【重要】iconBarをラップするコンテナは作らない。syncBottomBarPosition()が
-    // 「#pcV2Layoutの直接の子である#pcV2IconBarの直前にbottomBarを挿入する」
-    // 処理をしており、ラップすると#pcV2IconBarがlayoutの直接の子でなくなって
-    // その処理が壊れるため。矢印はlayoutの直接の子として、CSS側で
-    // #pcV2IconBarに右端で重なるよう絶対配置する（position: absolute、
-    // #pcV2IconBarの親である#pcV2Layout、または専用ラッパ不要の構成は
-    // style-layout-pc-v2.css側の実装を参照）。
-    // 表示/非表示はJS側(setupIconBarScrollHint)がスクロール位置を見て
-    // 切り替える。最後までスクロールしたら自動で消える。
+    // アイコンバー右端のスクロールヒント矢印(SP幅専用)。【重要】iconBarをラップするコンテナを作るな(syncBottomBarPosition()が#pcV2Layout直下の#pcV2IconBar直前へbottomBarを挿入するため壊れる)。矢印はlayout直下の子、CSSで絶対配置。表示切替はsetupIconBarScrollHint
     const iconBarScrollHint = el(
       '<div id="pcV2IconBarScrollHint" aria-hidden="true">' +
         '<svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>' +
@@ -217,120 +148,18 @@
     layout.appendChild(panel);
     layout.appendChild(waveArea);
 
-    // --- ヘッダーのQN Seriesドロップダウン ---
-    // 【QNPLAYER単体リリースのため一時無効化】他のQNシリーズアプリへの
-    // 遷移リンクは、今回QNPLAYERのみを先行リリースする方針のため
-    // コメントアウトしている。他アプリ（QNPITCH/QNPHRASE/QNTEMPO/
-    // QNTUNER）を後日公開する際、このブロックのコメントを外せば
-    // 復活できる。
-    // 無効化に伴い、appVersion(バージョン表記)をこのドロップダウンの
-    // トリガーボタン右に移動する処理も行っていない。appVersionは
-    // index.html側の初期位置（#appLogoの中）にそのまま表示される。
-    /*
-    const appHeader = document.getElementById("appHeader");
-    const appVersion = document.getElementById("appVersion");
-    if (appHeader && !document.getElementById("pcV2HeaderNav")) {
-      const apps = [
-        { name: "QNPLAYER", desc: "Speed/Key変更＆マーカー付き音楽プレイヤー", url: "https://qonny-game.github.io/QN-PLAYER/", current: true },
-        { name: "QNPITCH", desc: "リアルタイム音痴度チェッカー", url: "https://qonny-game.github.io/QN-PITCH/" },
-        { name: "QNPHRASE", desc: "ギターフレーズ自動生成", url: "https://qonny-game.github.io/QN-PHRASE" },
-        { name: "QNTEMPO", desc: "メトロノーム", url: "https://qonny-game.github.io/QN-TEMPO/" },
-        { name: "QNTUNER", desc: "マイク入力チューナー", url: "https://qonny-game.github.io/QN-TUNER/" }
-      ];
-      const nav = el(
-        '<div id="pcV2HeaderNav">' +
-          '<button type="button" class="pcv2-header-nav-trigger" id="pcV2HeaderNavTrigger" title="QN Series">' +
-            '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>' +
-          '</button>' +
-          '<div class="pcv2-header-nav-dropdown"></div>' +
-        '</div>'
-      );
-      const trigger = nav.querySelector(".pcv2-header-nav-trigger");
-      if (appVersion) {
-        markAnchor("appVersion", appVersion);
-        trigger.insertAdjacentElement("afterend", appVersion);
-      }
-      const dropdown = nav.querySelector(".pcv2-header-nav-dropdown");
-      apps.forEach(app => {
-        // ヘッダーロゴ(#appLogoQN)と同じ配色にするため、アプリ名の
-        // 先頭"QN"だけ別spanにしてアクセントカラー、残りは白にする。
-        const qnPrefix = app.name.slice(0, 2);
-        const rest = app.name.slice(2);
-        const link = el(
-          '<a class="pcv2-header-nav-link' + (app.current ? ' current' : '') + '" href="' + app.url + '" target="_blank" rel="noopener">' +
-            '<span class="pcv2-header-nav-link-name"><span class="pcv2-header-nav-link-name-qn">' + qnPrefix + '</span>' + rest + '</span>' +
-            '<span class="pcv2-header-nav-link-desc">' + app.desc + '</span>' +
-          '</a>'
-        );
-        dropdown.appendChild(link);
-      });
-      appHeader.appendChild(nav);
-      const dropdownEl = nav.querySelector(".pcv2-header-nav-dropdown");
-      trigger.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const willOpen = !nav.classList.contains("open");
-        nav.classList.toggle("open", willOpen);
-        if (willOpen) {
-          // 展開後のロゴ一覧が、ページ上部のロゴと縦に揃うよう、
-          // ドロップダウンの左端をappLogoの左端に合わせる
-          // （#pcV2HeaderNav自体はロゴの右にあるボタンのため、
-          // その位置基準のleft:0のままではロゴより右にずれてしまう）。
-          const logoEl = document.getElementById("appLogo");
-          const navRect = nav.getBoundingClientRect();
-          const logoRect = logoEl ? logoEl.getBoundingClientRect() : navRect;
-          dropdownEl.style.left = (logoRect.left - navRect.left) + "px";
-        }
-      });
-      document.addEventListener("click", () => nav.classList.remove("open"));
-    }
-    */
-
-    // --- 下段固定コントロールバー(モック準拠)を構築 ---
-    // モックは「Start・Prev・Play・Next・Repeat」の5ボタンが1グループ、
-    // 区切り線、「PrevMkr・+Marker・NextMkr・Loop」の4ボタンがもう1グループ、
-    // という明確な2グループ構成。
-    //
-    // 既存の#topControlsは、player-ui-pc.js側がPC幅で
-    // 「playbackTripleBtn(3連ボタン)→allRepeatToggleBtn→
-    //   markerNavBtn(3連ボタン)→loopToggleBtn」の順に#topControls直下へ
-    // フラット化する設計。SP幅に戻る際はplayer-ui-pc.js側のrestoreForSp()が
-    // 「playbackTripleBtn+allRepeatToggleBtnを1段目、markerNavBtn+
-    //  loopToggleBtnを2段目」という単位で.top-controls-rowへ戻す。
-    //
-    // この単位(playbackTripleBtn／markerNavBtnという3連ボタンのまとまり)を
-    // 崩さずに保つことで、restoreForSp()との競合を避ける。そのため
-    // .tripleNavBtnコンテナ自体は解体せず、そのままgroup1/group2に
-    // 配置し、内部の.tripleNavBtn-divider(3連ボタン用の区切り線)だけを
-    // CSSで非表示にして「独立ボタンが並んでいるように見せる」。
-    // allRepeatToggleBtn/loopToggleBtnは単体ボタンなので、個別に
-    // markAnchor/restoreAnchorで位置を管理する。
+    // 下段バー構築。group1=Prev/Play/Next/Repeat系、group2=Marker系。playbackTripleBtn/markerNavBtn(3連ボタン)の単位は崩さない。.tripleNavBtnは解体せずgroup1/2に配置し、内部.tripleNavBtn-dividerをCSSで非表示にする
     const bottomBar = el('<div id="pcV2BottomBar"></div>');
     const topControls = document.getElementById("topControls");
-    markAnchor("topControls", topControls);
     if (topControls) {
-      // 注意：この時点でtopControls(と中のボタン等)はまだdocument本体に
-      // 接続されていない中間状態のDOMツリーにいるため、
-      // document.getElementById(...)では見つからない。必ずtopControls
-      // 自身からのquerySelectorで取得すること。
+      // 【注意】この時点のtopControlsはdocument未接続。document.getElementByIdは不可、topControlsからquerySelectorすること
       const playbackTripleBtn = topControls.querySelector("#playbackTripleBtn");
       const allRepeatToggleBtn = topControls.querySelector("#allRepeatToggleBtn");
       const markerNavBtn = topControls.querySelector("#markerNavBtn");
       const loopToggleBtn = topControls.querySelector("#loopToggleBtn");
       const loopPreRollControl = topControls.querySelector("#loopPreRollControl");
 
-      // allRepeatToggleBtn/loopToggleBtnの位置管理はplayer-ui-pc.js側の
-      // restoreForSp()に完全に委ねる（PC v2側ではmarkAnchor/restoreAnchorを
-      // 使わない）。理由：SP幅へ戻る際、player-ui-pc.js側のイベントリスナーが
-      // 先に登録されているためrestoreForSp()が先に実行され、正しい
-      // .top-controls-row(row1/row2)へ戻す。その後にPC v2側のdeactivate()が
-      // 独自のrestoreAnchorで#topControls直下へ戻そうとすると、
-      // restoreForSp()が済ませた配置を上書きしてしまい競合する。
-
-      // 【v3.16.0】Start(頭出し)ボタンは撤去し、YouTubeアプリの下段バーと同じ
-      // 「Track(前) / -10s / Play / +10s / Track(次) / Repeat」の並びにする。
-      // Track(前/次)のアイコンはYouTubeと同じ「|◀ / ▶|」（index.html元のSVGのまま。
-      // 以前はここでモック風の二枚羽根に差し替えていたが、-10s/+10sに譲った）。
-      // 頭出しはEnterキー（seekToTrackStart）で引き続き使える。
+      // 【v3.16.0】Startボタン撤去。並び: Track(前)/-10s/Play/+10s/Track(次)/Repeat。Trackアイコンはindex.html元のSVG。頭出しはEnterキー(seekToTrackStart)
       const skipSvg = {
         back: '<path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>',
         fwd: '<path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>'
@@ -350,21 +179,14 @@
       const playToggleEl = playbackTripleBtn ? playbackTripleBtn.querySelector("#playToggle") : null;
       if (playbackTripleBtn && playToggleEl) {
         playbackTripleBtn.insertBefore(skipBackBtn, playToggleEl.previousElementSibling || playToggleEl);
-        // 「再生」の次のdividerの直後（=Next Trackの前）へ+10s
         playbackTripleBtn.insertBefore(skipFwdBtn, playToggleEl.nextElementSibling ? playToggleEl.nextElementSibling.nextElementSibling : null);
       }
 
-      // allRepeatToggleBtn/loopToggleBtnは、playbackTripleBtn/markerNavBtnの
-      // 「中」に子として組み込んでしまう。こうすることで、SP幅へ戻る際に
-      // player-ui-pc.js側のrestoreForSp()が「row1.appendChild(playbackTripleBtn)」
-      // を実行するだけで、中のallRepeatToggleBtnも自動的に一緒についてくる。
-      // PC v2側で個別に位置を管理する必要がなくなり、responsForSp()との
-      // 競合が起きない。
+      // allRepeatToggleBtn/loopToggleBtnはplaybackTripleBtn/markerNavBtnの子にする
       if (playbackTripleBtn && allRepeatToggleBtn) {
         playbackTripleBtn.appendChild(allRepeatToggleBtn);
       }
-      // v3.7.0〜：Set A / Set B（現在地をA点/B点に。YouTubeアプリの下段バーと同じ）。
-      // Loopボタンの手前に、markerNavBtnの子として入れる（SP幅へ戻る際もmarkerNavBtnごと動くため）。
+      // v3.7.0〜: Set A/Set B。Loopの手前、markerNavBtnの子として入れる
       const abGlyph = ch => '<svg viewBox="0 0 24 24"><text x="12" y="18" text-anchor="middle" font-size="17" font-weight="700" font-family="Instrument Sans, sans-serif" fill="currentColor">' + ch + '</text></svg>';
       const setABtn = el('<button type="button" id="setABtn" class="loopbtn ab-set-btn" title="現在位置をA点に（もう一度押すと解除）">' + abGlyph("A") + '<span class="top-controls-btn-label">A --</span></button>');
       const setBBtn = el('<button type="button" id="setBBtn" class="loopbtn ab-set-btn" title="現在位置をB点に（もう一度押すと解除）">' + abGlyph("B") + '<span class="top-controls-btn-label">B --</span></button>');
@@ -377,21 +199,15 @@
       if (markerNavBtn && loopToggleBtn) {
         markerNavBtn.appendChild(loopToggleBtn);
       }
-      // loopPreRollControl(Loopの秒数±ステッパー)もloopToggleBtnと同じ単位で
-      // markerNavBtnの子に組み込む。こうすることでSP幅へ戻る際、
-      // player-ui-pc.js側のrestoreForSp()がmarkerNavBtnごとrow2へ
-      // 戻すだけで自動的についてくる（PC v2側で個別管理しない）。
+      // loopPreRollControlもmarkerNavBtnの子にする(理由は上と同じ)
       if (markerNavBtn && loopPreRollControl) {
         markerNavBtn.appendChild(loopPreRollControl);
       }
-      // v3.10.1〜：Clear AB（YouTubeアプリの下段バーと同じ位置＝プリロールの右。A/B点を両方クリア）
+      // v3.10.1〜: Clear AB(プリロールの右。A/B両方クリア)
       const clearABBtn = el('<button type="button" id="clearABBtn" class="loopbtn ab-set-btn" title="A/B点をクリア"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg><span class="top-controls-btn-label">Clear AB</span></button>');
       clearABBtn.addEventListener("click", () => { if (typeof clearAB === "function") clearAB(); });
       if (markerNavBtn) markerNavBtn.appendChild(clearABBtn);
 
-      // 各ボタンのtitle(ネイティブツールチップ)に対応するキーボード
-      // ショートカットを追記する（window.QN_SHORTCUTSのaction文字列と
-      // 照合して該当するkeyを見つける）。
       function appendShortcutToTitle(btn, actionLabel) {
         if (!btn || typeof window.QN_SHORTCUTS === "undefined") return;
         const found = window.QN_SHORTCUTS.find(s => s.action === actionLabel);
@@ -404,30 +220,19 @@
       appendShortcutToTitle(document.getElementById("nextMarkerBtn"), "Next Marker");
       appendShortcutToTitle(document.getElementById("prevMarkerBtn"), "Prev Marker");
 
-      // グループ1：playbackTripleBtn(Start・Prev・Play・Next・Repeat一式)
       const group1 = el('<div class="pcv2-ctrl-group" id="pcV2BottomBarGroupPlay"></div>');
       if (playbackTripleBtn) group1.appendChild(playbackTripleBtn);
 
-      // 時刻表示(.time-controls-row)：PC幅ではここ(Repeatの右)に
-      // 配置する。SP幅では専用の行(#pcV2TimeRow、波形エリアの下・
-      // 下部バーの上)へ移す（syncTimeRowPosition()、resize時にも
-      // 再判定）。ここではまずPC幅と同じ「group1内」に置いておく。
       const timeControlsRow = document.querySelector(".player-section > .time-controls-row");
       if (timeControlsRow) {
-        markAnchor("timeControlsRow0", timeControlsRow);
         group1.appendChild(timeControlsRow);
       }
 
-      // グループ2：markerNavBtn(Prev Mkr・+Marker・Next Mkr・Loop一式)
       const group2 = el('<div class="pcv2-ctrl-group" id="pcV2BottomBarGroupMarker"></div>');
       if (markerNavBtn) group2.appendChild(markerNavBtn);
 
       const divider = el('<div class="pcv2-ctrl-divider"></div>');
 
-      // 元の.top-controls-row(2つ)自体は器として残っているが中身は
-      // 空になっている（ボタンは全てgroup1/group2へ移動済み）ため、
-      // 非表示にしてPC v2の新しい構造(group1・divider・group2)を
-      // #topControls直下に追加する。
       Array.from(topControls.querySelectorAll(".top-controls-row")).forEach(row => {
         row.style.display = "none";
       });
@@ -438,16 +243,9 @@
       bottomBar.appendChild(topControls);
     }
 
-    // 時刻表示専用の行(#pcV2TimeRow)：SP幅では波形エリアの下、下部
-    // コントロールバーの直上に、時刻表示(.time-controls-row)だけを
-    // 移してここに表示する（syncTimeRowPosition()が実際の移動を行う）。
-    // PC幅ではこの行自体を使わず、時刻表示はgroup1(Repeatの右)に留まる。
     const timeRow = el('<div id="pcV2TimeRow"></div>');
 
     const rightGroup = el('<div class="pcv2-ctrl-group" id="pcV2BottomBarGroupRight"></div>');
-    // Volume（新規：ポップアップ式の縦スライダー。既存にPC向けVolume UIが
-    // 無かったため、controlVolume(#controlVolumeスライダー、Controlパネル内)
-    // の値を操作する簡易UIとして新設する）
     const volumeBtn = el(
       '<button type="button" class="pcv2-ctrl-btn" id="pcV2VolumeBtn" style="position:relative;" title="Volume">' +
         '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>' +
@@ -471,10 +269,6 @@
           '<span>' + entry.label + '</span>' +
         '</button>'
       );
-      // クリック：対応するエフェクトのON/OFFをトグルし、既存の
-      // controlXxxEnableToggle(Controlパネル内のトグルスイッチ)とも
-      // 状態を同期する。右クリック(コンテキストメニュー抑制)でControl
-      // パネルを開く（従来のショートカット機能も残す）。
       btn.addEventListener("click", () => {
         toggleBottomBarEffect(entry.id, btn);
       });
@@ -482,8 +276,6 @@
         e.preventDefault();
         switchPanel("control");
       });
-      // v3.10.0〜：Speed/Keyは「−［アイコン＋値(ON/OFF)］＋」のステッパーにする（−＋はControlパネルの
-      // 同名ボタンを押すのと同じ：Speed 5%刻み・Key ±1。無料版の制限もそちらで処理される）
       if (entry.id === "speed" || entry.id === "key") {
         const cap = entry.id === "speed" ? "Speed" : "Key";
         const mk = (sign, dir) => {
@@ -497,7 +289,6 @@
         };
         const wrap = el('<div class="pcv2-stepper"></div>');
         wrap.appendChild(mk("−", -1));
-        // 値と名前をラベルに表示（YouTubeアプリのステッパーと同じ「1.00x Speed」）
         const lab = btn.querySelector("span");
         if (lab) lab.innerHTML = '<b>' + (entry.id === "speed" ? "1.00x" : "0") + '</b> ' + cap;
         wrap.appendChild(btn);
@@ -511,7 +302,6 @@
       syncBottomBarEffectButton(entry.id, btn);
     });
 
-    // Speed/Keyの現在値をボタンのラベルに表示（Controlパネルのスライダー/ボタン/リセット/キー操作でも変わるため軽く定期更新）
     function updateBottomStepperValues() {
       const sp = bottomBarEffectButtons.speed, ky = bottomBarEffectButtons.key;
       if (sp && typeof currentSpeed === "number") {
@@ -526,37 +316,19 @@
     updateBottomStepperValues();
     setInterval(updateBottomStepperValues, 250);
 
-    // Controlパネル内のトグルスイッチ(controlSpeedEnableToggle等)が
-    // 直接クリックされた場合にも下段バーの見た目を追従させる。
-    // player-controls.js/player-control-eq.js側のonclickは自分のaria-checked
-    // 更新のみでこちらへ通知してくれないため、ここで別途capture段階の
-    // クリックリスナーを重ねて拾う（既存のonclick処理は妨げない）。
     setupControlPanelEffectSync();
 
     bottomBar.appendChild(el('<div class="pcv2-ctrl-spacer"></div>'));
-    // 【v2.13.6】MARKERグループとVolume/Speed/Key/EQトグル群の間の仕切り線
-    // （SP幅のみ表示。PC幅はspacerで十分離れるためCSSで非表示）。
     bottomBar.appendChild(el('<div class="pcv2-ctrl-divider pcv2-ctrl-divider-sp"></div>'));
     bottomBar.appendChild(rightGroup);
 
-    // #pcV2TimeRow(空の入れ物)をlayout内、波形エリアの直後（アイコン
-    // バーの手前）に差し込んでおく。実際に中身(.time-controls-row)を
-    // ここへ移すかどうかはsyncTimeRowPosition()がPC/SP幅に応じて判断する。
     layout.appendChild(timeRow);
 
-    // --- pcV2Root：3カラム部分(layout)と下段バー(bottomBar)を縦に積む ---
+    // ---------- pcV2Root：3カラム部分(layout)と下段バー(bottomBar)を縦に積む ----------
     const root = el('<div id="pcV2Root"></div>');
     root.appendChild(layout);
 
-    // SP幅限定：下段バー(#pcV2BottomBar)の直上に置く、PLAY/MARKERの
-    // アンカータブ。下段バーはPLAY系(group1)とMARKER系(group2)が
-    // 1本の横に長い列としてつながっており（SP幅でアイコン・タップ領域を
-    // 大きくしたため、1画面に収まりきらず横スクロールが要る）、
-    // このタブを押すとその行の該当パート（PLAY=group1の先頭、
-    // MARKER=group2の先頭）まで#pcV2BottomBarの横スクロール位置を
-    // ジャンプさせる、アンカーリンク的なショートカット。
-    // PC幅では#pcV2BottomBar自体が横スクロールしない（全項目が収まる）
-    // ため、CSS側でこのタブ自体を非表示にする。
+    // SP幅専用: PLAY/MARKERアンカータブ(#pcV2BottomBar直上)。押すと下段バーの横スクロールをgroup1/group2先頭へジャンプ。PC幅はCSSで非表示
     const anchorTabs = el('<div id="pcV2BottomBarAnchorTabs"></div>');
     const anchorTabPlay = el('<button type="button" class="pcv2-anchor-tab" data-anchor-target="pcV2BottomBarGroupPlay">PLAY</button>');
     const anchorTabMarker = el('<button type="button" class="pcv2-anchor-tab" data-anchor-target="pcV2BottomBarGroupMarker">MARKER</button>');
@@ -564,10 +336,7 @@
       const bar = document.getElementById("pcV2BottomBar");
       const target = document.getElementById(targetId);
       if (!bar || !target) return;
-      // target.offsetLeftは#pcV2BottomBarから見た絶対位置とは限らない
-      // （間に他の要素の余白が挟まる構造のため）ため、targetの
-      // getBoundingClientRect()とbar自身のそれの差分から、現在の
-      // scrollLeftに対する相対移動量を出す方が構造変化に強い。
+      // offsetLeftは頼れない。getBoundingClientRect差分でscrollLeft相対移動量を出す
       const barRect = bar.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
       const delta = targetRect.left - barRect.left;
@@ -587,14 +356,7 @@
 
     root.appendChild(bottomBar);
 
-    // PLAYタブの左位置を、実際のPlay/Pauseボタン(#playToggle)の真上に
-    // 来るよう動的に合わせる。ボタン構成・サイズが今後変わっても
-    // ズレないよう、固定pxではなくその都度実測する。#pcV2BottomBar側は
-    // 横スクロールしてもスクロール量に応じて中身ごと動くだけで、
-    // アンカータブ自体はスクロールしない別要素（#pcV2Layoutの直接の子）
-    // に位置しているため、初期表示（scrollLeft=0）時点のレイアウトを
-    // 基準に一度だけ計算すれば足りる。実際の呼び出し（初回計算）は
-    // syncBottomBarPosition()でDOM順序が確定した後に行う（下記）。
+    // PLAYタブ位置を#playToggle真上へ動的に合わせる(実測。初期scrollLeft=0基準で1回。呼び出しはsyncBottomBarPosition()のDOM順確定後)
     function alignPlayAnchorTab() {
       const playBtn = document.getElementById("playToggle");
       if (!playBtn || !anchorTabs) return;
@@ -607,61 +369,31 @@
       anchorTabPlay.style.marginLeft = left + "px";
     }
 
-    // 既存の.app-container(#appHeaderの後)の直後にPC v2骨組みを挿入
     appContainer.parentNode.insertBefore(root, appContainer.nextSibling);
 
-    // 【SP幅レイアウト】#pcV2BottomBar(再生コントロール)と#pcV2IconBar
-    // (Control/Markers等のタブ)は、PC幅では#pcV2Root直下に「layout→
-    // bottomBar」の順で兄弟として並んでいるが、SP幅では「アイコンバーが
-    // 一番下、その上にコントロールバー」という順序にしたい。
-    // #pcV2BottomBarは#pcV2Layoutの外（#pcV2Rootの子）、#pcV2IconBarは
-    // #pcV2Layoutの中（波形エリアの下）という別々の階層にあるため、
-    // CSSのorderだけでは実現できず、ここでJSが実際にDOM上の位置を
-    // 動かす。PC幅に戻った時は元の位置（#pcV2Root直下、layoutの後）へ
-    // 戻す。
+    // 【SP幅】SPは「アイコンバー最下部、その上にコントロールバー」。bottomBarは#pcV2Root直下、iconBarは#pcV2Layout内で階層が違いCSS orderでは不可→JSでDOM移動。PC幅に戻る時は元位置(#pcV2Root直下、layoutの後)へ
     syncBottomBarPosition();
     window.addEventListener("resize", syncBottomBarPosition);
 
-    // レイアウト確定後（フォント読み込み等でサイズが変わる可能性がある
-    // ため）に計算する。requestAnimationFrameで1フレーム待ってから行う。
     requestAnimationFrame(alignPlayAnchorTab);
     window.addEventListener("resize", alignPlayAnchorTab);
 
-    // アイコンバー右端の「まだ続きがある」ヒント矢印：スクロール位置に
-    // 応じて表示/非表示を切り替える（最後までスクロールしたら消える）。
     setupIconBarScrollHint();
 
-    // 時刻表示(.time-controls-row)：PC幅ではgroup1(Repeatの右)、SP幅では
-    // #pcV2TimeRow(専用行)へ実際にDOM移動する。
     syncTimeRowPosition();
     window.addEventListener("resize", syncTimeRowPosition);
 
-    // --- 波形エリア(#vbarContainer)をplayer-sectionから右カラムへ移動 ---
-    // 時刻表示(.time-controls-row)は波形の下ではなく、下段バーの
-    // Repeatボタンの右に移設するため、ここでは含めない
-    // （build()の後半、下段バー構築時に別途処理する）。
     const appTitle = document.getElementById("appTitle");
     const vbarContainer = document.getElementById("vbarContainer");
 
-    markAnchor("appTitle", appTitle);
-    markAnchor("vbarContainer", vbarContainer);
 
-    // 【v3.15.0】波形エリアの先頭行：左＝曲名(#appTitle)、右＝時刻表示
-    // （PC幅。syncTimeRowPosition()が時刻表示行をここへ移す）。
     const waveHead = el('<div id="pcV2WaveHead"></div>');
     if (appTitle) waveHead.appendChild(appTitle);
     waveArea.appendChild(waveHead);
     if (vbarContainer) waveArea.appendChild(vbarContainer);
-    // waveHeadができたので、時刻表示行の置き場所を確定する
-    // （上のsyncTimeRowPosition()の初回呼び出しは、まだwaveHeadが無く何もしない）
+    // waveHead確定後に時刻行の置き場所を確定(先のsyncTimeRowPosition()初回はwaveHead未生成で空振り)
     syncTimeRowPosition();
 
-    // --- シークバーエリア右下の+ADD AUDIOボタン ---
-    // 初回起動時、波形が空の状態でも「ここでファイルを追加すればいい」と
-    // 直感的に伝わるよう、常設のフローティングボタンとして設置する
-    // （旧#welcomeOverlay内のADD FILEボタンは撤去し、これに一本化した）。
-    // Markers/Library/TextパネルのFAB(#pcV2PanelFab、.panel-fab-btn)と
-    // 同じ見た目に揃えるため、同じクラスを使う。
     const waveAddAudioBtn = el(
       '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddAudioBtn" title="Add Audio">' +
         '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
@@ -672,8 +404,7 @@
       const fileInputEl = document.getElementById("fileInput");
       if (fileInputEl) fileInputEl.click();
     });
-    // 【v2.13.6】ADD AUDIOの右隣にADD MARKERを並べる。2つを横並びの
-    // 入れ物(#pcV2WaveFabRow)に入れ、右下固定の絶対配置は入れ物側で行う。
+    // 【v2.13.6】ADD AUDIOの右にADD MARKER。横並び入れ物#pcV2WaveFabRowに入れ、右下固定は入れ物側
     const waveAddMarkerBtn = el(
       '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddMarkerBtn" title="Add Marker">' +
         '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
@@ -688,48 +419,30 @@
     waveFabRow.appendChild(waveAddMarkerBtn);
     waveArea.appendChild(waveFabRow);
 
-    // basic-panel-box（Exportボタン等、旧UI）はPC v2では使わないため隠す
-    // （fileInput自体は中に残っているので参照は生き続ける）
     const basicPanelBox = document.querySelector(".basic-panel-box");
     if (basicPanelBox) basicPanelBox.style.display = "none";
 
-    // sp-status-panelはSP専用表示なのでPC v2では触らず放置してよい
-    // （style-core-pc.css側で元々PC幅では非表示になっている）
-
-    // Volumeポップアップの開閉・スライダー操作（controlVolumeの値と同期）
     setupVolumeControl();
 
     initPanels();
 
-    // 初期表示：PC幅は常時パネル表示のため、従来通りLibrary(playlist)を
-    // 開いた状態にする。SP幅は初期状態でパネルが閉じており、波形が見える
-    // 「Seekbar」状態がユーザーの実際の見え方と一致するため、そちらを
-    // アクティブにする（switchPanel("playlist")を呼ぶと、パネルの中身は
-    // 見えないままアイコンバーのLibraryだけ色がつく、という見た目と
-    // 実際の表示状態が食い違う状態になってしまうため呼ばない）。
-    // closePanelOverlay()は「currentPanelをseekbarにし、アイコンバーの
-    // 色もSeekbarに揃える」処理をそのまま流用できる（パネルを開いた
-    // 直後に閉じるのと、最初から閉じているのは、内部的には同じ状態）。
     const isSpWidthInit = isSpWidthNow();
     if (isSpWidthInit) {
       closePanelOverlay();
     } else {
-      // 格納状態（保存値）を維持したまま初期パネルを組み立てる
       switchPanel("playlist", { keepCollapsed: true });
     }
     applyCollapse();
     window.addEventListener("resize", applyCollapse);
   }
 
-  // ---- パネル格納（PC幅・v3.14.0） ----
+  // ---------- パネル格納（PC幅・v3.14.0） ----------
   function isSpWidthNow() {
     return window.matchMedia("(max-width: 900px)").matches;
   }
   function isCollapsed() {
     return panelCollapsed && !isSpWidthNow();
   }
-  // 状態をDOMへ反映する：#pcV2Layoutのクラス、サイドバーの選択表示
-  // （格納中は全アイコンの.activeを外し、「格納されている」ことが分かるように）。
   function applyCollapse() {
     const layoutEl = document.getElementById("pcV2Layout");
     if (!layoutEl) return;
@@ -748,10 +461,6 @@
     applyCollapse();
   }
 
-  // #pcV2VolumeBtn/#pcV2VolumePopupの開閉と、既存のControlパネル内
-  // #controlVolume(range input)への値の反映を行う。#controlVolumeの
-  // onchange/oninput既存ロジック(player-controls.js側)をそのまま使うため、
-  // ここではその値を書き換えてinputイベントを発火させるだけに留める。
   function setupVolumeControl() {
     const btn = document.getElementById("pcV2VolumeBtn");
     const popup = document.getElementById("pcV2VolumePopup");
@@ -760,10 +469,7 @@
     const thumb = document.getElementById("pcV2VolumeThumb");
     if (!btn || !popup || !track) return;
 
-    // 【v2.13.6】ポップアップをボタンの中からdocument.body直下へ移し、
-    // position: fixedで表示する。SP幅では#pcV2BottomBarが横スクロール
-    // (overflow-x: auto)のため、その中の絶対配置の子は上方向へはみ出せず
-    // 切り取られて見えなくなっていた（背面に隠れて操作できない不具合）。
+    // 【v2.13.6】ポップアップはbody直下+position:fixed(SP幅の#pcV2BottomBarはoverflow-x:autoで内部のabsolute子が切り取られるため)
     document.body.appendChild(popup);
 
     function applyVisual(ratio) {
@@ -778,13 +484,11 @@
       popup.style.top = (r.top - 10) + "px";
     }
 
-    // 表示中だけボタンをテーマ色にする（.is-open、v2.16.5〜）。
     function closePopup() {
       popup.classList.remove("open");
       btn.classList.remove("is-open");
     }
 
-    // 既存のcontrolVolume(0〜1)の現在値を初期表示に反映
     const controlVolumeEl = document.getElementById("controlVolume");
     applyVisual(controlVolumeEl ? parseFloat(controlVolumeEl.value) : (typeof audio !== "undefined" ? audio.volume : 0.8));
 
@@ -801,7 +505,6 @@
     });
     document.addEventListener("click", closePopup);
     popup.addEventListener("click", (e) => e.stopPropagation());
-    // ボタン位置が動く操作（下段バーの横スクロール・画面回転等）では閉じる
     window.addEventListener("resize", closePopup);
     const bottomBarEl = document.getElementById("pcV2BottomBar");
     if (bottomBarEl) bottomBarEl.addEventListener("scroll", closePopup, { passive: true });
@@ -817,9 +520,6 @@
       }
     }
 
-    // マウス・タッチ共通でPointer Eventsを使う（以前はmousedownのみで、
-    // SPではポップアップが見えてもドラッグ操作できなかった）。
-    // トラック自体が細い(4px)ため、ポップアップ上部の操作領域全体で受ける。
     const dragArea = popup;
     dragArea.style.touchAction = "none";
     dragArea.addEventListener("pointerdown", (e) => {
@@ -841,14 +541,10 @@
     });
   }
 
-  // 各パネル種別の中身要素への参照を保持
   let controlBody, markersBody, playlistBody, textBody, eqBody, exportBody, exportFooter;
   let backupBody, backupFooter, importBody, importFooter;
 
   function initPanels() {
-    // #sidebarSection内の各mobile-tab-panelはそのまま(親のsidebarSectionごと)
-    // 移動はせず、CSS側で#pcV2PanelBody内に「後から挿入したときだけ」見た目を
-    // 常時表示にする。ここでは実体を#pcV2PanelBodyへ移動する。
     controlBody = document.querySelector('.mobile-tab-panel[data-tab-panel="control"]');
     markersBody = document.querySelector('.mobile-tab-panel[data-tab-panel="markers"]');
     playlistBody = document.querySelector('.mobile-tab-panel[data-tab-panel="playlist"]');
@@ -859,47 +555,16 @@
 
     const exportModal = document.getElementById("exportModalOverlay");
     exportBody = exportModal ? exportModal.querySelector(".export-modal-body") : null;
-    // フッター(Cancel/Exportボタン)は.export-modal-bodyの外(.export-modal直下の
-    // 兄弟要素)にあるため、別途取得して一緒にパネルへ移動する対象に含める。
     exportFooter = exportModal ? exportModal.querySelector(".export-modal-footer") : null;
 
-    // SP幅へ戻った時に正しい位置へ差し戻せるよう、まだ元の親にいる
-    // うちに目印を残しておく（この時点では実際の移動はまだ行わない）。
-    markAnchor("control", controlBody);
-    markAnchor("markers", markersBody);
-    markAnchor("playlist", playlistBody);
-    markAnchor("text", textBody);
-    markAnchor("eq", eqBody);
-    markAnchor("export", exportBody);
-    markAnchor("exportFooter", exportFooter);
 
-    // Backup/Import（v2.13.6〜パネル表示）。Exportと同じく、モーダルの
-    // 中身(body/footer)だけをパネルへ移して使う。モーダル外枠のヘッダー
-    // （タイトル・✕ボタン）はパネル側のヘッダーで代替するため移さない。
-    const backupModal = document.getElementById("trackBackupModalOverlay");
-    backupBody = backupModal ? backupModal.querySelector(".export-modal-body") : null;
-    backupFooter = backupModal ? backupModal.querySelector(".export-modal-footer") : null;
-    const importModal = document.getElementById("trackImportModalOverlay");
-    importBody = importModal ? importModal.querySelector(".export-modal-body") : null;
-    importFooter = importModal ? importModal.querySelector(".export-modal-footer") : null;
-    markAnchor("backup", backupBody);
-    markAnchor("backupFooter", backupFooter);
-    markAnchor("import", importBody);
-    markAnchor("importFooter", importFooter);
+    if (typeof window.qnBackupParts === "function") {
+      const bk = window.qnBackupParts();
+      backupBody = bk.backupBody; backupFooter = bk.backupFooter;
+      importBody = bk.importBody; importFooter = bk.importFooter;
+    }
 
-    // Textパネルのフルスクリーンボタン(#noteTextFullscreenBtn)は元々
-    // .markers-heading-row(PC v2では非表示)の中にあり、そのままではPC v2
-    // から押せない。#pcV2PanelHeaderは切り替えのたびにinnerHTML=""で
-    // クリアされ子要素ごと破棄されてしまうため、document.body直下の
-    // 非表示保持コンテナに一旦退避し、Textパネル表示のたびにそこから
-    // 取り出して使う（実体は1つのまま、行き来させるだけ）。
-    // 文字サイズ+/-ボタン(#noteTextFontDecBtn/IncBtn)は
-    // #textFullscreenOverlay内にあり、フルスクリーン表示時の
-    // #noteTextAreaFullscreenの文字サイズにしか効かない機能
-    // (player-text.js側の設計)のため、これらは移動せずそのまま
-    // フルスクリーンオーバーレイ側に残す。
     const fullscreenBtn = document.getElementById("noteTextFullscreenBtn");
-    markAnchor("textFullscreenBtn", fullscreenBtn);
     let holder = document.getElementById("pcV2TextControlsHolder");
     if (!holder) {
       holder = el('<div id="pcV2TextControlsHolder" style="display:none;"></div>');
@@ -908,8 +573,6 @@
     if (fullscreenBtn) holder.appendChild(fullscreenBtn);
   }
 
-  // 【v3.16.0】±10秒スキップ（下段バーの-10s/+10s）。矢印キーのシークと同じく
-  // beginSeek()でループ区間の固定を外してから動かす。
   function pcv2SkipBy(sec) {
     if (typeof audio === "undefined" || !audio || !isFinite(audio.duration) || audio.duration <= 0) return;
     if (typeof hapticTap === "function") hapticTap();
@@ -920,11 +583,6 @@
     setTimeout(() => { isSeeking = false; }, 150);
   }
 
-  // 【SP幅レイアウト】#pcV2BottomBar（再生コントロール）を、SP幅では
-  // #pcV2Layout内・#pcV2IconBarの直前（つまり画面上はアイコンバーの
-  // すぐ上）へ移動し、PC幅では#pcV2Layout（2行グリッド）の末尾へ置く
-  // （v3.13.0〜。右カラムの下端に吸着）。build()の初回実行時、およびresizeでブレークポイントを
-  // またいだ時に呼ばれる。
   function syncBottomBarPosition() {
     const bottomBar = document.getElementById("pcV2BottomBar");
     const anchorTabs = document.getElementById("pcV2BottomBarAnchorTabs");
@@ -935,10 +593,7 @@
 
     const isSpWidth = isSpWidthNow();
     if (isSpWidth) {
-      // anchorTabs（PLAY/MARKERアンカータブ）はbottomBarの直前に置く
-      // ことで常に「バーのすぐ上」の位置を保つ。bottomBarを先に動かして
-      // からその直前にanchorTabsを挿すことで、1回のinsertBeforeの
-      // 連鎖で両方とも正しい順序に収まる。
+      // anchorTabsはbottomBarの直前。bottomBarを先に動かし、その直前にanchorTabsを挿す
       if (bottomBar.nextSibling !== iconBar || bottomBar.parentElement !== layoutEl) {
         layoutEl.insertBefore(bottomBar, iconBar);
       }
@@ -946,9 +601,6 @@
         layoutEl.insertBefore(anchorTabs, bottomBar);
       }
     } else {
-      // 【v3.13.0】PC幅：#pcV2Layout（2行グリッド）の子として末尾に置く。
-      // CSS側で grid-column:3 / grid-row:2 に配置され、右カラム（波形エリア）
-      // の真下だけにバーが出る（サイドバー・パネルの下には伸びない）。
       if (bottomBar.parentElement !== layoutEl || layoutEl.lastElementChild !== bottomBar) {
         layoutEl.appendChild(bottomBar);
       }
@@ -958,30 +610,17 @@
     }
   }
 
-  // アイコンバー右端の「まだ続きがある」ヒント矢印。
-  // #pcV2IconBarがまだ右方向にスクロールできる間だけ表示し、右端まで
-  // スクロールしきったら自動で消える（PC幅ではそもそもスクロールしない
-  // レイアウトのため、CSS側で常に非表示にしている＝ここでのdisplay制御は
-  // 実質SP幅時のみ意味を持つ）。
+  // スクロールヒント矢印: 右にスクロール余地がある間だけ表示(PC幅はCSSで常時非表示)
   function updateIconBarScrollHint() {
     const iconBar = document.getElementById("pcV2IconBar");
     const hint = document.getElementById("pcV2IconBarScrollHint");
     if (!iconBar || !hint) return;
 
-    // 右方向にあとどれだけスクロールできるか。1pxの誤差（ブラウザや
-    // ズーム倍率による端数）を許容し、それ以下なら「もう最後まで見た」
-    // とみなす。
     const remaining = iconBar.scrollWidth - iconBar.clientWidth - iconBar.scrollLeft;
     const canScrollMore = remaining > 1;
     hint.classList.toggle("visible", canScrollMore);
   }
 
-  // 初期化：スクロール位置の変化・要素サイズの変化（ボタン増減、
-  // ウィンドウリサイズ等）の両方を拾って判定し直す。
-  //   scroll: ユーザーが実際に横スクロールした時
-  //   resize(window): 画面幅が変わり、PC幅⇔SP幅を跨いだ時
-  //   ResizeObserver(iconBar): アイコンバー自体の幅・中身の幅が変わった時
-  //     （将来ボタン数が増減した場合や、フォント読み込み後の幅確定など）
   function setupIconBarScrollHint() {
     const iconBar = document.getElementById("pcV2IconBar");
     if (!iconBar) return;
@@ -994,24 +633,13 @@
       ro.observe(iconBar);
     }
 
-    // 初回判定（DOM構築直後は幅が確定しきっていない場合があるため、
-    // 次フレームで再判定する）。
     updateIconBarScrollHint();
     requestAnimationFrame(updateIconBarScrollHint);
   }
 
-  // 【SP幅レイアウト】時刻表示(.time-controls-row)を、SP幅では
-  // #pcV2TimeRow(波形エリアの下・下部バーの上、専用行)へ、PC幅では
-  // group1(#topControls内、Repeatボタンの右)へ実際にDOM移動する。
-  // SP幅で下部バー内に相乗りさせず専用の行に切り出すことで、再生ボタン等
-  // のタップ領域を圧迫しない（ユーザー要望）。
+  // 【SP幅】時刻行(.time-controls-row)はSP=#pcV2TimeRow(専用行、タップ領域を圧迫しない)、PC=group1(Repeatの右)へDOM移動
   function syncTimeRowPosition() {
-    // querySelector(".time-controls-row")だけだと、build()実行後は
-    // 本来の時刻表示行(#timeDisplayを含む方)が既にgroup1へ移動済みで
-    // DOM順が変わっているため、別の.time-controls-row(adjust-
-    // controls-row、Exportボタン等を含む行)を誤って掴んでしまう
-    // バグがあった。#timeDisplayを起点にclosestで確実に本来の
-    // 時刻表示行を取得する。
+    // querySelector(".time-controls-row")だけだと別行(adjust-controls-row等)を誤取得する。#timeDisplayからclosestで取る
     const timeDisplay = document.getElementById("timeDisplay");
     const timeControlsRow = timeDisplay ? timeDisplay.closest(".time-controls-row") : null;
     const timeRow = document.getElementById("pcV2TimeRow");
@@ -1024,7 +652,6 @@
         timeRow.appendChild(timeControlsRow);
       }
     } else {
-      // 【v3.15.0】PC幅：波形エリア先頭行の右端（曲名と同じ行）
       if (timeControlsRow.parentElement !== waveHead) {
         waveHead.appendChild(timeControlsRow);
       }
@@ -1035,20 +662,12 @@
     if (typeof hapticTap === "function") hapticTap();
 
     if (item.panelType === "action") {
-      // Add File: パネルを開かず、既存のファイル選択をそのまま発火
       const fileInputEl = document.getElementById("fileInput");
       if (fileInputEl) fileInputEl.click();
       return;
     }
 
-    // Backup/Importは【v2.13.6】からモーダルではなく、Control/Markers等と
-    // 同じサイドメニューのパネル表示に統一した（switchPanel側で、Export
-    // パネルと同じ「モーダルの中身(body/footer)をパネルへ移す」方式）。
-
     if (item.panelType === "close") {
-      // Seekbar: パネルを開かず、開いていれば閉じるだけ（波形が見える
-      // 基本画面に戻る）。PC幅ではパネルは常時表示のクラスを持たない
-      // ため、closePanelOverlay()を呼んでも見た目上は何も起きない。
       closePanelOverlay();
       return;
     }
@@ -1056,13 +675,7 @@
     openPanelOverlay(item.id);
   }
 
-  // SP幅（900px以下）では、パネルはヘッダー直下〜下部バー直上を覆う
-  // オーバーレイとして開閉する（#pcV2Layoutの.pcv2-panel-openクラスで
-  // CSS側の表示を切り替える。PC幅では常時表示のためこのクラスは
-  // 見た目に影響しない）。同じアイコンを再タップしたら閉じる。
-  // アイコンバー上段(Control/Markers/Playlist/Text/Export、
-  // handleIconClick経由)・下段(Keyboard/Color、直接呼び出し)の
-  // 両方から呼ばれる共通の入口。
+  // SP幅: パネルはヘッダー直下〜下部バー直上のオーバーレイ(#pcV2Layoutの.pcv2-panel-openで切替。PC幅は常時表示)。同アイコン再タップで閉じる。アイコンバー上段/下段の共通入口
   function openPanelOverlay(panelId) {
     const layoutEl = document.getElementById("pcV2Layout");
     const isSpWidth = isSpWidthNow();
@@ -1076,22 +689,14 @@
       updatePcv2BottomBarsHeightVar();
       layoutEl.classList.add("pcv2-panel-open");
     } else if (!isSpWidth && layoutEl && !panelCollapsed && currentPanel === panelId) {
-      // 【v3.14.0】PC幅：表示中のパネルのアイコンをもう一度押したら格納する
       setCollapsed(true);
       return;
     }
 
-    // 格納中ならswitchPanel()の先頭で展開される
     switchPanel(panelId);
   }
 
-  // パネルを全面オーバーレイ表示する際、下部コントロールバー
-  // (#pcV2BottomBar)とアイコンバー(#pcV2IconBar)を隠さないよう、
-  // その実際の高さの合計をCSS変数--pcv2-bottom-bars-heightに反映する。
-  // 固定値(CSS側のfallback: 140px)だけに頼ると、将来ボタンが増えて
-  // 折り返す等の変化があった時にパネルがバーの上に被ってしまい、
-  // 閉じる手段（アイコンバー自体）が隠れて操作不能になるバグの
-  // 再発を防ぐため、開くたびに実測する。
+  // パネル全面表示時にバーを隠さないよう、#pcV2BottomBar+#pcV2IconBarの実高さを--pcv2-bottom-bars-heightへ反映(開くたび実測。固定値だとバーが隠れ操作不能になる)
   function updatePcv2BottomBarsHeightVar() {
     const layoutEl = document.getElementById("pcV2Layout");
     const bottomBar = document.getElementById("pcV2BottomBar");
@@ -1111,23 +716,12 @@
     const layoutEl = document.getElementById("pcV2Layout");
     if (layoutEl) layoutEl.classList.remove("pcv2-panel-open");
 
-    // パネルを閉じた=波形(シークバー)が見える画面がアクティブになった
-    // ということなので、内部状態(currentPanel)もアイコンバーの色も
-    // Seekbarに揃える（ユーザーの見た目上の認識と、内部の「今どのパネルが
-    // 選ばれているか」の状態を一致させるため。ここを合わせておかないと、
-    // 次に同じアイコンを押した時に「閉じる/開く」の判定(openPanelOverlay
-    // 内のisSamePanel)がユーザーの体感とズレる）。
     currentPanel = "seekbar";
     document.querySelectorAll("#pcV2IconBar .pcv2-icon-item").forEach(btn => {
       btn.classList.toggle("active", btn.getAttribute("data-panel-id") === "seekbar");
     });
   }
 
-  // Backup/Importパネルの「閉じる」（Cancel・Download完了・Import完了後の
-  // Close）用。player-track-backup.js側のcloseTrack*Modal()から呼ばれる。
-  // SP幅：オーバーレイを閉じて波形画面へ戻る。PC幅：パネルは常時表示の
-  // ため、Libraryパネルへ切り替える（バックアップ/インポート後に結果の
-  // ライブラリをそのまま確認できるように）。
   window.qnPcv2DismissAuxPanel = function () {
     if (currentPanel !== "backup" && currentPanel !== "import") return;
     const isSpWidth = isSpWidthNow();
@@ -1138,24 +732,9 @@
     }
   };
 
-  // Markers/Libraryパネル共通：画面右下に浮かぶフローティングアクション
-  // ボタン群（縦2段。上段=Add系⇔Delete（編集モードで切り替え）、
-  // 下段=EDIT⇔OK）を組み立てて返す。
-  // panelBody（リスト本体）の末尾に追加することで、position: absoluteで
-  // panelBody基準の右下に固定表示される（CSS側、style-pcv2-panels.css参照）。
-  // Add Marker / Add Audioのように panelId で内容を出し分ける以外は
-  // markers/playlist共通のため、この関数1つで両方をまかなう。
-  //
-  // 上段は「Add系ボタンのグループ」と「Deleteボタン」の2つのDOM要素を
-  // 両方とも常に作っておき、どちらか一方だけをCSSのdisplayで出し分ける
-  // （toggleEditMode側がedit-mode中はAdd系を隠してDeleteを出す）。
-  // こうすることで、Delete側に「選択件数によるdisabled制御」等の
-  // 既存ロジック（#pcV2DeleteSelectedBtnをdocument.getElementByIdで
-  // 参照している箇所）をそのまま使い続けられる。
   function buildPanelFab(panelId) {
     const fab = el('<div id="pcV2PanelFab"></div>');
 
-    // 上段グループ1：Add系（通常時に表示）。
     const addGroup = el('<div class="pcv2-fab-addgroup"></div>');
 
     if (panelId === "playlist") {
@@ -1187,7 +766,6 @@
 
     fab.appendChild(addGroup);
 
-    // 上段グループ2：Delete（編集モード中のみ表示）。
     const deleteBtn = el(
       '<button type="button" class="panel-fab-btn panel-fab-delete-btn" id="pcV2DeleteSelectedBtn" disabled>' +
         '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
@@ -1197,7 +775,6 @@
     deleteBtn.addEventListener("click", () => deleteSelectedItems(panelId));
     fab.appendChild(deleteBtn);
 
-    // 下段：EDIT⇔OK（常時表示）。
     const editBtn = el(
       '<button type="button" class="panel-fab-btn panel-edit-btn" id="pcV2' + (panelId === "markers" ? "Markers" : "Playlist") + 'EditBtn" title="Edit ' + panelId + '">' +
         '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
@@ -1210,7 +787,6 @@
     return fab;
   }
 
-  // パネルの中身の退避場所。document.body直下の非表示div。
   function getPanelStash() {
     let stash = document.getElementById("pcV2PanelStash");
     if (!stash) {
@@ -1220,9 +796,6 @@
     return stash;
   }
 
-  // panelBody内の再利用する実体（各パネルの中身・QNメニューのセクション）を
-  // 退避場所へ移す。FAB等、パネルを開くたびに作り直す使い捨て要素は
-  // 対象外（innerHTML=""でそのまま破棄してよい）。
   function stashPanelContents(panelBody) {
     const stash = getPanelStash();
     const keep = [
@@ -1238,18 +811,11 @@
   function switchPanel(panelId, opts) {
     currentPanel = panelId;
 
-    // 【v3.14.0】格納中に外部（右クリック・Backup完了など）から呼ばれた場合は
-    // 必ず展開してから表示する（取りこぼし防止の保険）。初期表示だけは
-    // keepCollapsed:true で保存された格納状態を維持する。
+    // 【v3.14.0】格納中に外部(右クリック・Backup完了等)から呼ばれたら必ず展開してから表示。初期表示のみkeepCollapsed:trueで格納維持
     if (panelCollapsed && !(opts && opts.keepCollapsed)) setCollapsed(false);
 
-    // パネル切替のたびに、下段バーのSpeed/Key/EQボタンの見た目を
-    // 現在のグローバル変数の状態に合わせ直す（保険。通常はControl
-    // パネル側トグルのclickリスナーで即座に同期されるはずだが、
-    // 何らかの経路で状態が変わった場合の取りこぼしを防ぐ）。
     syncAllBottomBarEffectButtons();
 
-    // 現在のパネル以外に切り替えたら編集モードは常にリセットする
     if (panelId !== "markers" && editModeState.markers) {
       editModeState.markers = false;
     }
@@ -1265,10 +831,6 @@
     const panelHeader = document.getElementById("pcV2PanelHeader");
     if (!panelBody || !panelHeader) return;
 
-    // panelHeader.innerHTML=""で子要素が破棄される前に、Textパネルの
-    // フルスクリーンボタンが今panelHeader内にいる場合は保持コンテナ
-    // (#pcV2TextControlsHolder)へ退避しておく（実体を保つ。破棄されると
-    // PC v2内でTextパネルへ戻った時に二度と使えなくなるため）。
     const textControlsHolder = document.getElementById("pcV2TextControlsHolder");
     if (textControlsHolder) {
       const fullscreenBtnEl = document.getElementById("noteTextFullscreenBtn");
@@ -1277,19 +839,11 @@
       }
     }
 
-    // 前回の中身を退避してから、今回の中身を挿入する。
-    // 【v2.15.1】パネルの中身（Markers/Library/Text/Control等の実体）は、
-    // innerHTML=""で「どこにも属さない」状態にせず、document内の非表示の
-    // 退避場所(#pcV2PanelStash)へ移す。以前はinnerHTML=""で切り離していた
-    // ため、別パネルを表示中は#pinList・#playlistBox・#noteTextArea等が
-    // document上に存在せず、document.getElementById()がnullを返していた。
-    // その間に曲が切り替わると、renderPinList()等の更新が空振りし、
-    // 次にそのパネルを開いた時に前の曲の内容が表示されていた（GOTCHAS.md）。
+    // 【v2.15.1】前回の中身は#pcV2PanelStash(非表示の退避場所)へ移す。innerHTML=""で切り離すと#pinList/#playlistBox/#noteTextArea等がdocumentから消え、曲切替時の更新が空振りして前の曲が表示される(GOTCHAS.md)
     stashPanelContents(panelBody);
     panelBody.innerHTML = "";
     panelHeader.innerHTML = "";
-    // パネル種別ごとのクラス(pcv2-panel-*)だけ入れ替える。markers-edit-mode等、
-    // 他のクラスには触れない。
+    // pcv2-panel-*クラスだけ入れ替える(markers-edit-mode等には触れない)
     Array.from(panelBody.classList)
       .filter(c => c.indexOf("pcv2-panel-") === 0)
       .forEach(c => panelBody.classList.remove(c));
@@ -1313,13 +867,9 @@
     panelHeader.appendChild(titleSpan);
 
     if (item.panelType === "tab") {
-      // 「Control」パネルだけはSpeed/Key/EQを1つに統合する要望のため、
-      // controlBody(Speed/Key)の下にeqBody(EQ)を続けて差し込む。
       if (panelId === "control") {
         if (controlBody) panelBody.appendChild(controlBody);
         if (eqBody) {
-          // EQ機能を初めて表示する瞬間にWeb Audio APIへ接続する
-          // （player-control-eq.js の openEqModal() と同じタイミング）
           if (typeof setupAudioGraph === "function") {
             setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
           }
@@ -1338,70 +888,33 @@
         if (textBody) panelBody.appendChild(textBody);
         setupTextPanelHeaderControls();
       }
-      // 既存のタブ状態・関連ロジック（ハイライト、Textの自動保存登録等）を
-      // 呼び出し元と一致させておく。SP幅の吸着タブ表示には影響しない
-      // （style-core-pc.css側でsidebarToggleTabs自体がPC幅では非表示）。
+      // 既存のタブ状態・関連ロジック(ハイライト、Text自動保存登録等)を呼び出し元と合わせる
       if (typeof setMobileTab === "function") setMobileTab(panelId);
     } else if (item.panelType === "export") {
       if (typeof openExportModal === "function") openExportModal();
-      // openExportModal()はファイル名自動生成等の準備処理と同時に、本来の
-      // モーダル(オーバーレイ全体)を開く副作用(exportModalOverlay.classList.add("open"))
-      // も持つ。PC v2では中身(exportBody)だけをパネルへ差し込みたいため、
-      // オーバーレイ自体は直後にopenを外して非表示に戻す。
       const exportModalOverlay = document.getElementById("exportModalOverlay");
       if (exportModalOverlay) exportModalOverlay.classList.remove("open");
       if (exportBody) panelBody.appendChild(exportBody);
       if (exportFooter) panelBody.appendChild(exportFooter);
     } else if (item.panelType === "backup" || item.panelType === "import") {
-      // 開くたびの初期化（全曲選択・項目チェック/読み込み状態のリセット）は
-      // 既存のopenBulk*Modal()に任せ、開いてしまうモーダル外枠のopenだけ
-      // 直後に外す（Exportパネルと同じ方式）。
-      const isBackup = item.panelType === "backup";
-      const openFn = isBackup ? window.openBulkBackupModal : window.openBulkImportModal;
-      if (typeof openFn === "function") openFn();
-      const overlayEl = document.getElementById(isBackup ? "trackBackupModalOverlay" : "trackImportModalOverlay");
-      if (overlayEl) overlayEl.classList.remove("open");
-      const bodyEl = isBackup ? backupBody : importBody;
-      const footerEl = isBackup ? backupFooter : importFooter;
       panelBody.classList.add("pcv2-panel-aux");
-      if (bodyEl) panelBody.appendChild(bodyEl);
-      if (footerEl) panelBody.appendChild(footerEl);
+      if (typeof window.qnBackupMount === "function") window.qnBackupMount(item.panelType, panelBody);
     }
     if (item.panelType !== "backup" && item.panelType !== "import") {
       panelBody.classList.remove("pcv2-panel-aux");
     }
 
-    // パネルの中身(.mobile-tab-panel)を.app-containerの外(#pcV2PanelBody)へ
-    // 移動したことで、syncTopControlsSpacerHeight（player-ui-shared.js）が
-    // 判定に使う「.app-container内に留まっているか」の状態が変わるため、
-    // 再計算させる。これを呼ばないと、移動前に設定された古い
-    // padding-bottomがパネル下部の余分な空白として残ってしまう。
     if (typeof syncTopControlsSpacerHeight === "function") {
       syncTopControlsSpacerHeight();
     }
   }
 
-  // Markers/Playlistパネル：Editボタンで「表示非表示・メモ編集」を隠し、
-  // 「削除用チェック(.del-btn)」だけを表示する編集モードをトグルする。
-  // 編集モード中は.del-btnクリックで削除を確定せず、選択状態(赤丸+チェック)を
-  // トグルするだけにし、ヘッダーの#pcV2DeleteSelectedBtnで選択項目をまとめて
-  // 削除する。player-markers.js/player-playlist.js側のDOM生成・確認式削除
-  // ロジック自体には手を入れず、PC v2側で.del-btnのクリック挙動だけを
-  // キャプチャフェーズで奪って上書きする。
-  // editModeStateはplayer-playlist.js側のrenderPlaylist()からも参照する
-  // 必要があるため、window経由で読み取り専用の判定関数を公開する。
+  // Markers/PlaylistのEdit: 表示非表示・メモ編集を隠し.del-btnだけ表示。編集中の.del-btnクリックは選択トグル(赤丸+チェック)のみ、#pcV2DeleteSelectedBtnで一括削除。player-markers.js/player-playlist.jsのDOM生成・削除ロジックは触らず、キャプチャフェーズで.del-btnを奪う。editModeStateはwindow経由で読み取り専用判定を公開
   const editModeState = { markers: false, playlist: false };
   window.isPlaylistEditMode = () => editModeState.playlist;
   window.isMarkersEditMode = () => editModeState.markers;
   const selectedIndices = { markers: new Set(), playlist: new Set() };
-  // renderPlaylist()側（player-playlist.js）が「削除選択中は他の操作を
-  // 押せなくする」ための判定に使う。DELETE選択が1件でもある間にSKIP/PLAY
-  // トグルを押すと、renderPlaylist()がplaylistBoxのDOMを丸ごと作り直す
-  // ため、selectedIndices自体（インデックス番号）は残っていても、
-  // 選択を示す見た目(pcv2-selected)が新しいDOMに引き継がれず、ユーザー
-  // 視点では「選択が消えた」ように見えてしまっていた（実質のバグ報告）。
-  // 対策として、選択が1件でもある間はSKIP/PLAYを押せないようにし、
-  // renderPlaylist()自体が呼ばれる状況を作らないようにする。
+  // 削除選択が1件でもある間はSKIP/PLAYを押せなくする(renderPlaylist()がDOMを作り直すと選択表示(pcv2-selected)が消える)
   window.playlistHasSelectedItems = () => selectedIndices.playlist.size > 0;
   window.markersHasSelectedItems = () => selectedIndices.markers.size > 0;
 
@@ -1423,9 +936,6 @@
       const editBtnLabel = editBtn.querySelector("span");
       if (editBtnLabel) editBtnLabel.textContent = editModeState[panelId] ? "OK" : "EDIT";
     }
-    // 上段：編集モード中はAdd系を隠してDeleteを表示、通常時はその逆
-    // （新規追加と削除選択を同時に操作できてしまうと紛らわしいための
-    // 排他表示）。
     if (addGroup) {
       addGroup.style.display = editModeState[panelId] ? "none" : "flex";
     }
@@ -1434,9 +944,6 @@
       deleteBtn.disabled = true;
     }
 
-    // 編集モードの切り替えでリスト側のDOM構造自体(サムネイル/⋮メニュー/
-    // 入力欄の有無等)が変わるため、対象のrender関数を呼び直して
-    // 作り直す。
     if (panelId === "playlist" && typeof renderPlaylist === "function") {
       renderPlaylist();
     } else if (panelId === "markers" && typeof renderPinList === "function") {
@@ -1450,12 +957,7 @@
     }
   }
 
-  // 通常時(編集モードOFF)はチェックボックス選択用の要素だけを無効化する。
-  // 【重要】.toggle-btn（マーカーON/OFFの目アイコン）と.pin-edit-btn/
-  // .playlist-hover-edit-btn（ホバー編集ボタン）は、通常モードでこそ使う
-  // 機能のため、ここでの無効化対象から外す。以前は.toggle-btnも含めて
-  // キャプチャ段階でstopPropagation/preventDefaultしていたため、通常
-  // モードで目アイコンをクリックしても何も起きないバグを引き起こしていた。
+  // 通常時はチェックボックス選択用要素だけ無効化。【重要】.toggle-btn(目)と.pin-edit-btn/.playlist-hover-edit-btnは対象外(含めると通常モードで目アイコンが効かない)
   const disableHandlers = { markers: null, playlist: null };
 
   function attachDisableGuard(panelId) {
@@ -1479,9 +981,6 @@
     return Array.from(container.children);
   }
 
-  // .del-btnの本来のクリック(確認式削除)をキャプチャフェーズで止め、
-  // 編集モード中は選択トグルとして扱う。編集モードを抜けたら
-  // removeEventListenerで元の挙動に戻す。
   const selectionHandlers = { markers: null, playlist: null };
 
   function attachSelectionHandlers(panelId) {
@@ -1491,14 +990,6 @@
       container.removeEventListener("click", selectionHandlers[panelId], true);
     }
     const handler = (e) => {
-      // markersパネルは.del-btn自体（20x20pxの丸）がそのままタップ判定。
-      // playlistパネルは.playlist-del-zone（行の上下いっぱい・右端まで・
-      // 左はPLAY/SKIPトグルの手前までの広い当たり判定エリア）で受ける
-      // （「●の物理サイズだけがタップ範囲でシビアすぎる」との指摘を受け、
-      // 削除選択だけ広い判定エリアを別途設けた）。見た目の丸自体は
-      // .playlist-del-zoneの中の.del-btnなので、選択状態の表示
-      // （pcv2-selectedクラス）は引き続きそちらへ付け外しする。
-      // v2.15.0〜markersも広い判定ゾーン(.pin-del-zone)で受ける。
       const zoneSelector = panelId === "playlist" ? ".playlist-del-zone" : ".pin-del-zone";
       const zone = e.target.closest(zoneSelector);
       if (!zone || !container.contains(zone)) return;
@@ -1518,9 +1009,6 @@
       }
       const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
       if (deleteBtn) deleteBtn.disabled = selectedIndices[panelId].size === 0;
-      // DELETE選択が1件でもある間はSKIP/PLAYトグルを押せないようにする。
-      // renderPlaylist()を呼ばず、既存のDOM上の各行トグルだけを直接
-      // 更新する（呼ぶと選択の見た目自体が失われてしまうため）。
       if (panelId === "playlist") {
         const hasSelection = selectedIndices.playlist.size > 0;
         items.forEach(item => {
@@ -1530,7 +1018,6 @@
           toggle.title = hasSelection ? "削除の選択中は切り替えられません" : toggle.dataset.baseTitle || toggle.title;
         });
       } else if (panelId === "markers") {
-        // Markersも同じ仕様：選択中は表示/非表示(目)アイコンを押せない。
         const hasSelection = selectedIndices.markers.size > 0;
         items.forEach(item => {
           const toggle = item.querySelector(".toggle-btn");
@@ -1562,12 +1049,6 @@
     if (indices.length === 0) return;
     hapticWarning();
 
-    // 選択中の行にフェードアウト演出を掛けてから、実際のデータ削除・
-    // リスト再描画を行う（即座に消えると「削除された」感が薄いとの
-    // 指摘を受けた対応）。演出中（フェードアウトの数百ms）に他の選択・
-    // ドラッグ並び替え等が行われるとindicesとplaylist配列がズレて
-    // しまうため、リスト全体を一時的にpointer-events:noneで操作不能に
-    // する（削除ボタン自体もdisabledにする）。
     const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
     if (deleteBtn) deleteBtn.disabled = true;
 
@@ -1585,35 +1066,22 @@
     }, fadingEls.length > 0 ? FADE_MS : 0);
   }
 
-  // deleteSelectedItems()からフェードアウト分の待機を挟んで呼ばれる、
-  // 実際のデータ削除本体。
   async function performDelete(panelId, indices) {
     if (panelId === "markers") {
       indices.forEach(i => pins.splice(i, 1));
-      // マーカー構成が変わったため、ループ折り返し判定の対象区間
-      // インデックスを破棄する。
       loopActiveMarkerIndex = null;
       renderPins();
       renderSegments();
       renderPinList();
       savePins();
     } else {
-      // playlist.splice()で配列から取り除く前に、削除対象の実体を
-      // IndexedDBからも消すためファイル名を控えておく（spliceすると
-      // インデックスがずれるため、削除後にi番目を参照すると別の曲を
-      // 指してしまう）。以前はIndexedDB側の削除(deletePlaylistTrack)を
-      // 呼んでおらず、PCv2の一括削除UIで消してもアプリを再度開くと
-      // 消したはずの曲が復活してしまう不具合があった。
+      // splice前にファイル名を控えてIndexedDBも削除(deletePlaylistTrack)。splice後のindex参照は別曲を指す。削除しないとアプリ再起動で復活する
       const removedNames = indices.map(i => playlist[i] && playlist[i].name).filter(Boolean);
       indices.forEach(i => playlist.splice(i, 1));
-      // 1曲ずつ直列に削除する（Promise.all相当の並行実行だと、複数曲を
-      // 一括削除したときにIndexedDBトランザクションが同時に走り、
-      // persistPlaylistOrder()と同様の不安定さにつながるため）。
       for (const name of removedNames) {
         await deletePlaylistTrack(name);
       }
       if (typeof currentPlaylistIndex !== "undefined") {
-        // 削除された項目より後ろの現在再生インデックスがずれないよう調整
         const removedBeforeCurrent = indices.filter(i => i < currentPlaylistIndex).length;
         if (indices.includes(currentPlaylistIndex)) {
           currentPlaylistIndex = -1;
@@ -1626,13 +1094,9 @@
     selectedIndices[panelId].clear();
     const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
     if (deleteBtn) deleteBtn.disabled = true;
-    // 削除後、編集モードは維持したまま新しいリストに選択ハンドラを再アタッチする。
     attachSelectionHandlers(panelId);
   }
 
-  // Control/EQ間の見出し・区切り線を1回だけ生成して使い回す。
-  // EQのON/OFFトグル(#controlEqEnableToggle、元は非表示の.eq-inline-title
-  // 内にある)もこの見出しへ移動して表示する。
   let eqDividerEl = null;
   function appendEqDivider(container) {
     if (!eqDividerEl) {
@@ -1645,28 +1109,18 @@
         '</div>'
       );
       const heading = eqDividerEl.querySelector(".pcv2-eq-heading-row");
-      // RESETボタンをトグルより先に追加し、SPEED/KEY行と同じ「RESET→トグル」の
-      // 並び順に揃える。
       const eqResetBtn = document.getElementById("controlEqResetBtn");
       if (eqResetBtn) {
-        markAnchor("eqResetBtn", eqResetBtn);
         heading.appendChild(eqResetBtn);
       }
       const eqToggle = document.getElementById("controlEqEnableToggle");
       if (eqToggle) {
-        markAnchor("eqEnableToggle", eqToggle);
         heading.appendChild(eqToggle);
       }
     }
     container.appendChild(eqDividerEl);
   }
 
-  // 下段バー右側のSpeed/Key/EQボタン：クリックで対応するエフェクトの
-  // ON/OFFをトグルし、Controlパネル内のcontrolXxxEnableToggle(既存の
-  // トグルスイッチ)とも状態を同期する。ON時は白く濃く、OFF時は薄く
-  // 表示する（.pcv2-ctrl-btn.effect-offクラスで見た目を切り替える）。
-  // speedEffectEnabled/keyEffectEnabled/eqEffectEnabledはplayer-core.js/
-  // player-control-eq.js側のグローバル変数。
   function toggleBottomBarEffect(id, btn) {
     hapticTap();
     if (id === "speed") {
@@ -1687,7 +1141,6 @@
     syncBottomBarEffectButton(id, btn);
   }
 
-  // 現在のON/OFF状態をボタンの見た目(.effect-off有無)に反映する。
   function syncBottomBarEffectButton(id, btn) {
     let enabled = true;
     if (id === "speed") enabled = typeof speedEffectEnabled === "undefined" || speedEffectEnabled;
@@ -1696,9 +1149,6 @@
     btn.classList.toggle("effect-off", !enabled);
   }
 
-  // 下段バーの3ボタンすべてを、現在のグローバル変数の状態に合わせて
-  // 一括で再同期する。パネル切替のたびに呼ぶことで、Controlパネルを
-  // 表示していた間にリスナー経由の同期が万一漏れても取りこぼさない。
   function syncAllBottomBarEffectButtons() {
     Object.keys(bottomBarEffectButtons).forEach(id => {
       syncBottomBarEffectButton(id, bottomBarEffectButtons[id]);
@@ -1706,14 +1156,6 @@
   }
 
   let controlPanelEffectSyncSetup = false;
-  // Controlパネル内のcontrolSpeedEnableToggle/controlKeyEnableToggle/
-  // controlEqEnableToggleに、キャプチャ段階のclickリスナーを追加する。
-  // キャプチャ段階にしているのは、player-controls.js/player-control-eq.js側の
-  // onclickが先にグローバル変数(speedEffectEnabled等)を書き換えた「後」
-  // ではなく「先」に発火してしまうと古い値を読んでしまうため——実際には
-  // 逆に、既存のonclickが変数更新を終えた後に読みたいので、あえて
-  // バブリング段階（通常のaddEventListener）でよい。onclick代入は最初の
-  // 1つしか効かないためaddEventListenerで追加リスナーとして重ねる。
   function setupControlPanelEffectSync() {
     if (controlPanelEffectSyncSetup) return;
     controlPanelEffectSyncSetup = true;
@@ -1725,22 +1167,12 @@
       const toggle = document.getElementById(elId);
       if (!toggle) return;
       toggle.addEventListener("click", () => {
-        // 既存のonclick（変数のトグル）が先に実行された「後」に、
-        // 下段バー側の見た目だけを最新状態に合わせる。
         const btn = bottomBarEffectButtons[id];
         if (btn) syncBottomBarEffectButton(id, btn);
       });
     });
   }
 
-  // Textパネル：ヘッダーにEDIT/フルスクリーン/文字サイズ変更を配置する。
-  // フルスクリーンボタン・文字サイズ+/-ボタンはinitPanels()で
-  // #pcV2TextControlsHolder(非表示の保持コンテナ)へ退避してあるため、
-  // ここではそこから取り出してヘッダーへ移す。#pcV2PanelHeaderは
-  // パネル切替のたびにinnerHTML=""でクリアされるが、要素の実体は
-  // 保持コンテナと行き来するだけなので破棄されない。
-  // EDIT機能(デフォルトはreadonly、EDIT押下で編集可能)はPC v2独自の
-  // 新機能として実装する。
   let textEditModeOn = false;
   function setupTextPanelHeaderControls() {
     const panelHeader = document.getElementById("pcV2PanelHeader");
@@ -1748,29 +1180,15 @@
     const textarea = document.getElementById("noteTextArea");
     if (!panelHeader || !panelBody || !textarea) return;
 
-    // デフォルトで編集モードにしない：readonly状態から始める。
     textarea.readOnly = !textEditModeOn;
 
-    // Fullscreen・EDITはヘッダーではなく、画面右下のフローティング
-    // アクションボタン（#pcV2PanelFab、Markers/Libraryと共通のスタイル）
-    // として表示する（上段=Fullscreen、下段=EDIT）。
     const fab = el('<div id="pcV2PanelFab"></div>');
 
-    // 【重要】fullscreenBtnはこの時点でdocument.getElementByIdで取得し、
-    // 以降はこの変数（同じ参照）をそのまま使い回す。fab.appendChild()で
-    // fabの中へ移した瞬間、fabはまだpanelBodyへ追加されておらず
-    // documentツリーに未接続のため、この後もう一度
-    // document.getElementById("noteTextFullscreenBtn")を呼ぶと見つからず
-    // nullが返る（実際にこれが原因で、編集モード中にFullscreenボタンが
-    // 隠れないバグが発生していた）。
+    // 【重要】fullscreenBtnはこの時点で取得した参照を使い回す。fab.appendChild後はdocument未接続でgetElementByIdがnullを返す(編集モード中にFullscreenボタンが隠れないバグ)
     const holder = document.getElementById("pcV2TextControlsHolder");
     const fullscreenBtn = document.getElementById("noteTextFullscreenBtn");
     if (holder && fullscreenBtn) {
-      // 文字サイズ変更(+/-)は、フルスクリーンオーバーレイ内の
-      // #noteTextAreaFullscreenにだけ効く機能(player-text.js側の設計)
-      // のため、通常表示のヘッダーには置かず、フルスクリーンオーバーレイ
-      // 側に残す（保持コンテナには退避しない）。フルスクリーンボタン
-      // だけをFABへ移動する。
+      // 文字サイズ(+/-)はフルスクリーンオーバーレイ内の#noteTextAreaFullscreenだけに効く(player-text.js設計)。通常ヘッダーには置かない。FullscreenボタンだけFABへ移す
       fab.appendChild(fullscreenBtn);
     }
 
@@ -1782,9 +1200,6 @@
     );
     const editBtnLabel = editBtn.querySelector("span");
     editBtn.classList.toggle("active", textEditModeOn);
-    // 編集モード中はFullscreen（上段）を隠す。Markers/Libraryの
-    // 「編集中はAdd系を隠す」と挙動を揃えるための対応（Text自体には
-    // Delete相当の機能は無いが、非表示にする対象がFullscreenになる）。
     if (fullscreenBtn) fullscreenBtn.style.display = textEditModeOn ? "none" : "flex";
     editBtn.addEventListener("click", () => {
       textEditModeOn = !textEditModeOn;
@@ -1799,12 +1214,6 @@
     panelBody.appendChild(fab);
   }
 
-  // Keyboard/Colorパネル：#qnMenuMount内（player-theme.js/style-theme.css
-  // が担当）のTheme(Color)/Shortcuts(Keyboard)セクションを、DOMごと
-  // パネルへ移動して表示する。player-theme.js自体のロジック(テーマ切替・
-  // Glowトグル・ショートカット表生成)には一切手を入れない。
-  // 一度移動したセクションはpcv2QnSectionsに保持し、パネルを行き来しても
-  // 同じ要素（イベントハンドラ・状態を保ったまま）を再利用する。
   const pcv2QnSections = { keyboard: null, color: null };
 
   function qnSectionSelector(panelId) {
@@ -1827,7 +1236,6 @@
   }
 
   function renderQnMenuSectionPanel(panelId, panelBody) {
-    // 既に確保済みならそのまま差し込むだけ。
     if (pcv2QnSections[panelId]) {
       panelBody.appendChild(pcv2QnSections[panelId]);
       return;
@@ -1839,176 +1247,28 @@
       return;
     }
 
-    // #qnMenuMount内にセクションが見つからない場合（index.html側の
-    // マークアップが壊れている等、通常は起こらない異常系）のみ、
-    // エラー表示に留める。
     panelBody.appendChild(el('<div class="pcv2-qn-loading">読み込みに失敗しました。再読み込みしてお試しください。</div>'));
-  }
-
-  // 元の位置に戻すための目印（コメントノード）。要素移動前に元の場所へ
-  // 目印を挿入しておき、SP幅へ戻る際はその目印の直前に要素を差し戻す。
-  const anchors = {};
-
-  function markAnchor(key, elmt) {
-    if (!elmt || !elmt.parentNode) return;
-    const anchor = document.createComment("pcv2-anchor-" + key);
-    elmt.parentNode.insertBefore(anchor, elmt);
-    anchors[key] = anchor;
-  }
-
-  function restoreAnchor(key, elmt) {
-    const anchor = anchors[key];
-    if (anchor && anchor.parentNode && elmt) {
-      anchor.parentNode.insertBefore(elmt, anchor);
-      anchor.parentNode.removeChild(anchor);
-      delete anchors[key];
-    }
   }
 
   function activate() {
     build();
     document.body.classList.add("pc-v2-active");
     document.documentElement.classList.add("pc-v2-active-html");
-    // build()でmobile-tab-panel等を.app-containerの外へ移動したため、
-    // それらの要素が対象外になるよう再計算させる（詳細は
-    // player-ui-shared.js側のsyncTopControlsSpacerHeightコメント参照）。
     if (typeof syncTopControlsSpacerHeight === "function") {
       syncTopControlsSpacerHeight();
     }
   }
 
-  function deactivate() {
-    document.body.classList.remove("pc-v2-active");
-    document.documentElement.classList.remove("pc-v2-active-html");
-    if (!built) return;
-
-    // 波形エリア一式・各パネル中身を、build()時に記録した元の位置へ戻す。
-    restoreAnchor("appTitle", document.getElementById("appTitle"));
-    restoreAnchor("vbarContainer", document.getElementById("vbarContainer"));
-    restoreAnchor("topControls", document.getElementById("topControls"));
-    restoreAnchor("timeControlsRow0", document.querySelectorAll(".time-controls-row")[0]);
-    restoreAnchor("control", controlBody);
-    restoreAnchor("markers", markersBody);
-    restoreAnchor("playlist", playlistBody);
-    restoreAnchor("text", textBody);
-    restoreAnchor("eq", eqBody);
-    restoreAnchor("eqResetBtn", document.getElementById("controlEqResetBtn"));
-    restoreAnchor("eqEnableToggle", document.getElementById("controlEqEnableToggle"));
-    restoreAnchor("export", exportBody);
-    restoreAnchor("exportFooter", exportFooter);
-
-    // Textパネルのフルスクリーンボタンを元の位置(.markers-heading-row内、
-    // textBodyが↑で既に元の場所へ戻っていることが前提)へ戻す。
-    // 保持コンテナ(#pcV2TextControlsHolder)自体は空のまま残しておいて
-    // 問題ない（次回のPC v2 activate時にまた使う）。
-    // 文字サイズ+/-ボタンは元々移動していないため、ここで戻す必要はない。
-    restoreAnchor("textFullscreenBtn", document.getElementById("noteTextFullscreenBtn"));
-    const noteTextAreaEl = document.getElementById("noteTextArea");
-    if (noteTextAreaEl) noteTextAreaEl.readOnly = false;
-
-    // PC v2の間だけ差し替えていたPrev/NextアイコンをSP版向けの元の形に戻す
-    ["prevTrackBtn", "nextTrackBtn"].forEach(id => {
-      const btn = document.getElementById(id);
-      const svg = btn ? btn.querySelector("svg") : null;
-      if (svg && svg.dataset.pcv2Swapped) {
-        svg.innerHTML = svg.dataset.pcv2OriginalHtml;
-        delete svg.dataset.pcv2Swapped;
-        delete svg.dataset.pcv2OriginalHtml;
-      }
-    });
-
-    // Startボタンを除去（playbackTripleBtnコンテナ内に追加していたもの）
-    ["pcV2SkipBackBtn", "pcV2SkipFwdBtn"].forEach(id => {
-      const sb = document.getElementById(id);
-      if (sb && sb.parentNode) sb.parentNode.removeChild(sb);
-    });
-
-    // allRepeatToggleBtn/loopToggleBtnはbuild()時にplaybackTripleBtn/
-    // markerNavBtnの子として組み込んだため、restoreForSp()が
-    // playbackTripleBtn/markerNavBtnごと.top-controls-rowへ戻す際に
-    // 自動的について行く。ここで個別に動かす必要はない。
-
-    // 新設のグループ・区切り線を除去し、元の.top-controls-rowの表示を戻す。
-    document.querySelectorAll("#topControls > .pcv2-ctrl-group, #topControls > .pcv2-ctrl-divider").forEach(elmt => {
-      elmt.parentNode.removeChild(elmt);
-    });
-    document.querySelectorAll("#topControls .top-controls-row").forEach(row => {
-      row.style.display = "";
-    });
-
-    const basicPanelBox = document.querySelector(".basic-panel-box");
-    if (basicPanelBox) basicPanelBox.style.display = "";
-
-    // headerNavを削除する前に、その中にあるappVersionを元の位置
-    // (#appLogo内)へ戻す。
-    restoreAnchor("appVersion", document.getElementById("appVersion"));
-
-    const headerNav = document.getElementById("pcV2HeaderNav");
-    if (headerNav) headerNav.parentNode.removeChild(headerNav);
-
-    // Keyboard/Colorパネルへ移動していたセクションを、元の.qn-menu-popup
-    // (SP幅ではハンバーガーメニューのポップアップとして引き続き使われる)
-    // へ戻す。theme→shortcutsの順（index.html側の元の並び順）を保つ。
-    if (pcv2QnSections.color || pcv2QnSections.keyboard) {
-      const popup = document.getElementById("qnMenuPopup");
-      if (popup) {
-        if (pcv2QnSections.color) {
-          popup.insertBefore(pcv2QnSections.color, popup.firstChild);
-        }
-        if (pcv2QnSections.keyboard) {
-          popup.appendChild(pcv2QnSections.keyboard);
-        }
-      }
-      pcv2QnSections.color = null;
-      pcv2QnSections.keyboard = null;
-    }
-
-    const layout = document.getElementById("pcV2Root");
-    if (layout) layout.parentNode.removeChild(layout);
-    built = false;
-  }
-
-  function sync() {
-    if (mql.matches) {
-      activate();
-    } else {
-      deactivate();
-    }
-  }
-
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", sync);
+    document.addEventListener("DOMContentLoaded", activate);
   } else {
-    sync();
+    activate();
   }
-  mql.addEventListener("change", sync);
 
-  // ============================================================
-  // PC v2波形の再生位置表現：モック準拠で「棒グラフそのものの色」を
-  // 未再生(薄いグレー)/再生済み(accent色)で塗り分ける。
-  // 既存のdrawWaveform()/updateBars()（SP版・旧PC版が使う、.vfillという
-  // 別レイヤーのオーバーレイで再生位置を表す方式）には一切手を入れず、
-  // PC v2が有効な間だけ、同じcanvas要素の上からこの関数で上書き描画する。
-  // ============================================================
   let pcv2WaveRafId = null;
 
-  // ------------------------------------------------------------
-  // 【v2.13.4 負荷対策】この描画は以前、requestAnimationFrameで毎フレーム
-  // （60〜120回/秒、一時停止中も含めて常時）6本のcanvasへ波形バー約4000本を
-  // 全部描き直していた。さらに1フレームごとに getBoundingClientRect()×6
-  // （強制レイアウト）・getComputedStyle()×6・pins配列のfilter/sort・
-  // バー1本ごとの色文字列生成まで行っており、SP（PC v2が唯一のUIのため
-  // 常にこのループが動く）ではCPU/GPU・GC負荷が飽和し、iOSが数分で
-  // ページを強制終了→再読み込み（スプラッシュが出る）する原因になっていた。
-  // 対策：
-  //   1. 描画は最大 PCV2_WAVE_INTERVAL_MS 間隔に間引く
-  //   2. 「再生位置・波形・マーカー・色・サイズ」のどれも変わっていなければ
-  //      描画自体をスキップ（一時停止中はほぼゼロ負荷）
-  //   3. バー矩形サイズはresize時のみ再計測、色文字列はキャッシュ
-  //   4. マーカー色の判定はバーを左から順に走査しつつポインタを進める方式
-  //      （バー1本ごとに全マーカーを舐めない）
-  // ------------------------------------------------------------
-  const PCV2_WAVE_INTERVAL_MS = 100; // 10回/秒。見た目上は十分滑らか
+  // 【v2.13.4 負荷対策】毎フレーム全再描画+getBoundingClientRect×6等がiOSで強制再読み込みの原因だった。対策: 1.描画はPCV2_WAVE_INTERVAL_MS間隔に間引く 2.再生位置/波形/マーカー/色/サイズが不変なら描画スキップ 3.バー矩形はresize時のみ計測、色文字列はキャッシュ 4.マーカー色判定はバーを左から走査しポインタを進める
+  const PCV2_WAVE_INTERVAL_MS = 100;
   let pcv2LastDrawAt = 0;
   let pcv2LastSig = "";
   let pcv2SizeDirty = true;
@@ -2044,7 +1304,6 @@
     pcv2SizeDirty = false;
   }
 
-  // マーカーの状態を安い文字列にまとめる（変化検知用）
   function pcv2MarkersSig(markers) {
     let s = "";
     for (let i = 0; i < markers.length; i++) {
@@ -2067,10 +1326,6 @@
         .sort((a, b) => a.t - b.t);
     }
 
-    // Glow中は明滅前の元の色で固定する（v2.13.5〜、波形はGlow対象外）。
-    // それ以外はgetComputedStyleを1回の描画につき1回だけ（以前は行ごとに6回）。
-    // 【v2.14.1】getComputedStyleはスタイル再計算を強制するため、テーマ色の
-    // 読み直しは0.5秒に1回までにする（テーマ切替の反映はその程度の遅れで十分）。
     const nowMs = performance.now();
     if (!pcv2AccentCache || nowMs - pcv2AccentCacheAt > 500) {
       pcv2AccentCache = getComputedStyle(document.body).getPropertyValue("--accent-primary").trim() || "#3b82f6";
@@ -2078,8 +1333,7 @@
     }
     const accentColor = window.__qnGlowBaseAccent || pcv2AccentCache;
 
-    // 何も変わっていなければ描画しない。再生位置は「波形バー1本分」の
-    // 解像度で比較する（それ未満の変化では見た目が一切変わらないため）。
+    // 不変なら描画しない。再生位置は波形バー1本分の解像度で比較
     const totalSamples = waveformPeaks.length;
     const ctBucket = Math.floor((ct / dur) * totalSamples);
     const sig = ctBucket + "|" + dur + "|" + totalSamples + "|" + accentColor + "|" +
@@ -2095,7 +1349,6 @@
     const bounds = [0, s1, s2, s3, s4, s5, dur];
     const unplayedDefault = "rgba(255, 255, 255, 0.16)";
 
-    // マーカー走査用ポインタ（全行を通して時刻は単調増加なので使い回せる）
     let markerPtr = -1;
 
     for (let row = 0; row < 6; row++) {
@@ -2123,7 +1376,6 @@
         const x = i * step;
         const barTime = rowStart + (rowEnd - rowStart) * (i / sliceCount);
 
-        // barTime以下の最後のマーカーまでポインタを進める
         while (markerPtr + 1 < allMarkers.length && allMarkers[markerPtr + 1].t <= barTime) {
           markerPtr++;
         }
@@ -2137,7 +1389,6 @@
         } else {
           fill = isPlayed ? accentColor : unplayedDefault;
         }
-        // fillStyleへの代入は文字列パースが走るため、色が変わる時だけ行う
         if (fill !== currentFill) {
           ctx2d.fillStyle = fill;
           currentFill = fill;
@@ -2162,11 +1413,6 @@
     if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform(true);
   });
 
-  // 【v2.16.1】シークバーの高さは波形エリアの残り高さから決まる(flex)ため、
-  // ウインドウのresize以外（パネル開閉・時刻行の出入り・フォント読込等）でも
-  // バーの大きさが変わる。バーの入れ物をResizeObserverで監視し、大きさが
-  // 変わったらcanvasの解像度を合わせて描き直す（伸びた波形がぼやけない
-  // ように）。連続して発火しても1フレームに1回だけ処理する。
   if (typeof ResizeObserver === "function") {
     let pcv2ResizeRaf = null;
     const vbarContainerEl = document.getElementById("vbarContainer");
@@ -2182,7 +1428,6 @@
       }).observe(vbarContainerEl);
     }
   }
-  // 曲の読み込み完了時・シーク時も、間引き待ちせず即座に反映する
   if (typeof audio !== "undefined" && audio) {
     audio.addEventListener("loadedmetadata", () => { pcv2SizeDirty = true; });
     audio.addEventListener("seeked", () => {
@@ -2191,35 +1436,17 @@
   }
 })();
 
-// ============================================================
-// 【旧player-ui-pc.jsより統合】
-// ドラッグ&ドロップでのファイル追加、および#topControlsのPC幅レイアウト
-// （flattenForPc/restoreForSp）。後者は上のPC v2 build()が「先にこの
-// 処理が#topControlsをフラット化した状態」を前提とする土台処理のため、
-// 依存関係が分かりやすいよう同じファイルにまとめている。
-// player-core.js, player-ui-shared.js の後に読み込むこと
-// （addFilesToPlaylist 等の共通関数に依存するため）。
-// ============================================================
+// D&Dでのファイル追加と#topControlsのフラット化(build()が先にフラット化済みを前提)。player-core.js, player-ui-shared.jsの後に読み込む(addFilesToPlaylist等に依存)
 
 document.addEventListener("dragover", e => {
   e.preventDefault();
-  // Backup/Importモーダルが開いている間は、ページ全体のファイル追加用
-  // D&D（曲追加）の見た目・挙動を無効化する。モーダル内のドロップ位置に
-  // よって「曲が追加される」「ZIPがインポートされる」のどちらが起きるか
-  // 変わってしまう事故を防ぐため（Importタブのドロップゾーン自体は別途
-  // 専用のD&Dハンドラを持つ）。ブラウザ標準の「ファイルを開いてページ
-  //遷移してしまう」動作を防ぐためpreventDefault自体は常に呼ぶ。
-  const backupModalOverlay = document.getElementById("trackBackupModalOverlay");
-  if (backupModalOverlay && backupModalOverlay.classList.contains("open")) return;
-  // MOREのアプリ（YouTube等）表示中は、曲追加のD&Dを無効にする
-  // （アプリ側のImportドロップゾーンが自前で受ける）。
+  // ページ遷移防止のためpreventDefaultは常に呼ぶ
+  // アプリ(YouTube等)表示中は曲追加D&D無効(アプリ側が自前で受ける)
   if (document.body.classList.contains("qn-app-open")) return;
   document.body.classList.add("dragover");
 });
 
 document.addEventListener("dragleave", e => {
-  const backupModalOverlay = document.getElementById("trackBackupModalOverlay");
-  if (backupModalOverlay && backupModalOverlay.classList.contains("open")) return;
   if (e.clientX === 0 && e.clientY === 0) {
     document.body.classList.remove("dragover");
   }
@@ -2227,34 +1454,14 @@ document.addEventListener("dragleave", e => {
 
 document.addEventListener("drop", e => {
   e.preventDefault();
-  const backupModalOverlay = document.getElementById("trackBackupModalOverlay");
-  if (backupModalOverlay && backupModalOverlay.classList.contains("open")) return;
   document.body.classList.remove("dragover");
-  if (document.body.classList.contains("qn-app-open")) return; // アプリ表示中は曲追加しない
+  if (document.body.classList.contains("qn-app-open")) return;
   if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
     addFilesToPlaylist(Array.from(e.dataTransfer.files));
   }
 });
 
-// ============================================================
-// #topControlsのPC幅レイアウト：Track/Play/Track・Repeat・Marker×3・Loopを
-// 完全にフラットな1行として並べる。
-//
-// 当初はCSSの display: contents で.top-controls-row（行の箱）を透明化する
-// 方式を試みたが、ブラウザ間の挙動差により確実に機能しなかったため、
-// ここでJSが実際にDOM構造を組み替える方式にしている。
-// PC幅になった瞬間、4つの要素(#playbackTripleBtn,
-// #allRepeatToggleBtn, #markerNavBtn, #loopToggleBtn)を#topControls直下へ
-// 移動し、空になった.top-controls-rowは非表示にする。
-//
-// 【将来撤去予定】このロジックは上のPC v2 build()が「先にこの関数が
-// フラット化した#topControlsの状態」を前提として、その上にさらに
-// ボタンを組み替える、という2段構えの依存関係になっている
-// （詳細は上のbuild()内の該当コメント参照）。
-// SP幅でもPC v2のtopControls構造をそのまま使うようになれば、この
-// flattenForPc/restoreForSp、およびPC v2側のそれに依存する部分は
-// 丸ごと不要になる見込み。大手術完了後に削除・統合すること。
-// ============================================================
+// #topControlsのPC幅: Track/Play/Track・Repeat・Marker×3・Loopを1行にフラット化。CSS display:contentsはブラウザ差で不可→JSでDOM組み替え。4要素(#playbackTripleBtn,#allRepeatToggleBtn,#markerNavBtn,#loopToggleBtn)を#topControls直下へ移し、空の.top-controls-rowは非表示。
 (function () {
   const topControls = document.getElementById("topControls");
   const topControlsRows = topControls ? topControls.querySelectorAll(".top-controls-row") : [];
@@ -2270,50 +1477,12 @@ document.addEventListener("drop", e => {
     return;
   }
 
-  // PC v2のbuild()と同じブレークポイントで同期させる必要があるため、
-  // こちらも画面幅を問わず常時有効化する。
-  const PC_BREAKPOINT = "(min-width: 0px)";
-  const mql = window.matchMedia(PC_BREAKPOINT);
-  let isFlattened = false;
-
-  function flattenForPc() {
-    if (isFlattened) return;
-    isFlattened = true;
-    // 元の順序(Track/Play/Track → Repeat → Marker×3 → Loop)を保ったまま
-    // #topControls直下へ移動する。appendChildは既存の親からその要素を
-    // 自動的に取り除いてから新しい親に追加するため、明示的なremoveは不要。
-    topControls.appendChild(playbackTripleBtn);
-    topControls.appendChild(allRepeatToggleBtn);
-    topControls.appendChild(markerNavBtn);
-    topControls.appendChild(loopToggleBtn);
-    if (loopPreRollControl) topControls.appendChild(loopPreRollControl);
-    row1.style.display = "none";
-    row2.style.display = "none";
-  }
-
-  function restoreForSp() {
-    if (!isFlattened) return;
-    isFlattened = false;
-    row1.style.display = "";
-    row2.style.display = "";
-    // 元の行構造に戻す（1段目：Track/Play/Track + Repeat、2段目：Marker×3 + Loop）。
-    row1.appendChild(playbackTripleBtn);
-    row1.appendChild(allRepeatToggleBtn);
-    row2.appendChild(markerNavBtn);
-    row2.appendChild(loopToggleBtn);
-    if (loopPreRollControl) row2.appendChild(loopPreRollControl);
-  }
-
-  function syncTopControlsLayout() {
-    if (mql.matches) {
-      flattenForPc();
-    } else {
-      restoreForSp();
-    }
-  }
-
-  syncTopControlsLayout();
-  // addEventListenerでの登録はSafari等の古いバージョンでも安定して動く
-  // (addListenerは非推奨のため使わない)。
-  mql.addEventListener("change", syncTopControlsLayout);
+  // build()が先にフラット化済みなのを前提とする(順序依存)
+  topControls.appendChild(playbackTripleBtn);
+  topControls.appendChild(allRepeatToggleBtn);
+  topControls.appendChild(markerNavBtn);
+  topControls.appendChild(loopToggleBtn);
+  if (loopPreRollControl) topControls.appendChild(loopPreRollControl);
+  row1.style.display = "none";
+  row2.style.display = "none";
 })();

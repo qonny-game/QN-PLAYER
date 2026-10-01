@@ -28,16 +28,8 @@
 <link rel="stylesheet" href="CSS/style-apps.css">
 <link rel="stylesheet" href="CSS/style-youtube.css">
 <script>
-  // ============================================================
-  // アプリバージョンの一元管理。
-  // これまで<title>・#splashVersion・#appVersionの3箇所に別々に
-  // 決め打ちで書かれていて、更新のたびに書き漏らしが起きやすかった
-  // ため、ここ1箇所（QN_APP_VERSION）だけを直せば全部に反映される
-  // ようにした。各表示箇所は、自分の要素がDOM上に現れた直後の
-  // インラインscriptでこの値を読んで反映する（head内のこの時点では
-  // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
-  // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "3.20.2";
+  // アプリバージョン一元管理(QN_APP_VERSION)。<title>はここで即更新、#splashVersion/#appVersionは各要素直後のinline scriptが反映
+  window.QN_APP_VERSION = "3.20.4";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -60,9 +52,6 @@
 </head>
 <body>
 
-<!-- 起動時スプラッシュ。初期化中（IndexedDBからのプレイリスト復元等）の
-     一瞬だけ見えてしまうNo file/ドラッグ案内画面を隠す目的も兼ねる。
-     JS側(player-ui-shared.js内)でinitフローの完了を待ってフェードアウトさせる。 -->
 <div id="splashOverlay">
   <div id="splashLogo"><span id="splashLogoQN">QN</span>PLAYER</div>
   <div id="splashVersion">v</div>
@@ -71,9 +60,7 @@
   document.getElementById("splashVersion").textContent = "v" + window.QN_APP_VERSION;
 </script>
 <script>
-  // セーフティタイマー：何らかの理由でwindow.onload側の
-  // hideSplashOverlay()が呼ばれなかった場合でも、5秒後には
-  // 必ずスプラッシュを消す（アプリ本体が操作不能になるのを防ぐ）。
+  // セーフティ: onloadでスプラッシュが消えなくても5秒後に必ず消す
   setTimeout(() => {
     const splash = document.getElementById("splashOverlay");
     if (splash && splash.style.display !== "none") {
@@ -86,16 +73,6 @@
 <div id="dropOverlay">DROP AUDIO FILE HERE</div>
 
 <div id="appHeader">
-  <!-- ============================================================
-       カラーテーマ切替・Keyboard Shortcuts一覧のハンバーガーメニュー。
-       元はQNシリーズ共通の配布ファイル（qn-menu.js/css/html、他アプリが
-       fetchして読み込む仕組み）だったが、QNPLAYER単体リリースにあたり
-       配布の仕組み・他アプリへの遷移リンク（旧SECTION 1）は不要になった
-       ため撤去し、QNPLAYER専用のファイル（JS/player-theme.js、
-       CSS/style-theme.css）としてこちらへ統合した。
-       Section（Keyboard Shortcuts）は、window.QN_SHORTCUTSが未定義の
-       場合、player-theme.js側でdata-qn-section="shortcuts"のブロック
-       ごと非表示にする。 ============================================================ -->
   <div id="qnMenuMount">
     <div class="qn-menu-wrapper">
       <button id="qnMenuBtn" title="Theme & Shortcuts">
@@ -104,12 +81,9 @@
 
       <div class="qn-menu-popup" id="qnMenuPopup">
 
-        <!-- Color Theme Selector & Glow Switch -->
         <div class="qn-menu-section" data-qn-section="theme">
           <span class="qn-menu-section-label">Color Theme</span>
-          <!-- スウォッチはplayer-theme.js側のQN_THEMES配列(42色)から動的生成される。
-               テーマを追加・編集する時はplayer-theme.js内のQN_THEMESだけを直せばよく、
-               このHTMLやstyle-theme.css側の個別記述を編集する必要はない。 -->
+          <!-- スウォッチはQN_THEMES(player-theme.js)から動的生成。テーマ追加・編集はそこだけ -->
           <div class="qn-theme-swatches" id="qnThemeSwatches"></div>
           <div class="qn-glow-toggle-row">
             <span class="qn-glow-toggle-label">Glow current color</span>
@@ -117,9 +91,7 @@
               <span class="qn-glow-switch-knob"></span>
             </button>
           </div>
-          <!-- 【v2.15.0】マーカーメモのプリセットを選んだ時に自動で付く色の設定。
-               行はplayer-markers.js側のrenderMarkerPresetColorSettings()が
-               MARKER_LABEL_PRESETSから組み立てる。 -->
+          <!-- 行はrenderMarkerPresetColorSettings()が組み立てる -->
           <div class="qn-marker-preset-colors">
             <div class="qn-marker-preset-colors-title">Marker Memo Colors</div>
             <div class="qn-marker-preset-colors-desc">メモのプリセットを選んだ時、マーカーに自動で付く色</div>
@@ -127,7 +99,6 @@
           </div>
         </div>
 
-        <!-- Keyboard Shortcuts Table (hidden if window.QN_SHORTCUTS is not defined) -->
         <div class="qn-menu-section" data-qn-section="shortcuts" id="qnShortcutsSection">
           <span class="qn-menu-section-label">Keyboard Shortcuts</span>
           <table class="qn-shortcut-table">
@@ -135,7 +106,7 @@
               <tr><th>Action</th><th>Key</th></tr>
             </thead>
             <tbody id="qnShortcutsTbody">
-              <!-- player-theme.js が window.QN_SHORTCUTS の内容でここを組み立てる -->
+              <!-- player-theme.jsがwindow.QN_SHORTCUTSから組み立てる -->
             </tbody>
           </table>
         </div>
@@ -158,22 +129,17 @@
 
 
 
-<!-- Firebase Authentication（Googleログイン）UI -->
 <div id="authContainer">
-  <!-- 未ログイン時：Googleログインボタン -->
   <button id="btnLoginGoogle" title="Googleでログイン">
     <svg viewBox="0 0 24 24"><path fill="#fff" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>
     <span>Googleでログイン</span>
   </button>
 
-  <!-- ログイン時：アバターアイコン ＆ ドロップダウンポップアップ -->
   <div id="userInfo" style="display:none;">
-    <!-- アイコンボタン（クリックでドロップダウンを開閉） -->
     <button id="userAvatarBtn" title="アカウントメニュー">
       <img id="userPhoto" src="" alt="User Photo">
     </button>
 
-    <!-- ポップアップメニュー（デフォルト非表示） -->
     <div id="userDropdown" class="user-dropdown">
       <div class="user-dropdown-header">
         <span id="userName">User Name</span>
@@ -183,28 +149,17 @@
           <span class="user-dropdown-label">プラン</span>
           <span id="userPlanBadge" class="sw-header-plan-badge">FREE</span>
         </div>
-        <!-- monthly/yearly契約中は残り時間(dd日hh:mm形式)、Ad(広告視聴による時限解除)中は
-             残り時間(HH時間MM分形式)を表示。それ以外(FREE/Lifetime)は非表示(player-shareware.js側で制御)。 -->
         <div class="user-dropdown-item" id="userPlanRemainingRow" style="display:none;">
           <span class="user-dropdown-label">残り</span>
           <span id="userPlanRemaining" class="user-dropdown-val"></span>
         </div>
-        <!-- monthly/yearly契約中で、かつ既に解約手続き済み(cancelAtPeriodEnd=true)の場合のみ表示。
-             「このまま何もしなければ、この日付で無料版に戻る」ことを明示する行(player-shareware.js側で制御)。 -->
         <div class="user-dropdown-item" id="userPlanEndDateRow" style="display:none;">
           <span class="user-dropdown-label">利用終了日</span>
           <span id="userPlanEndDate" class="user-dropdown-val"></span>
         </div>
       </div>
       <div class="user-dropdown-footer">
-        <!-- Premiumアップグレード導線。押すとアンロックモーダル(4プランカード)を直接開く。 -->
         <button id="swUpgradeBtn" title="Upgrade to Premium">UPGRADE</button>
-        <!-- monthly/yearly契約中のみ表示。Stripe Customer Portalへ遷移する。
-             通常時は「解約する」→ Customer Portalの解約画面。
-             既に解約手続き済み(cancelAtPeriodEnd=true)の場合は「サブスクを続ける」
-             に文言を変える（Customer Portal側に「続ける」ボタンがあり、そこへ
-             同じ遷移で導く。player-shareware.js側で文言・class・遷移先の
-             出し分けを制御）。 -->
         <button id="btnCancelSubscription" style="display:none;">解約する</button>
         <button id="btnLogout">
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17 7l-1.41 1.41L17.17 10H9v2h8.17l-1.58 1.58L17 15l4-4zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h7v-2H5V5z"/></svg>
@@ -232,12 +187,10 @@
       <div class="vbar" id="bar4"><canvas class="vwave" id="wave4"></canvas><div id="fill4" class="vfill"></div></div>
       <div class="vbar" id="bar5"><canvas class="vwave" id="wave5"></canvas><div id="fill5" class="vfill"></div></div>
       <div class="vbar" id="bar6"><canvas class="vwave" id="wave6"></canvas><div id="fill6" class="vfill"></div></div>
-      <!-- シェアウェア制限：無料版のAB間ループ回数カウンター（5回で自動停止） -->
       <span id="swLoopCounter"></span>
     </div>
     
     <div class="top-controls" id="topControls">
-      <!-- 1段目：前の曲 / 再生・停止 / 次の曲（三分割ボタン） + Repeat（単体） -->
       <div class="top-controls-row">
         <div class="tripleNavBtn" id="playbackTripleBtn" title="Prev / Play / Next Track">
           <button id="prevTrackBtn" class="tripleNavBtn-third tripleNavBtn-left" title="Prev Track">
@@ -261,7 +214,6 @@
         </button>
       </div>
 
-      <!-- 2段目：前マーカー / マーカー追加 / 次マーカー（三分割ボタン） + Loop（単体） -->
       <div class="top-controls-row">
         <div class="tripleNavBtn" id="markerNavBtn" title="Prev / Add / Next Marker">
           <button id="prevMarkerBtn" class="tripleNavBtn-third tripleNavBtn-left" title="Prev Marker">
@@ -291,11 +243,6 @@
       </div>
     </div>
 
-    <!-- 常時表示のメインコントロール：TIME、Export（1行）。
-         旧「Basicタブ」の中身をタブ化せず常時表示にしていたVOL/SPEED/KEY/EQ/Add Fileの
-         見た目ボタンは撤去済み。これらの機能自体はサイドバーのCONTROLタブ（Vol/Speed/Key）、
-         EQ機能（サイドバー等別経路）、Playlistタブ内のAdd Fileインラインボタン等、
-         他の場所から引き続き利用できる。 -->
     <div class="time-controls-row">
       <div id="timeDisplay">
         <span id="currentTimeVal" class="time-val">00:00.0</span>
@@ -305,10 +252,7 @@
     </div>
 
     <div class="basic-panel-box">
-      <!-- 1行目：Export（EQ・Add Fileの見た目ボタンは撤去済み。
-           #fileInput自体は他の場所(Playlistタブ内のAdd Fileインラインボタン、
-           サイドバー吸着タブのAdd File)から引き続き参照されるトリガーのため、
-           display: noneのまま残す。） -->
+      <!-- #fileInputはPlaylistタブのAdd Fileボタン等から参照されるのでdisplay:noneのまま残す -->
       <div class="time-controls-row adjust-controls-row">
         <div class="time-controls-buttons">
           <button id="exportToggleBtn" class="av-toggle-btn" title="Export Audio">
@@ -326,7 +270,6 @@
   </div>
 
   <div class="sidebar-section" id="sidebarSection">
-    <!-- Control / Markers / Playlist の切り替えタブ（旧Basicタブは撤去、Controlは新設） -->
     <div class="mobile-tabs">
       <button class="mobile-tab-btn" data-tab="control">Control</button>
       <button class="mobile-tab-btn" data-tab="markers">Markers</button>
@@ -334,8 +277,6 @@
       <button class="mobile-tab-btn" data-tab="text">Text</button>
     </div>
 
-    <!-- Controlタブ：VOL/SPEED(+Auto Speed)/KEYのスライダー・操作UI自体を、ポップアップに
-         隠さず上から順に展開表示する。Basic欄側とはIDを分け、値は双方向に同期させる。 -->
     <div class="mobile-tab-panel" data-tab-panel="control">
       <div class="markers-heading-row">
         <h3>Control</h3>
@@ -350,7 +291,6 @@
           <label>
             Speed <span id="controlSpeedDisplay" style="color:#fff;">1.00</span>x
             <button class="mini-reset-btn" id="controlSpeedResetBtn" title="Reset speed to 1.00x">RESET</button>
-            <!-- v3.6.0: トグルスイッチを「アイコン(ON/OFF)＋−＋(5%刻み)」に置き換え。YouTubeアプリのSpeedと同じ操作感 -->
             <span class="control-stepper">
               <button type="button" class="control-effect-toggle control-effect-icon" id="controlSpeedEnableToggle" role="switch" aria-checked="true" title="Speed effect ON/OFF"><svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg></button>
               <button type="button" class="control-step-btn" id="controlSpeedDownBtn" title="Speed −5%">−</button>
@@ -359,8 +299,6 @@
           </label>
           <input type="range" id="controlSpeedRange" min="0.5" max="1.5" step="0.01" value="1.0">
 
-          <!-- Auto Speedは常に表示するが、OFFの間は暗く（低opacityに）して操作対象でないことを示す。
-               Speedと同じ枠内に収め、1つの機能としてまとまって見えるようにする。 -->
           <div class="auto-speed-card" id="controlAutoSpeedCard">
             <label class="auto-speed-header">
               <span>Auto Speed</span>
@@ -438,8 +376,6 @@
       <div id="playlistBox"></div>
     </div>
 
-    <!-- Textタブ：ファイル名(currentFileName)ごとに紐付けてlocalStorageへ保存する
-         自由入力メモ欄。歌詞に限らず何でも書けるようTextという汎用名にしている。 -->
     <div class="mobile-tab-panel" data-tab-panel="text">
       <div class="markers-heading-row">
         <h3>Text</h3>
@@ -453,9 +389,6 @@
   </div>
 </div>
 
-<!-- Textタブ：フルスクリーン表示。テキストを大きく読み書きしたい時用に画面全体を覆う。
-     中のtextarea(#noteTextAreaFullscreen)はnoteTextAreaと値を相互同期させる（player-ui-shared.js）。
-     文字サイズは+/-ボタンでfont-sizeを調整し、localStorageに好みの値を保存する。 -->
 <div id="textFullscreenOverlay" class="text-fullscreen-overlay">
   <div class="text-fullscreen-header">
     <div class="text-fullscreen-font-controls">
@@ -467,7 +400,6 @@
   <textarea id="noteTextAreaFullscreen" class="note-textarea note-textarea-fullscreen" placeholder="Lyrics, memo, anything…"></textarea>
 </div>
 
-<!-- EQ設定モーダル -->
 <div id="eqModalOverlay" class="export-modal-overlay">
   <div class="export-modal eq-modal">
     <div class="export-modal-header">
@@ -477,7 +409,6 @@
 
     <div class="export-modal-body">
       <div class="export-section" id="eqInlineSection">
-        <!-- SP幅限定：KEYとEQの間の区切り線とタイトル（PC幅ではモーダルヘッダーにタイトルがあるため非表示） -->
         <div class="basic-panel-divider eq-inline-divider"></div>
         <div class="eq-inline-title">
           Equalizer
@@ -546,8 +477,6 @@
             <button type="button" class="eq-preset-btn" data-preset="treble">Treble</button>
             <button type="button" class="eq-preset-btn" data-preset="vshape">V-Shape</button>
           </div>
-          <!-- カスタムプリセット一覧。player-control-eq.js側でlocalStorageから
-               読み込んで動的にボタンを生成する。 -->
           <div class="eq-preset-buttons eq-preset-custom-row" id="eqCustomPresetButtons"></div>
           <button type="button" class="eq-preset-save-btn" id="eqSavePresetBtn" title="Save current EQ as a custom preset">
             <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
@@ -559,7 +488,6 @@
   </div>
 </div>
 
-<!-- エクスポート設定モーダル -->
 <div id="exportModalOverlay" class="export-modal-overlay">
   <div class="export-modal">
     <div class="export-modal-header">
@@ -632,7 +560,6 @@
           </label>
         </div>
 
-        <!-- WAV選択時：サンプルレート（プルダウンではなくボタン選択式） -->
         <div class="export-format-detail" id="exportWavDetail">
           <label class="export-marker-select-label">Sample Rate</label>
           <div class="export-format-options">
@@ -647,7 +574,6 @@
           </div>
         </div>
 
-        <!-- MP3選択時：ビットレート（プルダウンではなくボタン選択式） -->
         <div class="export-format-detail" id="exportMp3Detail" style="display:none;">
           <label class="export-marker-select-label">Bitrate</label>
           <div class="export-format-options">
@@ -676,15 +602,6 @@
   </div>
 </div>
 
-<!-- ============================================================
-     解約確認モーダル（#btnCancelSubscription押下時、Stripe Customer
-     Portalへ遷移する前に挟む最終確認）。
-     表示内容: プラン名・残り期間（カウントダウン）・次回自動更新日
-     （年月日）・「解約しても利用可能」な最終日（次回自動更新日と同じ
-     日付だが、文脈が異なるため別行で表示）。
-     中身（プラン名・日付）はplayer-shareware.js側のswOpenCancelModal()
-     が開くたびに算出して差し込む。
-     ============================================================ -->
 <div id="cancelModalOverlay" class="export-modal-overlay">
   <div class="export-modal cancel-modal">
     <div class="export-modal-header">
@@ -717,24 +634,9 @@
   </div>
 </div>
 
-<!-- スマホ幅でtop-controlsを画面下部に固定した際、ページ最下部（フッター前）に高さ分の余白を確保する -->
 <div class="top-controls-spacer" id="topControlsSpacer"></div>
 
-<!-- ============================================================
-     ライブラリ一括バックアップモーダル。
-     PC v2サイドメニュー(#pcV2IconBar)のBackupアイコン押下で開く。
-     フロー：曲を選択（全選/全解除＋個別チェック、選択中の合計サイズを
-     表示）→ 含める項目を選択 → Download。
-     音声データを含む場合はZIP、含めない場合はmarkers.json単体で出力する
-     （player-track-backup.js側で組み立て）。
-     ============================================================ -->
-<div id="trackBackupModalOverlay" class="export-modal-overlay">
-  <div class="export-modal track-backup-modal">
-    <div class="export-modal-header">
-      <span>Backup Library</span>
-      <button id="trackBackupModalCloseBtn" class="export-modal-close" title="Close">✕</button>
-    </div>
-
+<div id="trackBackupHome" hidden>
     <div class="export-modal-body">
       <div class="export-section">
         <div class="track-backup-tracklist-header">
@@ -751,10 +653,6 @@
         </div>
       </div>
 
-      <!-- 【v2.15.2】含める項目は「音声データ」「設定ファイル（マーカー・
-           タイトルなど全部）」の2択に簡略化。折りたたみ・個別サイズ表示は
-           廃止し、常時2行を表示する（player-track-backup.js側の
-           trackBackupIncludeAudioEl / trackBackupIncludeSettingsElに対応）。 -->
       <div class="export-section track-backup-options">
         <label class="export-section-label">含める項目</label>
         <div class="track-backup-checklist">
@@ -775,25 +673,9 @@
       <button id="trackBackupCancelBtn" class="export-cancel-btn" title="Close">Cancel</button>
       <button id="trackBackupRunBtn" class="export-run-btn">Download</button>
     </div>
-  </div>
 </div>
 
-<!-- ============================================================
-     ライブラリ一括インポートモーダル。
-     PC v2サイドメニュー(#pcV2IconBar)のImportアイコン押下で開く。
-     ZIPまたはmarkers.json単体(D&D/選択)を読み込み、ライブラリに曲を
-     追加・マーカー/メモを反映する。同名曲があれば1曲ずつ上書き/
-     スキップを選ぶ（JSON単体は音声を含まないため既存曲の上書きにのみ
-     使える）。インポート完了後はImportボタンがCloseに変わり、結果を
-     確認したらそのまま閉じられる（player-track-backup.js側で組み立て）。
-     ============================================================ -->
-<div id="trackImportModalOverlay" class="export-modal-overlay">
-  <div class="export-modal track-backup-modal">
-    <div class="export-modal-header">
-      <span>Import Library</span>
-      <button id="trackImportModalCloseBtn" class="export-modal-close" title="Close">✕</button>
-    </div>
-
+<div id="trackImportHome" hidden>
     <div class="export-modal-body">
       <div class="export-section">
         <div class="track-import-layout">
@@ -804,10 +686,6 @@
               <div class="track-import-dropzone-sub">またはクリックして選択</div>
               <input type="file" id="trackImportFileInput" accept=".zip,.json" style="display:none;">
             </div>
-            <!-- ファイル読み込み後はドロップゾーンの代わりにこちらを表示する
-                 （player-track-backup.js側で表示/非表示を切り替える）。
-                 別のファイルを選び直したい場合はCancelボタンが「Back」に
-                 変わり、それを押すとドロップゾーン表示へ戻る。 -->
             <div id="trackImportLoadedInfo" class="track-import-loaded-info" style="display:none;">
               <svg viewBox="0 0 24 24" class="track-import-loaded-info-icon"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
               <div class="track-import-loaded-info-text">
@@ -818,11 +696,6 @@
             <div id="trackImportSummary" class="track-import-summary" style="display:none;"></div>
           </div>
 
-          <!-- 重複曲の上書き/スキップ選択リスト（重複がある場合のみ表示）。
-               「すべて上書き/すべてスキップ」もカプセル形状のトグル1個。
-               各行の選択も同じデザインのトグル（player-track-backup.js側
-               createTrackImportChoiceToggleが生成）にして、2ボタン方式より
-               曲名の表示スペースを広く取れるようにしている。 -->
           <div id="trackImportDuplicateList" class="track-import-duplicate-list" style="display:none;">
             <div class="track-import-duplicate-header">
               <label class="export-section-label">重複する項目</label>
@@ -844,7 +717,6 @@
       <button id="trackImportCancelBtn" class="export-cancel-btn" title="Close">Cancel</button>
       <button id="trackImportRunBtn" class="export-run-btn">Import</button>
     </div>
-  </div>
 </div>
 
 

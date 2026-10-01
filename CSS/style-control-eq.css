@@ -1,12 +1,4 @@
-/* ============================================================
-   style-control-eq.css
-   （旧style-eq.css。PC v2のControlパネルにSpeed/Keyと統合表示される
-   ため、ファイル名をstyle-controls.cssと対になるよう変更した）
-   10バンド・グラフィックイコライザーのUI（EQヒント文言、プリセットボタン、
-   バンドスライダー、周波数ラベル）。
-   注：EQモーダル自体の外枠(.eq-modal)は、Exportモーダルの共通デザイン
-   (.export-modal-overlay等)を土台にしているため style-export.css 側にある。
-   ============================================================ */
+/* style-control-eq.css — 10バンドEQのUI。EQモーダル外枠(.eq-modal)はExportモーダル共通デザインを土台にstyle-export.css側 */
 
 .eq-hint {
   margin: 0 0 14px;
@@ -15,7 +7,6 @@
   color: #6b6b7b;
 }
 
-/* SP幅でBasicタブ内に移動した時だけ表示する区切り線とタイトル（PC幅のモーダルでは不要） */
 .eq-inline-divider,
 .eq-inline-title {
   display: none;
@@ -25,7 +16,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* eq-bands(縦スライダー)の直後に移設したため、上にも余白を持たせる。 */
   margin-top: 14px;
   margin-bottom: 10px;
 }
@@ -108,10 +98,6 @@
   transform: rotate(-90deg);
   cursor: pointer;
   pointer-events: none;
-  /* 0dB(中央、50%)を基準に、つまみの位置(--range-progress、0〜100)
-     までの区間だけaccent-primary色で塗る。+側なら50%→progress%、
-     -側ならprogress%→50%が塗られる（どちらの式でも、値が0dBの時は
-     50%→50%で幅0になり何も塗られない）。 */
   background: linear-gradient(
     to right,
     #2a2a35 0%,
@@ -153,8 +139,6 @@
 }
 
 
-/* カスタムEQプリセット：ユーザーが保存した独自プリセットのチップ列。
-   標準プリセットと見た目を揃えつつ、削除用の小さな✕を右端に添える。 */
 .eq-preset-custom-row {
   margin-top: 6px;
 }
@@ -184,7 +168,6 @@
   background: rgba(239, 68, 68, 0.15);
 }
 
-/* 現在のEQ設定を新しいカスタムプリセットとして保存するボタン。 */
 .eq-preset-save-btn {
   height: var(--btn-h);
   display: flex;

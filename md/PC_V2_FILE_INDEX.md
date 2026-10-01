@@ -22,7 +22,7 @@
 ### パネル開閉・切替
 - `handleIconClick(item)` — アイコン押下の分岐（`"action"`=Add File、`"close"`、他は`openPanelOverlay`）。
 - `openPanelOverlay(panelId)` / `closePanelOverlay()` — パネルの開閉（SP幅はオーバーレイ）。
-- `switchPanel(panelId)` — **最大の関数。** パネル中身をControl/Markers/Library/Text/Export/Backup/Import/Keyboard/Colorへ切替。新しいパネル種別はここに分岐を足す。Backup/Importは`qnBackupMountInto`で借りる。
+- `switchPanel(panelId)` — **最大の関数。** パネル中身をControl/Markers/Library/Text/Export/Backup/Import/Keyboard/Colorへ切替。新しいパネル種別はここに分岐を足す。Backup/Importは`qnBackupMount`で借りる（`build()`は部品を`qnBackupParts()`で取得）。
 - `getPanelStash()` / `stashPanelContents(panelBody)` — 切替時、使い回す実体を`#pcV2PanelStash`へ退避（パネルに新しい実体を足したら対象に加える）。
 - `buildPanelFab(panelId)` — 右下FAB（ADD AUDIO/ADD MARKER/EDIT/Delete）。
 
@@ -35,14 +35,14 @@
 - `appendEqDivider` / `toggleBottomBarEffect` / `syncBottomBarEffectButton` / `syncAllBottomBarEffectButtons` / `setupControlPanelEffectSync` — Controlパネルのトグルと下段バーのSpeed/Key/EQボタンの同期。
 - `setupTextPanelHeaderControls()` — Textパネルのヘッダー操作。
 - `qnSectionSelector` / `tryClaimQnSections` / `renderQnMenuSectionPanel` — `player-theme.js`のKeyboard/Colorセクションをパネルとして表示。
-- `markAnchor` / `restoreAnchor` — PC v2構築時に元の位置を退避/復元する汎用ペア。`activate()` / `deactivate()` / `sync()`はPC v2のON/OFF（`PC_BREAKPOINT`が常にtrueなので`deactivate`は実質呼ばれない）。
+- `activate()` — PC v2構築(`build()`)＋`body.pc-v2-active`付与。常時有効で、旧レイアウトへ戻す処理は無い。
 
 ### 波形描画
 - `pcv2DrawWaveform(force)`（署名が同じなら描画スキップ）／`pcv2MeasureRows()`（resize・曲読込時のみ計測）／`pcv2MarkersSig()` / `pcv2RgbaFor()`（署名・色キャッシュ）／`pcv2WaveLoop()`（`requestAnimationFrame`を100ms間隔に間引き）。色変換は`player-core.js`の`hexToRgba`。
 
 ### ファイル末尾（旧player-ui-pc.js由来）
 - 曲追加のD&D（トップレベルの`dragover`/`drop`）。
-- 2つ目のIIFE：`flattenForPc()` / `restoreForSp()` / `syncTopControlsLayout()` — 旧SP版レイアウトをPC v2構造へ畳む処理。`#topControls`のPlay系/Marker系の並び・グルーピングを変える時だけ目を通す。
+- 2つ目のIIFE：`#topControls`のPlay系/Marker系を1行へフラット化（`build()`が先にフラット化済みを前提）。並び・グルーピングを変える時だけ目を通す。
 
 ---
 

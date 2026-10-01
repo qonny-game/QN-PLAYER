@@ -1,9 +1,4 @@
-/* ============================================================
-   style-playlist.css
-   プレイリスト機能のUI：一覧(#playlistBox/.playlistItem)、ドラッグ
-   並び替えハンドル、ファイル追加ボタン(.file-upload-btn)、
-   ドラッグ&ドロップ時の全画面オーバーレイ(#dropOverlay)。
-   ============================================================ */
+/* style-playlist.css — ライブラリ一覧(#playlistBox/.playlistItem)・ドラッグハンドル・D&Dオーバーレイ(#dropOverlay) */
 
 #playlistBox {
   display: flex;
@@ -49,7 +44,6 @@
   background: none;
 }
 
-/* ドラッグ中のアイテムは他より手前に表示し、少し浮いた見た目にする */
 .playlistItem.dragging {
   z-index: 10;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -79,8 +73,6 @@
   fill: currentColor;
 }
 
-/* タイトル/アーティストの2行ブロック。クリックで再生、各行のinput
-   (.playlist-editable-field)をクリックすれば直接編集できる。 */
 .playlist-info-block {
   display: flex;
   flex-direction: column;
@@ -158,13 +150,6 @@
   white-space: nowrap;
 }
 
-/* お気に入りピン：通常モードのみ、durationの右に表示する
-   （EDITモード中は非表示にし、その分タイトル/アーティスト入力欄
-   （.playlist-info-block、1fr列）の幅を広げる）。
-   OFF時はアウトラインのみの控えめな見た目、ONにすると塗りつぶし＋
-   アクセントカラーになる。クリックでtoggleTrackFavorite()を呼び、
-   playlist配列内で実際にリスト上段（お気に入りグループの末尾）へ
-   移動する。 */
 .playlist-favorite-btn {
   display: flex;
   align-items: center;
@@ -219,9 +204,7 @@
   background: var(--bg-hover-subtle);
 }
 
-/* .playlistItem button { color: var(--danger); }（削除ボタン用の赤色）が
-   汎用セレクタのため、鉛筆アイコン(.pin-edit-btn、Markersと共通のグレー色
-   デザイン)にも及んでしまうのを防ぐ。 */
+/* .playlistItem button{color:var(--danger)}が汎用なので鉛筆(.pin-edit-btn)に及ぶのを防ぐ */
 .playlistItem .pin-edit-btn {
   color: var(--icon-muted);
 }
@@ -258,8 +241,6 @@ body.dragover #dropOverlay {
   opacity: 1;
 }
 
-/* サムネイル画像（ID3のAPICフレームから取得できていれば表示、無ければ
-   音符アイコンのプレースホルダー）。 */
 .playlist-thumb {
   width: 36px;
   height: 36px;
@@ -281,8 +262,6 @@ body.dragover #dropOverlay {
   fill: currentColor;
 }
 
-/* タイトル/アーティストにマウスを乗せた時だけ浮かぶ鉛筆アイコン
-   （通常モードのみ。編集モード中はそもそも生成されない）。 */
 .playlist-hover-edit-btn {
   display: none;
   align-items: center;
@@ -309,14 +288,7 @@ body.dragover #dropOverlay {
   background: var(--bg-hover-subtle);
 }
 
-/* 【v2.13.6】ホバーで鉛筆を出す表示は、マウス等「本当にホバーできる」
-   環境に限定する。iOS Safariは、タップした要素の:hoverで他の要素の
-   display/visibilityが変わる（=中身が変化する）場合、1回目のタップを
-   「ホバーさせるだけ」として扱い、clickイベントを発火させない仕様がある。
-   このため、タイトル/アーティスト行をタップした時だけ再生されず
-   （行が:hoverでうっすら白くなるだけ）、それ以外の場所をタップすると
-   再生される、という「毎回ではない」ワンタップ再生失敗の原因になっていた。
-   タッチ端末では編集はEDITモードから行う。 */
+/* 【v2.13.6】ホバーで鉛筆を出すのはホバー可能環境のみ。iOS Safariは:hoverで他要素のdisplay/visibilityが変わる場合1タップ目をホバー扱いしclickを発火しない→行タップで再生されない原因。タッチはEDITモードから編集 */
 @media (hover: hover) and (pointer: fine) {
   .playlist-title-row:hover .playlist-hover-edit-btn,
   .playlist-artist-row:hover .playlist-hover-edit-btn {
@@ -329,16 +301,9 @@ body.dragover #dropOverlay {
   display: flex;
   align-items: center;
   gap: 4px;
-  /* ホバー時に鉛筆アイコン(.playlist-hover-edit-btn、18px)が出現/消失
-     しても行の高さが変わらないよう、あらかじめボタンと同じ高さを
-     確保しておく。これが無いとtitle行にホバーした瞬間、その下の
-     artist行がわずかに押し下げられてしまっていた（逆も同様）。 */
   min-height: 18px;
 }
 
-/* 編集モード時の「曲送り時スルーON/OFF」トグル。PLAY=順送りに含める、
-   SKIP=順送りで飛ばす、を文字で明示する。 */
-/* .playlistItem button（丸ボタン用の汎用指定）より優先させるため、.playlistItemを前置する（v2.16.0） */
 .playlistItem .playlist-skip-toggle {
   display: flex;
   align-items: center;
@@ -361,10 +326,7 @@ body.dragover #dropOverlay {
   border-color: var(--accent-primary);
 }
 
-/* DELETE用チェックが1件でも選択されている間、隣のPLAY/SKIPトグルを
-   誤って押してしまうと選択が実質リセットされてしまう不具合があったため、
-   選択中はクリックできないようにする（player-ui-pc-v2.js /
-   player-playlist.js側でdisabled属性を切り替える）。 */
+/* DELETE選択中はPLAY/SKIPトグルを押せない(押すと選択がリセットされるため。disabled属性はplayer-ui-pc-v2.js/player-playlist.jsが切替) */
 .playlistItem .playlist-skip-toggle:disabled {
   opacity: 0.35;
   cursor: not-allowed;

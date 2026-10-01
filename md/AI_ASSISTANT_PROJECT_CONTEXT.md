@@ -19,7 +19,7 @@ JS/
   player-ui-shared.js         loadFile / updateBars（毎フレームのループ判定）/ togglePlay / キーボードショートカット
   player-id3.js               ID3v2タグ（Title/Artist）
   player-playlist.js          ライブラリ：追加/削除/並び替え/お気に入り
-  player-track-backup.js      Backup/Import（本体・YouTube共通の画面。qnBackupMountInto）
+  player-track-backup.js      Backup/Import（本体・YouTube共通の画面。qnBackupMount/qnBackupMountInto/qnBackupParts）
   player-markers.js           マーカー：追加/削除/ドラッグ/波形上のポップアップ/A-B点/Color
   player-marker-presets.js    マーカーメモのプリセット・自動カラー・カスタムプリセット・メモ編集ポップアップ（player-markers.jsの続き）
   player-control-eq.js        EQ
@@ -92,7 +92,8 @@ favicon/  md/  pricing*.html  QUICK_START.md
 2. 機能を足す/直す時は「見た目（メモリ）」と「永続化（IndexedDB/localStorage）」を分けて、更新漏れがないか確認する。全曲ループの処理は「Blobごと書き直していないか」を自問する。
 3. 修正のたびに`index.html`の`window.QN_APP_VERSION`を上げ（機能追加=マイナー、修正/お掃除=パッチ）、`md/CHANGELOG.md`に1〜数行追記。構成・保存キー・ID・目次が変わったら該当するmdも直す（過去の記述が事実と食い違ったら消す／直す。履歴としては残さない）。
 4. 納品の標準：**変更ファイルだけのパッチZIP**（フォルダ構成を保つ。`PATCH_FILES.txt`は作らない）`QNPLAYER_v<版>_patch.zip`。まとめての大掃除など、ユーザーが「完全版で」と言った時は完全版ZIP。
-5. 検証（納品前）：
+5. **コメント規約**：JS/CSS/HTMLのコメントは「注意・禁止・規約・順序依存・仕様メモ」だけを最小限の言葉で書く。経緯・版履歴・機能の説明文は書かない（書くなら`CHANGELOG.md`か`GOTCHAS.md`）。
+6. 検証（納品前）：
    ```bash
    for f in JS/*.js; do node --check "$f" || echo "FAIL: $f"; done           # JS構文
    for f in CSS/*.css; do python3 -c "t=open('$f',encoding='utf-8').read();print('MISMATCH $f') if t.count('{')!=t.count('}') else None"; done   # CSS波括弧

@@ -1,9 +1,4 @@
-/* ============================================================
-   style-markers.css
-   マーカー機能のUI：波形上のピン(.vbar-line/.vbar-label)は共通土台側にあるが、
-   マーカー一覧(#pinList/.pinItem)・編集ボタン・カラーピッカー
-   (.marker-color-popup等)・削除確認アニメーションはこちら。
-   ============================================================ */
+/* style-markers.css — マーカー一覧(#pinList/.pinItem)・編集ボタン・カラーピッカー(.marker-color-popup等)・削除確認アニメ。波形上のピン(.vbar-line/.vbar-label)は共通土台側 */
 
 #pinList {
   display: flex;
@@ -59,17 +54,11 @@
   min-width: 0;
 }
 
-/* ラベル行：pin-info(テキスト)とpin-edit-btn(鉛筆)をまとめる。行に
-   マウスを乗せた時だけ鉛筆を出す（Libraryパネルの.playlist-title-row
-   等と同じパターン）。min-widthを0にしてgridの1frセル内でちゃんと
-   縮められるようにし、pin-infoのellipsisも機能させる。 */
 .pin-label-row {
   display: flex;
   align-items: center;
   gap: 4px;
   min-width: 0;
-  /* 鉛筆ボタン(30px)の出現/消失で行の高さが変わらないよう固定
-     （Libraryパネルの.playlist-title-row等と同じ対策）。 */
   min-height: 30px;
 }
 
@@ -94,18 +83,13 @@
   transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
 }
 
-/* 【v2.13.6】playlist側(.playlist-hover-edit-btn)と同じ理由で、ホバーで
-   鉛筆を出すのは本当にホバーできる環境に限定する（iOSでマーカー名の
-   1回目のタップがジャンプせず「ホバーだけ」になるのを防ぐ）。
-   タッチ端末ではEDITモードから編集する。 */
+/* 【v2.13.6】ホバーで鉛筆を出すのはホバー可能環境のみ(iOSでマーカー名の1タップ目がジャンプせずホバーだけになるのを防ぐ)。タッチはEDITモードから編集 */
 @media (hover: hover) and (pointer: fine) {
   .pin-label-row:hover .pin-edit-btn {
     display: flex;
   }
 }
 
-/* タッチ端末：ホバーが無いため、EDITモード中は鉛筆を常時表示する
-   （通常モードはタップ＝ジャンプに専念させ、誤操作を防ぐ）。 */
 @media (hover: none), (pointer: coarse) {
   #pcV2PanelBody.markers-edit-mode #pinList .pin-edit-btn {
     display: flex;
@@ -123,10 +107,7 @@
   fill: currentColor;
 }
 
-/* マーカーリスト左端の色の目印。クリックするとカラーパレットが開く（選択色または未設定時はグレー）。
-   ボタン要素だが枠線・パディングをリセットして丸いドットだけの見た目にする。 */
-/* 【v2.16.8】.pinItemの4列グリッドの1列目に収める入れ物。ロック中は
-   鍵アイコン+色の丸、通常時は色の丸だけを横並びで入れる（GOTCHAS.md）。 */
+/* 【v2.16.8】.pinItemの4列gridの1列目に収める入れ物(ロック=鍵+色丸、通常=色丸)。GOTCHAS.md */
 .pin-leading-cell {
   display: flex;
   align-items: center;
@@ -151,7 +132,6 @@
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
 }
 
-/* マーカー色選択のポップアップ。カラースウォッチをグリッドで並べる。 */
 .marker-color-popup {
   z-index: 500;
   display: grid;
@@ -222,14 +202,7 @@
   outline: none;
 }
 
-/* メモ編集中に出すクイック選択プリセット。.pinItemはgrid構造のため、
-   grid-column: 1 / -1で全列にまたがる形にし、既存のgrid配置(色マーク・
-   本文・編集・トグル・削除の5列)を崩さない新しい行として追加する。 */
-/* 【v2.15.0】メモ編集中のプリセット選択：行の中ではなく、入力欄の下に
-   浮かぶポップアップで表示する（リストの行が広がらないように）。
-   JS側(startPinMemoEdit)がdocument.body直下へ置き、position: fixedで
-   入力欄の位置に合わせる。チップの先頭の丸は、そのプリセットで自動的に
-   付く色（Colorパネルの「Marker Memo Colors」で設定）。 */
+/* メモ編集のクイックプリセット: .pinItemはgridなのでgrid-column:1/-1で全列にまたがる新しい行にする */
 .pin-memo-preset-popup {
   position: fixed;
   z-index: 500;
@@ -310,10 +283,6 @@
   fill: currentColor;
 }
 
-/* 表示/非表示の状態はテーマカラーで目立たせず、ほんのりグレーで
-   統一する。ON/OFFの区別はアイコン形状(目が開いている/閉じている)自体で
-   伝わるため、色分けは不要。ホバー時は下部コントロール(LOOP/REPEAT等)と
-   同じ挙動(var(--icon-muted)→var(--text-bright)の白)に揃える。 */
 .pinItem:not(.disabled) .toggle-btn {
   color: var(--icon-muted);
   transition: color var(--dur-hover) var(--ease-snap);
@@ -331,15 +300,12 @@
   background: var(--bg-hover-subtle);
 }
 
-/* .pinItem button { padding: 5px 10px; border-radius: 6px; }（汎用ボタン
-   スタイル、CSS記述順で.pin-color-markより後にあるため上書きしてしまう）
-   が、色ドット(.pin-color-mark)を角丸長方形に潰していたのを正円に戻す。 */
+/* .pinItem button{padding;border-radius}が後勝ちで.pin-color-markを角丸長方形に潰すのを正円に戻す */
 .pinItem .pin-color-mark {
   padding: 0;
   border-radius: 50%;
 }
 
-/* プレイリストのON/OFFボタン（マーカーのtoggle-btnと同じデザイン） */
 .playlistItem .toggle-btn {
   display: flex;
   align-items: center;

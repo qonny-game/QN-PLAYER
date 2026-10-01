@@ -11,7 +11,7 @@ grep -o 'id="[a-zA-Z0-9]*"' JS/player-ui-pc-v2.js | sed 's/id="//;s/"//' | sort 
 ## 静的id（`index.html`）のグループ
 | プレフィックス | 機能（制御するJS） |
 |---|---|
-| `trackBackup*` / `trackImport*` | Backup/Importの画面（`player-track-backup.js`）。外枠(`*ModalOverlay`/`*ModalCloseBtn`)はPC v2では使わず、`.export-modal-body`と`.export-modal-footer`だけを各パネルへ移して表示。Backupの含める項目は`trackBackupIncludeAudio`/`trackBackupIncludeSettings`の2つ。`trackImportCancelBtn`は`data-mode`(`cancel`/`back`)、`trackImportRunBtn`はImport/Close兼用 |
+| `trackBackup*` / `trackImport*` | Backup/Importの画面（`player-track-backup.js`）。外枠は無く、`#trackBackupHome`/`#trackImportHome`(hidden)に`.export-modal-body`+`.export-modal-footer`が1組ずつあり、`qnBackupMount(mode,hostEl)`(本体・YouTube共通)がhostへ移して表示（実体は1つだけ）。Backupの含める項目は`trackBackupIncludeAudio`/`trackBackupIncludeSettings`の2つ。`trackImportCancelBtn`は`data-mode`(`cancel`/`back`)、`trackImportRunBtn`はImport/Close兼用 |
 | `playToggle` `prevTrackBtn` `nextTrackBtn` `playbackTripleBtn` `prevMarkerBtn` `nextMarkerBtn` `loopToggleBtn` `loopPreRoll*` `loopInfo` | 下段コントロール元要素（`player-controls.js`等。PC v2が`#pcV2BottomBar`へ移す） |
 | `playlistBox` `playlistInfo` | ライブラリ一覧 |
 | `eq*` | EQ（`player-control-eq.js`） |

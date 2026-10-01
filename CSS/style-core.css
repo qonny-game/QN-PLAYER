@@ -1,9 +1,4 @@
-/* ============================================================
-   style-core.css
-   PC版デフォルトのレイアウト + PC/SP共通のデザイン（色・フォント・
-   部品単体の見た目）。メディアクエリを含まない。
-   スマホ幅(max-width:768px, 900px)向けの上書きは style-layout-sp.css 側。
-   ============================================================ */
+/* style-core.css — PC幅デフォルトのレイアウト+共通デザイン(色/フォント/部品)。メディアクエリ無し。SP上書きはstyle-layout-sp.css */
 
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
@@ -16,75 +11,43 @@
   --font-display: 'Instrument Sans';
   --font-body: 'Instrument Sans';
 
-  /* アイコン・補助テキストの既定色（落ち着いたグレー）。OFF状態の
-     トグル、目/鉛筆/削除等の各種アイコン、ラベルなど、アプリ全体で
-     繰り返し使う「主張しすぎないグレー」をここに一元化する。
-     色を変えたい時は、ここを直すだけで全箇所に反映される。 */
+  /* アイコン/補助テキストの既定グレー(一元化) */
   --icon-muted: #8b8b9e;
 
-  /* 白系のテキスト・強調色。テーマカラー(--accent-primary等)とは独立して
-     常に白系で使う箇所（見出し、値の強調表示、アイコンのホバー色等）を
-     ここに一元化する。
-     --text-bright: わずかに青みを含む白(#f0f0f3)。本文寄りの強調テキストや
-       ホバー時のアイコン色など、アプリ全体で最も多用される白。
-     --text-pure-white: 純白(#fff)。ボタン内の文字やボーダーなど、より
-       強いコントラストが欲しい箇所に使う。 */
+  /* --text-bright=#f0f0f3(本文寄り強調)、--text-pure-white=#fff。テーマ非依存の白系 */
   --text-bright: #f0f0f3;
   --text-pure-white: #fff;
 
-  /* 白の半透明ボーダー・背景。透明度の意味を用途で使い分けている
-     （0.08=枠線、0.06=ホバー時の背景）ため、値ごとに変数を分ける。 */
   --border-subtle: rgba(255, 255, 255, 0.08);
   --bg-hover-subtle: rgba(255, 255, 255, 0.06);
 
-  /* 削除・警告用の赤。--accent-primaryはテーマ切り替えで色が変わる
-     （赤テーマ選択時は--accent-primary自体が赤になる）ため、削除ボタン等
-     の「常に赤であるべき」箇所はテーマに関わらず独立させておく。 */
+  /* 削除/警告の赤はテーマ非依存(--accent-primaryはテーマで変わるため独立) */
   --danger: #ef4444;
 
-  /* ============================================================
-     【v2.16.0】UIの統一ルール（角丸・文字サイズ・ボタン）
-     下部コントロールバー(#pcV2BottomBar)・アイコンバーのラベル・ロゴ/
-     スプラッシュ・波形上のラベル・料金モーダルの大見出しは、よく使う/
-     アイコンだけでは分かりにくい等の理由で意図的に例外扱い。
-     それ以外（パネル内・ポップアップ・ボタン・入力欄）は必ず下の
-     トークンを使い、個別のpx値を直書きしない。
-     ============================================================ */
-  /* 角丸：ボタン・チップ・トグル・ステッパー＝pill（左右が完全な半円）、
-     アイコンだけの丸ボタン＝round、入力欄＝field、浮かぶ箱（ポップアップ・
-     ドロップダウン）＝popup、モーダル＝modal。リストの行・パネル内の
-     区切りは角丸の枠を使わず、線(--border-subtle)で区切る。 */
+  /* 【v2.16.0】UI統一ルール: パネル内/ポップアップ/ボタン/入力欄は下のトークンを使い、個別px直書き禁止。例外=下部コントロールバー/アイコンバーラベル/ロゴ/スプラッシュ/波形上ラベル/料金モーダル大見出し */
+  /* 角丸: ボタン/チップ/トグル/ステッパー=pill、アイコン丸ボタン=round、入力欄=field、ポップアップ/ドロップダウン=popup、モーダル=modal。リスト行/パネル内区切りは角丸枠でなく線(--border-subtle) */
   --radius-pill: 999px;
   --radius-round: 50%;
   --radius-field: 10px;
   --radius-popup: 14px;
   --radius-modal: 20px;
 
-  /* 文字サイズ：5段階＋ボタン2種。 */
-  --fs-title: 20px;    /* パネル見出し（#pcV2PanelHeader） */
-  --fs-heading: 15px;  /* セクション見出し（SPEED/KEY/EQUALIZER、含める項目 等） */
-  --fs-body: 14px;     /* リストの主テキスト・入力欄・行ラベル */
-  --fs-small: 12px;    /* 補足・説明・サイズ表示・アーティスト名 等 */
-  --fs-micro: 11px;    /* EQの目盛り数値・バッジ等の極小表示 */
-  --fs-btn: 12px;      /* 二次ボタン（RESET・プリセット・全選択 等） */
-  --fs-btn-primary: 14px; /* 主ボタン（DOWNLOAD/IMPORT/ADD AUDIO 等） */
+  --fs-title: 20px; /* パネル見出し(#pcV2PanelHeader) */
+  --fs-heading: 15px; /* セクション見出し(SPEED/KEY/EQUALIZER、含める項目 等) */
+  --fs-body: 14px; /* リストの主テキスト・入力欄・行ラベル */
+  --fs-small: 12px; /* 補足・説明・サイズ表示・アーティスト名 等 */
+  --fs-micro: 11px; /* EQ目盛り数値・バッジ等の極小表示 */
+  --fs-btn: 12px; /* 二次ボタン(RESET・プリセット・全選択 等) */
+  --fs-btn-primary: 14px; /* 主ボタン(DOWNLOAD/IMPORT/ADD AUDIO 等) */
 
-  /* 二次ボタンの共通寸法・枠線 */
   --btn-h: 30px;
   --btn-pad-x: 14px;
   --border-strong: rgba(255, 255, 255, 0.14);
 
-  /* ============================================================
-     モーション設計トークン（docs/ui-motion-haptics-design.md 参照）
-     4種のイージングを動作の意味ごとに使い分ける。
-     ============================================================ */
-  /* Snap: 即応。ボタンpress/hover、トグルON-OFF、ドラッグ追従 */
+  /* モーション(イージング4種): Snap=即応(press/hover/toggle/drag)、Glide=滑走(値変化/タブ/パネル/テーマ)、Pop=弾む(出現/確定)、Dismiss=退出(閉じる/消失) */
   --ease-snap: cubic-bezier(0.2, 0, 0, 1);
-  /* Glide: 滑走。値の変化、タブ切替、パネル開閉、テーマ切替 */
   --ease-glide: cubic-bezier(0.4, 0, 0.2, 1);
-  /* Pop: 弾む。ポップアップ/モーダルの出現、選択の確定 */
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* Dismiss: 退出。ポップアップ/モーダルを閉じる、消失系 */
   --ease-dismiss: cubic-bezier(0.4, 0, 1, 1);
 
   --dur-hover: 130ms;
@@ -94,9 +57,7 @@
   --dur-dismiss: 200ms;
 }
 
-/* ピンチズーム（拡大縮小ジェスチャー）を無効化する。
-   viewportメタタグのuser-scalable=noと合わせ、二重の保険としてtouch-actionでも制限する。
-   pan-x pan-yは通常のスクロール操作自体は引き続き許可し、拡大縮小ジェスチャーだけを禁止する。 */
+/* ピンチズーム無効(viewportのuser-scalable=noと二重の保険。通常スクロールは許可) */
 html {
   touch-action: pan-x pan-y;
 }
@@ -214,11 +175,6 @@ html {
 }
 
 body {
-  /* ベースの単色(#0d0d0f)の上に、テーマカラー(--accent-primary)を使った
-     ごく薄いグローを左上・右上から重ねる。--accent-glowは元々ボタンの
-     シャドウ用で透明度0.35と濃いため、ここでは別途0.08程度に抑えて
-     背景として使っても主張しすぎないようにしている。
-     テーマ切替時、--accent-primaryが変わればグローの色も自動で追従する。 */
   background:
     radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 45%),
     radial-gradient(circle at 100% 15%, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 40%),
@@ -229,26 +185,16 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  /* QNPITCH等と同じく、ウィンドウ幅に関わらず常に左端からpadding固定にするため
-     stretchにする（以前のcenterだと#appHeader/.app-containerのmax-width(1400px)を
-     超えるウィンドウ幅で左右中央寄せになり、幅によって左マージンの見え方が変動していた）。 */
   align-items: stretch;
 }
 
 #appHeader {
   width: 100%;
-  /* サイドバー(360px固定)以外のメイン領域は画面幅いっぱいに伸ばす方針のため、
-     max-widthでの頭打ちは廃止（.app-container側と合わせる）。 */
   display: flex;
   align-items: center;
   gap: 14px;
   position: relative;
-  /* ハンバーガーメニュー(.qn-menu-popup)はposition: fixedになっており、
-     #appHeaderのスタッキングコンテキストの外側に自力で出られるため、
-     #appHeader自体のz-indexを吸着タブ(410)やサイドバー(400)より
-     高くしておく必要はない。SP幅でサイドバーを開いた時は、ヘッダーより
-     サイドバーが手前に来る（ヘッダーが隠れる）のが意図した挙動のため、
-     それらより低い値に戻す。 */
+  /* z-index: #appHeaderはサイドバー(400)/吸着タブ(410)より低く保つ(SP幅でサイドバー開時はヘッダーが隠れるのが仕様。ハンバーガー(.qn-menu-popup)はfixedで外に出られる) */
   z-index: 200;
 }
 
@@ -263,10 +209,6 @@ body {
 }
 
 #appLogoQN {
-  /* テーマカラー(--accent-primary → --accent-secondary)を使ったグラデーション文字。
-     background-clip: textでテキストの形にグラデーションを流し込み、
-     本来のcolorはtransparentにして背景を透かして見せる。
-     Safari等webkit系ブラウザ向けに-webkit-プレフィックス版も明記する。 */
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   -webkit-background-clip: text;
   background-clip: text;
@@ -284,12 +226,7 @@ body {
 }
 
 #appTitle {
-  /* 以前は#appHeader内でappLogoの下に居て、margin-bottom: 15pxだけで
-     波形(#vbarContainer)との間隔を作っていた。.player-sectionの直下に
-     移動した今は親のgap: 20pxが#appTitleと#vbarContainerの間にも
-     自動で入るため、そのままだと20px+15px=35pxに広がってしまう。
-     見た目を変えないよう、gapとの重複分を差し引いたマイナスマージンで
-     元の15px間隔を維持する（20px gap - 5px = 15px相当）。 */
+  /* #appTitleの上下: 親gap20pxとの重複を相殺するマイナスmargin(実質15px間隔) */
   margin: 0 0 -5px;
   font-family: var(--font-body, 'Instrument Sans'), sans-serif;
   font-size: 20px;
@@ -298,10 +235,7 @@ body {
   overflow: hidden;
   white-space: nowrap;
   max-width: 100%;
-  /* Webフォント(Instrument Sans)の読み込み前後でline-heightの計算結果が
-     ばらつき、フォールバックフォントでは行の高さが文字の実描画より
-     小さくなって上端が overflow:hidden で切れることがあるため、
-     font-sizeに対して十分な比率を明示しておく。 */
+  /* line-heightを明示(Webフォント読込前後で上端がoverflow:hiddenで切れるのを防ぐ) */
   line-height: 1.4;
 }
 
@@ -315,12 +249,7 @@ body {
   white-space: nowrap;
 }
 
-/* ファイル名が長くコンテナに収まらない場合のみ付与されるマーキー（電光掲示板）表示 */
-/* 【v2.16.3】曲を読み込んだ時に3周だけ流して止める（止まった位置は
-   流し始めと同じ見た目）。無限ループのアニメーションは、表示中ずっと
-   毎フレームのスタイル再計算を発生させ得るため（GOTCHAS.md）。
-   タイトルにマウスを乗せる/タップすると、もう一度3周流れる
-   （player-core.js側のreplayAppTitleMarquee）。 */
+/* 【v2.16.3】マーキーは3周で止める(無限アニメは毎フレーム再計算。GOTCHAS.md)。hover/タップで再3周(player-core.js replayAppTitleMarquee) */
 #appTitle.marquee #appTitleInner {
   animation: appTitleMarquee var(--marquee-duration, 12s) linear 3;
 }
@@ -336,25 +265,7 @@ body {
 }
 
 
-/* EQ関連スタイルは style-control-eq.css（旧style-eq.css）に分割移動済み */
-
-/* ============================================================
-   【大手術後の状態】.app-container / .player-section / .sidebar-section /
-   .mobile-tabs / .sidebar-section h3（このセクション末尾まで）は、
-   PC v2が画面幅を問わず常時有効化されたことで .app-container自体が
-   常にdisplay: noneになるため、実質的に画面には一切表示されない。
-
-   削除しなかった理由：PC v2のbuild()は現在アクティブなパネル
-   （.mobile-tab-panel）だけを.app-containerの外へ移動し、それ以外
-   （非アクティブなパネル）はこの.app-container/.sidebar-section
-   構造の中に留まったままになる。またLibrary(playlist)のように移動済み
-   でも、.markers-heading-row(h3見出し含む)自体はPC v2側で
-   display: none !importantにされ、PC v2独自の見出し(.pcv2-panel-
-   header-title)に置き換わる。つまりこれらの要素・スタイルは
-   「今は使われていない」だけで、PC v2のJS（markAnchor/restoreAnchor）
-   がDOM構造を組み立てる際の前提として今も必要なため、CSSごと
-   削除すると壊れる。
-   ============================================================ */
+/* 【大手術後】.app-container/.player-section/.sidebar-section/.mobile-tabs/.sidebar-section h3(この節末尾まで)は常にdisplay:noneで表示されないが削除禁止: PC v2のbuild()は表示中パネルだけ.app-container外へ移し、非アクティブはこの構造内に残る。.markers-heading-rowはPC v2側でdisplay:none !importantされ独自見出し(.pcv2-panel-header-title)に置換される。markAnchor/restoreAnchorの前提なのでCSSごと消すと壊れる */
 .app-container {
   display: grid;
   grid-template-columns: 1fr 360px;
@@ -362,8 +273,6 @@ body {
   align-items: start;
   margin-top: 15px;
   width: 100%;
-  /* サイドバー(360px固定)は変えず、メイン(1fr)側だけがウィンドウ幅に応じて
-     自然に伸びるよう、max-widthでの頭打ちを廃止。 */
   box-sizing: border-box;
   position: relative;
   z-index: 1;
@@ -382,10 +291,7 @@ body {
   height: fit-content;
 }
 
-/* Textタブが開いている間だけ、サイドバー全体を画面の残り高さいっぱいに固定化する
-   （JS側でheightをインラインstyleとしてセットする。他タブ(Control/Markers/Playlist)は
-   従来通りheight: fit-contentのまま中身なりの高さで良いため、このクラスの時だけ上書きする）。
-   .mobile-tab-panel側もflexで伸ばし、中のtextareaが残り高さいっぱいに広がるようにする。 */
+/* Textタブ表示中のみサイドバーを残り高さに固定(JSがheightをインライン設定)。他タブはfit-content */
 .sidebar-section.text-tab-active {
   display: flex;
   flex-direction: column;
@@ -411,7 +317,6 @@ body {
   text-transform: uppercase;
 }
 
-/* Markers / Playlist の切り替えタブ（PC/SP共通）。下のパネルと隙間なく繋げるため角丸は上側だけ。 */
 .mobile-tabs {
   display: flex;
   gap: 6px;
@@ -442,8 +347,6 @@ body {
 }
 
 .mobile-tab-btn.active {
-  /* PLAYボタン(#playToggle)と同じグラデーションに揃える。単色のvar(--accent-primary)
-     だけだと、PLAYボタンのグラデーションと並んだ時に色味が微妙にずれて見えるため。 */
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: var(--text-pure-white);
 }
@@ -453,7 +356,6 @@ body {
   color: var(--text-bright);
 }
 
-/* タブパネルは選択中のもの以外を隠す。タブの直下は上側の角丸をなくして一体化させる。 */
 .mobile-tab-panel {
   display: none;
   width: 100%;
@@ -470,26 +372,18 @@ body {
   width: 100%;
 }
 
-/* タブ自体に「Markers」「Playlist」の名前が出ているため、
-   パネル内の見出し(タイトル・ACTIVE数/トラック数)は重複するので非表示にする。
-   ただしTextタブの見出し行(.markers-heading-row)は、単なるタイトル表示ではなく
-   フルスクリーンボタン(noteTextFullscreenBtn)を含む操作行のため、
-   ここでは除外して表示したままにする。 */
+/* Markers/Playlistパネル内見出しは非表示(タブ名と重複)。ただしTextの.markers-heading-rowはフルスクリーンボタンを含む操作行なので除外 */
 .mobile-tab-panel:not([data-tab-panel="text"]) .markers-heading-row {
   display: none;
 }
 
-/* CONTROLタブ：VOL/SPEED(+Auto Speed)/KEYの操作UI自体（スライダー・ステッパー等）を、
-   ポップアップに隠さず上から順に展開表示する。中身はBasic欄と同じ.control-cardを使い、
-   IDだけ別にして値を双方向に同期させている（player-ui-shared.js側）。 */
+/* CONTROLタブ: .control-cardをBasic欄と同じ物で展開。idは別にして値を双方向同期(player-ui-shared.js) */
 .control-list {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
-/* CONTROLタブの中の各.control-cardは、Markers/Playlistのリスト同様、
-   罫線区切りのフラットなデザインに統一する（カード背景・枠は廃止）。 */
 .control-list .control-card {
   background: none;
   border: none;
@@ -515,13 +409,6 @@ body {
   margin-bottom: 6px;
 }
 
-/* SP幅限定：MARKERS/PLAYLISTタブ内リスト最上部のアクションボタン（+MARKER, SELECT FILE）。
-   PC幅では他の場所に同じ機能のボタンが既にあるため非表示。
-   このデフォルト非表示自体はPC専用のためstyle-core-pc.cssへ移動済み。 */
-
-/* 下段コントロール（前の曲/再生/次の曲＋Repeat、前マーカー/マーカー追加/次マーカー＋Loop）。
-   PC/SP完全に同じレイアウトのため、画面下部への固定表示もPC/SP共通にしている
-   （PCだけ普通のスクロール配置にする分岐を増やすより、常時固定の方がコードがシンプルなため）。 */
 .top-controls {
   position: fixed;
   left: 0;
@@ -544,25 +431,9 @@ body {
   align-items: center;
 }
 
-/* 常時固定表示のため、本来topControlsが占めるはずだった高さ分、
-   コンテンツ側に必ず余白(スペーサー)を確保する必要がある。高さはJSで動的に計算する。 */
+/* 固定表示の高さ分をコンテンツ側に余白で確保(高さはJSが動的計算) */
 .top-controls-spacer {
   flex-shrink: 0;
-}
-
-
-/* Loop/Repeat/PlayToggle関連スタイルは style-controls.css に分割移動済み */
-
-   中央(tripleNavBtn-center)だけ少し広めに取り、主操作（再生/マーカー追加）であることを強調する。 */
-.tripleNavBtn {
-  flex: 3;
-  display: flex;
-  align-items: stretch;
-  background: #1c1c24;
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  overflow: hidden;
 }
 
 .tripleNavBtn-third {
@@ -580,7 +451,6 @@ body {
   transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
 }
 
-/* 中央ボタン（再生/マーカー追加）は主操作のため少し広め＋アクセントカラーで目立たせる */
 .tripleNavBtn-center {
   flex: 1.3;
   color: var(--accent-primary);
@@ -615,10 +485,6 @@ body {
   background: rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
-
-/* .mobile-tabs（スマホ専用タブボタン自体）のPC幅でのデフォルト非表示は
-   style-core-pc.css へ移動済み。中身(.mobile-tab-panel)はPC幅でも常に表示されるため、
-   このコメントの下にあった.mobile-tabsの定義だけがPC専用だった。 */
 
 #timeDisplay {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
@@ -656,17 +522,12 @@ body {
   white-space: nowrap;
 }
 
-/* VOL/SPEED/KEY行とEQ/Export/AddFile行をまとめる構造上のコンテナ。
-   以前は背景色・枠線を持つ「1つの角丸ボックス」として見せていたが、
-   ご要望により外枠自体は非表示にし、中の各ボタン(av-toggle-btn)自体の見た目だけを残す。
-   構造（VOL/SPEED/KEY行とEQ/Export/AddFile行をまとめる入れ物）自体は維持する。 */
+/* 外枠は非表示だが構造コンテナは維持(VOL/SPEED/KEY行とEQ/Export/AddFile行を束ねる) */
 .basic-panel-box {
   background: transparent;
   border: none;
 }
 
-/* VOL/SPEED/KEY行とEQ/Export/AddFile行の間で、上下のボーダーが重なって太い線に
-   見えてしまうのを防ぐため、2行目(EQ/Export/AddFile)側のボタンの上ボーダーを消す。 */
 .basic-panel-box > .adjust-controls-row:nth-child(2) .av-toggle-btn {
   border-top-width: 0 !important;
 }
@@ -681,9 +542,7 @@ body {
   position: relative;
 }
 
-/* TIME行にはTIME表示のみが入るため、幅いっぱいに中央揃えにする（PC/SP共通）。
-   basic-panel-boxの外に出た単独行のため、外枠・下線は持たない。
-   TIME行だけがadjust-controls-rowを持たないtime-controls-rowなので、これで一意に特定できる。 */
+/* TIME行だけがadjust-controls-rowを持たないtime-controls-rowなので一意に特定できる */
 .time-controls-row:not(.adjust-controls-row) {
   justify-content: center;
 }
@@ -695,10 +554,6 @@ body {
   flex-shrink: 0;
 }
 
-/* VOL/SPEED/KEY行とEQ/Export/AddFile行は、外枠(basic-panel-box)がなくなった分、
-   左右の余白も詰めてボタン自体を幅いっぱいに広げる（TIME行はここに含まれないため影響しない）。
-   VOL/SPEED/KEY/EQ/EXPORT/ADD FILEの6つは、PC/SP共通で「隙間なく繋がった1つのボタン群」にする。
-   1行目(VOL/SPEED/KEY)、2行目(EQ/EXPORT/AddFile)、それぞれの行の中で幅を均等にする。 */
 .adjust-controls-row {
   width: 100%;
   box-sizing: border-box;
@@ -721,12 +576,6 @@ body {
 }
 
 
-/* VOL/SPEED/KEY/EQ/EXPORT/ADD FILEの6つを、PC/SP完全共通で「隙間なく繋がった1つの角丸四角」にする。
-   VOLはPC/SP両方で常時表示するようになったため、以前あった「VOLの有無に応じて自動で角丸位置を
-   変える」複雑な仕組みは不要になり、4隅（VOL左上・KEY右上・EQ左下・AddFile右下）を直接指定する
-   シンプルな実装に変更した。外枠自体の角丸は.basic-panel-box側が担うため、ここでは重ねて
-   同じ位置にもう一度角丸をつけている（ボタン自体の見た目としても角丸である必要があるため）。
-   境界線は、行の先頭要素(VOL/EQ)だけ左ボーダーを残し、それ以外は左ボーダーなしにする。 */
 .adjust-controls-row .time-controls-buttons .av-toggle-btn {
   border-radius: 0 !important;
   border-left-width: 0 !important;
@@ -759,9 +608,6 @@ body {
   box-sizing: border-box;
   padding: 10px 18px;
   background: #1c1c24;
-  /* テーマカラーをごく薄く滲ませた枠線にする（以前はrgba(255,255,255,0.08)の
-     無彩色グレー）。hover/active時の--accent-primaryへの変化と地続きになるよう、
-     通常時も同じ色相を薄く効かせておく。 */
   border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, var(--border-subtle));
   border-radius: 14px;
   cursor: pointer;
@@ -810,7 +656,6 @@ body {
   opacity: 0.65;
 }
 
-/* 値表示(av-toggle-btn-value)を持たないボタン(EQ)は、ラベル単体を縦中央に揃える */
 #eqToggleBtn .av-toggle-btn-text {
   justify-content: center;
 }
@@ -909,9 +754,6 @@ body {
   opacity: 0.5;
 }
 
-/* MOVEモード（旧仕様）は廃止済み。直接ドラッグ(startDragPin)に統一されたため、
-   .move-mode-active関連のスタイルは不要になり削除した。 */
-
 .vbar-label {
   position: absolute;
   top: 50%;
@@ -921,10 +763,7 @@ body {
   font-size: 16px;
   font-weight: 700;
   color: #ffffff;
-  /* マーカー番号バッジは、線の色やテーマカラーに関わらず常に黒背景で固定。
-     どのカラーテーマ・マーカー個別色でも視認性を保つため。
-     player-ui-shared.js側のrenderPins()も、この値をインラインstyleで
-     上書きしないようにしてある（背景=黒固定、線側だけ色を反映）。 */
+  /* マーカー番号バッジは常に黒背景(視認性)。renderPins()もこの値をインラインで上書きしない */
   background: rgba(13, 13, 15, 0.85);
   padding: 2px 6px;
   border-radius: 4px;
@@ -958,10 +797,6 @@ body {
   z-index: 1;
 }
 
-/* マーカーループのプリロール/ポストロール範囲（開始マーカーの数秒前〜
-   終了マーカーの数秒後）。本編区間(.segmentHighlight)と同じ色調だが
-   より薄く、破線にすることで「本編の前後にちょっとだけはみ出して
-   聴かせる範囲」であることが一目でわかるようにする。 */
 .segmentHighlight-preroll {
   position: absolute;
   top: 0;
@@ -995,10 +830,7 @@ body {
   gap: 6px;
 }
 
-/* labelの直接の子要素はテキスト表示・トグル・リセットボタンの3つに
-   なるため、justify-content: space-betweenのままだとトグルが中央に
-   飛んでしまう。flex-startにし、リセットボタン側をmargin-left: autoで
-   右端に固定する（トグルはテキストのすぐ右という自然な位置に残る）。 */
+/* labelの子はテキスト/トグル/リセットの3つ→space-betweenでなくflex-start+リセットをmargin-left:auto */
 .control-card label .mini-reset-btn {
   margin-left: auto;
 }
@@ -1009,7 +841,6 @@ body {
   flex-shrink: 0;
 }
 
-/* v3.6.0: Speed/Keyのトグルスイッチを「アイコン(ON/OFF)＋−＋」に置き換え */
 .control-stepper { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .control-card .control-stepper .control-step-btn,
 .control-card .control-stepper .control-effect-toggle.control-effect-icon {
@@ -1035,7 +866,6 @@ body {
 .control-card .control-stepper .control-effect-icon:active { transform: scale(0.93); }
 .control-card .control-stepper .control-step-btn:disabled { opacity: 0.4; cursor: default; }
 .control-card .control-effect-icon svg { width: 14px; height: 14px; fill: currentColor; display: block; }
-/* ON＝テーマ色、OFF＝薄いグレー（効果をバイパス中） */
 .control-card .control-effect-icon[aria-checked="true"] { color: var(--accent-primary); border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent); }
 .control-card .control-effect-icon[aria-checked="false"] { opacity: 0.55; }
 @media (hover: hover) and (pointer: fine) {
@@ -1066,13 +896,7 @@ body {
   background: transparent;
 }
 
-/* ネイティブのaccent-colorだと、トラックの未到達部分がブラウザ既定の
-   白っぽい色で描画され、KEYスライダー(.key-stepper-bar、カスタム実装で
-   枠線なしのシンプルなグレートラック)と印象が揃わない。
-   トラック自体を明示的にスタイリングし、進捗(再生位置)より左側だけ
-   accent-primary色になるようCSS変数(--range-progress、0〜100の数値。
-   player-ui-shared.js側で入力のたびに更新する)を使ったグラデーションで
-   表現する。 */
+/* range: --range-progress(0〜100、player-ui-shared.jsが入力毎に更新)で進捗側だけaccent色のグラデトラック */
 .control-card input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
@@ -1120,31 +944,12 @@ body {
   cursor: pointer;
 }
 
-/* Auto Speed：マーカー区間ループをN回通過するたびにSpeedを自動で増減する機能のカード。
-   既存のGlow機能と同じ「上に境界線を引いて区切る」デザインを踏襲する。 */
-
-/* Speed/AutoSpeed/Key関連スタイルは style-controls.css に分割移動済み */
 
 
-/* Marker一覧コンテナ(#pinList)スタイルは style-markers.css に分割移動済み */
 
 
-/* Textタブ関連スタイルは style-text.css に分割移動済み */
 
-
-/* Marker一覧・編集・カラーピッカー関連スタイルは style-markers.css に分割移動済み */
-
-
-/* Playlist一覧・ファイル追加ボタン関連スタイルは style-playlist.css に分割移動済み */
-
-
-/* .shortcut-grid, .shortcut-table関連は style-core-pc.css へ移動済み */
-
-/* 【v2.19.1】テキスト選択：以前はbody全体で選択不可にしていたが、
-   シークバーエリア（波形・マーカーの線とラベル）と、操作系（ボタン類・
-   下段バー・サイドバー・つまみ・ドラッグのつかみ部分）以外は選択・コピー
-   できるようにした。YouTubeアプリ等の画面も同様（ドラッグ操作する
-   シークバー/マーカー部分だけ選択不可）。 */
+/* 【v2.19.1】テキスト選択: シークバーエリア(波形/マーカー)と操作系(ボタン/下段バー/サイドバー/つまみ/ドラッグのつかみ)のみ選択不可。他は選択・コピー可。YouTubeアプリも同様 */
 body {
   user-select: text;
   -webkit-user-select: text;
@@ -1160,46 +965,18 @@ button {
   -ms-user-select: none;
 }
 
-/* 入力欄・テキスト領域の中は常に選択できる */
 input[type="text"], input[type="number"], textarea {
   user-select: text;
   -webkit-user-select: text;
 }
 
 
-/* ドラッグ&ドロップオーバーレイは style-playlist.css に分割移動済み */
-
-/* welcomeOverlay（初回案内・ADD FILEボタン）は撤去済み。
-   シークバーエリア右下の+ADD AUDIOボタン(#pcV2WaveAddAudioBtn、
-   style-layout-pc-v2.css側)に一本化した。 */
 
 
-/* 旧カラーテーマスウォッチ(.theme-swatches等)は現在どこからも参照されていない
-   デッドコードのため削除済み。現行のカラーテーマ選択UIはstyle-theme.css/
-   player-theme.js側（ハンバーガーメニュー内、QN_THEMES配列から動的生成）
-   に一本化されている。 */
 
+/* モーダルeasing: 開く=オーバーシュート cubic-bezier(0.34,1.56,0.64,1)、閉じる=cubic-bezier(0.4,0,1,1)(非対称で閉じ操作を軽く) */
 
-/* --- スマホ表示用スタイル（折りたたみ） --- */
-
-
-/* ============================================================
-   エクスポートモーダル
-   イージング設計：
-   - 開く時は「軽く弾んで収まる」オーバーシュート系カーブ (cubic-bezier(0.34, 1.56, 0.64, 1))
-     を使い、単なるフェードインより手応えのある開き方にする。
-   - 閉じる時は逆に「素早く消える」滑らかな減速カーブ (cubic-bezier(0.4, 0, 1, 1)) にし、
-     開閉で非対称の動きにすることで「閉じる」操作がもたつかないようにする。
-   ============================================================ */
-
-/* Exportモーダル関連スタイルは style-export.css に分割移動済み */
-
-/* ============================================================
-   起動時スプラッシュ(#splashOverlay)
-   ページの背景色(body背景)と同じ色で画面全体を覆い、初期化中の一瞬だけ
-   見えてしまう「No file/ドラッグ案内」画面を隠す。フェードアウト完了後は
-   pointer-events:noneにした上でdisplay:noneにする（JS側で制御）。
-   ============================================================ */
+/* 起動スプラッシュ(#splashOverlay): body背景色で全面を覆い初期化中の画面を隠す。フェード後pointer-events:none→display:none(JS制御) */
 #splashOverlay {
   position: fixed;
   inset: 0;
@@ -1218,9 +995,6 @@ input[type="text"], input[type="number"], textarea {
   pointer-events: none;
 }
 
-/* 「奥から浮き上がってくる」感を出すため、開始スケールを大きく縮小し、
-   軽いブラーを重ねる。scaleだけでなくblurも同時に解けていくことで、
-   遠くの暗闇からピントが合いながら近づいてくる印象になる。 */
 #splashLogo {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 60px;
@@ -1234,9 +1008,6 @@ input[type="text"], input[type="number"], textarea {
   animation: splashLogoIn 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* バージョン表記：ヘッダー(#appLogo 32px + #appVersion 12px)と同じ比率
-   （60px : 22px ≒ 32px : 12px）でサイズ感を揃える。ロゴ本体より少し遅れて
-   フェードインし、ロゴが浮き上がった後に続いて現れるようにする。 */
 #splashVersion {
   margin-top: 10px;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
@@ -1250,9 +1021,6 @@ input[type="text"], input[type="number"], textarea {
   animation: splashLogoIn 1.3s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
 }
 
-/* フェードアウト開始時：ロゴ自体も、もう一度ふわっと拡大しながら
-   消えていく演出を重ねる（#splashOverlay側のopacity transitionとは
-   別に、ロゴだけ一回り大きくズームしながらフェードアウトする）。 */
 #splashOverlay.splash-fade-out #splashLogo,
 #splashOverlay.splash-fade-out #splashVersion {
   animation: splashLogoOut 0.5s ease forwards;

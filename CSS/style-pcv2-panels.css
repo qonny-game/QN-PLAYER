@@ -1,14 +1,4 @@
-/* ============================================================
-   style-pcv2-panels.css
-   PC v2（QNPLAYER 2.0の唯一の実UI）の中央パネル（#pcV2PanelBody）に
-   表示される中身のスタイル。Control/EQ・Markers・Library・Text・
-   Backup/Import・Color/Keyboardの各パネルコンテンツ、パネル見出し
-   （#pcV2PanelHeader）、右下フローティングボタン（#pcV2PanelFab）。
-
-   外枠（アイコンバー・波形エリア・下部バー・Volumeポップアップ・
-   ヘッダーナビ・3カラムグリッド・SP幅の縦積みレイアウト）は
-   style-layout-pc-v2.css / style-layout-pc-v2-sp.css側。
-   ============================================================ */
+/* style-pcv2-panels.css — 中央パネル(#pcV2PanelBody)の中身(Control/EQ/Markers/Library/Text/Backup/Import/Color/Keyboard)、#pcV2PanelHeader、右下FAB(#pcV2PanelFab)。外枠はstyle-layout-pc-v2(.-sp).css */
 
 
 #pcV2PanelHeader {
@@ -27,28 +17,13 @@
 }
 
 
-/* 【v2.16.4】パネル見出し（CONTROL/MARKERS/LIBRARY/TEXT等）の文字は、
-   Colorパネルで選んだテーマ色（--accent-primary）にする。 */
 .pcv2-panel-header-title {
   display: block;
   color: var(--accent-primary);
 }
 
 
-/* ============================================================
-   フローティングアクションボタン(#pcV2PanelFab)共通スタイル。
-   Markers/Library/Textパネルの右下に、縦2段で固定表示する
-   （上段=Add系ボタン(Add Marker/Add Audio/Fullscreen)、下段=EDIT）。
-   Claudeアプリの「新規チャット」ボタン（画面右下、黒い丸本ピル型、
-   アイコン＋テキスト）のデザイン・配置に合わせたもので、旧デザイン
-   （ヘッダー内の小さいボタン）は実際のユーザーテストで「何のボタンか
-   直感的に分からない」「押せることに気づかない」という指摘があった
-   ための変更。
-   個別のボタン用クラス(.panel-edit-btn/.panel-addfile-btn)は、
-   JS側のdocument.getElementById等による個別制御（EDIT⇔OKの文字
-   切り替え、activeクラスの付け外し等）のフックとしてのみ残し、
-   見た目のスタイルは一切持たせない（全てここに集約）。
-   ============================================================ */
+/* FAB共通: Markers/Library/Text右下に縦2段(上=Add系/Fullscreen、下=EDIT)。.panel-edit-btn/.panel-addfile-btnはJS制御のフックのみで見た目は持たない(スタイルはここに集約) */
 #pcV2PanelFab {
   position: absolute;
   right: 20px;
@@ -62,9 +37,6 @@
 }
 
 
-/* 上段：Add系ボタンのグループ。Markers/Library/Textいずれも中身は
-   ボタン1個だが、編集モード中はこのグループごと非表示にしてDeleteと
-   排他表示するため、まとめて開閉できるようdivでラップしている。 */
 #pcV2PanelFab .pcv2-fab-addgroup {
   display: flex;
   flex-direction: column;
@@ -73,10 +45,6 @@
 }
 
 
-/* ボタン単体の見た目は#pcV2PanelFabの子孫に限定せず、.panel-fab-btn
-   クラス単体で効くようにする（シークバーエリア右下の+ADD AUDIO
-   ボタン(#pcV2WaveAddAudioBtn)のように、#pcV2PanelFabの外でも同じ
-   見た目を使うボタンがあるため）。 */
 .panel-fab-btn {
   pointer-events: auto;
   display: flex;
@@ -87,8 +55,6 @@
   border-radius: var(--radius-pill);
   color: var(--text-pure-white, #fff);
   cursor: pointer;
-  /* 【v2.16.4】ADD AUDIO/ADD MARKER/EDIT/Fullscreen等のフローティング
-     ボタンは、Colorパネルで選んだテーマ色で塗る。 */
   background: var(--accent-primary);
   border: none;
   flex-shrink: 0;
@@ -119,10 +85,6 @@
 }
 
 
-/* EDITボタンのみ、編集モード中(.active、表示はOK)は見分けがつくよう
-   「白地＋テーマ色の文字」に反転する（v2.16.4〜、通常時がテーマ色の
-   塗りになったため。Add系・Fullscreenボタンはactive状態を持たないので、
-   実質panel-edit-btnにしか適用されない）。 */
 .panel-fab-btn.active,
 .panel-fab-btn.active:hover {
   background: var(--text-pure-white, #fff);
@@ -130,10 +92,6 @@
 }
 
 
-/* Deleteボタン（上段、編集モード中のみ表示・JS側のtoggleEditModeが
-   display制御）。危険操作のため他のFABボタンとは異なる赤系にする。
-   初期状態はdisabled（何も選択していない）ため、そのグレーアウトの
-   見た目も合わせて定義する。 */
 .panel-fab-delete-btn {
   display: none;
   background: var(--danger, #ef4444);
@@ -151,15 +109,7 @@
 }
 
 
-/* Markers/Playlistの操作ボタン：カラー設定・表示非表示トグル・鉛筆(メモ/
-   タイトル編集)・ドラッグハンドルは常時表示するが、誤操作防止のため
-   Editボタンを押した編集モード時でなければクリックしても反応しない
-   （見た目もdisabled風に薄くする）。実際のクリック無効化は
-   player-ui-pc-v2.js側でキャプチャフェーズのイベントを止めて実現し、
-   player-markers.js/player-playlist.js側のロジックには手を入れない。
-   削除用のチェックは編集モード時のみ表示する。markersパネルは.del-btn
-   自体がグリッドセル、playlistパネルは.playlist-del-zone（.del-btnを
-   包む広いタップ判定エリア）がグリッドセルになる。 */
+/* Markers/Playlist操作ボタン: 編集モード時以外はクリックしても反応しない(薄く表示)。無効化はplayer-ui-pc-v2.jsがキャプチャフェーズで止める(player-markers/playlist側は無改造)。削除チェックは編集モードのみ表示。markers=.del-btn自体がgridセル、playlist=.playlist-del-zone(.del-btnを包む広い判定)がgridセル */
 #pcV2PanelBody #pinList .pin-del-zone,
 #pcV2PanelBody #playlistBox .playlist-del-zone {
   display: none;
@@ -172,9 +122,7 @@
 }
 
 
-/* 【v2.15.0】Markers版の広い削除タップ判定ゾーン。.pinItemのpadding
-   (10px 12px)を負のマージンで打ち消して行の上下いっぱい・右端まで広げ、
-   paddingで内側に戻して●の見た目位置を保つ（.playlist-del-zoneと同じ）。 */
+/* 【v2.15.0】Markers版の広い削除タップゾーン: .pinItemのpadding(10px 12px)を負margin+paddingで打ち消し行いっぱいに広げ、●の位置は保つ */
 #pcV2PanelBody.markers-edit-mode #pinList .pin-del-zone {
   align-items: center;
   justify-content: center;
@@ -209,12 +157,7 @@
 }
 
 
-/* .playlist-del-zone：削除チェック(.del-btn)の物理サイズ(20x20px)より
-   広いタップ判定エリア。行の上下いっぱい・右端まで広げるため、
-   .playlistItemのpadding(9px 12px)を打ち消す向きに負のマージンを取り、
-   その分をpaddingで内側に押し戻して.del-btnの見た目位置を保つ
-   （「●そのものしかタップできずシビア」との指摘を受けた対応）。
-   左方向（PLAY/SKIPトグル側）へは広げない。 */
+/* .playlist-del-zone: .del-btn(20x20)より広い判定。負margin+paddingで行の上下・右端いっぱい(.playlistItemのpadding 9px 12px相殺)。左(PLAY/SKIP側)へは広げない */
 #pcV2PanelBody.playlist-edit-mode #playlistBox .playlist-del-zone {
   align-items: center;
   justify-content: center;
@@ -225,8 +168,6 @@
 }
 
 
-/* 削除チェックボックス化した.del-btn：通常の"✕"テキストではなく、
-   選択状態を丸チェックボックスの見た目で示す。 */
 #pcV2PanelBody.markers-edit-mode #pinList .del-btn,
 #pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn {
   display: flex;
@@ -244,17 +185,9 @@
 }
 
 
-/* 【v2.13.5】pointer-events:noneは当初playlistパネル専用にしていた。playlistは外側の
-   .playlist-del-zoneでタップを受けるため●自体は透過させてよいが、markers
-   パネルは.del-btn自体がタップ判定なので、ここを透過させると●を押しても
-   e.target.closest(".del-btn")が見つからず、削除選択が一切できなかった
-   （v2.10.6でplaylist側の判定を広げた際、markers側まで巻き込んでいた）。
-   v2.15.0でmarkersにも広いゾーン(.pin-del-zone)を設けたため、現在は両方とも
-   ●自体を透過させ、外側のゾーンでタップを受ける。 */
+/* ●自体はpointer-events:none、タップは外側ゾーン(.pin-del-zone/.playlist-del-zone)が受ける。ゾーン無しで透過するとe.target.closest(".del-btn")が失敗し削除選択不能になる */
 #pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn,
 #pcV2PanelBody.markers-edit-mode #pinList .del-btn {
-  /* v2.15.0〜markersも外側のゾーン(.pin-del-zone)でタップを受けるため、
-     ●自体は透過させてよい。 */
   pointer-events: none;
 }
 
@@ -278,11 +211,7 @@
 }
 
 
-/* 一括削除確定時、実際にデータを消す前にこのクラスを付けて一瞬
-   フェードアウト＋わずかに縮小させる（削除ボタンを押した瞬間に即座に
-   消えると「消された」感が薄いとの指摘を受けた対応）。
-   player-ui-pc-v2.js側のdeleteSelectedItems()がこのクラスを付けてから
-   FADE_MS(260ms)待ち、実データの削除・再描画(performDelete)を行う。 */
+/* 一括削除: 削除前にこのクラスでフェードアウト+縮小。deleteSelectedItems()がFADE_MS(260ms)待ってからperformDelete */
 .pcv2-row-deleting {
   opacity: 0;
   transform: scale(0.97);
@@ -291,10 +220,7 @@
 }
 
 
-/* ヘッダー内の「選択項目を削除」ボタン。編集モード中のみ表示する。
-   表示制御はtoggleEditMode()側でJSから直接style.displayを設定する
-   （#pcV2PanelHeaderは#pcV2PanelBodyより前にあるDOM順序のため、
-   CSSの兄弟結合子では実現できない）。 */
+/* ヘッダーの「選択項目を削除」: 編集モード中のみ。表示はtoggleEditMode()がstyle.displayを直接制御(DOM順の都合でCSS兄弟結合子は不可) */
 #pcV2PanelBody {
   flex: 1;
   min-height: 0;
@@ -303,21 +229,13 @@
 }
 
 
-/* Playlist/Markersパネルは行(.playlistItem/.pinItem)側が左右の余白を持つ
-   モックの設計(.side-panel-body { padding: 8px 0 })に合わせ、パネル本体の
-   左右paddingを外す。これによりhover時の背景がパネル幅いっぱいに広がる。
-   pcv2-panel-*クラスはplayer-ui-pc-v2.js側でパネル切替時に付与される。 */
 #pcV2PanelBody.pcv2-panel-playlist,
 #pcV2PanelBody.pcv2-panel-markers {
   padding: 8px 0;
 }
 
 
-/* 【v2.13.6】右下のフローティングボタン(ADD AUDIO/ADD MARKER・EDIT)に
-   リスト末尾の行が隠れて押せないため、スクロールの終端をリスト約2行分
-   伸ばす（最後の行をボタンより上までスクロールできるようにする）。
-   #pcV2PanelFabはposition:absoluteでフローに影響しないため、この
-   擬似要素がリスト全体の最後の余白になる。 */
+/* スクロール終端をリスト約2行分伸ばす(右下FABにリスト末尾が隠れる。#pcV2PanelFabはabsoluteなのでこの擬似要素が末尾余白) */
 #pcV2PanelBody.pcv2-panel-playlist::after,
 #pcV2PanelBody.pcv2-panel-markers::after {
   content: "";
@@ -326,11 +244,7 @@
 }
 
 
-/* ============================================================
-   Backup/Importパネル（v2.13.6〜、旧モーダルの中身を移植）
-   【v3.18.0】YouTubeアプリの入れ物（.qn-yt-sec-backup / .qn-yt-sec-import）にも同じ指定を
-   :is() で共用している（以前はstyle-apps.cssに丸ごと写しを持っていた）。ここを直せば両方に効く。
-   ============================================================ */
+/* Backup/Importパネル(v2.13.6〜)。【v3.18.0】YouTubeの.qn-yt-sec-backup/.qn-yt-sec-importにも:is()で共用(ここを直せば両方に効く) */
 :is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-modal-footer,
 :is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-modal-footer {
   display: flex;
@@ -361,22 +275,7 @@
 }
 
 
-/* ------------------------------------------------------------
-   【v2.15.1】Backupパネルのレイアウト：
-   - 曲選択リストを広めに、含める項目はコンパクトに。
-   - 角丸の枠は使わず、行は細い線で区切るだけのシンプルな見た目にする。
-
-   【v2.16.7 修正】曲選択リストを「パネルの残り高さを全部もらう」ために
-   #pcV2PanelBody自体をflex:1で埋める入れ子にしていたが、#pcV2PanelBody
-   は元々overflow-y: autoでそれ自体がスクロールする要素（基本ルール）。
-   「overflow-y: autoの要素の中でflex: 1を何段にも重ねて高さを埋めさせる」
-   構成は、iOS Safariで曲リストの内容が確定するタイミングによって、
-   後続セクション（含める項目・合計・DOWNLOAD）がリストの高さ計算前の
-   位置のまま重なって描画される既知の不具合を踏みやすい（GOTCHAS.md）。
-   flex:1での「埋める」のをやめ、曲選択リストは固定の上限つき高さ
-   （max-height、その中だけoverflow-y: auto）にして、パネル全体は他の
-   パネルと同じく#pcV2PanelBody側の1箇所だけでスクロールさせる。
-   ------------------------------------------------------------ */
+/* 【v2.15.1/v2.16.7】Backupパネル: 曲選択リストはflex:1で埋めない(overflow-y:autoの要素内で多段flex:1はiOS Safariでリスト高さ確定前に後続セクションが重なって描画される既知不具合。GOTCHAS.md)。リスト=max-height固定上限(内側のみスクロール)、パネル全体=#pcV2PanelBodyの1箇所だけスクロール。行は線区切り(角丸枠なし) */
 :is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-section {
   padding: 18px 0;
 }
@@ -411,16 +310,7 @@
 
 
 :is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-tracklist {
-  /* 元の220pxよりは広く、かつ画面の高さに応じて縮む上限つきの値。
-     曲数が少なければ内容ぶんの高さで収まる（min-heightは指定しない）。
-     【v2.16.9】58vh/520pxだと、SPでは初期状態でリスト自体がほぼ画面を
-     埋めてしまい、「含める項目」まで到達するのにリスト内部のスクロールを
-     先に最後まで終わらせる必要があった。内側のリストと外側のパネル、
-     2つのスクロール領域が両方とも指の動きに反応しようとするため、
-     外側へスクロールを渡すには指を一度離して境界の外側からもう一度
-     スワイプするような、シビアな操作が必要になっていた。
-     リストの上限を下げて、「含める項目」がリストのすぐ下、通常の
-     スクロールで自然に見える範囲に来るようにした。 */
+  /* 【v2.16.9】リスト上限は低めに(58vh/520pxだとSPで内外2つのスクロール領域が競合し、外側へ渡すのが困難だった)。曲数が少なければ内容分(min-heightなし) */
   max-height: min(38vh, 340px);
   gap: 0;
   border-top: 1px solid var(--border-subtle);
@@ -452,7 +342,6 @@
 }
 
 
-/* 曲の行のチェックも、含める項目と同じ丸いチェックに揃える */
 :is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
@@ -496,11 +385,7 @@
 }
 
 
-/* 【v2.15.2】含める項目は「音声データ」「設定ファイル（マーカー・タイトル
-   など全部）」の2択に簡略化し、折りたたみ自体を廃止したため常時表示する。
-   （以前はここで.track-backup-checklistを.is-openクラスが付くまで
-   display: noneにしていたが、開閉トグル自体をHTMLから削除したため、
-   is-openを付けるきっかけが無くなり永久に非表示になっていた。） */
+/* .track-backup-checklistは常時表示(折りたたみ廃止。.is-open前提のdisplay:noneは付けない) */
 #pcV2PanelBody .track-backup-options .track-backup-checklist {
   display: flex;
   gap: 0;
@@ -514,19 +399,12 @@
 }
 
 
-/* パネルは他のメニューを押せば閉じられるため、「閉じるだけ」のCancelは
-   出さない。Import側はファイル読み込み後の「Back」（選び直し）だけ残す。 */
 :is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) #trackBackupCancelBtn,
 :is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) #trackImportCancelBtn[data-mode="cancel"] {
   display: none;
 }
 
 
-/* パネル内に移植されたmobile-tab-panel/export-modal中身は常時表示にする
-   （タブ切替・モーダル開閉のCSSクラスに関わらず、パネルとして直接見せるため）。
-   .mobile-tab-panel自体はSP版/旧PC版向けの独立した箱デザイン
-   （背景色・枠線・角丸・padding）を持つため、PC v2ではパネル本体
-   (#pcV2PanelBody)側のpaddingをそのまま活かすようすべてリセットする。 */
 #pcV2PanelBody .mobile-tab-panel,
 :is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-modal-body {
   display: block !important;
@@ -543,10 +421,6 @@
 }
 
 
-/* Exportパネル：モーダル用のflex/gap/paddingをリセットし、
-   見出し付きの箱＋罫線区切りのデザインに変える（Rangeの箱、Effectsの箱…と
-   セクションごとに区切り線で分ける方針）。padding/gapはモーダル時の値を
-   打ち消して、#pcV2PanelBody側のpadding(16px 20px)をそのまま活かす。 */
 :is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-modal-body {
   padding: 0;
 }
@@ -583,19 +457,15 @@
 }
 
 
-/* PC v2では常時表示パネルのため「閉じる」概念のCancelボタンは不要 */
 #pcV2PanelBody #exportCancelBtn {
   display: none;
 }
 
 
-/* Exportボタンをモック準拠の単色・幅いっぱいのフラットボタンに変更 */
 :is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-run-btn {
   width: 100%;
   padding: 12px;
   background: var(--accent-primary);
-  /* 【v2.15.1】他のボタン（ADD AUDIO等の.panel-fab-btn）に合わせ、左右を
-     完全な半円にする。 */
   border-radius: var(--radius-pill);
   box-shadow: none;
 }
@@ -613,8 +483,6 @@
 }
 
 
-/* Range/Effects/Formatの選択肢を、モック準拠の横並び罵線区切り
-   （背景なし、選択時はaccentカラーの文字色のみで示す）デザインに変更 */
 #pcV2PanelBody .export-range-options,
 #pcV2PanelBody .export-format-options,
 #pcV2PanelBody .export-effect-options {
@@ -662,17 +530,12 @@
 }
 
 
-/* ネイティブのラジオ/チェックボックスは非表示にし、モック同様
-   テキストの色・太さだけで選択状態を示すシンプルな見た目にする */
 #pcV2PanelBody .export-radio-row input,
 #pcV2PanelBody .export-checkbox-row input {
   display: none;
 }
 
 
-/* Start/Endのマーカー選択欄は、モック同様Marker Range選択時のみ表示する
-   （All選択時は完全に隠す）。#exportRangeAllがcheckedの間は
-   #exportMarkerRangeSelects自体を非表示にする。 */
 #pcV2PanelBody:has(#exportRangeAll:checked) #exportMarkerRangeSelects {
   display: none;
 }
@@ -695,16 +558,11 @@
 }
 
 
-/* Controlパネル内の数値入力もモック準拠のフラットな見た目（背景なし、
-   枠線のみ）に統一する。Speed Up/Downの選択状態を示すグラデーションは
-   モックに対応する要素がないため、視認性を優先しそのまま残す。 */
 #pcV2PanelBody .auto-speed-number {
   background: none;
 }
 
 
-/* Controlパネル内：Speed/Key（既存controlBody）とEQ（既存eqBody）を
-   1パネルにまとめる際の区切り線・見出し */
 .pcv2-control-eq-heading {
   margin-top: 20px;
 }
@@ -726,14 +584,6 @@
 }
 
 
-/* flex:1でタイトルを伸ばし、RESET・トグルをSPEED/KEYと同じ右端位置に
-   押し出す（元はgapだけで左詰めになっており、SPEED/KEY行より左寄りに
-   見えるズレがあった）。
-   縦位置は.pcv2-eq-heading-rowのalign-items:centerに加えて、タイトル
-   自身にもSPEED/KEYの.control-card labelと同じ26px相当の高さを持たせる
-   （<h3>は<label>と違いdisplay:blockでテキストの自然な高さ(19px)のまま
-   になり、親のalign-items:centerだけでは上端が右のRESETボタン・トグルの
-   上端と揃わずズレて見えていたため）。 */
 .pcv2-eq-heading-title {
   flex: 1;
   display: flex;
@@ -785,10 +635,6 @@
 }
 
 
-/* パネル内のリストが増えて縦スクロールが発生した場合、ブラウザ既定の
-   スクロールバーではなく、ダークテーマに馴染む細いスクロールバーに
-   する（Webkit系）。Firefox向けはscrollbar-color/scrollbar-widthで
-   同様の見た目に揃える。 */
 #pcV2PanelBody {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
@@ -816,9 +662,6 @@
 }
 
 
-/* Textパネル：入力欄をパネルの表示限界(残り高さ)いっぱいまで広げる。
-   #pcV2PanelBody自体をflexコンテナにし、.mobile-tab-panel(textBody)と
-   その中のtextareaを両方flex:1で伸ばす。 */
 #pcV2PanelBody.pcv2-panel-text {
   display: flex;
   flex-direction: column;
@@ -840,9 +683,6 @@
 }
 
 
-/* 通常モード(readonly)時は背景・枠線を出さず、テキストだけが見える
-   状態にする。EDITを押して編集可能(read-write)になった時だけ、
-   入力欄であることが分かる背景・枠線を表示する。 */
 #pcV2PanelBody.pcv2-panel-text .note-textarea:read-only {
   background: none;
   border-color: transparent;

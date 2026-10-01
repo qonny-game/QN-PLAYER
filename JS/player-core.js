@@ -1,54 +1,21 @@
-// ============================================================
-// player-core.js
-// 音声処理とデータ管理を担う中核ロジック。DOM操作を一切含まない
-// （例外的にsetAppTitleのみ、曲名確定というcore的処理のためここに置くが、
-//  #appTitle要素が存在しない環境でも安全に動くようガードされている）。
-// PC版・SP版どちらの画面からも、このファイルの関数・変数を共通で利用する。
-// このファイルは player-ui-shared.js より先に読み込むこと。
-// ============================================================
+// player-core.js — 音声処理/データ管理の中核。DOM操作なし(setAppTitleのみ例外・要素無しでも安全)。player-ui-shared.jsより先に読み込む
 
 let audio = new Audio();
 let pins = [];
 let loopEnabled = false;
-// v3.7.0〜：ループの種類。loopEnabled=trueの時だけ意味を持つ。"sec"=マーカー〜次のマーカー(従来)、"ab"=A点〜B点。
 let loopMode = "sec";
 let isSeeking = false;
 
-// マーカー区間ループ折り返し判定用：現在ループ対象として固定している
-// マーカーペアのインデックス（activePins配列上のi、区間は[i, i+1]）。
-// nullの間は「まだ対象区間が決まっていない」状態で、updateBars側が
-// audio.currentTimeから最初に1回だけ計算してセットする。
-// これをジャンプのたびに再計算せず固定することで、プリロール(pre-roll)
-// によって現在地(ct)がジャンプ直後に前のマーカー区間側へ入り込んでも、
-// 折り返し判定の対象区間が「1個前のマーカー」にすり替わらないようにする
-// （プリロール機能追加時に発覚したバグの修正）。
-// マーカーの追加/削除/色変更、シーク、ループON/OFF切替、曲切替時は
-// 必ずnullにリセットし、次回のupdateBarsで現在地から再計算させる。
+// ループ対象マーカーペアのindex(固定)。null=未決定でupdateBarsが1回だけ算出。ジャンプのたび再計算するとプリロールで1個前にすり替わる。マーカー追加/削除/色変更/シーク/ループ切替/曲切替で必ずnullに戻す
 let loopActiveMarkerIndex = null;
 
-// isSeeking = trueにする箇所は必ずこの関数を経由すること（直接代入しない）。
-// シーク先がたまたま現在ループ中の区間のpre/post-roll範囲内に着地すると、
-// updateBars側の「区間外に出たかどうか」判定だけではシークが起きた
-// こと自体を検知できず、見た目は別の区間にいるのに裏では古い区間の
-// ループ判定が生き続けてしまうバグがあった（例：3秒プリロール設定で
-// マーカー3をループ中、タップでマーカー4の頭付近へシークすると、見た目は
-// 4を再生しているのに実際には3のpostroll範囲内として扱われ続け、4の
-// 3秒後に3へ戻ってしまう）。シークは常に「今いる区間の外に移動する
-// 操作」として扱い、ここで確実にloopActiveMarkerIndexを破棄する。
+// isSeeking=trueは必ずこの関数経由(直接代入禁止)。経由しないとシーク先がループ区間のpre/post-roll内に着地した時に古い区間のループ判定が生き残る
 function beginSeek() {
   isSeeking = true;
   loopActiveMarkerIndex = null;
 }
 
-// マーカーの色付けに使うカラーパレット。Colorパネル（player-theme.js側の
-// QN_THEMES配列）と全く同じ一覧をそのまま流用する。
-// 読み込み順の都合（このファイルはplayer-theme.jsより先に読み込まれるため、
-// 定義された直後の時点ではwindow.QN_THEMESはまだ存在しない）、まずは
-// 最低限のフォールバック値（旧・14色）で初期化しておき、後から
-// applyMarkerColorPaletteFromThemes()でQN_THEMES(42色)の内容に
-// 差し替える。既存コードは全てMARKER_COLOR_PALETTE[キー]という
-// プロパティアクセスのため、オブジェクト自体の参照を保ったまま中身だけ
-// 書き換えれば、呼び出し側の変更は不要。
+// player-theme.jsより先に読まれるため、まず旧14色で初期化→applyMarkerColorPaletteFromThemes()でQN_THEMESに差し替え。オブジェクト参照は保つこと
 const MARKER_COLOR_PALETTE = {
   red: "#ef4444",
   orange: "#f97316",
@@ -66,11 +33,6 @@ const MARKER_COLOR_PALETTE = {
   rose: "#f43f5e"
 };
 
-// window.QN_THEMES（player-theme.js側で定義・公開）の内容で、
-// MARKER_COLOR_PALETTEの中身を洗い替える。QN_THEMESは
-// { name, title, primary, secondary } の配列で、Light/Base/Darkの
-// 3トーン×14色相=42エントリを持つため、置き換え後はマーカー色の
-// 選択肢もColorパネルと同じ42色になる。
 function applyMarkerColorPaletteFromThemes() {
   if (!Array.isArray(window.QN_THEMES) || window.QN_THEMES.length === 0) return;
   Object.keys(MARKER_COLOR_PALETTE).forEach(key => delete MARKER_COLOR_PALETTE[key]);
@@ -83,8 +45,6 @@ function applyMarkerColorPaletteFromThemes() {
 applyMarkerColorPaletteFromThemes();
 document.addEventListener("DOMContentLoaded", applyMarkerColorPaletteFromThemes);
 
-// "#rrggbb"形式のHEXカラーを、指定した不透明度のrgba()文字列に変換する。
-// マーカーの色付きループエリア背景（segmentHighlight）等で使用。
 function hexToRgba(hex, alpha) {
   const h = hex.replace('#', '');
   const r = parseInt(h.substring(0, 2), 16);
@@ -93,29 +53,18 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// リピートモード: "off" -> "one"（1曲リピート） -> "all"（プレイリスト全体を繰り返し） -> "off" ...
 let repeatMode = "off";
 let isJumping = false;
 let prevTime = 0;
 
-// プレイリスト管理
-let playlist = []; // { file: File, name: string }[]
+let playlist = [];
 let currentPlaylistIndex = -1;
 
-// ============================================================
-// プレイリスト永続化(IndexedDB)
-// 音声ファイルの実体(Blob)ごとブラウザ内に保存し、ページを再読み込みしても
-// プレイリストが「表示だけ残って再生できない」状態にならないようにする。
-// キーはファイル名（savePins等、既存のマーカー保存キーと合わせる）。
-// ============================================================
 const PLAYLIST_DB_NAME = "qnaudio_playlist_db";
 const PLAYLIST_DB_VERSION = 1;
 const PLAYLIST_STORE_NAME = "tracks";
 
-// 一度開いたDB接続を使い回す（呼ばれるたびに indexedDB.open() し直すと、
-// 曲数が多いときに接続のオープン自体がオーバーヘッドになり、iOS Safari
-// で特に不安定になりやすかったため）。同時に複数箇所から呼ばれた場合も
-// 同じPromiseを共有し、openを1回だけに抑える。
+// DB接続は使い回す(Promise共有)。毎回open()するとiOS Safariで不安定
 let cachedPlaylistDB = null;
 let openPlaylistDBPromise = null;
 
@@ -134,9 +83,6 @@ function openPlaylistDB() {
     };
     req.onsuccess = () => {
       cachedPlaylistDB = req.result;
-      // 他のタブ/ウィンドウでDBのバージョンが上がった場合など、接続が
-      // 予期せず閉じられることがあるため、そのときはキャッシュを破棄して
-      // 次回呼び出し時に再オープンできるようにする。
       cachedPlaylistDB.onclose = () => { cachedPlaylistDB = null; };
       resolve(cachedPlaylistDB);
     };
@@ -148,27 +94,8 @@ function openPlaylistDB() {
   return openPlaylistDBPromise;
 }
 
-// 曲を1件、実体(Blob)ごと保存する。同名ファイルは上書きする。
-// savedAtを明示的に指定しない場合は現在時刻（＝新規追加として最後尾）になる。
-// title/artist/favoriteは手動編集された値で、指定しなければ既存の保存値を
-// 変えない（undefinedの場合はputで上書きしないよう事前に既存レコードを
-// 読み、マージしてから保存する）。
-// ============================================================
-// 【v2.13.5】曲のメタデータ（並び順savedAt・ON/OFF・タイトル・アーティスト・
-// お気に入り）は、音声Blobを持つIndexedDBレコードとは別に、localStorageの
-// PLAYLIST_META_KEYへ保存する。
-//
-// 理由（GOTCHAS.md）：iOS Safari(WebKit)のIndexedDBでは、Blobを含むレコードを
-// get→putし直すと、たとえBlobの中身を変えていなくてもBlobの実体ファイルが
-// 作り直され、古い実体が削除される。すると、起動時に読み込んでplaylist配列に
-// 持っている各曲のFile(=古い実体を指している)が「中身の無い死んだBlob」になり、
-// その曲を再生しようとしても読み込めない（曲名だけ切り替わり、シークバー・
-// 波形・マーカーは前の曲のまま、再生もされない）。v2.13.3の
-// persistPlaylistOrder()は「Blobに触れない」つもりでget→putしていたため、
-// 並び替えのたびに全曲のBlobが死んでいた。
-// メタデータをIndexedDBの外に出すことで、並び替え・お気に入り・タイトル編集では
-// 音声レコードに一切書き込まないようにする。
-// ============================================================
+// 曲をBlobごと保存(同名は上書き)。
+// 【v2.13.5】並び順・ON/OFF・タイトル・アーティスト・お気に入りはlocalStorage(PLAYLIST_META_KEY)に保存。iOS SafariはBlobを含むレコードをget→putするとBlob実体が作り直され、playlist配列内のFileが死ぬ(GOTCHAS.md)。IndexedDBの音声レコードは並び替え等で書かない
 const PLAYLIST_META_KEY = "qn_playlist_meta_v1";
 
 function readPlaylistMeta() {
@@ -189,7 +116,6 @@ function writePlaylistMeta(meta) {
   }
 }
 
-// 1曲分のメタデータを更新する（指定されたフィールドだけ上書き）。
 function updatePlaylistMetaEntry(name, fields) {
   const meta = readPlaylistMeta();
   const cur = meta[name] || {};
@@ -241,7 +167,6 @@ async function savePlaylistTrack(file, savedAt, enabled, title, artist, favorite
   } catch (err) {
     console.warn("savePlaylistTrack failed:", err);
   }
-  // メタデータ側にも同じ内容を記録する（読み込み時はこちらが優先される）。
   updatePlaylistMetaEntry(file.name, {
     savedAt: effectiveSavedAt,
     enabled: enabled !== false,
@@ -251,7 +176,6 @@ async function savePlaylistTrack(file, savedAt, enabled, title, artist, favorite
   });
 }
 
-// 指定ファイル名の曲をストレージから削除する。
 async function deletePlaylistTrack(name) {
   try {
     const db = await openPlaylistDB();
@@ -267,7 +191,6 @@ async function deletePlaylistTrack(name) {
   removePlaylistMetaEntry(name);
 }
 
-// 保存されている全曲を読み込む。{ file: File, enabled: boolean } の配列を返す。
 async function loadAllPlaylistTracks() {
   try {
     const db = await openPlaylistDB();
@@ -277,8 +200,6 @@ async function loadAllPlaylistTracks() {
       req.onsuccess = () => resolve(req.result || []);
       req.onerror = () => reject(req.error);
     });
-    // メタデータ(localStorage)があればそちらを優先し、無い項目だけ
-    // IndexedDBレコード側の値（v2.13.4以前に保存されたもの）を使う。
     const meta = readPlaylistMeta();
     const pick = (m, key, fallback) => (m && m[key] !== undefined ? m[key] : fallback);
     const merged = records.map(r => {
@@ -292,7 +213,6 @@ async function loadAllPlaylistTracks() {
         favorite: pick(m, "favorite", r.favorite) === true
       };
     });
-    // savedAt昇順（保存された順）に並べ、BlobをFile相当のオブジェクトに復元する
     merged.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
     return merged.map(x => ({
       file: new File([x.r.blob], x.r.name, { type: x.r.type || x.r.blob.type }),
@@ -307,24 +227,9 @@ async function loadAllPlaylistTracks() {
   }
 }
 
-// 現在のplaylist配列の並び順を、IndexedDB側のsavedAtにも反映する
-// （ドラッグ並び替え後、次回起動時にも並び替えた順序が復元されるようにするため）。
-// savedAtに単純増加の連番を振り直すことで、既存のsavedAt昇順ソートと矛盾なく順序を保てる。
-// 各トラックのON/OFF状態(enabled)・タイトル/アーティスト・お気に入り状態も同時に保存する。
-//
-// 重要：savePlaylistTrack()は呼ぶたびに音声の実体(Blob)ごとレコードを
-// 書き直すため、全曲分をそれで保存し直すと、曲数分の大容量Blobを毎回
-// IndexedDBへ再書き込みすることになり、曲数が多いほど極めて重い処理に
-// なる。並び替え・お気に入り登録・インポートなど「並び順や一部の曲だけ
-// 変わった」場面でこれを行うと、その間ずっと音声のロード/再生と
-// IndexedDBの大容量書き込みがリソースを奪い合い、再生できない・
-// フリーズするといった不具合につながっていた（この関数を呼ぶ操作
-// すべてに共通する症状だったのはこれが原因）。
-// ここでは既存レコードのBlobには一切触れず、savedAt/enabled/title/
-// artist/favoriteだけを更新する軽量な書き込みに直列で回す。
+// playlistの並びをsavedAtへ反映(連番)。Blobに触れず軽量更新のみ。savePlaylistTrack()で全曲書き直すと重くフリーズする
 async function persistPlaylistOrder() {
-  // 【v2.13.5】IndexedDBには一切書き込まない（GOTCHAS.md）。並び順・状態は
-  // localStorageのメタデータにだけ保存する。
+  // IndexedDBへ書かない(GOTCHAS.md)。localStorageのメタのみ
   const meta = readPlaylistMeta();
   const base = Date.now();
   for (let i = 0; i < playlist.length; i++) {
@@ -342,11 +247,9 @@ async function persistPlaylistOrder() {
   writePlaylistMeta(meta);
 }
 
-// タイトル/アーティスト/お気に入り状態を編集した直後など、並び順を変えずに
-// 1曲分だけメタデータを保存したい場合に使う軽量版。savedAtは指定しないため
-// 既存のIndexedDB上の値（＝現在の並び順）がそのまま保たれる。
+// 1曲分のメタだけ保存(並び順は変えない)
 async function savePlaylistMetadataFor(track) {
-  // 【v2.13.5】IndexedDB（音声Blobを持つレコード）には書き込まない（GOTCHAS.md）。
+  // IndexedDBへ書かない(GOTCHAS.md)
   const name = track.file ? track.file.name : track.name;
   if (!name) return;
   updatePlaylistMetaEntry(name, {
@@ -357,24 +260,17 @@ async function savePlaylistMetadataFor(track) {
   });
 }
 
-// 音声データそのものを差し替えた曲（インポートでの上書き等）を、並び順を
-// 保ったまま保存する。新しいBlobはユーザーが与えたメモリ上のデータなので、
-// 書き込んでもplaylist配列側のFileが死ぬことはない。
 async function savePlaylistTrackAudioKeepingOrder(track) {
   const name = track.file.name;
   let keepSavedAt = getPlaylistMetaSavedAt(name);
   if (keepSavedAt === undefined) {
-    // メタデータ未作成（v2.13.4以前のデータ）の場合、先に現在の並び順を
-    // メタデータへ書き出してから、その値を使う（末尾に飛ばないように）。
     await persistPlaylistOrder();
     keepSavedAt = getPlaylistMetaSavedAt(name);
   }
   await savePlaylistTrack(track.file, keepSavedAt, track.enabled, track.title, track.artist, track.favorite);
 }
 
-// 保険：playlist配列が持っているFile（Blob）が何らかの理由で読めなくなって
-// いた場合に、IndexedDBから同じ曲の音声を読み直して新しいFileを返す。
-// 見つからなければnull。
+// Fileが読めなくなった時、IndexedDBから読み直して新Fileを返す。無ければnull
 async function reloadTrackFileFromDB(name) {
   try {
     const db = await openPlaylistDB();
@@ -391,22 +287,19 @@ async function reloadTrackFileFromDB(name) {
   }
 }
 
-// 波形解析用
-let waveformPeaks = null; // Float32Array (0-1 正規化された振幅の配列)
+let waveformPeaks = null;
 let waveformDecodeToken = 0;
 
-// 現在のファイル名。表示用のDOM(#appTitle)はマーキー化されているため、
-// マーカー保存キー等で「実際のファイル名」が必要な箇所はこの変数を参照する（appTitle.textContentは見ない）。
+// 現在のファイル名。#appTitleはマーキー化されているのでtextContentを使わずこの変数を参照
 let currentFileName = "No file loaded";
 
 function setAppTitle(name) {
   currentFileName = name;
-  updateMediaSessionMetadata(name); // Media Session連携。不要なら本行を削除するだけでよい。
+  updateMediaSessionMetadata(name);
   const appTitle = document.getElementById("appTitle");
   const appTitleText = document.getElementById("appTitleText");
   if (!appTitle || !appTitleText) return;
 
-  // マーキー用の複製テキストが残っていれば削除してから作り直す
   const inner = document.getElementById("appTitleInner");
   if (inner) {
     inner.querySelectorAll(".marquee-clone").forEach(el => el.remove());
@@ -414,19 +307,16 @@ function setAppTitle(name) {
   appTitleText.textContent = name;
   appTitle.classList.remove("marquee");
 
-  // 描画後に実際の幅を計測し、コンテナに収まらない場合だけマーキーを有効化する
   requestAnimationFrame(() => {
     if (!appTitle || !appTitleText) return;
     const overflowing = appTitleText.scrollWidth > appTitle.clientWidth;
     if (overflowing && inner) {
-      // シームレスにループさせるため同じテキストをもう一つ複製して並べる
       const clone = document.createElement("span");
       clone.id = "appTitleTextClone";
       clone.className = "marquee-clone";
       clone.textContent = name;
       inner.appendChild(clone);
 
-      // 文字数に応じてスクロール速度（時間）を調整し、読みやすい一定の速さにする
       const duration = Math.max(6, name.length * 0.28);
       appTitle.style.setProperty("--marquee-duration", duration + "s");
       appTitle.classList.add("marquee");
@@ -434,17 +324,14 @@ function setAppTitle(name) {
   });
 }
 
-// 【v2.16.3】曲名のマーキー（長い曲名の横スクロール）は3周で止まる。
-// タイトルにマウスを乗せた時・タップした時に、もう一度最初から流す。
 function replayAppTitleMarquee() {
   const appTitle = document.getElementById("appTitle");
   const inner = document.getElementById("appTitleInner");
   if (!appTitle || !inner || !appTitle.classList.contains("marquee")) return;
-  // 既に流れている最中なら何もしない（途中から巻き戻さない）
   const running = inner.getAnimations ? inner.getAnimations().some(a => a.playState === "running") : false;
   if (running) return;
   inner.style.animation = "none";
-  void inner.offsetWidth; // アニメーションを確実にリセットする
+  void inner.offsetWidth;
   inner.style.animation = "";
 }
 (function setupAppTitleMarqueeReplay() {
@@ -458,9 +345,7 @@ function getAudioCtx() {
   if (!window.__qnAudioCtx) {
     window.__qnAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  // ブラウザの自動再生ポリシーによりAudioContextが一時停止状態のまま生成されることがある
-  // （特にモバイルで顕著）。その場合、音声グラフを通しても一切音が出ないため、
-  // 取得のたびにresumeを試みて確実に動作状態へ復帰させる。
+  // 自動再生ポリシーでAudioContextがsuspendedのことがある。取得毎にresume
   if (window.__qnAudioCtx.state === "suspended") {
     window.__qnAudioCtx.resume().catch(() => {});
   }
@@ -468,20 +353,8 @@ function getAudioCtx() {
 }
 
 
-// ============================================================
-// 本格ピッチシフト（テンポ固定・音程のみ変更、音質重視）
-// 以前は位相ボコーダーをAudioWorkletProcessorとして自前実装していたが、
-// Speed変更時に高域が削れて音量が下がる問題があったため、SoundTouchJS
-// （CDN経由で読み込む、MPL-2.0ライセンスのオープンソースライブラリ）に
-// 置き換えた。SpeedとKeyの両方をSoundTouchNode一つで処理する。
-// https://github.com/cutterbl/SoundTouchJS
-// ============================================================
 
 
-
-// SoundTouchJS（CDN配信、ESモジュール）を動的importで読み込む。
-// このプロジェクトは<script>タグ(非module)構成のため、通常のimport文は使えず、
-// 動的import()でPromiseとして取得する。一度読み込めば以降はキャッシュされる。
 const SOUNDTOUCH_MODULE_URL = "https://cdn.jsdelivr.net/npm/@soundtouchjs/audio-worklet@2.1.1/+esm";
 const SOUNDTOUCH_PROCESSOR_URL = "https://cdn.jsdelivr.net/npm/@soundtouchjs/audio-worklet@2.1.1/.dist/soundtouch-processor.js";
 
@@ -493,7 +366,6 @@ function loadSoundTouchModule() {
   return soundTouchModulePromise;
 }
 
-// SoundTouchNodeのAudioWorkletProcessorを登録する。1つのAudioContextにつき一度だけでよい。
 let soundTouchWorkletRegistered = null;
 async function ensureSoundTouchWorklet(audioContext, SoundTouchNode) {
   if (soundTouchWorkletRegistered === audioContext) return;
@@ -504,13 +376,9 @@ async function ensureSoundTouchWorklet(audioContext, SoundTouchNode) {
 
 let audioGraphSetupDone = false;
 
-// 10バンド・グラフィックイコライザー
 const EQ_FREQS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-let eqFilters = []; // BiquadFilterNode[10]
+let eqFilters = [];
 
-// 本格ピッチシフト・タイムストレッチ（SoundTouchJS）。
-// CDNからの読み込みやAudioWorkletの初期化に失敗した場合のみ、Speed/Keyともに
-// 無効化したフォールバック（等速・音程そのまま）に切り替える。
 let soundTouchNode = null;
 let pitchShiftAvailable = false;
 
@@ -518,13 +386,7 @@ async function setupAudioGraph() {
   if (audioGraphSetupDone) return;
   audioGraphSetupDone = true;
 
-  // 【v2.14.2】「準備を全部終えてから、最後に一瞬で差し替える」順序に変更（GOTCHAS.md）。
-  // 以前は最初にcreateMediaElementSource(audio)を呼んでいた。この瞬間から
-  // <audio>の音は通常の出力経路を離れてWeb Audioのグラフ側へ回されるが、
-  // 出力先(destination)への接続は、SoundTouchJSのCDN読み込み・AudioWorklet
-  // 登録を待った後だった。その待ち時間（初回はネットワーク込みで0.1〜0.2秒程度）
-  // だけ音がどこにも出力されず、Controlパネルを初めて開いた時に再生が
-  // 「ぷつん」と途切れていた（2回目以降はaudioGraphSetupDoneで何もしない）。
+  // 【v2.14.2】準備を全部終えてから最後に一瞬で差し替える順序(GOTCHAS.md)。先にcreateMediaElementSourceすると、destination接続までの待ち(CDN/AudioWorklet)で音が途切れる
   const ctx = getAudioCtx();
 
   const filters = EQ_FREQS.map(freq => {
@@ -536,12 +398,7 @@ async function setupAudioGraph() {
     return filter;
   });
 
-  // SoundTouchJS（Speed/Keyの本格処理）の初期化を試みる（この間、音は
-  // まだ通常の経路で鳴り続けている）。
-  // setupAudioGraph自体、EQボタンまたはSPEED/KEY操作のいずれかが実際に行われた
-  // タイミングで初めて呼ばれる設計になっているため、呼ばれた時点で常に接続を試みてよい
-  // （呼ばれるまでは<audio>要素がWeb Audio APIに一切接続されないため、EQ・Speed・Keyの
-  // どれも使わない通常再生では、Safari固有の不具合を避けられる）。
+  // SoundTouchJS初期化(完了まで通常経路で鳴らす)。setupAudioGraphはEQ/SPEED/KEY操作時にだけ呼ぶ設計(通常再生でWeb Audio非接続=Safari不具合回避)
   let stNode = null;
   try {
     if (!ctx.audioWorklet) throw new Error("AudioWorklet is not supported in this browser");
@@ -553,14 +410,10 @@ async function setupAudioGraph() {
     stNode = null;
   }
 
-  // AudioContextが動き出す前に差し替えると、動き出すまでの間が無音になる
-  // ため、先に確実にrunning状態にしておく。
   if (ctx.state !== "running") {
     try { await ctx.resume(); } catch (err) {}
   }
 
-  // ここから先は同期処理だけ：音声要素の出力をグラフへ回し、出力先まで
-  // 一気につなぐ（途中にawaitを挟まないので、無音の隙間ができない）。
   let source;
   try {
     source = ctx.createMediaElementSource(audio);
@@ -584,29 +437,17 @@ async function setupAudioGraph() {
   });
   node.connect(ctx.destination);
 
-  // 準備中（await中）にEQスライダーが操作されていても取りこぼさないよう、
-  // 接続した時点のスライダー値・EQ ON/OFFをフィルターへ反映し直す。
   if (typeof setEqEffectEnabled === "function" && typeof eqEffectEnabled !== "undefined") {
     setEqEffectEnabled(eqEffectEnabled);
   }
 
-  // 音声グラフが確定してからKey/Speedの現在値を反映する
   updatePlaybackRate();
   updateKeyControlAvailability();
 }
 
-// 再生速度と音程（Key）の制御。
-// SoundTouchJS（soundTouchNode）がSpeedとKeyの両方を1つのノードで処理する。
-// ドキュメント推奨のパターンに従い、audio.playbackRateとsoundTouchNode.playbackRateに
-// 同じ値をセットすることで、プロセッサ側が自動的にSpeed変化によるピッチのズレを
-// 補正してくれる（以前のように、自前で打ち消し計算をする必要はない）。
-// SoundTouchJSが使えない環境（AudioWorklet非対応等）では、Speed/Key機能自体を
-// 提供しない（等速・音程そのままの通常再生に留める）。
+// Speed/KeyはSoundTouchJS(soundTouchNode)が一括処理。audio.playbackRateとsoundTouchNode.playbackRateに同値をセット。非対応環境は機能自体を出さない
 let currentSpeed = 1.0;
 let currentKeySemitones = 0;
-// Speed/KeyのON/OFF：トグルOFF中は、UI上のスライダー値(currentSpeed/
-// currentKeySemitones)自体は変更せず、実際に音声へ適用する値だけを
-// 無効化相当(Speed=1.0, Key=0)にする。ONに戻すと元の値がそのまま復元される。
 let speedEffectEnabled = true;
 let keyEffectEnabled = true;
 
@@ -617,17 +458,10 @@ function updatePlaybackRate() {
     audio.playbackRate = effectiveSpeed;
     try {
       soundTouchNode.playbackRate.value = effectiveSpeed;
-      // プロセッサ内部では「実際に適用されるピッチ倍率 = pitch値 ÷ playbackRate」
-      // という計算になっている。そのためpitchを1.0のまま放置すると、
-      // playbackRateだけがそのまま反比例でピッチに効いてしまう
-      // （Speedを上げるとピッチが下がる、下げると上がる、という逆転現象が発生していた）。
-      // pitchをplaybackRateと同じ値にすることで、この割り算を打ち消して
-      // 「Speedを変えてもピッチは変えない」を実現する。
       soundTouchNode.pitch.value = effectiveSpeed;
       const clampedSemitones = Math.max(-24, Math.min(24, effectiveKeySemitones));
       soundTouchNode.pitchSemitones.value = clampedSemitones;
     } catch (e) {
-      // 何らかの理由でノードが壊れていたら以降はSpeed/Key機能を無効化する（フォールバックはしない）
       pitchShiftAvailable = false;
       currentSpeed = 1.0;
       currentKeySemitones = 0;
@@ -635,7 +469,6 @@ function updatePlaybackRate() {
       audio.playbackRate = 1.0;
     }
   } else {
-    // SoundTouchJSが使えない環境では、Speed/Key機能自体を提供しない。
     audio.playbackRate = 1.0;
   }
 }
@@ -646,8 +479,7 @@ function savePins() {
   }
 }
 
-// Textタブの自由入力メモ（歌詞・覚え書き等）をファイル名キーでlocalStorageへ保存する。
-// savePinsと同じ方針：ファイル未読み込み時は保存しない。
+// Textメモをファイル名キーでlocalStorage保存。ファイル未読込時は保存しない
 function saveNoteText() {
   if (currentFileName && currentFileName !== "No file loaded") {
     const el = document.getElementById("noteTextArea");
@@ -655,9 +487,7 @@ function saveNoteText() {
   }
 }
 
-// v3.8.0〜：A点/B点はマーカーではなく「秒」の独立した点（使い捨ての区切り。マーカー登録されない）。
-// 曲ごとにlocalStorage(mp3_ab_<ファイル名>)へ {a, b} で保存。波形上でドラッグして動かせる。
-let abA = null; // 秒 or null
+let abA = null;
 let abB = null;
 function saveAB() {
   if (currentFileName && currentFileName !== "No file loaded") {
@@ -675,7 +505,6 @@ function loadABFor(fileName) {
     }
   } catch (e) {}
 }
-// A・Bが両方そろっていれば {start,end,color} を返す（時刻の早い方が開始）。
 function getABRange() {
   if (abA === null || abB === null) return null;
   return { start: Math.min(abA, abB), end: Math.max(abA, abB), color: null };
@@ -683,7 +512,6 @@ function getABRange() {
 
 function getActiveSegment(atTime) {
   const dur = audio.duration;
-  // A-Bループ中は、マーカー区間ではなくA〜Bを対象区間にする
   if (loopEnabled && loopMode === "ab") return dur ? getABRange() : null;
   const activePinObjs = pins.filter(p => p.enabled);
   const activePins = activePinObjs.map(p => p.t);
@@ -754,7 +582,7 @@ function audioBufferToWavBlob(audioBuffer) {
   const numChannels = audioBuffer.numberOfChannels;
   const sampleRate = audioBuffer.sampleRate;
   const numFrames = audioBuffer.length;
-  const bytesPerSample = 2; // 16bit
+  const bytesPerSample = 2;
   const blockAlign = numChannels * bytesPerSample;
   const dataSize = numFrames * blockAlign;
   const headerSize = 44;
@@ -765,35 +593,30 @@ function audioBufferToWavBlob(audioBuffer) {
     for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
   }
 
-  // RIFFヘッダー
   writeString(0, "RIFF");
   view.setUint32(4, 36 + dataSize, true);
   writeString(8, "WAVE");
-  // fmtチャンク
   writeString(12, "fmt ");
-  view.setUint32(16, 16, true); // fmtチャンクサイズ
-  view.setUint16(20, 1, true); // PCM
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
   view.setUint16(22, numChannels, true);
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * blockAlign, true); // バイトレート
+  view.setUint32(28, sampleRate * blockAlign, true);
   view.setUint16(32, blockAlign, true);
-  view.setUint16(34, 16, true); // ビット深度
-  // dataチャンク
+  view.setUint16(34, 16, true);
   writeString(36, "data");
   view.setUint32(40, dataSize, true);
 
-  // チャンネルごとのサンプルデータを取り出しておく
   const channelData = [];
   for (let ch = 0; ch < numChannels; ch++) {
     channelData.push(audioBuffer.getChannelData(ch));
   }
 
-  // インターリーブしながら16bit PCMに変換して書き込む
   let offset = headerSize;
   for (let i = 0; i < numFrames; i++) {
     for (let ch = 0; ch < numChannels; ch++) {
       let sample = channelData[ch][i];
-      sample = Math.max(-1, Math.min(1, sample)); // クリッピング
+      sample = Math.max(-1, Math.min(1, sample));
       const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
       view.setInt16(offset, intSample, true);
       offset += 2;
@@ -803,18 +626,15 @@ function audioBufferToWavBlob(audioBuffer) {
   return new Blob([buffer], { type: "audio/wav" });
 }
 
-// AudioBufferをMP3形式のBlobに変換する（lamejsを使用）。
-// kbpsは128/192/320などのビットレート。lamejsが読み込まれていない環境では例外を投げる。
 function audioBufferToMp3Blob(audioBuffer, kbps) {
   if (typeof lamejs === "undefined" || !lamejs.Mp3Encoder) {
     throw new Error("MP3 encoder (lamejs) is not available");
   }
 
-  const numChannels = Math.min(2, audioBuffer.numberOfChannels); // lamejsはモノラル/ステレオのみ対応
+  const numChannels = Math.min(2, audioBuffer.numberOfChannels);
   const sampleRate = audioBuffer.sampleRate;
   const numFrames = audioBuffer.length;
 
-  // Float32サンプルを16bit PCM整数(Int16Array)に変換しておく（WAV変換と同じクリッピング処理）
   function toInt16Array(channelData) {
     const out = new Int16Array(numFrames);
     for (let i = 0; i < numFrames; i++) {
@@ -829,7 +649,7 @@ function audioBufferToMp3Blob(audioBuffer, kbps) {
 
   const encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, kbps || 128);
   const mp3Chunks = [];
-  const blockSize = 1152; // lamejsが1回のencodeBufferで処理する推奨サンプル数
+  const blockSize = 1152;
 
   for (let i = 0; i < numFrames; i += blockSize) {
     const leftChunk = left.subarray(i, i + blockSize);
@@ -845,12 +665,7 @@ function audioBufferToMp3Blob(audioBuffer, kbps) {
   return new Blob(mp3Chunks, { type: "audio/mp3" });
 }
 
-// 指定した範囲(startTime〜endTime秒)・エフェクト設定(applySpeed/applyKey/applyEq)で
-// OfflineAudioContextを使って音声をレンダリングし、結果のAudioBufferを返す。
-// 元ファイルは毎回再デコードする（再生用に保持されているAudioBufferがないため、常に正確な結果を得るため）。
-// AudioBufferから指定した時間範囲だけを切り出した新しいAudioBufferを作る。
-// processOffline()は入力全体を処理する設計のため、Export機能で範囲指定
-// （開始〜終了）が必要な場合は、SoundTouch処理に渡す前にここで切り出しておく。
+// OfflineAudioContextで範囲・エフェクト指定レンダリング(毎回再デコード)。範囲切り出しはSoundTouchに渡す前に行う
 function sliceAudioBuffer(sourceBuffer, startTime, endTime) {
   const sampleRate = sourceBuffer.sampleRate;
   const startFrame = Math.max(0, Math.floor(startTime * sampleRate));
@@ -879,14 +694,11 @@ async function renderExportBuffer(startTime, endTime, applySpeed, applyKey, appl
   const file = playlist[currentPlaylistIndex].file;
   const arrayBuffer = await file.arrayBuffer();
 
-  // 一時的なAudioContextでデコードする（decodeAudioDataはOfflineAudioContextでも呼べるが、
-  // 既存のgetAudioCtx()があればそれを使い回した方が余計なコンテキスト生成を避けられる）。
   const decodeCtx = getAudioCtx();
   const sourceBuffer = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
 
   const speed = applySpeed ? currentSpeed : 1.0;
   const keySemitones = applyKey ? currentKeySemitones : 0;
-  // 出力サンプルレート。未指定なら元ファイルのサンプルレートのまま（従来通り）。
   const outputSampleRate = targetSampleRate || sourceBuffer.sampleRate;
 
   const clampedStart = Math.max(0, Math.min(startTime, sourceBuffer.duration));
@@ -896,15 +708,8 @@ async function renderExportBuffer(startTime, endTime, applySpeed, applyKey, appl
     throw new Error("Invalid export range");
   }
 
-  // 1. まず範囲切り出し（Speed/Key適用前の、指定区間だけのAudioBuffer）
   let workingBuffer = sliceAudioBuffer(sourceBuffer, clampedStart, clampedEnd);
 
-  // 2. Speed/KeyをSoundTouchJSのprocessOffline()でまとめて適用する。
-  //    再生画面と同じSoundTouchJSエンジンを使うため、Speedを上げても音量が
-  //    下がらない（以前の自前位相ボコーダーで発生していた問題が書き出しにも
-  //    起きない）。pitchShiftAvailable（AudioWorkletが使える環境）でのみ実行し、
-  //    使えない環境ではSpeedのみAudioBufferSourceNode側の等速再生に留める
-  //    （Key適用はスキップする）。
   const needsSoundTouch = (applySpeed && speed !== 1.0) || (applyKey && keySemitones !== 0);
   if (needsSoundTouch && pitchShiftAvailable) {
     try {
@@ -913,19 +718,13 @@ async function renderExportBuffer(startTime, endTime, applySpeed, applyKey, appl
       workingBuffer = await processOffline({
         input: workingBuffer,
         processorUrl: SOUNDTOUCH_PROCESSOR_URL,
-        // 実際に適用されるピッチ倍率は「pitch値 ÷ playbackRate」という計算に
-        // なっているため、pitchをplaybackRateと同じ値にして打ち消す
-        // （再生画面のupdatePlaybackRateと同じ理由。以前は誤ってpitch:1.0固定に
-        // していたため、Speedを変えるとピッチが反比例でズレてしまっていた）。
+        // pitchはplaybackRateと同値(実ピッチ=pitch÷rate)。1.0固定だとSpeed変更でズレる
         pitch: effectivePlaybackRate,
         pitchSemitones: keySemitones,
         playbackRate: effectivePlaybackRate
       });
     } catch (err) {
       console.warn("SoundTouchJS offline processing failed, falling back to simple resampling:", err);
-      // フォールバック：SoundTouch処理が失敗した場合、Speedのみ簡易リサンプリングで
-      // 適用する（Keyは諦める）。既存のOfflineAudioContext+AudioBufferSourceNodeの
-      // playbackRateだけを使う、以前と同等の簡易処理。
       if (applySpeed && speed !== 1.0) {
         const fallbackLength = Math.max(1, Math.ceil((workingBuffer.length / speed)));
         const fallbackCtx = new OfflineAudioContext(
@@ -942,7 +741,6 @@ async function renderExportBuffer(startTime, endTime, applySpeed, applyKey, appl
       }
     }
   } else if (applySpeed && speed !== 1.0) {
-    // SoundTouchJS自体が使えない環境向けのSpeedのみの簡易処理。
     const fallbackLength = Math.max(1, Math.ceil((workingBuffer.length / speed)));
     const fallbackCtx = new OfflineAudioContext(
       workingBuffer.numberOfChannels,
@@ -957,8 +755,6 @@ async function renderExportBuffer(startTime, endTime, applySpeed, applyKey, appl
     workingBuffer = await fallbackCtx.startRendering();
   }
 
-  // 3. EQ：再生中と同じ10バンドの設定値をそのまま複製して適用する。
-  //    EQが不要、かつサンプルレート変換も不要ならここで終了してよい。
   const needsEq = applyEq && eqFilters.some(f => f.gain.value !== 0);
   const needsResample = outputSampleRate !== workingBuffer.sampleRate;
   if (!needsEq && !needsResample) {
@@ -977,7 +773,7 @@ async function renderExportBuffer(startTime, endTime, applySpeed, applyKey, appl
   if (needsEq) {
     for (let i = 0; i < eqFilters.length; i++) {
       const gain = eqFilters[i].gain.value;
-      if (gain === 0) continue; // 変化がないバンドは接続を省略してよい
+      if (gain === 0) continue;
       const filter = finalCtx.createBiquadFilter();
       filter.type = "peaking";
       filter.frequency.value = EQ_FREQS[i];

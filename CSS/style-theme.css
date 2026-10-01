@@ -1,31 +1,8 @@
-/* ============================================================
-   style-theme.css
-   カラーテーマ切替・Keyboard Shortcuts一覧・ハンバーガーメニュー
-   （#qnMenuMount）のスタイル。
-
-   【経緯】元は「qn-menu.css」というQNシリーズ共通ファイル（配布用、
-   qonny-game.github.io/QN-PLAYER/ から他アプリがfetchして読み込んで
-   いたもの）だったが、QNPLAYER単体リリースにあたり配布の仕組み自体が
-   不要になったため、QNPLAYER専用のファイルとしてこちらへ統合した。
-   QN Series他アプリへの遷移リンク一覧（.qn-nav-btn等、Section 1相当）は
-   既にHTML側から削除済みのため、対応するスタイルもここには含めていない。
-   単色テーマ方針に伴い使われなくなっていた.qn-swatch-rainbow（アニメー
-   ションする特殊テーマ）も、HTML/JS側で生成されなくなっていたデッド
-   コードのため統合時に削除した。
-
-   前提: 各アプリの :root には既に --accent-primary 等のCSS変数が
-   定義されている（QNAUDIOデザインシステム）。このメニューはテーマ切替時、
-   その変数を body の inline style で上書きすることで見た目を変える。
-   ============================================================ */
+/* style-theme.css — カラーテーマ切替/Keyboard Shortcuts一覧/ハンバーガー(#qnMenuMount)。前提: :rootに--accent-primary等のCSS変数がある(QNAUDIOデザインシステム)。テーマ切替はbodyのinline styleで変数を上書き */
 
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
-/* テーマごとのCSSカスタムプロパティ(--accent-primary等)とスウォッチの
-   背景グラデーション(.qn-swatch-*)は、player-theme.js内のQN_THEMES配列
-   から動的に生成され、<style id="qnThemeGeneratedCss">として注入される。
-   このファイルには個別テーマの記述を持たせない（唯一のソースはJS側の配列）。 */
-
-/* ---------- Hamburger button & popup container ---------- */
+/* ---------- Hamburger button & popup ---------- */
 .qn-menu-wrapper {
   position: relative;
   display: inline-block;
@@ -58,21 +35,11 @@
 }
 
 .qn-menu-popup {
-  /* #appHeader等、ホスト側の祖先要素がposition:relativeでスタッキング
-     コンテキストを作っているケースがあり、その場合absoluteだとこの
-     z-index: 1000は祖先の外側では通用せず、サイドバー等（z-index: 400台）の
-     下に潜ってしまうことがある。fixedにしてスタッキングコンテキストの
-     階層そのものから切り離し、常に最前面に出るようにする。
-     top/leftはJS側（positionPopup）でボタンの実際の画面座標から
-     計算してインラインstyleで設定するため、ここでは初期値のみ持たせる。 */
+  /* position:fixed(祖先のスタッキングコンテキストでabsoluteだとz-index:1000が効かずサイドバー(400台)の下に潜る)。top/leftはJS(positionPopup)がインラインで設定 */
   position: fixed;
   top: 0;
   left: 0;
   width: 300px;
-  /* カラーテーマ等コンテンツが増えて画面の高さを超える場合に備え、
-     ビューポート基準で上限を設け、はみ出す分は内部スクロールにする。
-     上下マージン分(16px×2)を差し引いた値をJS側のpositionPopupの
-     margin(8px)の考え方に合わせて確保している。 */
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   background: #121215;
@@ -94,9 +61,6 @@
   opacity: 1;
   transform: translateY(0);
 }
-/* open-upward（上向きに開く時）は、top/leftの具体的なpx値をJS側で
-   計算してインラインstyleに設定するため、ここでは開くアニメーションの
-   初期transformだけを上向き用に変える。位置(top/left)の指定は持たない。 */
 .qn-menu-popup.open-upward {
   transform: translateY(8px);
 }
@@ -104,8 +68,6 @@
   transform: translateY(0);
 }
 
-/* 中身がmax-heightを超えた時の内部スクロールバー（Webkit系）。
-   .sidebar-sectionの細いスクロールバーと同じデザインに揃える。 */
 .qn-menu-popup::-webkit-scrollbar {
   width: 5px;
 }
@@ -173,9 +135,6 @@
   transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 130ms cubic-bezier(0.2, 0, 0, 1), box-shadow 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 各テーマのスウォッチ背景(.qn-swatch-*)もplayer-theme.js内のQN_THEMES
-   配列から動的に生成される。 */
-
 .qn-glow-toggle-row {
   display: flex;
   align-items: center;
@@ -202,8 +161,7 @@
 .qn-glow-switch[aria-checked="true"] {
   background: var(--accent-primary, #3b82f6);
 }
-/* 【v2.16.3】style-controls.cssの.glow-switchと同じ理由で、box-shadowは
-   固定の擬似要素に持たせてopacityだけをアニメーションする（GOTCHAS.md）。 */
+/* box-shadowは擬似要素に固定しopacityだけアニメ(GOTCHAS.md。style-controls.cssの.glow-switchと同じ) */
 .qn-glow-switch[aria-checked="true"]::after {
   content: "";
   position: absolute;
@@ -212,8 +170,6 @@
   box-shadow: 0 0 12px var(--accent-glow, rgba(59, 130, 246, 0.35));
   opacity: 0.6;
   pointer-events: none;
-  /* 無限ループにはせず、表示された時(パネルを開いた時・ONにした時)に
-     2回だけ明滅して、あとは柔らかく光ったまま止まる（GOTCHAS.md）。 */
   animation: qn-glow-switch-pulse 3s ease-in-out 2;
 }
 @keyframes qn-glow-switch-pulse {
@@ -234,8 +190,7 @@
   transform: translateX(18px);
 }
 
-/* ---------- Keyboard shortcuts table (Section hidden entirely when the
-   host app defines no window.QN_SHORTCUTS) ---------- */
+/* ---------- Keyboard shortcuts table ---------- */
 .qn-shortcut-table {
   width: 100%;
   border-collapse: collapse;
@@ -268,7 +223,7 @@
   box-shadow: 0 2px 0 rgba(0,0,0,0.3);
 }
 
-/* ---------- 【v2.15.0】Marker Memo Colors（プリセットごとの自動カラー設定） ---------- */
+/* ---------- Marker Memo Colors(プリセットごとの自動カラー) ---------- */
 .qn-marker-preset-colors {
   display: flex;
   flex-direction: column;
@@ -312,7 +267,7 @@
   flex-shrink: 0;
 }
 
-/* ---------- 【v2.21.0】カスタムメモ行（Marker Memo Colors 末尾の入力欄＋色） ---------- */
+/* ---------- カスタムメモ行(Marker Memo Colors末尾の入力欄+色) ---------- */
 .qn-marker-custom-input {
   flex: 1 1 auto;
   min-width: 0;

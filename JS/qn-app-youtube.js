@@ -1,33 +1,17 @@
-// ============================================================
-// qn-app-youtube.js  —  YOUTUBE アプリ（MOREのアプリ一覧の1つ）
-//
-// 元: 単体プロトタイプ「QNPLAYER YouTube Prototype」(app.js)。
-//     QNPLAYER本体へ統合するにあたり、次の点だけ変えている。
-//       - グローバルidをやめ、data-yt属性＋名前空間(qnYt*)にした
-//         （本体の #loopToggleBtn 等とのid衝突を避けるため）
-//       - YouTube IFrame API は、初めてこのアプリを開いた時に初めて読み込む
-//       - 画面を開いている間だけ位置ポーリングを回す。閉じたら
-//         pauseVideo()（公式メソッド）で止める（非表示のまま再生し続けない）
-//       - 削除確認は confirm() ではなく、ボタンの「2度押し」方式にした
-//       - 見た目は QNPLAYER の配色トークン(--accent-primary 等)に統一
-//         （スタイルは CSS/style-apps.css の .qn-yt*）
-//
-// 【規約遵守ルール（最優先・破らない）】 詳細は md/YOUTUBE_APP.md
-//   - 埋め込みは公式IFrame Player APIのみ。標準コントロールを表示したまま、
-//     プレイヤーの上に何も重ねない・切り抜かない・隠さない。
-//   - 自前UIはプレイヤーの外(下)に置く。再生/停止の自前ボタンは付けない。
-//   - 呼ぶのは公式メソッドだけ: seekTo / getCurrentTime / getDuration /
-//     loadVideoById / cueVideoById / pauseVideo など。
-//   - 音声・映像には触れない（Web Audio接続・ダウンロード・キャッシュ禁止）。
-//   - 保存は videoId / URL / 利用者が手入力したタイトル / マーカー(秒・ラベル)
-//     のみ。YouTube由来のタイトル等は画面表示だけで保存しない。
-//   - 広告を置くなら .qn-yt-ad-slot（プレイヤーから離れた位置）。今は広告コードなし。
-// ============================================================
+// qn-app-youtube.js — YOUTUBEアプリ(MOREのアプリ1つ)。
+// idは使わずdata-yt属性+qnYt*名前空間(本体#loopToggleBtn等との衝突回避)。IFrame APIは初回オープン時に読込。位置ポーリングは表示中のみ、閉じたらpauseVideo()。削除確認はボタン2度押し。スタイルはCSS/style-youtube.cssの.qn-yt*。
+// 【規約遵守ルール(最優先・破らない)】詳細md/YOUTUBE_APP.md
+// - 公式IFrame Player APIのみ。標準コントロール表示のまま、プレイヤー上に何も重ねない・切り抜かない・隠さない
+// - 自前UIはプレイヤーの外(下)。再生/停止の自前ボタン禁止
+// - 呼ぶのは公式メソッドのみ: seekTo/getCurrentTime/getDuration/loadVideoById/cueVideoById/pauseVideo等
+// - 音声・映像に触れない(Web Audio接続・ダウンロード・キャッシュ禁止)
+// - 保存はvideoId/URL/手入力タイトル/マーカー(秒・ラベル)のみ。YouTube由来タイトル等は表示のみで保存しない
+// - 広告は.qn-yt-ad-slot(プレイヤーから離す)。現在広告コードなし
 (function () {
   "use strict";
 
   var STORAGE_KEY = "qn_yt_items";
-  var SEGS = 3; // シークバーの分割数(3行)
+  var SEGS = 3;
 
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
   var FLAG_KEY = "qn_yt_autonext", RATE_KEY = "qn_yt_rate";
@@ -36,15 +20,14 @@
   var YT_ICON = '<path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.28 5 12 5 12 5s-6.28 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2C2 8.77 2 12 2 12s0 3.23.4 4.8a2.5 2.5 0 0 0 1.76 1.77C5.72 19 12 19 12 19s6.28 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77C22 15.23 22 12 22 12s0-3.23-.4-4.8zM10 15V9l5.2 3L10 15z"/>';
 
   // ---------- 状態 ----------
-  var root = null;                 // このアプリの画面(view要素)
-  var refs = {};                   // data-yt 属性 -> 要素
+  var root = null;
+  var refs = {};
   var items = loadItems();
-  // current: 今開いている動画。itemId が null なら未保存(マーカーはメモリ上のみ)
-  var current = null;              // { videoId, url, itemId, markers, loopA, loopB, looping }
+  var current = null;
   var player = null, playerReady = false, apiRequested = false, apiReady = false;
   var pendingVideoId = null, pendingPlay = false;
   var duration = 0;
-  var seeking = false;             // シークバー/マーカードラッグ中は表示更新を止める
+  var seeking = false;
   var pollTimer = null;
   var tracks = [], fills = [], heads = [], loopRanges = [], loopPres = [], loopJumpAt = 0;
   var titleFetchToken = 0;
@@ -86,7 +69,6 @@
     return null;
   }
 
-  // 対応: watch?v= / youtu.be/ / shorts/ / embed/
   function parseVideoId(input) {
     var s = (input || "").trim();
     if (!s) return null;
@@ -107,10 +89,6 @@
     return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
   }
 
-  // ---------- シークバー下のコントロールバー（v3.2.0〜：PLAYER下段バーと同じデザイン） ----------
-  // アイコン＋英字。  再生系 │ マーカー系 │ スピード
-  // PC幅=ステージ(プレイヤー側)の下端に吸着（サイドバー/パネル側へは伸ばさない）。
-  // SP幅=PLAYER同様、アイコンバーの直上に横スクロールで固定。
   var BI = {
     prevTrack: '<path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>',
     nextTrack: '<path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>',
@@ -146,8 +124,8 @@
         bbtn("prevMarkerBtn", "", BI.prevTrack, "Marker", "前のマーカーへ") +
         bbtn("addMarkerBtn", "center", BI.add, "Marker", "マーカーを追加") +
         bbtn("nextMarkerBtn", "", BI.nextTrack, "Marker", "次のマーカーへ") +
-        bbtn("setABtn", "", BI.setA, "A --", "現在地をA点に設定（マーカーを作ります）") +
-        bbtn("setBBtn", "", BI.setB, "B --", "現在地をB点に設定（マーカーを作ります）") +
+        bbtn("setABtn", "", BI.setA, "A --", "現在地をA点に設定") +
+        bbtn("setBBtn", "", BI.setB, "B --", "現在地をB点に設定") +
         bbtn("loopToggleBtn", "", BI.loop, "Loop", "LOOP：OFF → A-B → 区間 → OFF") +
         '<div class="qn-yt-preroll" title="ループのプリロール/ポストロール秒数（区間の何秒前から・何秒後まで）">' +
           '<button type="button" data-yt="preDown" class="qn-yt-preroll-btn" title="Decrease">−</button>' +
@@ -189,8 +167,7 @@
           '</section>' +
           '<section class="qn-yt-sec qn-yt-sec-markers">' +
             '<div class="qn-yt-sec-head"><h3>Markers</h3><span class="qn-yt-count" data-yt="markerCount">0</span></div>' +
-            // YouTubeの説明欄からコピーしたチャプターを、利用者が貼り付けてマーカーにする
-            // （YouTubeからは何も取得しない。入力されたテキストを解析するだけ）
+            // チャプターは利用者が貼り付けたテキストを解析するだけ(YouTubeから取得しない)
             '<div class="qn-yt-chapter">' +
               '<button type="button" class="qn-yt-btn" data-yt="chapToggle">チャプターを貼り付け</button>' +
               '<div class="qn-yt-chapter-box" data-yt="chapBox" hidden>' +
@@ -207,15 +184,15 @@
             '<div class="qn-yt-pinbox" data-yt="markerList"></div>' +
             '<p class="qn-yt-empty" data-yt="emptyMarkers">マーカーはありません</p>' +
           '</section>' +
-          // ---- Backup / Import（v3.17.0〜：本体(PLAYER)と共通の1画面を借りて表示する。
-          //      実体は player-track-backup.js。setPanel()が qnBackupMountInto() で差し込む） ----
+          // ---------- Backup / Import: 本体共通画面を借りる(実体player-track-backup.js。setPanel()がqnBackupMountInto()で差し込む) ----------
           '<section class="qn-yt-sec qn-yt-sec-backup"><div data-yt="bkHost"></div></section>' +
           '<section class="qn-yt-sec qn-yt-sec-import"><div data-yt="imHost"></div></section>' +
-          // ---- Keyboard（YouTube本家と同じショートカットの一覧。中身は renderShortcuts() が入れる） ----
+          // ---------- Keyboard（YouTube本家と同じショートカットの一覧。中身は renderShortcuts() が入れる） ----------
           '<section class="qn-yt-sec qn-yt-sec-keyboard">' +
             '<div class="qn-yt-kbd" data-yt="kbdBox"></div>' +
           '</section>' +
           '<footer class="qn-yt-legal">' +
+            '<p>権利者に無断でアップロードされた動画は使用しないでください。</p>' +
             '<p>このアプリはYouTube API Servicesを利用しています。</p>' +
             '<p><a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube利用規約</a>' +
             ' ・ <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Googleプライバシーポリシー</a></p>' +
@@ -223,7 +200,6 @@
             '動画の再生・サムネイル・タイトルの表示のため、YouTubeと通信します。</p>' +
           '</footer>' +
         '</div>' +
-        // 本体(PLAYER)のLibrary/Markersと同じ、右下のフローティングボタン
         '<div class="qn-yt-fab" data-yt="fab">' +
           '<div class="qn-yt-fab-add">' +
             '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="fabAdd" title="Add Marker">' +
@@ -239,9 +215,8 @@
         '</div>' +
       '</aside>' +
       '<section class="qn-yt-stage">' +
-        // プレイヤーは標準コントロールのまま表示。上には何も重ねない（規約）
+        // プレイヤーは標準コントロールのまま。上に何も重ねない(規約)
         '<div class="qn-yt-player-wrap" data-qn-keep-visible><div id="qnYtPlayer"></div></div>' +
-        // ここから下はプレイヤーの外(余白あり)
         '<div class="qn-yt-custom">' +
           '<p class="qn-yt-fetched-title" data-yt="fetchedTitle"></p>' +
           '<div class="qn-yt-seek" data-yt="seekTracks"><div class="qn-yt-marker-layer" data-yt="markerLayer"></div></div>' +
@@ -250,20 +225,16 @@
       BAR_HTML +
     '</div>';
 
-  // ---------- サイドバー(Library / Markers)とパネル ----------
-  // PC幅：パネルは常時表示で、アイコンは中身を切り替える。
-  // SP幅：パネルは全面オーバーレイ。アイコンで開閉（同じアイコンをもう一度で閉じる）。
+  // ---------- サイドバー(Library/Markers)とパネル。PC=パネル常時表示(アイコンで中身切替)、SP=全面オーバーレイ(同アイコン再タップで閉じる) ----------
   var SIDEBAR = [
     { id: "library", label: "Library", icon: '<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>' },
     { id: "markers", label: "Markers", icon: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>' },
-    // 本体のBackup / Importと同じアイコン・同じ流れ
     { id: "backup", bottom: true, label: "Backup", icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>' },
     { id: "import", bottom: true, label: "Import", icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' },
-    // 本体のKeyboardと同じアイコン。YouTube本家と同じショートカットの一覧（v3.1.0〜）
     { id: "keyboard", bottom: true, label: "Keyboard", icon: '<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM11 8h2v2h-2V8zM11 11h2v2h-2v-2zM8 8h2v2H8V8zM8 11h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm10 6H9v-2h6v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>' }
   ];
   var PANEL_TITLES = { library: "Library", markers: "Markers", backup: "Backup", import: "Import", keyboard: "Keyboard" };
-  var panelState = null; // "library" | "markers" | "backup" | "import" | "keyboard" | "none"(SPのみ)
+  var panelState = null;
 
   function isSp() { return window.matchMedia("(max-width: 900px)").matches; }
 
@@ -277,9 +248,7 @@
     updateFab();
     renderList();
     renderMarkers();
-    // SP幅でパネルを開いても、プレイヤーは画面上部に小さく残る（覆わない）ので
-    // 一時停止は不要（CSS側 .qn-yt:not([data-panel="none"]) 参照）。
-    // Backup/Importは本体と共通の画面を借りて表示（それ以外のパネルでは借りを解除）
+    // SP幅でパネルを開いてもプレイヤーは上部に小さく残る(覆わない)ので一時停止不要(CSS .qn-yt:not([data-panel="none"]))。Backup/Importは本体共通画面を借りる(他パネルでは借りを解除)
     if (id === "backup" || id === "import") {
       if (typeof window.qnBackupMountInto === "function") {
         window.qnBackupMountInto(id, id === "backup" ? refs.bkHost : refs.imHost, function () {
@@ -294,7 +263,6 @@
     if (window.QNApps) window.QNApps.setSideActive((id === "none" || isCollapsed()) ? null : id);
   }
 
-  // パネル見出し：本体のパネル同様「LIBRARY」「MARKERS」＋件数
   function updatePanelTitle() {
     if (!root || !panelState || panelState === "none") return;
     var t = PANEL_TITLES[panelState] || "";
@@ -308,23 +276,18 @@
       if (panelState === id) setPanel("none"); else setPanel(id);
       return;
     }
-    // PC幅（v3.4.0〜）：開いているパネルのアイコンをもう一度押すと、パネルを左へ格納。
-    // 格納中にどのアイコンを押しても、パネルが開いてその内容を表示する。
     if (panelCollapsed) { setCollapsed(false); setPanel(id); return; }
     if (panelState === id) { setCollapsed(true); return; }
     setPanel(id);
   }
 
-  // ---------- パネルの格納（PC幅のみ・v3.4.0〜） ----------
-  // 格納するのはアイコンバーの右の「パネル(Library等)」。プレイヤーの大きさは変えない
-  // （格納直前の幅のまま固定）。状態はlocalStorageに保存し、再読み込み後も維持する。
+  // ---------- パネル格納(PC幅のみ・v3.4.0〜): アイコンバー右のパネルだけ格納。プレイヤー幅は格納直前で固定。状態はlocalStorage保存 ----------
   var COLLAPSE_KEY = "qn_yt_panel_collapsed";
   var panelCollapsed = (function () {
     try { return localStorage.getItem(COLLAPSE_KEY) === "1"; } catch (e) { return false; }
   })();
   function isCollapsed() { return panelCollapsed && !isSp(); }
 
-  // 格納中のプレイヤー幅＝「格納しなかった場合の幅」（パネル375px・ステージ余白24px×2・最大1280px）
   function applyCollapse() {
     if (!root) return;
     var yt = root.querySelector(".qn-yt");
@@ -344,7 +307,6 @@
     applyCollapse();
   }
 
-  // SP幅で動画を選んだ/読み込んだ後は、パネルを閉じてプレイヤーを見せる
   function closePanelOnSp() { if (isSp()) setPanel("none"); }
 
   function mount(view) {
@@ -355,7 +317,6 @@
 
     window.addEventListener("resize", applyCollapse);
     buildTracks();
-    // 幅が変わったらマーカーの位置・高さを合わせ直す
     if (window.ResizeObserver) {
       var roRaf = 0;
       new ResizeObserver(function () {
@@ -369,12 +330,11 @@
     renderMarkers();
   }
 
-  // ---------- 3分割シークバーの土台 ----------
-  // 全長を SEGS 等分し、1行目=前半…のように各行が全長の 1/SEGS を受け持つ。
+  // ---------- 3分割シークバー: 全長をSEGS等分、各行が1/SEGS担当 ----------
   function buildTracks() {
     for (var i = 0; i < SEGS; i++) {
       var track = document.createElement("div");
-      track.className = "qn-yt-track vbar"; // 本体のシークバー(.vbar)と同じ土台
+      track.className = "qn-yt-track vbar";
       var fill = document.createElement("div"); fill.className = "qn-yt-fill vfill";
       var loop = document.createElement("div"); loop.className = "qn-yt-loop-range"; loop.hidden = true;
       var head = document.createElement("div"); head.className = "qn-yt-head"; head.style.display = "none";
@@ -382,7 +342,7 @@
       var preB = document.createElement("div"); preB.className = "qn-yt-loop-pre"; preB.hidden = true;
       track.appendChild(fill); track.appendChild(preA); track.appendChild(preB); track.appendChild(loop); track.appendChild(head);
       loopPres.push([preA, preB]);
-      refs.seekTracks.insertBefore(track, refs.markerLayer); // マーカーレイヤーは最前面
+      refs.seekTracks.insertBefore(track, refs.markerLayer);
       tracks.push(track); fills.push(fill); loopRanges.push(loop); heads.push(head);
       attachTrackSeek(track);
     }
@@ -399,7 +359,6 @@
     var len = duration / SEGS;
     return Math.min(100, Math.max(0, ((t - i * len) / len) * 100));
   }
-  // ポインタ位置 → 時間。縦方向で一番近い行を選ぶので、行をまたいでドラッグできる
   function timeFromPoint(e) {
     var best = 0, bestD = Infinity, i, r, d;
     for (i = 0; i < SEGS; i++) {
@@ -417,7 +376,6 @@
     el.style.left = pct + "%";
     el.style.top = tracks[i].offsetTop + "px";
     el.style.height = tracks[i].offsetHeight + "px";
-    // 右端近くのマーカーは、メモを線の左側に出す（本体の pcv2-label-flip と同じ）
     el.classList.toggle("flip", pct >= 80);
   }
   function markerLabelParts(m, idx) {
@@ -436,9 +394,7 @@
     lab.querySelector(".memo").textContent = p.memo;
   }
 
-  // ---------- YouTube IFrame API(公式の読み込み方法) ----------
-  // 初めて動画を読み込む時にだけスクリプトを取得する（QNPLAYERを開いただけでは
-  // YouTubeへ一切通信しない）。
+  // ---------- YouTube IFrame API(公式の読込方法): 初めて動画を読む時だけスクリプト取得(開いただけではYouTubeへ通信しない) ----------
   function requestApi() {
     if (apiRequested) return;
     apiRequested = true;
@@ -458,8 +414,7 @@
     document.head.appendChild(tag);
   }
 
-  // disablekb: 0(既定値)を明示。YouTube標準のキーボードショートカットは
-  // プレイヤー自身が処理するので、こちらでは何もキー入力を奪わない。
+  // disablekb:0(既定)を明示。キー入力は奪わない
   function createPlayer(videoId, shouldPlay) {
     player = new YT.Player("qnYtPlayer", {
       videoId: videoId,
@@ -467,7 +422,7 @@
       events: {
         onReady: function () {
           playerReady = true;
-          if (shouldPlay) player.playVideo(); // 利用者操作が起点なのでOK
+          if (shouldPlay) player.playVideo();
           refreshDuration();
           applyDesiredRate();
           renderSpeed();
@@ -475,10 +430,9 @@
         onStateChange: function (e) {
           refreshDuration();
           updatePlayBtn(!!(e && e.data === 1));
-          // 再生中(=1)だけ画面スリープを防ぐ。一時停止/終了/バッファ等では解放
           try { if (window.QNWake) window.QNWake.set("youtube", !!(e && e.data === 1)); } catch (err) {}
-          if (e && e.data === 1) { applyDesiredRate(); renderSpeed(); } // PLAYING
-          if (e && e.data === 0) handleEnded();                          // ENDED
+          if (e && e.data === 1) { applyDesiredRate(); renderSpeed(); }
+          if (e && e.data === 0) handleEnded();
         },
         onPlaybackRateChange: function () { renderSpeed(); },
         onError: onPlayerError
@@ -522,9 +476,7 @@
     }
   }
 
-  // 動画を読み込む。
-  // play=false: cue(読み込みのみ。再生は利用者がYouTube標準コントロールで開始)
-  // play=true : リストのクリック等、利用者の明確な選択操作が起点の場合のみ loadVideoById()。
+  // play=false: cue(再生は利用者がYouTube標準コントロールで)。play=true: リストクリック等、利用者の明確な操作起点の時だけloadVideoById()
   function openVideo(videoId, url, itemId, opts) {
     var shouldPlay = !!(opts && opts.play);
     var item = itemId ? findItem(itemId) : findItemByVideoId(videoId);
@@ -533,12 +485,10 @@
       url: url,
       itemId: item ? item.id : null,
       markers: item ? item.markers : [],
-      // v3.8.0〜：A/Bはマーカーではなく「秒」で持つ（使い捨ての区切り点。ドラッグで動かせる）。
-      // 旧バージョンの保存値（マーカーID）は、そのマーカーの時刻に読み替える。
       loopA: item ? abTimeOf(item.loopA, item.markers) : null,
       loopB: item ? abTimeOf(item.loopB, item.markers) : null,
-      looping: false, // 動画を開き直したら自動ではループしない
-      loopMode: "off", // "off" | "ab"(A/Bループ) | "sec"(区間ループ)
+      looping: false,
+      loopMode: "off",
       secRange: null
     };
     duration = 0;
@@ -554,7 +504,6 @@
       pendingPlay = shouldPlay;
       if (apiReady) createPlayer(videoId, shouldPlay); else pendingVideoId = videoId;
     } else {
-      // プレイヤー生成済みだがまだ ready 前
       var t = setInterval(function () {
         if (playerReady) {
           clearInterval(t);
@@ -568,15 +517,12 @@
 
   // ---------- イベント ----------
   function bindEvents() {
-    // Save = 読み込み＋保存。入力欄のURLが基準：
-    //   ・Libraryに同じ動画(videoId)がある → その行のタイトルを更新（ライブラリから読み込んだ状態で名前を直す使い方）
-    //   ・無い（新しいURL） → 新規追加
     function saveFromInputs() {
       var url = refs.urlInput.value.trim();
       var id = parseVideoId(url);
       if (!url) { showMessage("YouTubeのURLを入力してください"); return; }
       if (!id) { showMessage("YouTubeのURLとして認識できません"); return; }
-      var title = refs.titleInput.value.trim() || "(無題)"; // タイトルは常に手入力
+      var title = refs.titleInput.value.trim() || "(無題)";
       var item = findItemByVideoId(id);
       var isNew = !item;
       if (item) {
@@ -592,15 +538,13 @@
       }
       saveItems();
       if (current && current.videoId === id) {
-        // すでに開いている動画：読み込み直さずに紐付けだけ更新
         current.itemId = item.id;
         current.url = url;
         if (isNew) item.markers = current.markers;
         renderList();
       } else {
-        openVideo(id, url, item.id); // 読み込み(再生はしない)
+        openVideo(id, url, item.id);
       }
-      // 保存したら入力欄は空に戻す（読み込んだ動画はそのまま）
       refs.urlInput.value = "";
       refs.titleInput.value = "";
       showMessage(isNew ? "リストに追加しました" : "タイトルを更新しました", true);
@@ -636,7 +580,6 @@
     refs.fabEdit.addEventListener("click", toggleEdit);
     refs.fabDel.addEventListener("click", deleteSelected);
 
-    // ±10秒: seekTo() のみを使う自前UI(公式メソッドのみ・プレイヤーへの重ね合わせなし)
     refs.skipBackBtn.addEventListener("click", function () {
       if (!current || !playerReady) return;
       seekTo(currentPos() - 10);
@@ -646,7 +589,6 @@
       seekTo(currentPos() + 10);
     });
 
-    // 現在地でA点/B点（マーカーを作って設定）
     function setFromBar(kind) {
       if (!current || !playerReady) { showMessage("先に動画を読み込んでください"); return; }
       setLoopPointAt(kind, clampTime(currentPos()));
@@ -657,7 +599,6 @@
     refs.preUp.addEventListener("click", function () { setPreRoll(preRoll + PREROLL_STEP); });
     renderPreRoll();
 
-    // LOOPボタン：押すたびに OFF → A-Bループ → 区間ループ → OFF（A/B未設定の時は A-B を飛ばす）
     refs.loopToggleBtn.addEventListener("click", function () {
       if (!current || !duration) return;
       var m = current.loopMode || "off", next;
@@ -682,7 +623,6 @@
     syncAutoNextBtn();
     refs.autoNext.addEventListener("click", function () { setAutoNext(!autoNext); });
     refs.speedDown.addEventListener("click", function () { stepRate(-1, true); });
-    // アイコン（中央）を押すと 1x に戻す
     var spMid = refs.speedVal && refs.speedVal.closest(".qn-yt-bstep-mid");
     if (spMid) {
       spMid.style.cursor = "pointer";
@@ -705,8 +645,6 @@
     if (!current || !playerReady) { showMessage("先に動画を読み込んでください"); return; }
     var times = enabledTimes();
     if (!times.length) { showMessage("マーカーがありません"); return; }
-    // PLAYERと同じ：区間ループ中のプリロール/ポストロール再生中は区間の内側にいるものとして扱い、
-    // 次が無ければ最初へ、前が無ければ最後へ戻る。移動したら再生する。
     var t = currentPos(), idx = -1;
     if (current.loopMode === "sec" && current.secRange) idx = times.indexOf(current.secRange.start);
     var ref = QNMarkerCore.navRefTime(times, idx, t, preRoll, current.loopMode === "sec");
@@ -744,10 +682,7 @@
     refs.speedVal.textContent = actual + "x";
   }
 
-  // ---------- 終了したら次のライブラリの動画へ（Auto Next） ----------
-  // 規約：自動再生は「プレイヤーが画面に見えていて、その半分超が見えている」時だけ
-  // 許される。画面外・別タブ・アプリ非表示の時は行わない。
-  // 初期OFF、利用者がONにした時だけ動く。
+  // Auto Next(規約): 自動再生は「プレイヤーが画面に見えていて半分超が見えている」時だけ。画面外・別タブ・アプリ非表示では行わない。初期OFF、ONにした時だけ動く
   var autoNext = (function () {
     try { return localStorage.getItem(FLAG_KEY) === "1"; } catch (e) { return false; }
   })();
@@ -789,9 +724,7 @@
     openVideo(next.videoId, next.url, next.id, { play: true });
   }
 
-  // ---------- 保存リスト ----------
-  // 並べ替え：つかみ部分をドラッグ。ドラッグ中は行をtransformで動かすだけで
-  // DOMは動かさず（ポインターキャプチャを保つため）、離した時に配列を並べ替える。
+  // ---------- 保存リスト。並べ替え: つかみをドラッグ。ドラッグ中はtransformのみ(ポインターキャプチャ維持)、離した時に配列を並べ替え ----------
   function attachReorder(grip, li) {
     var startY = 0, targetId = null, before = true;
     function clearMarks() {
@@ -841,11 +774,9 @@
     grip.addEventListener("pointercancel", function (e) { finish(e, false); });
   }
 
-  // ---------- EDITモード（本体のLibrary / Markersパネルと同じ操作） ----------
-  // 右下のEDIT→OKで切り替え。編集中は「PLAY/SKIP」トグルと削除用の丸チェックが出て、
-  // 選んだ行を右下のDeleteでまとめて削除する。
-  var editMode = null;   // null | "library" | "markers"
-  var selected = {};     // 削除用に選んだ行の id
+  // ---------- EDITモード: 右下EDIT→OK。PLAY/SKIPトグル+削除丸チェック、右下Deleteで一括削除 ----------
+  var editMode = null;
+  var selected = {};
 
   function selectedCount() {
     var n = 0;
@@ -875,7 +806,6 @@
     if (selected[id]) { delete selected[id]; delBtn.classList.remove("pcv2-selected"); }
     else { selected[id] = true; delBtn.classList.add("pcv2-selected"); }
     updateFab();
-    // 選択中は「PLAY/SKIP」「表示/非表示」を押せなくする（本体と同じ仕様）
     var has = selectedCount() > 0;
     var ts = container.querySelectorAll(toggleSel);
     for (var i = 0; i < ts.length; i++) ts[i].disabled = has;
@@ -911,7 +841,7 @@
 
   function playItem(it) {
     refs.urlInput.value = it.url;
-    openVideo(it.videoId, it.url, it.id, { play: true }); // クリック起点なので再生開始OK
+    openVideo(it.videoId, it.url, it.id, { play: true });
     closePanelOnSp();
   }
 
@@ -925,7 +855,6 @@
     refs.listCount.textContent = String(items.length);
     updatePanelTitle();
     var edit = editMode === "library";
-    // 存在しない行の選択は捨てる
     for (var k in selected) if (!findItem(k) && !(current && findMarker(k))) delete selected[k];
     var box = refs.itemList;
 
@@ -948,8 +877,7 @@
       attachReorder(grip, row);
       row.appendChild(grip);
 
-      // サムネイルは「表示のみ」：YouTubeの画像URLを<img>で直接参照する。
-      // 保存(localStorage/キャッシュ化)・切り抜き・加工はしない（規約）。読み込めない時は再生アイコン。
+      // サムネは表示のみ(YouTube画像URLを<img>で直接参照)。保存/キャッシュ/切り抜き/加工しない(規約)。読めない時は再生アイコン
       var thumb = document.createElement("div");
       thumb.className = "playlist-thumb qn-yt-thumb";
       thumb.innerHTML = SVG_PLAY_ICON;
@@ -961,7 +889,7 @@
         img.onload = function () { thumb.classList.add("has-img"); };
         img.onerror = function () { if (img.parentNode) img.parentNode.removeChild(img); };
         img.src = "https://i.ytimg.com/vi/" + it.videoId + "/mqdefault.jpg";
-        thumb.appendChild(img); // 読み込めるまでは再生アイコンのまま（画像は透明）
+        thumb.appendChild(img);
       }
       row.appendChild(thumb);
 
@@ -974,7 +902,7 @@
       var titleRow = document.createElement("div");
       titleRow.className = "playlist-title-row";
       var titleField = makeEditableText(it.title, "playlist-title", "", function (v) {
-        if (!v) { renderList(); return; }            // 空にはしない(元のタイトルに戻す)
+        if (!v) { renderList(); return; }
         it.title = v;
         if (current && current.itemId === it.id) refs.titleInput.value = v;
         saveItems();
@@ -1020,7 +948,6 @@
         });
         row.appendChild(zone);
       }
-      // 編集中は全行のタイトルを最初から入力欄にする（未接続の間に切り替えるのでフォーカスは奪わない）
       if (edit) titleField.startEdit();
       box.appendChild(row);
     });
@@ -1028,9 +955,8 @@
 
   // ---------- マーカー ----------
   function persistMarkers() {
-    if (current && current.itemId) saveItems(); // markers は item と同じ配列参照
+    if (current && current.itemId) saveItems();
   }
-  // 保存されたA/B値 → 秒。数値ならそのまま、旧形式(マーカーID文字列)ならそのマーカーの時刻。
   function abTimeOf(v, markers) {
     if (typeof v === "number" && isFinite(v) && v >= 0) return v;
     if (typeof v === "string" && markers) {
@@ -1054,13 +980,12 @@
   function currentPos() {
     return player && playerReady && player.getCurrentTime ? player.getCurrentTime() : 0;
   }
-  // 利用者のクリック/タップによるシーク（PLAYERと同じ）：シークして再生。A-Bループ中にA〜Bの外へ出したらLOOPをOFFにする（A/B点は残る）
   function userSeek(t) {
     if (current && current.loopMode === "ab" && QNMarkerCore.isOutsideAB(current.loopA, current.loopB, t)) {
       setLoopMode("off"); persistLoop(); updateLoopUI();
     }
     seekTo(t);
-    try { if (player && playerReady && player.playVideo) player.playVideo(); } catch (e) {} // 利用者操作が起点なのでOK
+    try { if (player && playerReady && player.playVideo) player.playVideo(); } catch (e) {}
   }
   function seekTo(t) {
     if (!player || !playerReady) return;
@@ -1075,7 +1000,6 @@
     return (i + 1) + " - " + (m.label ? m.label : fmt(m.time));
   }
 
-  // メモ編集（本体のマーカーメモと同じ：鉛筆→入力欄＋プリセット。プリセットを選ぶと色も自動で付く）
   function startMemoEdit(m, infoSpan, i) {
     if (infoSpan.parentNode.querySelector(".pin-memo-input")) return;
     var input = document.createElement("input");
@@ -1162,7 +1086,6 @@
   var SVG_EYE_ON = '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
   var SVG_EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
 
-  // マーカー区間(そのマーカー〜次の表示中マーカー、最後は動画の終わりまで)を、マーカーの色でシークバーに塗る
   function paintMarkerRanges(ms) {
     var old = refs.seekTracks.querySelectorAll(".qn-yt-range");
     setTimeout(function () { paintPlayed(lastT); }, 0);
@@ -1191,7 +1114,6 @@
     });
   }
 
-  // 再生済みの部分だけ、区間の色を濃く(選んだカラーで進む)
   var lastT = 0;
   function paintPlayed(t) {
     lastT = t;
@@ -1218,7 +1140,6 @@
 
     ms.forEach(function (m, i) {
       var hex = markerColorHex(m);
-      // シークバー上のマーカー(クリックでジャンプ / ドラッグで移動)。非表示にしたものは出さない
       var el = document.createElement("div");
       if (m.enabled !== false) {
         el.className = "qn-yt-marker";
@@ -1231,7 +1152,6 @@
         refs.markerLayer.appendChild(el);
       }
 
-      // 一覧(本体のMarkersパネルと同じ行)
       var row = document.createElement("div");
       row.className = "pinItem" + (m.enabled === false ? " disabled" : "");
       row.dataset.id = m.id;
@@ -1267,7 +1187,6 @@
       labelRow.appendChild(pen);
       row.appendChild(labelRow);
 
-      // ABループの指定（YouTube側独自の機能。編集モード中は隠す）
       var ab = document.createElement("div");
       ab.className = "qn-yt-ab-cell";
       var abtnA = document.createElement("button");
@@ -1312,7 +1231,6 @@
       box.appendChild(row);
     });
 
-    // A点・B点（マーカーではない使い捨ての区切り点。ドラッグで動かせる）
     [["A", current ? current.loopA : null], ["B", current ? current.loopB : null]].forEach(function (pt) {
       if (pt[1] === null || pt[1] === undefined || !duration) return;
       var a = document.createElement("div");
@@ -1330,8 +1248,7 @@
     updateLoopUI();
   }
 
-  // ---------- チャプターの貼り付け ----------
-  // 「0:00 タイトル」「1:02:03 - タイトル」「[2:45] タイトル」などを1行ずつ読み取る。
+  // ---------- チャプター貼り付け(「0:00 タイトル」「1:02:03 - タイトル」「[2:45] タイトル」を1行ずつ) ----------
   function parseChapters(text) {
     var out = [];
     String(text || "").normalize("NFKC").split(/\r?\n/).forEach(function (line) {
@@ -1364,7 +1281,6 @@
       var dup = current.markers.some(function (x) { return Math.abs(x.time - t) < 0.05; });
       if (over || dup) { skipped++; return; }
       var mk = { id: uid("m"), time: t, label: c.label };
-      // 本体と同じく、プリセット名と一致したメモには自動で色を付ける
       for (var name in presetColors) {
         if (name.toLowerCase() === c.label.toLowerCase() && presetColors[name] &&
             typeof MARKER_COLOR_PALETTE !== "undefined" && MARKER_COLOR_PALETTE[presetColors[name]]) {
@@ -1381,9 +1297,7 @@
     if (added > 0) refs.chapText.value = "";
   }
 
-  // ---------- ABループ ----------
-  // マーカー2つをA点(開始)・B点(終了)に指定し、再生中にB点へ達したらA点へseekTo()で戻す。
-  // Markersパネルの行のA/Bボタン：そのマーカーの「位置」をA点/B点にする（点はマーカーとは別。もう一度押すと解除）
+  // ---------- ABループ: B点到達でA点へseekTo()。MarkersのA/Bボタン=そのマーカー位置をA/B点に(点はマーカーと別、再押下で解除) ----------
   function toggleLoopPoint(which, markerId) {
     if (!current) return;
     var m = findMarker(markerId);
@@ -1395,8 +1309,7 @@
     renderMarkers();
   }
 
-  // ---------- プリロール/ポストロール（PLAYER本体と同じ：前後共通の秒数） ----------
-  // ループの折り返しで、区間の開始の何秒前へ戻るか／終わりの何秒後まで再生してから戻るか。
+  // ---------- プリロール/ポストロール(PLAYERと同じ前後共通秒数): 折り返しで開始の何秒前へ戻る/終了の何秒後まで再生 ----------
   var PREROLL_KEY = "qn_yt_preroll", PREROLL_MAX = 5, PREROLL_STEP = 1;
   var preRoll = (function () {
     try { var v = parseInt(localStorage.getItem(PREROLL_KEY), 10); return v >= 0 && v <= PREROLL_MAX ? v : 0; } catch (e) { return 0; }
@@ -1423,8 +1336,6 @@
     if (m !== "sec") current.secRange = null;
   }
 
-  // 区間ループの区間：現在地を含む「表示ONのマーカー〜次の表示ONのマーカー」。PLAYERと同じルール（JS/qn-marker-core.js）。
-  // マーカーが2つ未満なら区間は決まらない（null）。最初のマーカーより前は最初の区間、最後より後は最後の区間。
   function enabledTimes() {
     return (current ? current.markers : []).filter(function (x) { return x.enabled !== false; })
       .map(function (x) { return x.time; }).sort(function (p, q) { return p - q; });
@@ -1435,7 +1346,6 @@
     return i < 0 ? null : { start: times[i], end: times[i + 1] };
   }
 
-  // いまループ中の区間（ループOFFなら、ABが揃っていればその区間を表示用に返す）
   function activeLoopRange() {
     if (current && current.loopMode === "sec" && current.secRange) return current.secRange;
     return loopRangeTimes();
@@ -1463,7 +1373,6 @@
     var lbl = refs.loopToggleBtn.querySelector("span");
     if (lbl) lbl.textContent = lm === "ab" ? "A-B Loop" : lm === "sec" ? "Section" : "Loop";
 
-    // ループ区間を、各行との重なり部分だけ表示
     var len = duration ? duration / SEGS : 0;
     for (var i = 0; i < SEGS; i++) {
       var shown = false;
@@ -1478,7 +1387,6 @@
         }
       }
       if (!shown) loopRanges[i].hidden = true;
-      // プリロール/ポストロール範囲（PLAYERのsegmentHighlight-prerollと同じ：本編の前後に薄い破線帯）
       var pr = [null, null];
       if (range && duration && lm !== "off" && preRoll > 0) {
         pr[0] = [Math.max(0, range.start - preRoll), range.start];
@@ -1500,7 +1408,6 @@
     }
   }
 
-  // マーカーのドラッグ移動(動かさずに離したらクリック扱いでジャンプ)。行をまたいで動かせる。
   function attachMarkerDrag(el, m) {
     var moved = false, startX = 0, startY = 0;
     el.addEventListener("pointerdown", function (e) {
@@ -1527,15 +1434,12 @@
       if (moved) { sortMarkers(); persistMarkers(); renderMarkers(); }
       else {
         userSeek(m.time);
-        // 既存マーカーを1クリック/1タップ → その位置でA / B のポップアップ（＋Markerは出さない）
         var er = el.getBoundingClientRect();
         showSeekPop(m.time, tracks[segIndex(m.time)].getBoundingClientRect(), er.left + er.width / 2, m);
       }
     });
   }
 
-  // A点/B点（マーカーではない点）のドラッグ。マーカーのドラッグと同じ操作感。
-  // 動かさずに離した時は、その位置へシークし、「－ Point」（その点の削除）だけのポップアップを出す。
   function attachABDrag(el, kind) {
     var key = kind === "A" ? "loopA" : "loopB";
     var moved = false, startX = 0, startY = 0;
@@ -1590,15 +1494,10 @@
       var t = timeFromPoint(e);
       seeking = false;
       userSeek(t);
-      // 動かさずに離した(=1クリック/1タップ)時だけ、その位置にA/B/+Markerのポップアップ
       if (!dragged) showSeekPop(t, track.getBoundingClientRect(), e.clientX);
     });
   }
 
-  // ---------- シークバー上の1クリック/1タップ → A / B / +Marker ポップアップ（v3.3.0） ----------
-  // ABは「マーカー」で持つ仕組みなので、押した位置(0.1秒単位)にマーカーを作ってA点/B点にする。
-  // すぐ近く(±0.5秒)に既存マーカーがあれば、新規作成せずそのマーカーを使う。
-  // ポップアップはbody直下のposition:fixed（プレイヤー(iframe)には重ねない）。
   var seekPop = null, seekPopTimer = null, seekPopTime = 0, seekPopMarkerId = null;
   var SEEKPOP_SNAP = 0.5, SEEKPOP_MS = 4000;
 
@@ -1631,11 +1530,9 @@
       if (k === "H") { seekPopHide(); return; }
       if (k === "A" || k === "B" || k === "M") seekPopAction(k);
     });
-    // 外側のタップ・Esc・スクロールで閉じる
     document.addEventListener("pointerdown", function (e) {
       if (seekPop.hidden) return;
       if (e.target.closest && e.target.closest(".qn-yt-seekpop")) return;
-      // シークバー自身のタップは、pointerupで新しい位置のポップアップに置き換わる
       hideSeekPop();
     }, true);
     window.addEventListener("keydown", function (e) { if (e.key === "Escape") hideSeekPop(); }, true);
@@ -1662,21 +1559,18 @@
     seekPopMarkerId = marker ? marker.id : null;
     pop.querySelector('[data-pop="time"]').textContent = fmt(seekPopTime);
     seekPopAbKind = abKind || null;
-    // A/B点の上では「－ Point」だけ。既存マーカー上ではA/B/－/Color/Hide。空き位置ではA/B/＋Marker
     pop.querySelector('[data-pop="X"]').hidden = !abKind;
     pop.querySelector('[data-pop="A"]').hidden = !!abKind;
     pop.querySelector('[data-pop="B"]').hidden = !!abKind;
-    pop.querySelector('[data-pop="M"]').hidden = !!marker || !!abKind; // 既存マーカー上では＋Markerは不要
-    pop.querySelector('[data-pop="D"]').hidden = !marker;  // 既存マーカー上だけ－Marker(削除)
-    pop.querySelector('[data-pop="C"]').hidden = !marker;  // Color / Hide も既存マーカー上だけ
+    pop.querySelector('[data-pop="M"]').hidden = !!marker || !!abKind;
+    pop.querySelector('[data-pop="D"]').hidden = !marker;
+    pop.querySelector('[data-pop="C"]').hidden = !marker;
     pop.querySelector('[data-pop="H"]').hidden = !marker;
-    // すでにA/Bが近く(±0.5秒)にあるボタンは地色で示す（押すと解除）
     pop.querySelector('[data-pop="A"]').classList.toggle("is-set", current.loopA !== null && Math.abs(current.loopA - seekPopTime) <= SEEKPOP_SNAP);
     pop.querySelector('[data-pop="B"]').classList.toggle("is-set", current.loopB !== null && Math.abs(current.loopB - seekPopTime) <= SEEKPOP_SNAP);
     if (marker) pop.querySelector(".qn-yt-seekpop-dot").style.background = markerColorHex(marker) || "#3a3a48";
     armSeekPopDel(false);
     pop.hidden = false;
-    // 位置：押した場所の真上（収まらなければ真下）。画面端では内側へ寄せる。
     var w = pop.offsetWidth, h = pop.offsetHeight, gap = 10;
     var left = Math.min(Math.max(clientX - w / 2, 8), window.innerWidth - w - 8);
     var top = trackRect.top - h - gap;
@@ -1688,7 +1582,6 @@
     resetSeekPopTimer();
   }
 
-  // －Marker：1回目で「Sure?」(赤)、3秒以内にもう1回押すと削除（誤タップ防止）
   var seekPopDelArmed = false, seekPopDelTimer = null;
   function armSeekPopDel(on) {
     seekPopDelArmed = on;
@@ -1706,7 +1599,6 @@
     hideSeekPop();
     if (!current || !m) return;
     current.markers = current.markers.filter(function (x) { return x.id !== id; });
-    // 区間ループ中は、区間を引き直す（消したマーカーが境界だった場合）
     if (current.loopMode === "sec") { var r = sectionRangeAt(currentPos()); if (r) current.secRange = r; else setLoopMode("off"); }
     var it = current.itemId ? findItem(current.itemId) : null;
     if (it) it.markers = current.markers;
@@ -1715,7 +1607,6 @@
     ytToast("Marker削除 " + fmt(m.time));
   }
 
-  // Color：ポップアップを閉じ、シークバー上のそのマーカーを基準に色選択ポップアップを開く（Markersパネルの色ボタンと同じ部品）
   function seekPopColor() {
     var id = seekPopMarkerId, m = id ? findMarker(id) : null;
     hideSeekPop();
@@ -1729,7 +1620,6 @@
     });
   }
 
-  // Hide：マーカーを非表示（Markersパネルの目と同じ enabled=false）。ループの基準には使えなくなる点は従来どおり
   function seekPopHide() {
     var id = seekPopMarkerId, m = id ? findMarker(id) : null;
     hideSeekPop();
@@ -1739,7 +1629,6 @@
     ytToast("Marker非表示 " + fmt(m.time) + "（Markersパネルの目で再表示）");
   }
 
-  // A/B点の削除（－ Point）
   function seekPopClearPoint() {
     var kind = seekPopAbKind;
     hideSeekPop();
@@ -1756,9 +1645,6 @@
     setLoopPointAt(kind, seekPopTime);
   }
 
-  // 指定の位置(秒)にA点/B点を設定する、またはマーカーを追加する共通処理。
-  // v3.8.0〜：A/Bはマーカーを作らない（使い捨ての区切り点）。同じ種類の点が±0.5秒以内にあれば解除（トグル）。
-  // kind="M"だけがマーカー追加（±0.5秒以内に既存マーカーがあれば作らない）。
   function setLoopPointAt(kind, t) {
     if (!current) return;
     var tt = Math.round(clampTime(t) * 10) / 10, msg;
@@ -1802,16 +1688,14 @@
     paintPlayed(t);
   }
 
-  // 現在位置のポーリング(ドラッグ中は更新しない)。ABループ中はB点到達でA点へseekTo()。
-  // この画面が表示されている間だけ動かす。
+  // 位置ポーリング(ドラッグ中は更新しない)。ABループ中はB点到達でA点へseekTo()。画面表示中のみ
   function poll() {
     if (!player || !playerReady || seeking) return;
     if (!duration) refreshDuration();
     if (typeof player.getCurrentTime !== "function") return;
     var t = player.getCurrentTime();
     if (current && current.looping) {
-      // 区間ループは再生位置に追従（PLAYERと同じルール）：今の区間（プリロール/ポストロール込み）の外にいたら、
-      // その位置の区間に切り替える。自分のループ折り返し直後(1.5秒)は、位置の更新が遅れるため判定しない。
+      // 区間ループは再生位置に追従(PLAYERと同ルール): プリロール/ポストロール込みの区間外なら切替。自分の折り返し直後1.5秒は位置更新遅れのため判定しない
       if (current.loopMode === "sec" && current.secRange && Date.now() - loopJumpAt > 1500) {
         var sr = current.secRange;
         if (!QNMarkerCore.inRange(sr.start, sr.end, t, preRoll, duration)) {
@@ -1824,8 +1708,6 @@
         }
       }
       var range = activeLoopRange();
-      // 区間の終わりが動画の終わりの時は、終了(ended)になる前に少し手前で戻す
-      // プリロール/ポストロール：区間の「終わりの何秒後まで」再生してから「開始の何秒前」へ戻る
       var endAt = Math.min(duration - 0.3, range.end + preRoll);
       if (range && t >= endAt) { loopJumpAt = Date.now(); seekTo(Math.max(0, range.start - preRoll)); return; }
     }
@@ -1833,21 +1715,14 @@
   }
 
 
-  // ============================================================
-  // Backup / Import（リスト・タイトル・マーカー）
-  //   形式は JSON（format: "qn-youtube-library"）。含めるのは
-  //   videoId / URL / 手入力タイトル / マーカー(秒・ラベル)/ AB点 だけ。
-  //   YouTube由来のデータ（自動取得タイトル・サムネ等）は含めない（規約）。
-  // ============================================================
+  // Backup/Import(形式JSON format:"qn-youtube-library")。含めるのはvideoId/URL/手入力タイトル/マーカー(秒・ラベル)/AB点のみ。YouTube由来データ(自動取得タイトル・サムネ等)は含めない(規約)
   var EXPORT_FORMAT = "qn-youtube-library";
-  // （Backup/Importの画面そのものは本体と共通。ここにはYouTube側のデータの出し入れだけを置く。
-  //   v3.17.0〜：window.QNYouTubeBackup として公開し、player-track-backup.jsが使う）
-  // ---- Import ----
+  // 画面は本体共通。ここはYouTube側データの出し入れのみ(v3.17.0〜 window.QNYouTubeBackupとして公開、player-track-backup.jsが使う)
   function cleanStr(v, max) {
     return typeof v === "string" ? v.trim().slice(0, max) : "";
   }
 
-  // 読み込んだJSONを検証・整形する。壊れた/想定外の値は捨てる。
+  // JSONを検証・整形。壊れた/想定外の値は捨てる
   function normalizeImport(raw) {
     var list = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.items) ? raw.items : null);
     if (!list) return null;
@@ -1875,7 +1750,6 @@
         });
         ms.sort(function (a, b) { return a.time - b.time; });
         o.markers = ms;
-        // A/B：新形式は秒(数値)、旧形式(v3.8.0より前)はマーカーID→そのマーカーの時刻に読み替える
         o.loopA = abTimeOf(typeof r.loopA === "string" ? cleanStr(r.loopA, 40) : r.loopA, ms);
         o.loopB = abTimeOf(typeof r.loopB === "string" ? cleanStr(r.loopB, 40) : r.loopB, ms);
       }
@@ -1884,7 +1758,7 @@
     return out;
   }
 
-  // ---- 共通Backup/Import画面への窓口（v3.17.0〜） ----
+  // ---------- 共通Backup/Import画面への窓口（v3.17.0〜） ----------
   function buildExportObject(ids, includeSettings) {
     var want = {};
     ids.forEach(function (id) { want[id] = true; });
@@ -1896,7 +1770,7 @@
         if (includeSettings) {
           o.title = it.title;
           o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; return o2; });
-          o.loopA = abTimeOf(it.loopA, it.markers);   // v3.8.0〜：秒（マーカーとは別の点）
+          o.loopA = abTimeOf(it.loopA, it.markers);
           o.loopB = abTimeOf(it.loopB, it.markers);
         }
         return o;
@@ -1914,7 +1788,6 @@
         ex.url = x.url;
         if (x.markers) {
           ex.markers = x.markers; ex.loopA = x.loopA; ex.loopB = x.loopB;
-          // 今開いている動画なら、画面側の状態も差し替える
           if (current && current.itemId === ex.id) {
             current.markers = ex.markers; current.loopA = ex.loopA; current.loopB = ex.loopB; setLoopMode("off");
           }
@@ -1939,7 +1812,7 @@
       return items.map(function (it) { return { id: it.id, title: it.title, markerCount: it.markers.length }; });
     },
     buildExport: buildExportObject,
-    // 読み込んだJSON（オブジェクト）をYouTubeの形式として整形する。YouTubeの形式でなければnull
+    // YouTube形式でなければnull
     parseImport: function (raw) {
       if (raw && !Array.isArray(raw) && raw.format && raw.format !== EXPORT_FORMAT) return null;
       var list = normalizeImport(raw);
@@ -1950,9 +1823,7 @@
     applyImport: applyImportList
   };
 
-  // ---------- スペースキーで再生/一時停止（フォーカスがプレイヤー外でも） ----------
-  // 公式の playVideo()/pauseVideo() を、利用者のキー操作を起点に呼ぶだけ（規約OK）。
-  // 文字入力中・修飾キー併用・キーリピートは無視。ボタンにフォーカスがあっても誤作動しない。
+  // ---------- スペースキー再生/一時停止: 公式playVideo()/pauseVideo()を利用者のキー操作起点で呼ぶだけ(規約OK)。文字入力中・修飾キー・リピートは無視 ----------
   function isTypingTarget(el) {
     if (!el || !el.tagName) return false;
     var tag = el.tagName;
@@ -1961,8 +1832,8 @@
   function togglePlay() {
     if (!player || !playerReady || typeof player.getPlayerState !== "function") return;
     try {
-      if (player.getPlayerState() === 1) player.pauseVideo(); // 1 = PLAYING
-      else player.playVideo();                                 // 利用者操作が起点
+      if (player.getPlayerState() === 1) player.pauseVideo();
+      else player.playVideo();
     } catch (err) {}
   }
   function updatePlayBtn(playing) {
@@ -1970,7 +1841,6 @@
     refs.playBtn.innerHTML = '<svg viewBox="0 0 24 24">' + (playing ? BI.pause : BI.play) + '</svg><span>' + (playing ? "Pause" : "Play") + '</span>';
     refs.playBtn.classList.toggle("is-playing", !!playing);
   }
-  // Libraryの前/次の動画へ（SKIPは飛ばす）。押した時に再生開始（利用者操作が起点）
   function gotoNeighbor(dir) {
     if (!current || !current.itemId) { showMessage("Libraryの動画を選んでください"); return; }
     var idx = -1, i;
@@ -1983,11 +1853,7 @@
     openVideo(target.videoId, target.url, target.id, { play: true });
   }
 
-  // ---------- YouTube本家と同じキーボードショートカット（v3.1.0〜） ----------
-  // 公式メソッド（playVideo/pauseVideo/seekTo/setVolume/mute/setPlaybackRate）を、
-  // 利用者のキー操作を起点に呼ぶだけ（規約OK）。アプリ表示中のみ有効。
-  // 文字入力中・Ctrl/Cmd/Alt併用・キーリピート（再生系）は無視。
-  // ※プレイヤー(iframe)自体にフォーカスがある時は、YouTube側が同じキーを処理する。
+  // YouTube本家と同じキーボードショートカット(v3.1.0〜)。公式メソッド(playVideo/pauseVideo/seekTo/setVolume/mute/setPlaybackRate)を利用者のキー操作起点で呼ぶだけ(規約OK)。アプリ表示中のみ。文字入力中・Ctrl/Cmd/Alt併用・再生系のキーリピートは無視。iframeにフォーカス中はYouTube側が処理
   var SHORTCUTS = [
     { key: "Space / K", action: "Play / Pause" },
     { key: "J / L", action: "Back / Forward 10s" },
@@ -2016,7 +1882,7 @@
     var rates = availableRates(), actual = desiredRate, i, idx = -1;
     try { if (player && playerReady && player.getPlaybackRate) actual = player.getPlaybackRate(); } catch (e) {}
     for (i = 0; i < rates.length; i++) if (Math.abs(rates[i] - actual) < 0.001) idx = i;
-    if (idx < 0) { // 現在値が一覧に無い時は、いちばん近い側へ
+    if (idx < 0) {
       idx = 0;
       for (i = 0; i < rates.length; i++) if (rates[i] <= actual) idx = i;
     }
@@ -2053,7 +1919,7 @@
     var k = e.key, isSpace = (e.code === "Space" || k === " ");
     if (isSpace) {
       if (e.shiftKey) return;
-      e.preventDefault(); // ページのスクロール／フォーカス中ボタンの誤クリックを防ぐ
+      e.preventDefault();
       if (e.type === "keyup" || e.repeat) return;
       togglePlay();
       return;
@@ -2062,7 +1928,6 @@
     var lk = (k || "").length === 1 ? k.toLowerCase() : k;
     var handled = true, t, st;
     if (e.shiftKey) {
-      // Shift併用は「< >」(速度)と Shift+N/P(前後の動画)だけ。
       if (k === "<") stepRate(-1);
       else if (k === ">") stepRate(1);
       else if (lk === "n" && !e.repeat) gotoNeighbor(1);
@@ -2085,7 +1950,7 @@
       if (duration) seekTo(duration * (Number(k) / 10));
     }
     else if (k === "," || k === ".") {
-      // 一時停止中だけ、1フレーム(約1/30秒)ずつ。再生中はYouTube本家同様に何もしない
+      // 一時停止中のみ1フレーム(約1/30秒)ずつ。再生中は何もしない
       try { st = player.getPlayerState(); } catch (err) { st = -1; }
       if (st === 1) handled = false;
       else seekTo(currentPos() + (k === "." ? 1 : -1) / 30);
@@ -2094,7 +1959,6 @@
     if (handled) e.preventDefault();
   }
 
-  // Keyboardパネル：表の組み立ては共通（QNApps.renderShortcuts）。ここは行リストと注記を渡すだけ。
   function renderShortcuts() {
     if (!refs.kbdBox) return;
     window.QNApps.renderShortcuts(refs.kbdBox, "youtube");
@@ -2111,11 +1975,9 @@
 
   function onShow() {
     bindSpace(true);
-    // 初回はPC=Library表示、SP=パネルなし。2回目以降は前回の状態を保つ
     var want = panelState || (isSp() ? "none" : "library");
     setPanel(want);
     applyCollapse();
-    // 非表示中はoffsetTopが0になりマーカー位置がずれるので、表示のたびに描き直す
     renderMarkers();
     updateDisplay(currentPos());
     if (!pollTimer) pollTimer = setInterval(poll, 250);
@@ -2126,7 +1988,7 @@
     hideSeekPop();
     try { if (window.QNWake) window.QNWake.set("youtube", false); } catch (err) {}
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    // 画面を隠したまま音だけ流さない（規約）。公式メソッドで一時停止する。
+    // 画面を隠したまま音だけ流さない(規約)。公式メソッドで一時停止
     try {
       if (player && playerReady && typeof player.pauseVideo === "function") player.pauseVideo();
     } catch (e) {}

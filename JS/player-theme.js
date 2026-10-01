@@ -1,55 +1,13 @@
-// ============================================================
-// player-theme.js
-// カラーテーマ切替・Glowアニメーション・Keyboard Shortcuts表生成・
-// ハンバーガーメニュー（#qnMenuMount）の開閉ロジック。
-//
-// 【経緯】元は「qn-menu.js/qn-menu.css/qn-menu.html」というQNシリーズ
-// 共通ファイル（qonny-game.github.io/QN-PLAYER/ から他アプリがfetchして
-// 読み込む配布用ファイル）だったが、QNPLAYER単体リリースにあたり
-// 他アプリへの依存・配布の仕組み自体が不要になったため、QNPLAYER専用の
-// ファイルとしてこちらへ統合した。
-// 統合時に削除したもの：
-//   - QN Series他アプリ(QNPITCH/QNPHRASE/QNTEMPO/QNTUNER)への遷移リンク
-//     一覧（Section 1、既にPC v2側で使われていなかったデッドコード）
-//   - fetchによる外部からのHTML/CSS読み込みロジック（index.html側に
-//     #qnMenuMountの中身を直接埋め込む方式に既に変わっており、
-//     fetchパス自体が実行されない死んだコードだった）
-//   - QN_CURRENT_APPによる「現在のアプリをハイライトする」ロジック
-//     （他アプリへのリンク自体が無くなったため不要）
-//
-// 【依存関係】
-// window.QN_THEMES（このファイルが定義・公開する42色のカラーテーマ配列）は
-// player-core.js側のMARKER_COLOR_PALETTE（マーカーの色選択肢）からも
-// 参照されている。player-core.jsはこのファイルより先に読み込まれるため、
-// player-core.js側は最低限のフォールバック値で初期化しておき、
-// DOMContentLoaded時点で改めてwindow.QN_THEMESの内容を読みに行く
-// 実装になっている（詳細はplayer-core.js冒頭のコメント参照）。
-// このファイル自体はindex.html側で#qnMenuMountの中身（qn-menu-wrapper
-// 以下のHTML）が既に存在する前提で動く（このファイルはHTMLを注入しない）。
-//
-// window.QN_SHORTCUTS（index.html側で定義）を読んでKeyboard Shortcuts
-// テーブルを組み立てる。
-// ============================================================
+// player-theme.js — カラーテーマ(window.QN_THEMES 42色)/Glow/Keyboard Shortcuts表/ハンバーガーメニュー(#qnMenuMount)。
+// QN_THEMESはplayer-core.jsのMARKER_COLOR_PALETTEも参照(core側は最小フォールバック→DOMContentLoadedで再読込)。HTMLは注入しない(index.htmlの#qnMenuMount内に既存前提)。window.QN_SHORTCUTS(index.html定義)からShortcuts表を作る
 (() => {
   'use strict';
 
   const THEME_STORAGE_KEY = 'qn_theme';
   const GLOW_STORAGE_KEY = 'qn_glow';
 
-  /* ---------- テーマデータ（唯一のソース） ----------
-     カラーテーマを追加・編集する時は、この配列に1件追記/変更するだけでよい。
-     hover色・グロー色・スウォッチの見た目・CSSカスタムプロパティ定義は
-     すべてここから自動生成される（style-theme.css/index.htmlを手で編集する
-     必要はない）。
-     表示順もこの配列の並び順のまま使われ、全件を常時展開表示する。
-     - name: data-qn-theme属性の値（英数字とハイフンのみ）
-     - title: スウォッチのtitle属性（ホバー時のツールチップ）
-     - primary: メインカラー(HEX)。単色方針のためsecondaryは
-       buildThemeCssAndSwatches()内でprimaryと同じ値に揃えて使う。 */
+  // テーマデータ(唯一のソース)。追加・編集はこの配列だけ(hover/グロー/スウォッチ/CSS変数は自動生成。style-theme.css・index.html編集不要)。表示順=配列順。name=data-qn-theme値(英数字とハイフン)、title=ツールチップ、primary=HEX(secondaryはprimaryと同値で使う)
   const QN_THEMES = [
-    // 各色相ごとにLight/Base/Darkの3トーンを用意し、14色相×3=42色にする。
-    // secondaryはbuildThemeCssAndSwatches()内でprimaryと同じ値に揃えられる
-    // （単色方針）。
     { name: "red-light", title: "Red Light", primary: "#f87171", secondary: "#f87171" },
     { name: "red", title: "Red", primary: "#ef4444", secondary: "#ef4444" },
     { name: "red-dark", title: "Red Dark", primary: "#b91c1c", secondary: "#b91c1c" },
@@ -107,17 +65,12 @@
     { name: "rose-dark", title: "Rose Dark", primary: "#be123c", secondary: "#be123c" },
   ];
 
-  // マーカー色選択（player-markers.js の MARKER_COLOR_PALETTE）が、Color
-  // パネルと全く同じ配色一覧をそのまま流用できるよう、QN_THEMES自体を
-  // window経由で公開する。QN_THEMESの配列を直せば、Colorパネルのスウォッチ
-  // とマーカー色ピッカーの両方に同時に反映される（一元管理）。
   window.QN_THEMES = QN_THEMES;
 
   const mount = document.getElementById('qnMenuMount');
-  if (!mount) return; // ホスト側にマウント先が無ければ何もしない
-  if (!mount.querySelector('.qn-menu-wrapper')) return; // index.html側にHTMLが無ければ何もしない
+  if (!mount) return;
+  if (!mount.querySelector('.qn-menu-wrapper')) return;
 
-  /* ---------- Color conversion helpers ---------- */
   function hslToHex(h, s, l) {
     s /= 100; l /= 100;
     const k = n => (n + h / 30) % 12;
@@ -147,8 +100,6 @@
     return h;
   }
 
-  // 明度をfactor倍だけ落とした色を返す（1に近いほど元の明るさに近い、
-  // 小さいほど暗くなる）。hover色の自動計算に使う。
   function darken(hex, factor) {
     hex = hex.replace('#', '');
     const r = parseInt(hex.substr(0, 2), 16) / 255;
@@ -171,19 +122,9 @@
     return hslToHex(h, s * 100, Math.max(0, l * factor) * 100);
   }
 
-  /* ---------- テーマCSS・スウォッチの動的生成 ----------
-     QN_THEMES配列から、CSSカスタムプロパティ(--accent-*)とスウォッチの
-     背景グラデーションをまとめた<style>タグを1つ生成してheadに注入し、
-     スウォッチのHTML(.qn-theme-swatch)も同じ配列から生成して
-     #qnThemeSwatchesに流し込む。style-theme.css/index.html側には
-     テーマごとの個別記述を持たせない。 */
   function buildThemeCssAndSwatches() {
     const cssParts = [];
     QN_THEMES.forEach(t => {
-      // 単色テーマ方針：--accent-secondaryもprimaryと同じ値にし、
-      // グラデーション表現(Playボタン・ロゴ文字等)が実質単色に見えるようにする。
-      // hover色の計算だけは、元のsecondary値から作った少し暗いトーンを
-      // 引き続き使う（primaryだけだとhover時の変化が乏しくなるため）。
       const hover1 = darken(t.primary, 0.82);
       const hover2 = darken(t.primary, 0.78);
       const r = parseInt(t.primary.slice(1, 3), 16);
@@ -215,17 +156,13 @@
   }
   buildThemeCssAndSwatches();
 
-  // テーマ切替時、前のテーマで設定されていたインラインstyle(--accent-*)を
-  // クリアする（旧rainbow機能が使っていた仕組みの名残）。通常のテーマは
-  // [data-qn-theme]のCSSカスタムプロパティだけで表現されるため、
-  // インラインstyleを都度リセットしないと古い値が残ってしまう。
+  // テーマ切替時に旧インラインstyle(--accent-*)をクリア(旧rainbow機能の名残。残ると古い値が残る)
   function clearInlineAccentProps() {
     ['--accent-primary', '--accent-secondary', '--accent-glow', '--accent-hover-1', '--accent-hover-2'].forEach(v => {
       document.body.style.removeProperty(v);
     });
   }
 
-  /* ---------- Glow animation ---------- */
   let glowAnimId = null;
   let glowEnabled = false;
 
@@ -244,13 +181,7 @@
     if (glowAnimId) cancelAnimationFrame(glowAnimId);
     const baseColor = getComputedStyle(document.body).getPropertyValue('--accent-primary').trim() || '#3b82f6';
     const fixedHue = hexToHue(baseColor);
-    // 【v2.13.5】波形(シークバー)はGlowの明滅対象外にする。波形側は
-    // この「明滅前の元のアクセント色」を固定で使うため、Glow中でも色が
-    // 変わらず、再描画も走らない（停止中の波形描画がゼロになる）。
     window.__qnGlowBaseAccent = baseColor;
-    // 【v2.13.4 負荷対策】body上のCSS変数を書き換えると画面全体のスタイル再計算が
-    // 走るため、毎フレームではなく約15回/秒に間引く。明滅の速さは経過時間ベースで
-    // 計算するので、間引いても以前（0.008/フレーム@60fps）と同じ速さになる。
     const glowStart = performance.now();
     let lastGlowAt = 0;
     function stepGlow(now) {
@@ -291,7 +222,6 @@
     });
   }
 
-  /* ---------- Theme init & events ---------- */
   let storedTheme = null;
   try { storedTheme = localStorage.getItem(THEME_STORAGE_KEY); } catch (e) {}
   const initialTheme = storedTheme || 'blue';
@@ -308,9 +238,6 @@
       clearInlineAccentProps();
       if (glowEnabled) startGlow();
 
-      // カラーテーマ選択時はメニューを閉じない。色を連続で切り替えながら
-      // 見た目を比較したいというユースケースのため、他の操作（メニュー外click等）
-      // で閉じるのはそのまま維持し、ここだけ閉じる処理を意図的に呼ばない。
     });
   });
 
@@ -325,10 +252,6 @@
     });
   }
 
-  /* ---------- Viewport-aware popup positioning ----------
-     .qn-menu-popupはposition: fixedのため、CSSのtop: calc(100% + 8px)的な
-     相対計算が使えない。ボタンの実際の画面座標(getBoundingClientRect)から
-     top/leftをpxで計算し、インラインstyleとして直接設定する。 */
   function positionPopup(toggleBtn, popup) {
     const btnRect = toggleBtn.getBoundingClientRect();
     const popupRect = popup.getBoundingClientRect();
@@ -336,7 +259,6 @@
     const viewportWidth = window.innerWidth;
     const margin = 8;
 
-    // 上下：ボタン下に十分な空間があればその下、無ければ上向きに開く
     const spaceBelow = viewportHeight - btnRect.bottom;
     const spaceAbove = btnRect.top;
     const openUpward = spaceBelow < popupRect.height + 16 && spaceAbove > spaceBelow;
@@ -346,8 +268,7 @@
       ? btnRect.top - popupRect.height - margin
       : btnRect.bottom + margin;
 
-    // 左右：ボタンの左端に揃えるのが基本だが、画面右端からはみ出す場合は
-    // 右端に収まるよう左にずらす（左端が画面外に出ないよう0未満にはしない）。
+    // 左右: ボタン左端に揃え、右にはみ出すなら左へずらす(0未満にしない)
     let left = btnRect.left;
     const maxLeft = viewportWidth - popupRect.width - margin;
     left = Math.max(margin, Math.min(left, maxLeft));
@@ -356,7 +277,6 @@
     popup.style.left = `${left}px`;
   }
 
-  /* ---------- Popup open/close ---------- */
   const qnMenuBtn = document.getElementById('qnMenuBtn');
   const qnMenuPopup = document.getElementById('qnMenuPopup');
   if (qnMenuBtn && qnMenuPopup) {
@@ -366,8 +286,6 @@
       qnMenuPopup.classList.toggle('open', willOpen);
       qnMenuBtn.classList.toggle('active', willOpen);
       if (willOpen) {
-        // display:noneが解除された直後はまだレイアウトが確定していないため、
-        // 実際のサイズが取れるrequestAnimationFrame後に位置を計算する。
         requestAnimationFrame(() => positionPopup(qnMenuBtn, qnMenuPopup));
       }
     });
@@ -377,23 +295,19 @@
     if (qnMenuPopup) qnMenuPopup.classList.remove('open');
     if (qnMenuBtn) qnMenuBtn.classList.remove('active');
   });
-  // fixed配置のため、ウィンドウリサイズ時に開いていれば位置を再計算する
-  // （absolute時代は親要素基準で自動追従していたが、fixedでは追従しないため）。
+  // fixedなのでresize時に位置再計算
   window.addEventListener('resize', () => {
     if (qnMenuBtn && qnMenuPopup && qnMenuPopup.classList.contains('open')) {
       positionPopup(qnMenuBtn, qnMenuPopup);
     }
   });
 
-  /* ---------- Keyboard shortcuts section (reads window.QN_SHORTCUTS) ---------- */
   const shortcutsSection = document.getElementById('qnShortcutsSection');
   const shortcutsTbody = document.getElementById('qnShortcutsTbody');
   const shortcuts = window.QN_SHORTCUTS;
   if (window.QNApps && Array.isArray(shortcuts) && shortcuts.length > 0 && shortcutsSection && shortcutsTbody) {
-    // 表の組み立ては全アプリ共通の QNApps.fillShortcutRows（qn-apps.js）
     window.QNApps.fillShortcutRows(shortcutsTbody, shortcuts);
   } else if (shortcutsSection) {
-    // window.QN_SHORTCUTS が無い/空のアプリでは Section 3 を丸ごと非表示にする
     shortcutsSection.style.display = 'none';
   }
 })();

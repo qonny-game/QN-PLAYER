@@ -1,29 +1,6 @@
-/* ============================================================
-   style-layout-pc-v2-sp.css
-   style-layout-pc-v2.css の続き。SP幅（900px以下）の組み替えと、
-   その後ろに置いていた下段バー（Speed/Keyステッパー等）の追記。
-   style-layout-pc-v2.css の直後に読み込むこと（順序で上書きが決まる）。
-   ============================================================ */
+/* style-layout-pc-v2-sp.css — style-layout-pc-v2.cssの続き: SP幅(≤900px)組み替え+下段バー追記(Speed/Keyステッパー等)。style-layout-pc-v2.cssの直後に読む(順序で上書き) */
 
-/* ============================================================
-   SP幅（900px以下）：PC v2構造をそのまま使い、レイアウトだけを
-   縦積み＋オーバーレイパネルに組み替える。
-
-   【方針】
-   - #pcV2Layoutの3カラムgridをやめ、縦のflexにする。
-   - アイコンバー(#pcV2IconBar)は画面最下部に固定、横並び・横スクロール。
-   - 下段コントロールバー(#pcV2BottomBar)はアイコンバーの直上に固定、
-     横スクロール。
-   - パネル(#pcV2Panel)は通常非表示。アイコンタップ時にJS側が
-     #pcV2Layoutへ付与する.pcv2-panel-openクラスが立っている間だけ、
-     ヘッダー直下〜下部バー直上までを覆う全面オーバーレイとして表示する
-     （波形エリアの上に重なる。波形エリア自体は裏に残ったまま）。
-   - 波形エリア(#pcV2WaveArea)は元のまま、幅からはみ出さない程度の
-     調整のみ行う。
-   - #pcV2PanelBody配下（Control/Markers/Playlist/Text/EQ/Exportの中身）
-     はPC幅と全く同じDOM・CSSをそのまま使う。展開時に幅100%で表示される
-     ため、個別の調整は基本的に不要。
-   ============================================================ */
+/* SP幅(≤900px): #pcV2Layoutを縦flex、アイコンバー=最下部固定(横スクロール)、下段バー=その直上(横スクロール)、パネル=通常非表示で.pcv2-panel-open時にヘッダー直下〜下部バー直上の全面オーバーレイ。波形エリアは本体のまま。#pcV2PanelBody配下はPC幅と同DOM/CSS */
 @media screen and (max-width: 900px) {
   body.pc-v2-active #appHeader {
     height: 44px;
@@ -35,16 +12,7 @@
     font-size: 22px;
   }
 
-  /* 【重要】#pcV2BottomBarと#pcV2IconBar（#pcV2Layout内）の順序は、
-     このCSSファイルのorderプロパティではなく、player-ui-pc-v2.js側で
-     JSが実際にDOM要素を並べ替えることで実現している
-     （#pcV2BottomBarを#pcV2IconBarの直後へ移動する）。
-     理由：#pcV2BottomBarは#pcV2Layoutの子ではなく#pcV2Rootの直下に
-     並ぶ兄弟要素のため、#pcV2Layout内部の要素（波形エリア・アイコンバー）
-     とは別の階層にあり、CSSのorderだけでは「波形エリアはそのまま中段、
-     その下のコントロールバーとアイコンバーだけ入れ替える」という
-     3層構造の入れ替えを実現できなかった（詳細はplayer-ui-pc-v2.js側の
-     該当コメント参照）。 */
+  /* 【重要】#pcV2BottomBarと#pcV2IconBarの順序はCSS orderでなくplayer-ui-pc-v2.js(syncBottomBarPosition)がDOMを動かして実現(階層が別: BottomBarは#pcV2Root直下、IconBarは#pcV2Layout内) */
   #pcV2Layout {
     display: flex;
     flex-direction: column;
@@ -53,20 +21,15 @@
     flex: 1;
   }
 
-  /* 波形エリア：常に裏側にいる本体。アイコンバー・下部バーの高さ分だけ
-     下にpaddingを持たせ、コントロール類と重ならないようにする。 */
   #pcV2WaveArea {
     flex: 1;
     min-height: 0;
     order: 1;
     padding: 8px 16px;
-    /* SPのADD AUDIO/ADD MARKERは小ぶり(下14px固定)なので、空ける量も小さめ */
     padding-bottom: var(--pcv2-wave-fab-space, 62px);
   }
 
-  /* 【v2.16.1】SPでもシークバーを残りの高さいっぱいに伸ばす。
-     style-layout-sp.cssの#vbarContainer { flex-shrink: 0 }（縮ませない指定）
-     より詳細度を上げて上書きし、画面に収まるよう縮めて等分させる。 */
+  /* 【v2.16.1】SPでもシークバーを残り高さに伸ばす: style-layout-sp.cssの#vbarContainer{flex-shrink:0}より詳細度を上げて上書き */
   #pcV2WaveArea #vbarContainer {
     flex: 1 1 0;
     min-height: 0;
@@ -78,14 +41,7 @@
     min-height: 20px;
   }
 
-  /* PLAY/MARKERアンカータブ：下段バー(#pcV2BottomBar)のすぐ上に来る
-     よう、波形エリア・#pcV2TimeRowより後、下段バーより前のorderにする。
-     CSSのorderは整数(<integer>)しか許容しない仕様のため、以前
-     1.8のような小数値を使っていたところ、ブラウザによっては無効な
-     値として無視され order:0 相当にフォールバックし、結果的に
-     波形エリアより前（ヘッダーのすぐ下）に表示されてしまう不具合が
-     あった。#pcV2WaveArea:1・#pcV2TimeRow:2・ここ:3・
-     #pcV2BottomBar:4・#pcV2IconBar:5と、全体を整数だけで採番し直す。 */
+  /* order: 整数のみ有効(小数は無視され先頭に出る不具合があった)。#pcV2WaveArea:1・#pcV2TimeRow:2・アンカータブ:3・#pcV2BottomBar:4・#pcV2IconBar:5 */
   #pcV2BottomBarAnchorTabs {
     display: flex;
     order: 3;
@@ -115,11 +71,6 @@
     background: rgba(255, 255, 255, 0.06);
   }
 
-  /* 下段コントロールバー：JS側でDOM上、アイコンバーの直前（つまり画面では
-     アイコンバーのすぐ上）へ移動される。border-bottomでアイコンバーとの
-     境界に区切り線を入れ、下側のpaddingは少し詰める（アプリ切り替え
-     誤操作防止のマージン自体は#pcV2IconBar側のpadding-bottomでそのまま
-     確保しているため、線を入れて詰めるのはその「上」の余白だけ）。 */
   #pcV2BottomBar {
     order: 4;
     flex-shrink: 0;
@@ -140,8 +91,6 @@
     flex-shrink: 0;
   }
 
-  /* シークバーエリアのADD AUDIO/ADD MARKER（2個横並び）がSP幅に
-     収まるよう、少しだけ小ぶりにする。 */
   #pcV2WaveFabRow {
     right: 14px;
     bottom: 14px;
@@ -153,26 +102,18 @@
     font-size: 13px;
   }
 
-  /* MARKERグループとVolume/Speed/Key/EQトグル群の間の仕切り線 */
   #pcV2BottomBar .pcv2-ctrl-divider-sp {
     display: block;
     flex-shrink: 0;
   }
 
-  /* #pcV2TimeRow：波形エリア(order:1)の直後、PLAY/MARKERアンカータブ
-     (order:3)・下部バー(order:4)の前に来るようにする。PC幅共通側では
-     display:noneのため、SP幅ではここでdisplay:flexに戻して実際に
-     表示する。 */
+  /* #pcV2TimeRow: PC幅共通側はdisplay:none、SP幅でflexに戻す(order:2) */
   #pcV2TimeRow {
     display: flex;
     order: 2;
     padding: 2px 16px 6px;
   }
 
-  /* SP幅では再生・スキップ・マーカー追加等のアイコンをPC幅時より
-     しっかり大きくし、タップしやすくする（アイコンバーと同様の方針）。
-     エリア自体をさらに高くしたいというユーザー要望を受け、
-     padding/svg/フォントサイズをもう一段階拡大した。 */
   #pcV2BottomBar .pcv2-ctrl-btn {
     padding: 14px 12px;
   }
@@ -191,10 +132,6 @@
     font-size: 11px;
   }
 
-  /* 下段バーに移植された#topControls（Track/Play/Track・Repeat・
-     Marker×3・Loop）も、.pcv2-ctrl-btnと同じ方針でSP幅ではタップ範囲を
-     大きく広げる。横に間延びしてもタップしやすさを優先し、アイコンも
-     サイドバー(.pcv2-icon-item svg、SP幅26px)と同程度まで拡大する。 */
   #pcV2BottomBar .tripleNavBtn-third {
     padding: 10px 6px;
   }
@@ -224,16 +161,7 @@
     margin: 4px auto;
   }
 
-  /* アイコンバー：画面最下部に固定、縦並び→横並びに変更。
-     はみ出る分は横スクロールする。
-     タップしやすさを優先し、アイコン・ラベル・paddingをPC幅時より
-     大きくする（.pcv2-icon-item側で上書き、下記参照）。
-     padding-bottomは、iOSのホームインジケーター操作エリア
-     （env(safe-area-inset-bottom)）に加えて、さらに16px余分に確保する。
-     画面の一番下ギリギリまでタップ領域があると、iPhoneでは横スワイプが
-     アプリ切り替えジェスチャーとして奪われ、このバーの横スクロールが
-     誤操作扱いされてしまうため、実際に指が触れる領域をはっきり分かる
-     程度に上げて誤スワイプを防ぐ。 */
+  /* SP幅アイコンバー: 最下部固定・横並び・横スクロール。padding-bottom=env(safe-area-inset-bottom)+16px(最下端ギリギリだとiPhoneの横スワイプがアプリ切替に奪われる) */
   #pcV2IconBar {
     order: 5;
     flex-direction: row;
@@ -252,24 +180,13 @@
     display: none;
   }
 
-  /* アイコンバー右端「まだ続きがある」ヒント矢印。
-     #pcV2Layout（position: relativeが既に設定済み、このファイル冒頭の
-     SP幅ブロック参照）を基準に、アイコンバーの右端へ重ねて絶対配置する。
-     JS側(updateIconBarScrollHint)が.visibleクラスを付け外しして表示を
-     切り替える。初期状態(.visibleなし)は非表示にしておき、実際に右へ
-     スクロールできる時だけJSが表示する（要素はあるが判定が終わるまで
-     一瞬見えてしまう、というチラつきを避けるため）。
-     左側に背景と同系色のグラデーションを敷き、矢印がボタンの上に
-     唐突に乗っているのではなく、「バーの端がフェードしている」ように
-     見せることで、続きがあることを直感的に伝える。 */
+  /* 右端ヒント矢印: #pcV2Layout基準で絶対配置。JS(updateIconBarScrollHint)が.visibleを付外し。初期は非表示(チラつき防止) */
   #pcV2IconBarScrollHint {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     position: absolute;
     right: 0;
-    /* アイコンバーの下側padding(24px+セーフエリア)を除いた、実際に
-       ボタンが並んでいる高さの目安（上下padding 12px×2 + アイコン26px）。 */
     bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     height: 66px;
     width: 44px;
@@ -289,8 +206,7 @@
     width: 20px;
     height: 20px;
     fill: var(--icon-muted, #8b8b9e);
-    /* 【v2.16.3】無限ループは表示中ずっとスタイル再計算を招くため、
-       気づかせる目的の数回だけ動かして止める（GOTCHAS.md）。 */
+    /* 【v2.16.3】無限アニメ禁止(再計算)。数回で止める(GOTCHAS.md) */
     animation: pcv2-scroll-hint-nudge 1.6s ease-in-out 3;
   }
 
@@ -299,20 +215,12 @@
     50% { transform: translateX(3px); }
   }
 
-  /* タップ領域を優先して、PC幅時（padding: 12px 4px、SVG20px、
-     ラベル10px、gap6px）よりしっかり大きくする。
-     左右paddingも広げ、指が隣のボタンに誤って触れにくくする。
-     ※横隙間を詰める要望により、左右paddingは18px→10pxに縮小
-     （タップ領域自体は上下paddingで確保しているため、視認性・
-     操作性への影響は小さい）。 */
   .pcv2-icon-item {
     flex-shrink: 0;
     gap: 8px;
     padding: 12px 10px;
   }
 
-  /* Seekbarボタンは、PC幅では非表示にしていた(前掲のPC幅共通スタイル)が、
-     SP幅ではここで表示に戻す。閉じる手段として先頭に置く。 */
   .pcv2-icon-item[data-panel-id="seekbar"] {
     display: flex;
   }
@@ -335,8 +243,6 @@
     height: 2px;
   }
 
-  /* アイコンバー下段（Keyboard/Color）は縦積み専用の仕切りだったため、
-     横並びでは仕切り線ではなく単に他のアイコンと横に並べ、間隔だけ空ける。 */
   #pcV2IconBarSpacer {
     display: none;
   }
@@ -351,18 +257,11 @@
     gap: 4px;
   }
 
-  /* Keyboardボタン（Keyboard Shortcuts一覧）はSP幅では非表示にする。
-     PC版では常時表示のパネル群の1つとして有用だが、SP幅の下部タブ
-     バーではスペースを圧迫するうえ利用頻度も低いための対応。
-     PC/SP共通のJSコード(ICON_ITEMS下段グループ)からは削除せず、
-     ここでCSSのみ非表示にすることで、PC版の表示・機能には一切
-     影響しないようにしている。 */
+  /* SP幅はKeyboardボタンをCSSで非表示(JSのICON_ITEMSからは消さない=PC表示/機能に影響させない) */
   .pcv2-icon-item[data-panel-id="keyboard"] {
     display: none;
   }
 
-  /* パネル：通常は非表示。#pcV2Layoutに.pcv2-panel-openが付いている間だけ、
-     ヘッダー直下から下部バー直上までを覆う全面オーバーレイとして表示する。 */
   #pcV2Panel {
     display: none;
   }
@@ -373,14 +272,9 @@
     top: 0;
     left: 0;
     right: 0;
-    /* 下部コントロールバー(#pcV2BottomBar)とアイコンバー(#pcV2IconBar)の
-       高さ分だけ空け、パネル展開中もこの2つが隠れず操作できるようにする
-       （bottom: 0だと#pcV2Layout全体を覆ってしまい、閉じる手段の
-       アイコンバー自体まで覆い隠して元の画面に戻れなくなるバグがあった）。
-       高さはJS側（player-ui-pc-v2.js）がCSS変数として動的に設定する。 */
+    /* 下部バー+アイコンバーの高さ分を空ける(bottom:0だと閉じる手段のアイコンバーまで覆い戻れなくなった)。高さはJS(player-ui-pc-v2.js)がCSS変数で設定 */
     bottom: var(--pcv2-bottom-bars-height, 140px);
-    /* 波形上のマーカーライン(.vbar-line: z-index 50)・ラベル
-       (.vbar-label: z-index 51)より確実に手前へ出す。 */
+    /* z-index: .vbar-line(50)・.vbar-label(51)より手前 */
     z-index: 100;
     width: 100%;
     border-right: none;
@@ -389,29 +283,19 @@
 }
 
 
-/* ============================================================
-   【旧style-core-pc.cssより統合】
-   マーカーが増えてパネルの高さがビューポートを超えると、ページ全体の右端に
-   ブラウザ標準の縦スクロールバーが出現し、中身が少ない時は消える。
-   このスクロールバーの分の横幅(十数px)が出たり消えたりすることで、
-   コンテンツ全体が左右にガタついて見えるため、スクロールバーの有無に
-   関わらず常にその分の余白を確保しておく(stable)ことでガタつきをなくす。
-   ============================================================ */
+/* scrollbar-gutter: stable(縦スクロールバーの出没で全体が左右にガタつくのを防ぐ) */
 html {
   scrollbar-gutter: stable;
 }
 
-/* v3.10.0：下段バーのSpeed/Key ステッパー（−［アイコン＋値］＋） */
 #pcV2BottomBar .pcv2-stepper { display: inline-flex; align-items: center; gap: 0; }
 #pcV2BottomBar .pcv2-step-btn { min-width: 26px; padding-left: 4px; padding-right: 4px; font-size: 18px; line-height: 1; }
 
-/* v3.10.1：Speed/Keyステッパーの値表示（.pcv2-ctrl-btn spanは通常非表示なのでここだけ表示）と、Set A/Set B/Clear ABのラベル */
 #pcV2BottomBar .pcv2-step-btn { font-size: 18px; min-height: 0; align-self: center; }
 #pcV2BottomBar #setABtn .top-controls-btn-label,
 #pcV2BottomBar #setBBtn .top-controls-btn-label,
 #pcV2BottomBar #clearABBtn .top-controls-btn-label { display: block; white-space: nowrap; }
 
-/* v3.12.0：Speed/Keyステッパーを詰める。値(1.00x)と名前(SPEED)を2行にして、アイコンの下に積む（−＋がアイコンに近づく） */
 #pcV2BottomBar .pcv2-stepper { gap: 0; margin: 0 2px; }
 #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { padding-left: 0; padding-right: 0; }
 #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span {
@@ -422,8 +306,6 @@ html {
 #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span i { font-style: normal; text-transform: uppercase; font-size: 8px; letter-spacing: 0.4px; opacity: 0.85; }
 #pcV2BottomBar .pcv2-step-btn { min-width: 20px; padding: 8px 2px; }
 
-/* v3.12.3：Speed/Keyステッパーをさらに詰め、全アイコンのラベルを「上揃え」にする（2行ラベルは下へ伸びる）。
-   −＋はアイコンの高さ(上から約24px)に合わせて置く。 */
 #pcV2BottomBar .pcv2-ctrl-btn,
 #pcV2BottomBar .pcv2-stepper { align-self: flex-start; }
 #pcV2BottomBar .pcv2-stepper { align-items: flex-start; margin: 0; }
@@ -435,8 +317,6 @@ html {
   min-height: 0; align-self: flex-start;
 }
 
-/* v3.12.4：下部バーのすべてのコントロール（Track/Play/Repeat/Marker×3/Loop…）をYouTubeと同じ「アイコン＋ラベル」にする。
-   前後の曲送り・前後マーカー・Repeatのラベルも表示し、アイコンの表示領域(32px)をそろえて文字の高さを揃える。 */
 #pcV2BottomBar .top-controls-btn-label {
   display: block;
   white-space: nowrap;
@@ -451,7 +331,6 @@ html {
 }
 #pcV2BottomBar .tripleNavBtn-third { min-height: 57px; }
 
-/* v3.12.5：Volume / Speed / Key / EQ の各要素の間隔を広げる（隣の−＋と近すぎて区切りが分かりにくかったため） */
 #pcV2BottomBar .pcv2-stepper { margin: 0 12px; }
 #pcV2BottomBar #pcV2VolumeBtn,
 #pcV2BottomBar #pcV2BottomEqToggle { margin: 0 6px; }

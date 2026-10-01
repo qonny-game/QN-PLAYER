@@ -1,21 +1,6 @@
-// ============================================================
-// player-control-eq.js
-// （旧player-eq.js。PC v2のControlパネルにSpeed/Keyと統合表示される
-// ため、ファイル名をplayer-controls.jsと対になるよう変更した。
-// 機能・ロジック自体はplayer-controls.jsとは独立している）
-//
-// 10バンド・グラフィックイコライザー機能：バンド値の設定・プリセット適用、
-// ドラッグでの一括描画、EQモーダルの開閉。
-//
-// 依存: player-core.js（EQ_FREQS, setupAudioGraph等）、
-// player-ui-shared.js（hapticTap, hapticTick等の共通UI関数）。
-// ============================================================
+// player-control-eq.js — 10バンドEQ(バンド値/プリセット/ドラッグ描画/EQモーダル開閉)。依存: player-core.js(EQ_FREQS,setupAudioGraph), player-ui-shared.js(haptic*)
 
 
-// 10バンド・グラフィックイコライザーのUI制御
-// EQのON/OFF：OFF中はスライダー(UI表示)の値はそのまま保持しつつ、
-// 実際のBiquadFilterNodeのgainだけ0にする（Speed/KeyのON/OFFと同じ
-// 「表示値と実効値を分離する」設計）。
 let eqEffectEnabled = true;
 
 function setEqBandValue(bandIndex, gain) {
@@ -28,9 +13,6 @@ function setEqBandValue(bandIndex, gain) {
   if (filter) filter.gain.value = eqEffectEnabled ? gain : 0;
 }
 
-// EQ ON/OFFを切り替える。ONに戻す時は、現在のスライダー表示値を
-// そのままフィルターへ再適用する（OFF中にスライダーを操作していても
-// 正しく反映される）。
 function setEqEffectEnabled(enabled) {
   eqEffectEnabled = enabled;
   for (let i = 0; i < EQ_FREQS.length; i++) {
@@ -41,7 +23,6 @@ function setEqEffectEnabled(enabled) {
   }
 }
 
-// 各バンドのrangeスライダー：通常のクリック/キーボード操作にも対応
 const eqLastTickValues = new Array(EQ_FREQS.length).fill(0);
 for (let i = 0; i < EQ_FREQS.length; i++) {
   const slider = document.getElementById("eqBand" + i);
@@ -57,7 +38,6 @@ for (let i = 0; i < EQ_FREQS.length; i++) {
   }
 }
 
-// EQプリセット。各配列はEQ_FREQS([31,62,125,250,500,1000,2000,4000,8000,16000])の順に対応する10個のdB値。
 const EQ_PRESETS = {
   flat:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   bass:   [8, 7, 6, 4, 2, 0, 0, 0, 0, 0],
@@ -72,7 +52,6 @@ function applyEqPreset(presetName) {
   values.forEach((gain, i) => setEqBandValue(i, gain));
 }
 
-// プリセットボタンの選択状態(active)を更新する。nameがnullなら「どれも選ばれていない(Custom相当)」状態にする。
 function setActiveEqPresetButton(name) {
   document.querySelectorAll(".eq-preset-btn").forEach(btn => {
     btn.classList.toggle("active", btn.getAttribute("data-preset") === name);
@@ -88,9 +67,6 @@ document.querySelectorAll(".eq-preset-btn").forEach(btn => {
   };
 });
 
-// EQタイトル行のRESETボタン（旧「Flat」プリセットボタンを、SPEED/KEYの
-// RESETボタンと統一する形でこちらに統合）。機能はFlatプリセット適用と
-// 同じ（全バンド0dBに戻す）。
 const controlEqResetBtn = document.getElementById("controlEqResetBtn");
 if (controlEqResetBtn) {
   controlEqResetBtn.onclick = () => {
@@ -100,12 +76,6 @@ if (controlEqResetBtn) {
   };
 }
 
-// ============================================================
-// カスタムEQプリセット：現在のバンド値をユーザーが名前を付けて保存でき、
-// localStorageに永続化する（アプリを再読み込みしても保持される）。
-// 保存したプリセットは、標準プリセット(Bass/Vocal/...)と同じ見た目の
-// チップとしてeqCustomPresetButtonsに動的追加される。
-// ============================================================
 const EQ_CUSTOM_PRESETS_KEY = "qnplayer_eq_custom_presets";
 
 function loadCustomEqPresets() {
@@ -189,7 +159,6 @@ if (saveEqPresetBtn) {
 
 renderCustomEqPresetButtons();
 
-// バンドを手動で操作したら、どのプリセットボタンも選択されていない状態に戻す
 for (let i = 0; i < EQ_FREQS.length; i++) {
   const slider = document.getElementById("eqBand" + i);
   if (slider) {
@@ -199,7 +168,6 @@ for (let i = 0; i < EQ_FREQS.length; i++) {
   }
 }
 
-// ドラッグで複数バンドを一気に「山なり」に描画する操作
 const eqBandsEl = document.getElementById("eqBands");
 if (eqBandsEl) {
   let eqDragging = false;
@@ -211,9 +179,8 @@ if (eqBandsEl) {
       const track = bandEl.querySelector(".eq-slider-track");
       if (!track) return;
       const rect = track.getBoundingClientRect();
-      // ドラッグ中のX座標がこのバンドの列の範囲内にあるときだけ、そのバンドの値をY座標から更新する
       if (clientX >= rect.left && clientX <= rect.right) {
-        const ratio = 1 - (clientY - rect.top) / rect.height; // 上が+15, 下が-15
+        const ratio = 1 - (clientY - rect.top) / rect.height;
         const gain = -15 + Math.max(0, Math.min(1, ratio)) * 30;
         setEqBandValue(i, gain);
         changed = true;
@@ -239,7 +206,6 @@ if (eqBandsEl) {
     eqDragging = false;
   });
 
-  // タッチ操作対応
   eqBandsEl.addEventListener("touchstart", e => {
     eqDragging = true;
     const t = e.touches[0];
@@ -258,14 +224,11 @@ if (eqBandsEl) {
   });
 }
 
-// EQモーダルの開閉（Exportモーダルと同じパターン）
 const eqModalOverlay = document.getElementById("eqModalOverlay");
 const eqModalCloseBtn = document.getElementById("eqModalCloseBtn");
 
 function openEqModal() {
   hapticTap();
-  // EQ機能が実際に使われる瞬間（このモーダルを開いた時）に、初めてWeb Audio APIへ接続する。
-  // 一度接続すればaudioGraphSetupDoneフラグにより以降は再接続されない。
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
   if (eqModalOverlay) eqModalOverlay.classList.add("open");
 }
@@ -279,7 +242,6 @@ if (eqModalCloseBtn) {
   eqModalCloseBtn.onclick = () => closeEqModal();
 }
 if (eqModalOverlay) {
-  // オーバーレイの背景部分（モーダル本体の外側）をクリックしたら閉じる
   eqModalOverlay.onclick = (e) => {
     if (e.target === eqModalOverlay) closeEqModal();
   };
@@ -290,14 +252,9 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// ============================================================
-// EQのON/OFFトグルスイッチ。setEqEffectEnabled()で全バンドのgainを
-// 一括で切り替える。
-// ============================================================
 const controlEqEnableToggle = document.getElementById("controlEqEnableToggle");
 if (controlEqEnableToggle) {
   controlEqEnableToggle.onclick = () => {
-    // シェアウェア制限：無料版はEQ効果のON/OFF切り替え自体も不可。
     if (typeof isUnlocked === "function" && !isUnlocked()) {
       swShowUnlockToast("無料版ではEQを利用できません。");
       return;

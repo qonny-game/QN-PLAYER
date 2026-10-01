@@ -1,27 +1,10 @@
-/* ============================================================
-   style-layout-pc-v2.css
-   QNPLAYER 2.0：左アイコンバー＋中央パネル＋右波形の3カラムレイアウト（PC幅）。
-   画面幅を問わず常時有効（player-ui-pc-v2.js側で常時activate）。
-   SP幅（900px以下）の縦積み組み替えは、続きの style-layout-pc-v2-sp.css。
-   パネルの中身のスタイルは style-pcv2-panels.css。
-
-   【方針】
-   既存の #sidebarSection 以下のDOM（Control/Markers/Playlist/Text/EQ/Export
-   の中身）はロジック（player-core.js等）がid依存で動いているため一切変更せず、
-   player-ui-pc-v2.js がこの骨組み(#pcV2Layout)を組み立てて、既存要素を
-   JSで中に移動する。
-   このファイルは #pcV2Layout 配下のみを対象にスコープしている（他要素に影響しない）。
-   ============================================================ */
+/* style-layout-pc-v2.css — PC幅の3カラム(左アイコンバー+中央パネル+右波形)。常時有効(JSが常時activate)。SP組み替えはstyle-layout-pc-v2-sp.css、パネル中身はstyle-pcv2-panels.css。#pcV2Layout配下のみスコープ。既存DOMはid依存なので変更せずJSが骨組みへ移動 */
 
 #pcV2Root {
   display: none;
 }
 
 
-/* PC v2は「1画面に収まる固定レイアウト」（モック準拠）。中身のパネルや
-   波形エリアだけがスクロールし、ページ全体はスクロールしない。
-   既存のSP版は逆にページ全体がスクロールする設計のため、この高さ固定は
-   PC v2有効時（html.pc-v2-active-html／body.pc-v2-active）限定で適用する。 */
 html.pc-v2-active-html {
   height: 100%;
   overflow: hidden;
@@ -29,26 +12,15 @@ html.pc-v2-active-html {
 
 
 body.pc-v2-active {
-  height: 100vh; /* dvh未対応ブラウザ向けフォールバック */
-  height: 100dvh; /* Android Chrome等、URLバー/ツールバーの表示状態で
-                     ビューポート実寸が変わる環境でも、実際に見える高さに
-                     追従させる。#pcV2IconBar（Control/Markers/Library/Text
-                     の切り替え入口）が画面最下部固定のため、100vh固定だと
-                     ブラウザUIの分だけ下端が隠れてしまう問題への対処。 */
+  height: 100vh;
+  height: 100dvh; /* dvh: Android ChromeのURLバー等でビューポート実寸が変わっても下端(アイコンバー)が隠れないよう実高さに追従 */
   box-sizing: border-box;
   overflow: hidden;
-  /* モック準拠：グローエフェクトのグラデーションを外し単色背景にする。
-     bodyのpadding(24px、SP版・PC旧レイアウト向け)もモック同様0にし、
-     ヘッダー/3カラム/下段バーが画面幅いっぱいに広がるようにする。 */
   background: #0a0a0c;
   padding: 0;
 }
 
 
-/* PC幅かつレイアウトが有効化された時だけ表示。有効化はJS側で
-   body.pc-v2-active を付与することで行う。
-   #pcV2Root は「3カラム部分(#pcV2Layout)」と「下段固定コントロールバー
-   (#pcV2BottomBar)」を縦に積む器。 */
 body.pc-v2-active #pcV2Root {
   display: flex;
   flex-direction: column;
@@ -60,9 +32,7 @@ body.pc-v2-active #pcV2Root {
 
 #pcV2Layout {
   display: grid;
-  /* パネル幅はSP幅（900px以下）でのオーバーレイパネルが実機で使う幅
-     (iPhone標準375px)に合わせている。PC幅の開発中にそのままSP幅相当の
-     見た目・詰まり具合を確認できるようにするための意図的な統一。 */
+  /* パネル幅=SP実機のオーバーレイ幅(iPhone標準375px)に合わせる(意図的) */
   grid-template-columns: 76px 375px 1fr;
   grid-template-rows: 1fr;
   gap: 0;
@@ -73,21 +43,16 @@ body.pc-v2-active #pcV2Root {
 }
 
 
-/* #pcV2TimeRow（時刻表示専用行）はSP幅限定。PC幅では時刻表示は
-   group1(#topControls内、Repeatボタンの右)に表示されるため、
-   この行自体は非表示にする（syncTimeRowPosition()が中身を移動する）。 */
 #pcV2TimeRow {
   display: none;
 }
 
 
-/* 移植元の.app-containerはPC v2有効時は非表示にする */
 body.pc-v2-active > .app-container {
   display: none;
 }
 
 
-/* --- 左：縦アイコンバー --- */
 #pcV2IconBar {
   border-right: 1px solid var(--border-subtle);
   display: flex;
@@ -99,9 +64,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* アイコンバー右端「まだ続きがある」ヒント矢印。
-   PC幅ではアイコンバーは縦並び固定表示で横スクロール自体が存在しない
-   ため、常に非表示にする（SP幅側のメディアクエリで表示に切り替える）。 */
 #pcV2IconBarScrollHint {
   display: none;
 }
@@ -159,10 +121,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* Seekbarボタン（波形が見える基本画面に戻るショートカット）は、
-   SP幅（パネルがオーバーレイ表示される画面幅）でのみ意味を持つ。
-   PC幅では常時パネル表示でそもそも「閉じる」概念が無いため、
-   アイコンバー自体からもここで非表示にする。 */
 .pcv2-icon-item[data-panel-id="seekbar"] {
   display: none;
 }
@@ -182,42 +140,30 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* --- 中央：選択中パネル --- */
 #pcV2Panel {
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  /* フローティングアクションボタン(#pcV2PanelFab)の絶対配置の基準。 */
   position: relative;
 }
 
 
-/* --- 右：波形エリア --- */
 #pcV2WaveArea {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   padding: 20px 24px;
-  /* 【v2.16.1】右下のADD AUDIO/ADD MARKER(#pcV2WaveFabRow、絶対配置)に
-     最下段のシークバーが隠れないよう、その分だけ下を空ける。
-     シークバー自体は残りの高さいっぱいに伸びる（下の#vbarContainer）。 */
+  /* 右下ADD AUDIO/ADD MARKER(絶対配置)に最下段のシークバーが隠れないよう下を空ける */
   padding-bottom: var(--pcv2-wave-fab-space, 84px);
   overflow-y: auto;
-  /* シークバーエリア右下の+ADD AUDIOボタン(#pcV2WaveAddAudioBtn)の
-     絶対配置の基準。 */
   position: relative;
 }
 
 
-/* シークバーエリア右下、常設の+ADD AUDIOボタン。Markers/Library/Text
-   パネルのFAB(.panel-fab-btn)と同じ見た目・挙動（position: absolute、
-   右下固定）で、Playlistパネルを開かなくてもここから直接ファイルを
-   追加できる（初めて開いた人にも直感的に伝わるようにするための導線）。 */
-/* 【v2.13.6】ADD AUDIO＋ADD MARKERを横並びにした入れ物。右下固定の
-   絶対配置はこの入れ物で行う（ボタン単体の見た目は.panel-fab-btn）。 */
+/* 【v2.13.6】ADD AUDIO+ADD MARKERの入れ物(右下固定はここ) */
 #pcV2WaveFabRow {
   position: absolute;
   right: 20px;
@@ -231,7 +177,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 【v3.15.0】波形エリア先頭行：左＝曲名、右＝時刻表示（PC幅）。 */
 #pcV2WaveHead {
   display: flex;
   align-items: baseline;
@@ -254,34 +199,16 @@ body.pc-v2-active > .app-container {
 #pcV2WaveHead #timeDisplay .time-dur { font-size: 13px; }
 
 
-/* 移植された#appTitleは元々サイドバー幅前提のマージンを持つため、
-   波形エリア幅いっぱいで見やすいよう上下の余白だけ揃える */
 #pcV2WaveArea #appTitle {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-bright);
-  /* #pcV2WaveArea(flex column)の子として並ぶと、波形部分
-     (#vbarContainer)が多くの高さを要求するためflexboxに縮小され、
-     本来1行分の高さより低く潰されて文字の上端が overflow:hidden で
-     見切れることがある。1行分の高さを必ず確保する。 */
+  /* 1行分の高さを確保(flex縮小で文字上端がoverflow:hiddenで切れる) */
   flex-shrink: 0;
 }
 
 
-/* 波形の見た目をモックの本格ビジュアライザー風（背景・枠なし、細い縦棒、
-   行間を広めに取る）に寄せる。ロジック(6行構造・シーク座標計算・マーカー
-   ドラッグ)は player-core.js / player-markers.js / player-ui-pc-v2.js 側の
-   ままで、ここでは見た目だけをPC v2限定で上書きする。 */
-/* 【v2.16.1】シークバーの高さは固定値やvhではなく、波形エリアの
-   「残りの高さ」を6本で等分して決める（flex）。ウインドウを小さくしても
-   はみ出してスクロールバーが出ることがなく、大きくすれば可能な範囲で
-   高くなる。
-   - #vbarContainer: 波形エリアの残り全部をもらう(flex: 1, min-height: 0)。
-   - .vbar: 6本で等分(flex: 1 1 0)。下限(min-height)は操作できる最低限、
-     上限(max-height)は大画面で間延びしすぎない程度。
-   - gap / padding-top: 各バーの上に出るマーカー番号・メモ(.vbar-label、
-     bottom:100%)の表示スペース。1本目の上にも同じだけ確保する。 */
 #pcV2WaveArea #vbarContainer {
   gap: 26px;
   padding-top: 24px;
@@ -291,13 +218,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 時刻表示：シークバー下から専用行(#pcV2TimeRow、波形エリアの直後・
-   下部バーの直前)へ移設。右寄せで表示する。SP幅限定
-   （display:flexへの切り替えはSP幅の@media側で行う。PC幅では
-   #pcV2TimeRow自体がdisplay:noneのため、この詳細スタイルは
-   影響しない）。
-   以前は下段バーのRepeatボタン右に同居させていたが、SP幅で再生ボタン等の
-   タップ領域を圧迫しないよう、独立した行に切り出した。 */
 #pcV2TimeRow {
   justify-content: flex-end;
   padding: 4px 24px;
@@ -357,22 +277,12 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* マーカーの見た目をモック風（細いaccentライン＋線の上にシンプルな
-   テキストラベル、黒背景バッジではない）に寄せる。ドラッグ操作の
-   当たり判定自体(.vbar-lineの実際の幅・クリック領域)は
-   player-markers.js/player-ui-pc-v2.js側のロジックのままで変更しない。
-   ここでは見た目(視覚的な線の太さ・ラベルの見せ方)だけを
-   ::afterで細く見せる形にする。 */
 #pcV2WaveArea .vbar-line {
   background-color: transparent;
-  /* 【v2.16.2】マーカー線をつかんだ指の動きをブラウザのスクロール等に
-     取られないようにする（ドラッグ専用の要素）。 */
   touch-action: none;
 }
 
 
-/* 【v2.16.2】見た目の線(::before、2px)より広い、透明なつかみ判定。
-   要素本体(6px)だけだとSPで指に当たりにくいため、左右に広げる。 */
 #pcV2WaveArea .vbar-line::after {
   content: "";
   position: absolute;
@@ -411,13 +321,7 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 数字(vbar-label-num)は常にマーカーラインの真上に来るよう、ラベル全体を
-   中央揃え(left:50%; transform:translateX(-50%))で線に固定する。
-   メモ(vbar-label-memo)は数字のすぐ右に絶対配置で続ける
-   （数字の位置を動かさないまま、メモだけを右に生やす形）。
-   シークバー右端側にマーカーがある場合は、.vbar-label.pcv2-label-flip
-   クラス(player-markers.js側のrenderPins()から付与)でメモを左側に
-   出す。 */
+/* 数字(.vbar-label-num)は線の真上(left:50%+translateX(-50%))、メモ(.vbar-label-memo)は数字の右に絶対配置。右端付近は.pcv2-label-flip(player-markers.js renderPins()が付与)でメモを左へ */
 #pcV2WaveArea .vbar-label {
   top: auto;
   bottom: 100%;
@@ -469,27 +373,17 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* PC v2では再生位置の表現をcanvas自体の色分け(player-ui-pc-v2.js側の
-   pcv2DrawWaveform)で行うため、既存のオーバーレイ(.vfill)は使わない。
-   モック同様、未再生部分は薄いグレー、再生済み部分はaccent色の
-   棒グラフそのもので表現する（半透明の帯を重ねる方式ではない）。 */
+/* 再生位置はcanvas色分け(pcv2DrawWaveform)で表現。既存.vfillオーバーレイは使わない */
 #pcV2WaveArea .vfill {
   display: none;
 }
 
 
-/* --- PLAY/MARKERアンカータブ（#pcV2BottomBarAnchorTabs） ---
-   下段バー(#pcV2BottomBar)の直上に置く小さなタブ。押すと下段バーの
-   横スクロール位置を該当パート（PLAY=group1、MARKER=group2）の
-   先頭までジャンプさせる、アンカーリンク的なショートカット。
-   PC幅では下段バー自体が横スクロールしない（全項目が1画面に収まる）
-   ため常に非表示にし、SP幅（@media内）でのみ表示する。 */
 #pcV2BottomBarAnchorTabs {
   display: none;
 }
 
 
-/* --- 下段：固定コントロールバー（モック準拠） --- */
 #pcV2BottomBar {
   border-top: 1px solid var(--border-subtle);
   padding: 10px 24px;
@@ -500,12 +394,7 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 【v3.13.0】PC幅：下段バーを「右カラム（波形エリア）の真下」へ吸着させる。
-   #pcV2Layoutを2行グリッド（1行目＝サイドバー/パネル/波形、2行目＝バー）にし、
-   サイドバーとパネルは2行ぶん縦いっぱい、バーは3列目の2行目だけに置く。
-   バーの必要幅（約1000px）が右カラムより広い時は、横スクロール（スクロール
-   バーは非表示）で全部のボタンに届くようにする。
-   SP幅（900px以下）は#pcV2Layoutがflex縦積みになるため対象外。 */
+/* 【v3.13.0】PC幅: 下段バーは右カラム真下。#pcV2Layoutを2行grid(1行目=サイドバー/パネル/波形、2行目=バー=3列目のみ)。バー必要幅(約1000px)が右カラムより広い時は横スクロール(スクロールバー非表示)。SP幅はflex縦積みで対象外 */
 @media screen and (min-width: 901px) {
   #pcV2Layout {
     grid-template-rows: minmax(0, 1fr) auto;
@@ -542,11 +431,7 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 【v3.15.0】PC幅でウインドウが狭い時は、Volume/Speed/Key/EQ（右グループ）を
-   非表示にしてバーをすっきりさせる（操作はControlパネルで可能）。
-   右カラム幅＝画面幅−451px（パネル展開時）/ −76px（格納時）。バー全体の必要幅は
-   約883px（v3.15.0時点・右グループ込み）なので、収まらなくなる境目で隠す：
-   パネル展開中は1340px以下、格納中は960px以下。 */
+/* 【v3.15.0】PC幅が狭い時はVolume/Speed/Key/EQ(右グループ)を非表示(操作はControlパネル)。閾値: パネル展開時1340px以下、格納時960px以下(バー必要幅約883px。右カラム幅=画面幅−451px/−76px) */
 @media screen and (min-width: 901px) and (max-width: 1340px) {
   #pcV2Layout:not(.pcv2-collapsed) #pcV2BottomBarGroupRight,
   #pcV2Layout:not(.pcv2-collapsed) #pcV2BottomBar > .pcv2-ctrl-spacer {
@@ -561,11 +446,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 【v3.14.0】PC幅：パネル格納。#pcV2Layoutに.pcv2-collapsedが付くと、
-   パネル列(375px)が0へ縮み、波形エリアと下段バー（どちらも1fr列）が広がる。
-   縮む途中で中身が潰れて折り返さないよう、ヘッダー/本体は幅を保つ
-   （外枠のoverflow:hiddenで切る）。格納後はvisibility:hiddenでフォーカス・
-   クリックも受けないようにする。SP幅は対象外（クラスを付けない）。 */
 @media screen and (min-width: 901px) {
   #pcV2Layout {
     transition: grid-template-columns 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -579,8 +459,6 @@ body.pc-v2-active > .app-container {
   #pcV2Panel > #pcV2PanelHeader,
   #pcV2Panel > #pcV2PanelBody {
     min-width: 374px;
-    /* paddingを含めて374pxにする（content-boxだとpadding分だけ幅が増えて、
-       Backup/Importなどの中身がパネルから右へはみ出して見切れる） */
     box-sizing: border-box;
   }
   #pcV2Layout.pcv2-collapsed #pcV2Panel {
@@ -591,15 +469,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* #topControls自体（.top-controls）は、style-core.css側のデフォルトが
-   SP版の2段積み(flex-direction: column、position: fixedで画面下部に浮く)
-   前提になっている。PC v2ではbuild()でこの要素ごと#pcV2BottomBar内へ
-   移動し、position: staticの通常のflexアイテムとして扱うため、
-   固定配置・背景・影・余白等のSP版向け指定をすべてリセットし、
-   中身(.pcv2-ctrl-group等)を横一列に並べる。
-   （以前はstyle-core-pc.cssの@media(min-width:901px)側にあったが、
-   実際にはPC v2内の#topControlsにのみ意味を持つ調整だったため、
-   PC v2のスコープが分かるここへ移した。） */
 #pcV2BottomBar .top-controls {
   position: static;
   flex-direction: row;
@@ -611,10 +480,6 @@ body.pc-v2-active > .app-container {
   border-top: none;
   box-shadow: none;
   z-index: auto;
-  /* #pcV2BottomBar自体がSP幅で横スクロール可能(overflow-x: auto)なため、
-     ここでflex:1にして縮めてしまうと中身(.pcv2-ctrl-group等)同士が
-     重なって見える崩れの原因になる。縮めず自然な幅のまま並べ、
-     収まりきらない分は#pcV2BottomBar側の横スクロールに任せる。 */
   flex-shrink: 0;
 }
 
@@ -639,8 +504,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* MARKERグループとトグル群の間の仕切り線（v2.13.6〜）はSP幅専用。
-   PC幅ではspacerで十分に離れるため表示しない。 */
 #pcV2BottomBar .pcv2-ctrl-divider-sp {
   display: none;
 }
@@ -653,9 +516,6 @@ body.pc-v2-active > .app-container {
   gap: 0;
   padding: 8px 7px;
   cursor: pointer;
-  /* 【v2.16.5】通常時は下段バーの他のアイコンボタン（前/次・Repeat等の
-     .tripleNavBtn-third）と同じグレー。テーマ色になるのは下の「ON/表示中」
-     の時だけ。 */
   color: var(--icon-muted);
   background: none;
   border: none;
@@ -665,8 +525,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* ホバーで明るくするのはマウス環境だけ（タッチ端末では押した後に
-   ホバー色が残り、OFFなのに白っぽく見えてしまうため）。 */
 @media (hover: hover) and (pointer: fine) {
   #pcV2BottomBar .pcv2-ctrl-btn:hover {
     color: var(--text-bright);
@@ -674,17 +532,11 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* LOOP/REPEAT等の .tripleNavBtn-third:active / .loopbtn:active と揃え、
-   クリック時に少し縮んで「押した感」が出るようにする。 */
 #pcV2BottomBar .pcv2-ctrl-btn:active {
   transform: scale(0.94);
 }
 
 
-/* Speed/Key/EQのON/OFFトグル：ONの間だけテーマ色（OFFは上の通常色）。
-   Volume：縦スライダーのポップアップを表示している間だけテーマ色
-   （.is-open、player-ui-pc-v2.jsのsetupVolumeControlが付け外し）。
-   ON/表示中はホバーしてもテーマ色のまま。 */
 #pcV2BottomBar #pcV2BottomSpeedToggle:not(.effect-off),
 #pcV2BottomBar #pcV2BottomKeyToggle:not(.effect-off),
 #pcV2BottomBar #pcV2BottomEqToggle:not(.effect-off),
@@ -695,11 +547,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 【v2.16.5】アイコンの塗り(fill)も文字色(currentColor)に揃える。
-   以前はfillだけ固定のグレー(--icon-muted)で、線(stroke=currentColor)は
-   ボタンの文字色になっていたため、線と塗りが混在するSpeed/Key/EQの
-   アイコン（Speedの針の軸の丸、EQのつまみの丸等）だけ、テーマ色・白・
-   グレーが1つのアイコン内で混ざって見えていた。 */
 #pcV2BottomBar .pcv2-ctrl-btn svg {
   width: 20px;
   height: 20px;
@@ -717,18 +564,13 @@ body.pc-v2-active > .app-container {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  display: block;      /* v3.12.1〜：全アイコンに文字ラベルを表示（YouTubeアプリの下段バーと同じ） */
+  display: block;
   white-space: nowrap;
 }
-/* アイコンの上下余白もYouTube/他のボタン(.loopbtn)と揃え、ラベルの高さをそろえる */
 #pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn) svg { margin: 6px auto; box-sizing: content-box; }
 #pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn) { min-height: 57px; }
 
 
-/* Volumeポップアップ(縦スライダー) */
-/* 【v2.13.6】document.body直下へ移したうえでposition: fixed表示。
-   left/topはJS(setupVolumeControl)がボタン位置から都度設定し、
-   translateでボタン中央の真上に来るようにする。 */
 #pcV2VolumePopup {
   position: fixed;
   bottom: auto;
@@ -798,11 +640,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 下段バーに移植された#topControls(Track/Play/Track・Repeat・
-   Marker×3・Loop)は、既存の箱型デザイン(.tripleNavBtn等)のままだと
-   モックのフラットな個別ボタン列と印象が異なるため、PC v2限定で
-   上書きする。ロジック(onclickハンドラ)は要素にひもづいたままのため
-   一切変更しない。 */
 #pcV2BottomBar #topControls {
   position: static !important;
   display: flex !important;
@@ -817,9 +654,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* #topControlsSpacerは#topControlsがposition:fixedであることを前提にした
-   余白補正だが、PC v2では#topControlsをposition:staticに変えて通常のflex
-   配置にしたため、この補正自体が不要になる。 */
 body.pc-v2-active #topControlsSpacer {
   display: none;
 }
@@ -879,12 +713,6 @@ body.pc-v2-active #topControlsSpacer {
 }
 
 
-/* +Marker(中央、大きめアイコン)とLoopボタンのラベル("MARKER"/"LOOP")の
-   上下位置を揃えるため、アイコン自体が確保する表示領域の高さを
-   両方32pxに統一する（見た目のアイコンサイズ自体は異なってよい）。
-   Play/+Markerは主要機能のため、他のアイコンより一回り大きく見せたい
-   ので、見た目は32px、Loopは20pxの見た目のまま32pxの表示領域の中で
-   縦中央に配置する。 */
 #pcV2BottomBar .tripleNavBtn-center svg {
   width: 32px;
   height: 32px;
@@ -940,9 +768,7 @@ body.pc-v2-active #topControlsSpacer {
 }
 
 
-/* ON状態（Repeat All/One、Loop有効時）：PC版レイアウトのIDセレクタが
-   通常の .loopbtn.is-active より詳細度が高く上書きしてしまうため、
-   #pcV2BottomBar を付けた専用ルールで確実にアクセントカラーを適用する。 */
+/* ON状態: PC版のIDセレクタが.loopbtn.is-activeより詳細度が高いので、#pcV2BottomBar付きの専用ルールでaccentを適用 */
 #pcV2BottomBar .loopbtn.is-active {
   color: var(--accent-primary, #3b82f6);
 }
@@ -953,8 +779,6 @@ body.pc-v2-active #topControlsSpacer {
 }
 
 
-/* ボタン内ラベルはモックのctrl-btn同様、デフォルト非表示
-   （Marker系だけ表示する。詳細はMARKER/LOOPの個別ルール参照） */
 #pcV2BottomBar .top-controls-btn-label {
   display: none;
   font-size: 9px;
@@ -962,18 +786,12 @@ body.pc-v2-active #topControlsSpacer {
 }
 
 
-/* Track(前後の曲送り)・Repeat・Prev/Next Markerはアイコンのみのデザイン
-   (ラベル無し)にする。+Marker(MARKER)とLoop(LOOP)だけラベル付きにして
-   文字の上下位置を揃える。 */
 #pcV2BottomBar #addPinBtn .top-controls-btn-label,
 #pcV2BottomBar #loopToggleBtn .top-controls-btn-label {
   display: block;
 }
 
 
-/* Loop横のプリロール秒数ステッパー：PC v2の枠なし・背景なしフラット
-   デザインに合わせて、SP版の箱型スタイル（背景・枠線・box-shadow）を
-   解除し、アイコン列に自然に溶け込むコンパクトな見た目にする。 */
 #pcV2BottomBar .loop-preroll-control {
   padding: 8px 4px;
   background: none;
@@ -1010,7 +828,6 @@ body.pc-v2-active #topControlsSpacer {
 }
 
 
-/* --- ヘッダー：モック準拠（52px高さ、下境界線、小さめロゴ＋QN Seriesドロップダウン） --- */
 body.pc-v2-active #appHeader {
   height: 52px;
   border-bottom: 1px solid var(--border-subtle);
@@ -1040,11 +857,6 @@ body.pc-v2-active #appVersion {
 }
 
 
-/* ハンバーガーメニュー(#qnMenuMount)自体はPC v2では非表示。
-   中身の機能(Theme/Shortcuts)はアイコンバー下段のKeyboard/Colorボタンに
-   移設済み。ポップアップ本体(#qnMenuPopup)は引き続きDOM上に存在し、
-   それらのボタンから間接的に開閉されるため、ボタン(#qnMenuBtn)のみを
-   隠す。 */
 body.pc-v2-active #qnMenuMount {
   display: none;
 }
@@ -1057,7 +869,6 @@ body.pc-v2-active #qnMenuMount {
 }
 
 
-/* ▼のみのトリガー(テキストラベル無し)。ロゴのすぐ右に置く。 */
 .pcv2-header-nav-trigger {
   display: flex;
   align-items: center;
@@ -1094,11 +905,6 @@ body.pc-v2-active #qnMenuMount {
 }
 
 
-/* ドロップダウン：ロゴと同じ大きさでアプリ名を縦に並べ、
-   アプリ名の右に機能説明を添える。
-   【縮小】全体的に表示が大きすぎたため、幅・フォントサイズ・paddingを
-   縮小した。説明文は折り返し禁止(white-space指定なし=デフォルトのnormal)
-   のままだと横に伸びきってしまうため、明示的に改行を許可する。 */
 .pcv2-header-nav-dropdown {
   position: absolute;
   top: calc(100% + 10px);
@@ -1146,11 +952,6 @@ body.pc-v2-active #qnMenuMount {
 }
 
 
-/* 先頭の"QN"だけヘッダーロゴ(#appLogoQN)と同じアクセントカラーにする。
-   残り(PLAYER/PITCH等)は常に白のまま——currentクラス(選択中のアプリ)が
-   付いても、この白は変えない。以前はアプリ名全体をcurrent時に
-   アクセントカラーにしていたため、ヘッダーロゴの配色(QNのみ色付け)と
-   ズレていた。 */
 .pcv2-header-nav-link-name-qn {
   color: var(--accent-primary);
 }
@@ -1167,18 +968,11 @@ body.pc-v2-active #qnMenuMount {
 }
 
 
-/* トップコントロール(Track/Play/Track・Repeat・Marker×3・Loop)は
-   PC幅で1行フラット化される(player-ui-pc-v2.js末尾のflattenForPc)ため、波形の下に
-   自然な余白で収める */
 #pcV2WaveArea #topControls {
   margin-top: 4px;
 }
 
 
-/* Keyboard/Colorパネル：#qnMenuMount内（player-theme.js/style-theme.css
-   が担当）のTheme/Shortcutsセクションをそのままパネル内に表示する。
-   セクション自体のスタイル(style-theme.css)は活かしつつ、パネル用の
-   余白だけ馴染ませる。 */
 .pcv2-qn-loading {
   color: #6b6b7b;
   font-size: var(--fs-small);
@@ -1186,6 +980,3 @@ body.pc-v2-active #qnMenuMount {
 }
 
 
-/* Text見出しのEDIT・フルスクリーンボタンは、画面右下の
-   フローティングアクションボタン(#pcV2PanelFab、.panel-fab-btn)に
-   統一済みのため、ここでのID固有スタイルは持たない。 */
