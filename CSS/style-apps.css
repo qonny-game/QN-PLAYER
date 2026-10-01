@@ -95,9 +95,9 @@
 #qnAppScrim.qn-scrim-in { opacity: 1; }
 #qnAppScrim.qn-scrim-sp { background: rgba(0, 0, 0, 0.55); }
 
-@media (prefers-reduced-motion: reduce) {
-  #qnAppFlyout, #qnAppScrim { transition: none; }
-}
+/* v3.11.1：以前ここに「OSの視覚効果が減らす設定なら動かさない(transition:none)」を入れていたが、
+   PCのWindows（アニメーション効果オフ）等でフライアウトが「シュッ」と出ず一瞬でパッと表示される原因になっていた。
+   小さなスライドなので、OS設定に関わらず常にアニメーションさせる。 */
 
 /* バッジの「＞」（サブメニューがあるよの印） */
 #pcV2IconBar #qnAppBadge {

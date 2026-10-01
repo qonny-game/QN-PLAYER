@@ -576,3 +576,13 @@
 - 下部のSpeedのアイコン部分を押すと再生スピードを1xに戻す。
 - 区間ループ中、プリロール部分（区間の開始より前）を再生している間に、位置が前の区間と判定されてループ対象が切り替わる（例：2-3ループが1に戻される）不具合を修正。判定の余裕を広げ、ループの折り返し直後1.5秒は区間の切替判定をしない。
 - 変更ファイル：`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.11.0 — PLAYERとYouTubeのマーカー/ループ判定を共通化（`JS/qn-marker-core.js`を新設）
+- 区間の決め方・許容範囲(プリロール込み)・前後マーカー移動・A-B範囲外判定を、両アプリ共通のコードに集約。
+- YouTubeをPLAYERの挙動に統一：区間は表示ONのマーカー同士（2つ未満なら動かない／先頭・終端は暗黙の区間にしない）、前後マーカー移動はプリロール考慮＋端でぐるっと一周＋移動後に再生、シークバー/マーカー/A・B点のクリックは「シーク＋再生」、A-B範囲外のクリックでLOOP OFF。
+- 変更ファイル：`JS/qn-marker-core.js`(新規)、`JS/player-ui-shared.js`、`JS/player-markers.js`、`JS/qn-app-youtube.js`、`index.html`、`md/CHANGELOG.md`、`md/YOUTUBE_APP.md`。
+
+## 3.11.1 — PC: アプリ一覧フライアウトが「シュッ」と出ない問題の修正
+- `style-apps.css`の`@media (prefers-reduced-motion: reduce)`でフライアウトとスクリムのtransitionを無効にしていたため、OSの「アニメーション効果」がOFF（Windows）／「視差効果を減らす」ON（Mac）のPCでは、アニメーションなしでパッと出ていた。この指定を削除し、OS設定に関わらず常にスライド表示するようにした。
+- 確認：ヘッドレスChromeで、通常設定では約260msで左から滑り出し、旧CSSの「視差効果を減らす」設定では最初のフレームで表示完了（アニメーションなし）になることを再現済み。
+- 変更ファイル：`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。

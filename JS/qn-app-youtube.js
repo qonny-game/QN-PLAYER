@@ -753,18 +753,16 @@
   // ---------- 前/次のマーカーへ移動（現在地を基準） ----------
   function jumpMarker(dir) {
     if (!current || !playerReady) { showMessage("先に動画を読み込んでください"); return; }
-    var ms = current.markers.filter(function (x) { return x.enabled !== false; });
-    if (!ms.length) { showMessage("マーカーがありません"); return; }
-    var t = currentPos(), target = null, i;
-    if (dir > 0) {
-      for (i = 0; i < ms.length; i++) if (ms[i].time > t + 0.05) { target = ms[i]; break; }
-      if (!target) { showMessage("これより後のマーカーはありません"); return; }
-    } else {
-      // 直前のマーカーの少し先にいる時は、その1つ前へ戻れるよう 0.5秒の余裕を持たせる
-      for (i = ms.length - 1; i >= 0; i--) if (ms[i].time < t - 0.5) { target = ms[i]; break; }
-    }
+    var times = enabledTimes();
+    if (!times.length) { showMessage("マーカーがありません"); return; }
+    // PLAYERと同じ：区間ループ中のプリロール/ポストロール再生中は区間の内側にいるものとして扱い、
+    // 次が無ければ最初へ、前が無ければ最後へ戻る。移動したら再生する。
+    var t = currentPos(), idx = -1;
+    if (current.loopMode === "sec" && current.secRange) idx = times.indexOf(current.secRange.start);
+    var ref = QNMarkerCore.navRefTime(times, idx, t, preRoll, current.loopMode === "sec");
+    var target = dir > 0 ? QNMarkerCore.nextTime(times, ref) : QNMarkerCore.prevTime(times, ref);
     showMessage("");
-    seekTo(target ? target.time : 0);
+    userSeek(target);
   }
 
   // ---------- 再生スピード（プレイヤーの外の自前UI・公式メソッドのみ） ----------
@@ -1156,6 +1154,14 @@
   function currentPos() {
     return player && playerReady && player.getCurrentTime ? player.getCurrentTime() : 0;
   }
+  // 利用者のクリック/タップによるシーク（PLAYERと同じ）：シークして再生。A-Bループ中にA〜Bの外へ出したらLOOPをOFFにする（A/B点は残る）
+  function userSeek(t) {
+    if (current && current.loopMode === "ab" && QNMarkerCore.isOutsideAB(current.loopA, current.loopB, t)) {
+      setLoopMode("off"); persistLoop(); updateLoopUI();
+    }
+    seekTo(t);
+    try { if (player && playerReady && player.playVideo) player.playVideo(); } catch (e) {} // 利用者操作が起点なのでOK
+  }
   function seekTo(t) {
     if (!player || !playerReady) return;
     player.seekTo(clampTime(t), true);
@@ -1352,7 +1358,7 @@
       infoSpan.className = "pin-info";
       infoSpan.textContent = markerText(m, i);
       if (m.label) infoSpan.title = m.label;
-      infoSpan.addEventListener("click", function () { seekTo(m.time); });
+      infoSpan.addEventListener("click", function () { userSeek(m.time); });
       labelRow.appendChild(infoSpan);
       var pen = document.createElement("button");
       pen.type = "button"; pen.className = "pin-edit-btn"; pen.title = "Edit memo";
@@ -1517,16 +1523,16 @@
     if (m !== "sec") current.secRange = null;
   }
 
-  // 区間ループの区間：押した時点の再生位置を含む「マーカー〜次のマーカー」。
-  // 前にマーカーが無ければ動画の先頭から、後ろに無ければ動画の終わりまで。
+  // 区間ループの区間：現在地を含む「表示ONのマーカー〜次の表示ONのマーカー」。PLAYERと同じルール（JS/qn-marker-core.js）。
+  // マーカーが2つ未満なら区間は決まらない（null）。最初のマーカーより前は最初の区間、最後より後は最後の区間。
+  function enabledTimes() {
+    return (current ? current.markers : []).filter(function (x) { return x.enabled !== false; })
+      .map(function (x) { return x.time; }).sort(function (p, q) { return p - q; });
+  }
   function sectionRangeAt(t) {
     if (!current || !duration) return null;
-    var start = 0, end = duration, i, ms = current.markers;
-    for (i = 0; i < ms.length; i++) {
-      if (ms[i].time <= t) start = ms[i].time;
-      else { end = ms[i].time; break; }
-    }
-    return end - start > 0.5 ? { start: start, end: end } : null;
+    var times = enabledTimes(), i = QNMarkerCore.pickSectionIndex(times, t);
+    return i < 0 ? null : { start: times[i], end: times[i + 1] };
   }
 
   // いまループ中の区間（ループOFFなら、ABが揃っていればその区間を表示用に返す）
@@ -1620,7 +1626,7 @@
       el.classList.remove("dragging");
       if (moved) { sortMarkers(); persistMarkers(); renderMarkers(); }
       else {
-        seekTo(m.time);
+        userSeek(m.time);
         // 既存マーカーを1クリック/1タップ → その位置でA / B のポップアップ（＋Markerは出さない）
         var er = el.getBoundingClientRect();
         showSeekPop(m.time, tracks[segIndex(m.time)].getBoundingClientRect(), er.left + er.width / 2, m);
@@ -1656,7 +1662,7 @@
       el.classList.remove("dragging");
       if (moved) { persistLoop(); renderMarkers(); }
       else {
-        seekTo(current[key]);
+        userSeek(current[key]);
         var er = el.getBoundingClientRect();
         showSeekPop(current[key], tracks[segIndex(current[key])].getBoundingClientRect(), er.left + er.width / 2, null, kind);
       }
@@ -1683,7 +1689,7 @@
       track.releasePointerCapture(e.pointerId);
       var t = timeFromPoint(e);
       seeking = false;
-      seekTo(t);
+      userSeek(t);
       // 動かさずに離した(=1クリック/1タップ)時だけ、その位置にA/B/+Markerのポップアップ
       if (!dragged) showSeekPop(t, track.getBoundingClientRect(), e.clientX);
     });
@@ -1904,13 +1910,11 @@
     if (typeof player.getCurrentTime !== "function") return;
     var t = player.getCurrentTime();
     if (current && current.looping) {
-      // 区間ループは再生位置に追従：区間の外へシーク(または別区間へ移動)したら、その位置の区間に切り替える。
-      // 区間の終わりに達した時は従来どおり先頭へ戻る(プリロール分の余裕を見て判定)。
-      if (current.loopMode === "sec" && current.secRange) {
+      // 区間ループは再生位置に追従（PLAYERと同じルール）：今の区間（プリロール/ポストロール込み）の外にいたら、
+      // その位置の区間に切り替える。自分のループ折り返し直後(1.5秒)は、位置の更新が遅れるため判定しない。
+      if (current.loopMode === "sec" && current.secRange && Date.now() - loopJumpAt > 1500) {
         var sr = current.secRange;
-        // プリロール/ポストロール部分（開始の前・終わりの後）は「今の区間」に含める。自分のループ折り返し直後(1.5秒)も判定しない
-        // （折り返し直後は再生位置の更新が遅れ、前後の区間に見えてしまうため）
-        if (Date.now() - loopJumpAt > 1500 && (t < sr.start - preRoll - 1.5 || t > sr.end + preRoll + 1.5)) {
+        if (!QNMarkerCore.inRange(sr.start, sr.end, t, preRoll, duration)) {
           var nr = sectionRangeAt(t);
           if (nr && (nr.start !== sr.start || nr.end !== sr.end)) {
             current.secRange = nr;

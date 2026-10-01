@@ -702,25 +702,11 @@ function updateBars() {
       // 「外れている」を判定に使うのは、マーカーの追加/削除/シーク/
       // 曲切替など対象区間を無効化すべきあらゆる操作を個別に検知せずとも、
       // 結果として区間外にいれば自動的に正しい区間へ追従できるようにするため。
-      const inCurrentRange = loopActiveMarkerIndex !== null &&
-        loopActiveMarkerIndex < activePins.length - 1 &&
-        ct >= Math.max(0, activePins[loopActiveMarkerIndex] - preroll) - 0.05 &&
-        ct <= Math.min(audio.duration || activePins[loopActiveMarkerIndex + 1], activePins[loopActiveMarkerIndex + 1] + preroll) + 0.05;
+      // （判定ルールはYouTubeアプリと共通：JS/qn-marker-core.js）
+      const inCurrentRange = QNMarkerCore.inSectionRange(activePins, loopActiveMarkerIndex, ct, preroll, audio.duration);
 
       if (!inCurrentRange) {
-        let foundIndex = -1;
-        for (let i = 0; i < activePins.length - 1; i++) {
-          const s = activePins[i];
-          const e = activePins[i + 1];
-          if (i === activePins.length - 2) {
-            if (ct >= s && ct <= e) { foundIndex = i; break; }
-          } else {
-            if (ct >= s && ct < e) { foundIndex = i; break; }
-          }
-        }
-        if (foundIndex === -1) {
-          foundIndex = ct < activePins[0] ? 0 : activePins.length - 2;
-        }
+        const foundIndex = QNMarkerCore.pickSectionIndex(activePins, ct);
         loopActiveMarkerIndex = foundIndex;
       }
 
@@ -807,7 +793,7 @@ function abLeaveIfOutside(t) {
   if (!loopEnabled || loopMode !== "ab") return;
   const abr = typeof getABRange === "function" ? getABRange() : null;
   if (!abr) return;
-  if (t >= abr.start - 0.05 && t <= abr.end + 0.05) return;
+  if (!QNMarkerCore.isOutsideAB(abr.start, abr.end, t)) return;
   if (typeof setLoopModeState === "function") setLoopModeState("off", true);
   else { loopEnabled = false; if (typeof applyLoopButtonUI === "function") applyLoopButtonUI(); }
 }

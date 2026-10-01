@@ -43,19 +43,7 @@ function getMarkerNavReferenceTime() {
   if (preroll <= 0) return ct;
   // loopActiveMarkerIndexはupdateBars()と同じ「ONのマーカーだけの並び」の番号
   const activeTimes = pins.filter(p => p.enabled).map(p => p.t);
-  const i = loopActiveMarkerIndex;
-  if (i < 0 || i >= activeTimes.length - 1) return ct;
-  const start = activeTimes[i];
-  const end = activeTimes[i + 1];
-  if (ct > end && ct <= end + preroll + 0.05) {
-    // ポストロール中：区間の終わりの少し手前にいるものとみなす
-    return Math.max(start, end - 0.1);
-  }
-  if (ct < start && ct >= start - preroll - 0.05) {
-    // プリロール中：区間の頭にいるものとみなす
-    return start;
-  }
-  return ct;
+  return QNMarkerCore.navRefTime(activeTimes, loopActiveMarkerIndex, ct, preroll, loopEnabled);
 }
 
 function jumpToNextMarker() {
@@ -67,8 +55,8 @@ function jumpToNextMarker() {
   hapticTap();
 
   const ct = getMarkerNavReferenceTime();
-  let nextPin = activePins.find(p => p.t > ct + 0.05);
-  if (!nextPin) nextPin = activePins[0];
+  const nextT = QNMarkerCore.nextTime(activePins.map(p => p.t), ct);
+  const nextPin = activePins.find(p => p.t === nextT) || activePins[0];
 
   beginSeek();
   audio.currentTime = nextPin.t;
@@ -89,23 +77,8 @@ function jumpToPrevMarker() {
 
   const ct = getMarkerNavReferenceTime();
 
-  // 現在地より前（＝すでに通過した）マーカーのうち、一番近いものを「直近マーカー」とする
-  let targetPin = [...activePins].reverse().find(p => p.t <= ct + 0.05);
-
-  if (targetPin) {
-    const diff = ct - targetPin.t;
-    if (diff <= 0.5) {
-      // 直近マーカーへの到達からまだ0.5秒以内 → もう1つ前のマーカーへ
-      const earlierPins = activePins.filter(p => p.t < targetPin.t - 0.05);
-      if (earlierPins.length > 0) {
-        targetPin = earlierPins[earlierPins.length - 1];
-      } else {
-        targetPin = activePins[activePins.length - 1];
-      }
-    }
-  } else {
-    targetPin = activePins[activePins.length - 1];
-  }
+  const prevT = QNMarkerCore.prevTime(activePins.map(p => p.t), ct);
+  const targetPin = activePins.find(p => p.t === prevT) || activePins[activePins.length - 1];
 
   beginSeek();
   audio.currentTime = targetPin.t;
