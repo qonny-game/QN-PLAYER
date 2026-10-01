@@ -329,9 +329,11 @@
 
 /* ============================================================
    Backup/Importパネル（v2.13.6〜、旧モーダルの中身を移植）
+   【v3.18.0】YouTubeアプリの入れ物（.qn-yt-sec-backup / .qn-yt-sec-import）にも同じ指定を
+   :is() で共用している（以前はstyle-apps.cssに丸ごと写しを持っていた）。ここを直せば両方に効く。
    ============================================================ */
-#pcV2PanelBody.pcv2-panel-backup .export-modal-footer,
-#pcV2PanelBody.pcv2-panel-import .export-modal-footer {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-modal-footer,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-modal-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -341,20 +343,20 @@
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .export-status,
-#pcV2PanelBody.pcv2-panel-import .export-status {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-status,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-status {
   flex-basis: 100%;
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .export-status:empty,
-#pcV2PanelBody.pcv2-panel-import .export-status:empty {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-status:empty,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-status:empty {
   display: none;
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .export-run-btn,
-#pcV2PanelBody.pcv2-panel-import .export-run-btn {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-run-btn,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) .export-run-btn {
   flex: 1;
   width: auto;
 }
@@ -376,40 +378,40 @@
    （max-height、その中だけoverflow-y: auto）にして、パネル全体は他の
    パネルと同じく#pcV2PanelBody側の1箇所だけでスクロールさせる。
    ------------------------------------------------------------ */
-#pcV2PanelBody.pcv2-panel-backup .export-section {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-section {
   padding: 18px 0;
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .export-section:first-child {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .export-section:first-child {
   padding-top: 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-options {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-options {
   border-bottom: none;
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist-header {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-tracklist-header {
   margin-bottom: 12px;
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist-header .export-section-label {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-tracklist-header .export-section-label {
   margin-bottom: 0;
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-mini-btn {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-mini-btn {
   padding: 0 var(--btn-pad-x);
   border-radius: var(--radius-pill);
   background: none;
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-tracklist {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-tracklist {
   /* 元の220pxよりは広く、かつ画面の高さに応じて縮む上限つきの値。
      曲数が少なければ内容ぶんの高さで収まる（min-heightは指定しない）。
      【v2.16.9】58vh/520pxだと、SPでは初期状態でリスト自体がほぼ画面を
@@ -427,8 +429,8 @@
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row,
-#pcV2PanelBody.pcv2-panel-backup .track-backup-row {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row,
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-row {
   gap: 12px;
   padding: 12px 4px;
   background: none;
@@ -438,21 +440,21 @@
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row:last-child,
-#pcV2PanelBody.pcv2-panel-backup .track-backup-row:last-child {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row:last-child,
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-row:last-child {
   border-bottom: none;
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-row:hover,
-#pcV2PanelBody.pcv2-panel-backup .track-backup-row:has(input:checked) {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-row:hover,
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-row:has(input:checked) {
   background: none;
   border-color: var(--border-subtle);
 }
 
 
 /* 曲の行のチェックも、含める項目と同じ丸いチェックに揃える */
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"] {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   margin: 0;
@@ -465,13 +467,13 @@
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"]:checked {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row input[type="checkbox"]:checked {
   border-color: var(--accent-primary, #3b82f6);
   background: var(--accent-primary, #3b82f6);
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-row input[type="checkbox"]:checked::after {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-row input[type="checkbox"]:checked::after {
   content: "";
   position: absolute;
   left: 6px;
@@ -484,12 +486,12 @@
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-track-name {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-track-name {
   font-size: var(--fs-body);
 }
 
 
-#pcV2PanelBody.pcv2-panel-backup .track-backup-size-row {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) .track-backup-size-row {
   flex-shrink: 0;
   padding: 12px 4px 0;
 }
@@ -526,8 +528,8 @@
 
 /* パネルは他のメニューを押せば閉じられるため、「閉じるだけ」のCancelは
    出さない。Import側はファイル読み込み後の「Back」（選び直し）だけ残す。 */
-#pcV2PanelBody.pcv2-panel-backup #trackBackupCancelBtn,
-#pcV2PanelBody.pcv2-panel-import #trackImportCancelBtn[data-mode="cancel"] {
+:is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup) #trackBackupCancelBtn,
+:is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import) #trackImportCancelBtn[data-mode="cancel"] {
   display: none;
 }
 
@@ -538,7 +540,7 @@
    （背景色・枠線・角丸・padding）を持つため、PC v2ではパネル本体
    (#pcV2PanelBody)側のpaddingをそのまま活かすようすべてリセットする。 */
 #pcV2PanelBody .mobile-tab-panel,
-#pcV2PanelBody .export-modal-body {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-modal-body {
   display: block !important;
   width: auto;
   background: none;
@@ -557,36 +559,36 @@
    見出し付きの箱＋罫線区切りのデザインに変える（Rangeの箱、Effectsの箱…と
    セクションごとに区切り線で分ける方針）。padding/gapはモーダル時の値を
    打ち消して、#pcV2PanelBody側のpadding(16px 20px)をそのまま活かす。 */
-#pcV2PanelBody .export-modal-body {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-modal-body {
   padding: 0;
 }
 
 
-#pcV2PanelBody .export-section {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-section {
   display: block;
   padding: 26px 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 
-#pcV2PanelBody .export-section:first-child {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-section:first-child {
   padding-top: 0;
 }
 
 
-#pcV2PanelBody .export-section:last-of-type {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-section:last-of-type {
   border-bottom: none;
 }
 
 
-#pcV2PanelBody .export-section-label {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-section-label {
   display: block;
   margin-bottom: 10px;
   font-size: var(--fs-heading);
 }
 
 
-#pcV2PanelBody .export-modal-footer {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-modal-footer {
   display: block;
   padding: 16px 0 0;
   border-top: none;
@@ -600,7 +602,7 @@
 
 
 /* Exportボタンをモック準拠の単色・幅いっぱいのフラットボタンに変更 */
-#pcV2PanelBody .export-run-btn {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-run-btn {
   width: 100%;
   padding: 12px;
   background: var(--accent-primary);
@@ -611,12 +613,12 @@
 }
 
 
-#pcV2PanelBody .export-cancel-btn {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-cancel-btn {
   border-radius: var(--radius-pill);
 }
 
 
-#pcV2PanelBody .export-run-btn:hover:not(:disabled) {
+:is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-yt-sec-import) .export-run-btn:hover:not(:disabled) {
   background: var(--accent-hover-1);
   box-shadow: none;
   transform: none;

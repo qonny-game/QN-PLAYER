@@ -261,7 +261,7 @@ PC幅                                             SP幅（パネルを開いた�
 - キー：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5秒、↑/↓ 音量±5%、M ミュート、0〜9 動画の0〜90%へ、Home/End 先頭/末尾、`,` `.` 一時停止中のみ1フレーム(約1/30秒)、`<` `>`(Shift+,/.) 速度−/＋（`availableRates()`を1段階、Speedチップにも反映・`qn_yt_rate`へ保存）、Shift+P/N Libraryの前/次の動画（`gotoNeighbor`）。
 - 意図的に入れていないもの：F(全画面)・T(シアター)・C(字幕)・I(ミニプレイヤー)など、iframe内部の機能。
 - 音量・速度・ミュートの変更は`QNApps.toast()`で一言表示。文字入力中・Ctrl/Meta/Alt併用は無視。ページスクロール防止のため、処理したキーは`preventDefault`。
-- サイドバーの最後に`Keyboard`項目（`data-panel="keyboard"`・`.qn-yt-sec-keyboard`）。`renderShortcuts()`が本体の`#qnShortcutsTable`を複製して行だけ差し替える（見た目を本体と統一。表が無ければ同クラス名で自前構築）。一覧の元データは`SHORTCUTS`配列。
+- サイドバーの最後に`Keyboard`項目（`data-panel="keyboard"`・`.qn-yt-sec-keyboard`）。表の組み立ては共通の`QNApps.renderShortcuts(hostEl, "youtube")`（qn-apps.js、PLと同じ`<kbd>`表示）。一覧の元データは`SHORTCUTS`配列で、`QNApps.register({shortcuts, shortcutsNote})`で登録している。
 
 ## 付録：シークバー下のコントロールバー（v3.2.0）
 - `.qn-yt-bar`（`BAR_HTML`）。PLAYERの下段バー(`#pcV2BottomBar`/`.pcv2-ctrl-btn`/`.tripleNavBtn`)と同じ枠なしフラットなアイコン＋英字。並び：再生系（Track / -10s / Play / +10s / Track / Auto Next）│ マーカー系（Marker / +Marker / Marker / Loop / A・B表示 / Clear AB）│ スピード（− 1x Speed ＋）。

@@ -668,3 +668,10 @@
   YTのキー表示もPLと同じ `<kbd>` 枠になる（見た目の統一）。
 - 今後のTUNER/PITCHは自分のショートカット配列を `QNApps.renderShortcuts` に渡せばKeyboard表が出る。
 - Color は共通ポップ（qn-apps.js）を既に両アプリで共用しているため変更なし。
+
+## 3.19.0 — Backup/Import CSSの共通化＋アプリ登録にショートカット欄
+- style-apps.css に丸ごと写してあったYT用のBackup/Import CSS（約200行）を撤去。style-pcv2-panels.css の該当ルールを
+  `:is(#pcV2PanelBody…, .qn-yt-sec-backup / .qn-yt-sec-import)` にして両アプリで共用（以後はそこを直せば両方に効く）。
+  PL側の見た目は変化なし（計算スタイルの比較で差分0）。YT側はPLと完全に同じ値になった
+  （セクション余白 26→18px、フッターの並びなど数px）。
+- `QNApps.register({ shortcuts, shortcutsNote })` を追加。`QNApps.renderShortcuts(hostEl, "<appId>")` の1行でKeyboard表が出る。YTはこの方式に移行。

@@ -21,6 +21,9 @@
 //          ready: true,              // false なら「準備中」（押すとトースト表示）
 //          sidebar: [{id,label,icon}],  // アプリ表示中のサイドバー項目（本体のControl/Markers…に相当）
 //          onSidebar(itemId) {},     // その項目が押された時。選択表示は QNApps.setSideActive(itemId|null)
+//          shortcuts: [{key, action}],  // 任意。Keyboard表の行（"Space / K" のように " " 区切りで複数キー可）
+//          shortcutsNote: "注記",    // 任意。表の下に出す一言
+//            → Keyboardパネルの中身は QNApps.renderShortcuts(hostEl, "<id>") の1行で出る
 //          mount(viewEl) {},         // 初回表示時に1回だけ呼ばれる。viewEl に画面を作る
 //          onShow() {},              // 表示されるたびに呼ばれる
 //          onHide() {}               // 隠れるたびに呼ばれる
@@ -588,6 +591,7 @@
       order: typeof def.order === "number" ? def.order : 100,
       ready: def.ready !== false,
       sidebar: def.sidebar || null, onSidebar: def.onSidebar,
+      shortcuts: def.shortcuts || null, shortcutsNote: def.shortcutsNote || "",
       mount: def.mount, onShow: def.onShow, onHide: def.onHide
     };
     if (idx >= 0) apps[idx] = app; else apps.push(app);
@@ -615,9 +619,17 @@
       tbody.appendChild(tr);
     });
   }
-  // hostEl の中身を「ショートカット表（＋注記）」に置き換える
-  function renderShortcuts(hostEl, list, note) {
+  // hostEl の中身を「ショートカット表（＋注記）」に置き換える。
+  // 2番目は「登録済みアプリのid（文字列）」か「行リスト」のどちらでもよい。
+  function renderShortcuts(hostEl, listOrAppId, note) {
     if (!hostEl) return;
+    var list = listOrAppId;
+    if (typeof listOrAppId === "string") {
+      list = null;
+      for (var i = 0; i < apps.length; i++) {
+        if (apps[i].id === listOrAppId) { list = apps[i].shortcuts; if (note == null) note = apps[i].shortcutsNote; }
+      }
+    }
     hostEl.textContent = "";
     var sec = document.createElement("div");
     sec.className = "qn-menu-section";

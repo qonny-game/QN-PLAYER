@@ -2152,7 +2152,7 @@
   // Keyboardパネル：表の組み立ては共通（QNApps.renderShortcuts）。ここは行リストと注記を渡すだけ。
   function renderShortcuts() {
     if (!refs.kbdBox) return;
-    window.QNApps.renderShortcuts(refs.kbdBox, SHORTCUTS, "YouTube本家と同じキーです。文字入力中は動きません。");
+    window.QNApps.renderShortcuts(refs.kbdBox, "youtube");
   }
 
   var spaceBound = false;
@@ -2196,6 +2196,8 @@
       order: 10,
       ready: true,
       sidebar: SIDEBAR,
+      shortcuts: SHORTCUTS,
+      shortcutsNote: "YouTube本家と同じキーです。文字入力中は動きません。",
       onSidebar: onSidebar,
       mount: mount,
       onShow: onShow,
