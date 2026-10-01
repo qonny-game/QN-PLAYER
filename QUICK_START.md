@@ -17,7 +17,8 @@
 | レイアウト・表示順 | `GOTCHAS.md`§4、`PC_V2_FILE_INDEX.md` |
 | 新しいモーダル/パネル/ボタン | `GOTCHAS.md`、`DOM_ID_REFERENCE.md`、`PC_V2_FILE_INDEX.md` |
 | YouTubeアプリ | **`YOUTUBE_APP.md`（最優先。§2の規約ルール）** |
-| 新しいアプリ（TUNER/PITCH）／アプリ共通の見た目 | `AI_ASSISTANT_PROJECT_CONTEXT.md`§6、`PC_V2_FILE_INDEX.md`（qn-apps.js） |
+| TUNERアプリ | `TUNER_APP.md` |
+| 新しいアプリ（PITCH）／アプリ共通の見た目 | `AI_ASSISTANT_PROJECT_CONTEXT.md`§6、`PC_V2_FILE_INDEX.md`（qn-apps.js） |
 | マーカーメモのプリセット／Colorパネル | `JS/player-marker-presets.js` |
 | 保存されるデータ・キー | `AI_ASSISTANT_PROJECT_CONTEXT.md`§3 |
 | 「あのボタン」が指す場所が曖昧 | `UI_TERMINOLOGY.md` |

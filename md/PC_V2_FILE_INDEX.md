@@ -81,3 +81,12 @@
 - `JS/qn-marker-core.js` — `QNMarkerCore`：区間の決め方・プリロール込みの許容範囲・前後マーカー移動・A-B範囲外判定（PLAYER/YouTube共通）。
 - `JS/player-marker-presets.js` — プリセット/自動カラー/カスタムプリセット、`startPinMemoEdit`（メモ編集のプリセットポップアップ）。
 - `CSS/style-apps.css` — アプリ枠（サイドバー・フライアウト・トースト・`#qnAppHost`）。`CSS/style-youtube.css` — `.qn-yt*`（レイアウトPC/SP、シークバー、Library/Markers、Backup/Import、チャプター、コントロールバー、`.qn-yt-seekpop`）。
+
+## JS/qn-app-tuner.js（TUNERアプリ。IIFE、約650行）／JS/qn-pitch-core.js
+`grep -n "// ----------"`で見出しが出る。構造はYouTubeアプリと同じ（`TEMPLATE`→`mount`、`SIDEBAR`/`setPanel`/`onSidebar`、`onShow`/`onHide`）。
+- 表示：`displayStyles`（gauge / guitar-meter。`render/update`）、`tuningState`（±5¢=just/±20¢=close/他=far）、`renderMainDisplay/resetReadout`
+- マイク：`startMic/stopMic/toggleMic/onMicFrame`（解析ループは`qn-pitch-core.js`の`createAnalysisSession`。約30fpsに間引き）
+- Tone：`playTone/stopTone/closeToneAudio/currentStrings`、`renderPresetTabs/renderTuningTabs/renderStringList`
+- 感度/表示：`setSens/setSmooth/syncSliders`、`renderDisplayChoices/setDisplay/cycleDisplay`
+- ショートカット：`SHORTCUTS`配列＋`onKey`（`QNApps.register`の`shortcuts`にも渡す）
+- `CSS/style-tuner.css` — `.qn-tn*`（パネル・メーター・下段バー。下段バーの寸法は`#pcV2BottomBar`と同仕様）
