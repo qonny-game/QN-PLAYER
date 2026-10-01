@@ -508,6 +508,78 @@ body.pc-v2-active > .app-container {
 }
 
 
+/* 【v3.13.0】PC幅：下段バーを「右カラム（波形エリア）の真下」へ吸着させる。
+   #pcV2Layoutを2行グリッド（1行目＝サイドバー/パネル/波形、2行目＝バー）にし、
+   サイドバーとパネルは2行ぶん縦いっぱい、バーは3列目の2行目だけに置く。
+   バーの必要幅（約1000px）が右カラムより広い時は、横スクロール（スクロール
+   バーは非表示）で全部のボタンに届くようにする。
+   SP幅（900px以下）は#pcV2Layoutがflex縦積みになるため対象外。 */
+@media screen and (min-width: 901px) {
+  #pcV2Layout {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  #pcV2IconBar {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  #pcV2Panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  #pcV2WaveArea {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  #pcV2BottomBar {
+    grid-column: 3;
+    grid-row: 2;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  #pcV2BottomBar::-webkit-scrollbar {
+    display: none;
+  }
+  #pcV2BottomBar .pcv2-ctrl-group {
+    flex-shrink: 0;
+  }
+  #pcV2BottomBar .pcv2-ctrl-spacer {
+    min-width: 16px;
+  }
+}
+
+
+/* 【v3.14.0】PC幅：パネル格納。#pcV2Layoutに.pcv2-collapsedが付くと、
+   パネル列(375px)が0へ縮み、波形エリアと下段バー（どちらも1fr列）が広がる。
+   縮む途中で中身が潰れて折り返さないよう、ヘッダー/本体は幅を保つ
+   （外枠のoverflow:hiddenで切る）。格納後はvisibility:hiddenでフォーカス・
+   クリックも受けないようにする。SP幅は対象外（クラスを付けない）。 */
+@media screen and (min-width: 901px) {
+  #pcV2Layout {
+    transition: grid-template-columns 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  #pcV2Layout.pcv2-collapsed {
+    grid-template-columns: 76px 0 1fr;
+  }
+  #pcV2Panel {
+    overflow: hidden;
+  }
+  #pcV2Panel > #pcV2PanelHeader,
+  #pcV2Panel > #pcV2PanelBody {
+    min-width: 374px;
+  }
+  #pcV2Layout.pcv2-collapsed #pcV2Panel {
+    visibility: hidden;
+    border-right-width: 0;
+    transition: visibility 0s linear 220ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #pcV2Layout { transition: none; }
+}
+
+
 /* #topControls自体（.top-controls）は、style-core.css側のデフォルトが
    SP版の2段積み(flex-direction: column、position: fixedで画面下部に浮く)
    前提になっている。PC v2ではbuild()でこの要素ごと#pcV2BottomBar内へ

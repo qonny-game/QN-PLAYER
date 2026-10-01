@@ -97,7 +97,7 @@ player-auth.js(module)`（qn-apps.jsはplayer-ui-pc-v2.jsより後、アプリ�
     `@media (max-width: 900px)`ブロックを疑う。`style-layout-sp.css`側は
     基本的に無関係。
   - 下部コントロールバー(`#pcV2BottomBar`)・アイコンバー(`#pcV2IconBar`)は
-    PC幅では別の位置にあるが、SP幅では`syncBottomBarPosition()`
+    PC幅ではバーが右カラム下端（`#pcV2Layout`の2行目、v3.13.0〜）にあるが、SP幅では`syncBottomBarPosition()`
     （`player-ui-pc-v2.js`）がJSでDOM上の位置ごと移動させている。
     新しい要素をこの周辺に追加する場合、この関数も一緒に更新しないと
     SP⇔PC幅切替時に迷子になる。

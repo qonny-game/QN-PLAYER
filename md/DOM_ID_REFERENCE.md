@@ -95,7 +95,8 @@ PC v2の骨組み要素は全てJSの`build()`関数（`PC_V2_FILE_INDEX.md`参�
 | `pcV2PanelStash` | 非表示中のパネルの中身の退避場所（body直下、display:none。v2.15.1〜） |
 | `pcV2WaveArea` / `pcV2WaveFabRow` / `pcV2WaveAddAudioBtn` / `pcV2WaveAddMarkerBtn` | 波形エリア・右下ボタン列（v2.14.0〜横並び）・+ADD AUDIO・+ADD MARKER |
 | `pcV2TimeRow` | 時刻表示行（SP幅限定） |
-| `pcV2BottomBar` | 下段固定コントロールバー |
+| `pcV2BottomBar` | 下段固定コントロールバー（PC幅v3.13.0〜：`#pcV2Layout`の子、右カラム下端。SP幅はアイコンバー直上） |
+| `pcV2Layout.pcv2-collapsed` | PC幅でパネルを格納中のクラス（v3.14.0〜。localStorage `qn_panel_collapsed`） |
 | `pcV2BottomBarAnchorTabs` | PLAY/MARKERアンカータブ |
 | `pcV2BottomBarGroupPlay` / `pcV2BottomBarGroupMarker` | 上記タブのスクロール先ターゲット（`.pcv2-ctrl-group`に付与） |
 | `pcV2DeleteSelectedBtn` | 削除選択の確定ボタン（`#pcV2PanelHeader`内） |

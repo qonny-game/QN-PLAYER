@@ -34,6 +34,12 @@
 
   let built = false;
   let currentPanel = "playlist";
+  // 【v3.14.0】PC幅のパネル格納（開いているパネルのアイコンをもう一度押すと
+  // パネル(375px)が左へ格納され、波形・下段バーが広がる）。状態は保存する。
+  // SP幅では使わない（クラスも付けない。SPは従来のオーバーレイ開閉）。
+  const PANEL_COLLAPSED_KEY = "qn_panel_collapsed";
+  let panelCollapsed = false;
+  try { panelCollapsed = localStorage.getItem(PANEL_COLLAPSED_KEY) === "1"; } catch (e) {}
   // 下段バーのSpeed/Key/EQトグルボタン要素への参照。Controlパネル側の
   // トグルスイッチ(controlSpeedEnableToggle等)が直接操作された時にも
   // 見た目を同期させるため、build()内で生成した時点でここに保持する。
@@ -698,8 +704,38 @@
     if (isSpWidthInit) {
       closePanelOverlay();
     } else {
-      switchPanel("playlist");
+      // 格納状態（保存値）を維持したまま初期パネルを組み立てる
+      switchPanel("playlist", { keepCollapsed: true });
     }
+    applyCollapse();
+    window.addEventListener("resize", applyCollapse);
+  }
+
+  // ---- パネル格納（PC幅・v3.14.0） ----
+  function isSpWidthNow() {
+    return window.matchMedia("(max-width: 900px)").matches;
+  }
+  function isCollapsed() {
+    return panelCollapsed && !isSpWidthNow();
+  }
+  // 状態をDOMへ反映する：#pcV2Layoutのクラス、サイドバーの選択表示
+  // （格納中は全アイコンの.activeを外し、「格納されている」ことが分かるように）。
+  function applyCollapse() {
+    const layoutEl = document.getElementById("pcV2Layout");
+    if (!layoutEl) return;
+    const collapsed = isCollapsed();
+    layoutEl.classList.toggle("pcv2-collapsed", collapsed);
+    document.querySelectorAll("#pcV2IconBar .pcv2-icon-item").forEach(btn => {
+      btn.classList.toggle(
+        "active",
+        !collapsed && btn.getAttribute("data-panel-id") === currentPanel
+      );
+    });
+  }
+  function setCollapsed(on) {
+    panelCollapsed = !!on;
+    try { localStorage.setItem(PANEL_COLLAPSED_KEY, panelCollapsed ? "1" : "0"); } catch (e) {}
+    applyCollapse();
   }
 
   // #pcV2VolumeBtn/#pcV2VolumePopupの開閉と、既存のControlパネル内
@@ -864,8 +900,8 @@
 
   // 【SP幅レイアウト】#pcV2BottomBar（再生コントロール）を、SP幅では
   // #pcV2Layout内・#pcV2IconBarの直前（つまり画面上はアイコンバーの
-  // すぐ上）へ移動し、PC幅では元の位置（#pcV2Root直下、#pcV2Layoutの後）
-  // へ戻す。build()の初回実行時、およびresizeでブレークポイントを
+  // すぐ上）へ移動し、PC幅では#pcV2Layout（2行グリッド）の末尾へ置く
+  // （v3.13.0〜。右カラムの下端に吸着）。build()の初回実行時、およびresizeでブレークポイントを
   // またいだ時に呼ばれる。
   function syncBottomBarPosition() {
     const bottomBar = document.getElementById("pcV2BottomBar");
@@ -888,11 +924,14 @@
         layoutEl.insertBefore(anchorTabs, bottomBar);
       }
     } else {
-      if (bottomBar.parentElement !== rootEl) {
-        rootEl.appendChild(bottomBar);
+      // 【v3.13.0】PC幅：#pcV2Layout（2行グリッド）の子として末尾に置く。
+      // CSS側で grid-column:3 / grid-row:2 に配置され、右カラム（波形エリア）
+      // の真下だけにバーが出る（サイドバー・パネルの下には伸びない）。
+      if (bottomBar.parentElement !== layoutEl || layoutEl.lastElementChild !== bottomBar) {
+        layoutEl.appendChild(bottomBar);
       }
-      if (anchorTabs && anchorTabs.parentElement !== rootEl) {
-        rootEl.insertBefore(anchorTabs, bottomBar);
+      if (anchorTabs && (anchorTabs.parentElement !== layoutEl || anchorTabs.nextSibling !== bottomBar)) {
+        layoutEl.insertBefore(anchorTabs, bottomBar);
       }
     }
   }
@@ -1013,8 +1052,13 @@
       }
       updatePcv2BottomBarsHeightVar();
       layoutEl.classList.add("pcv2-panel-open");
+    } else if (!isSpWidth && layoutEl && !panelCollapsed && currentPanel === panelId) {
+      // 【v3.14.0】PC幅：表示中のパネルのアイコンをもう一度押したら格納する
+      setCollapsed(true);
+      return;
     }
 
+    // 格納中ならswitchPanel()の先頭で展開される
     switchPanel(panelId);
   }
 
@@ -1168,8 +1212,13 @@
     });
   }
 
-  function switchPanel(panelId) {
+  function switchPanel(panelId, opts) {
     currentPanel = panelId;
+
+    // 【v3.14.0】格納中に外部（右クリック・Backup完了など）から呼ばれた場合は
+    // 必ず展開してから表示する（取りこぼし防止の保険）。初期表示だけは
+    // keepCollapsed:true で保存された格納状態を維持する。
+    if (panelCollapsed && !(opts && opts.keepCollapsed)) setCollapsed(false);
 
     // パネル切替のたびに、下段バーのSpeed/Key/EQボタンの見た目を
     // 現在のグローバル変数の状態に合わせ直す（保険。通常はControl
@@ -1186,7 +1235,7 @@
     }
 
     document.querySelectorAll("#pcV2IconBar .pcv2-icon-item").forEach(btn => {
-      btn.classList.toggle("active", btn.getAttribute("data-panel-id") === panelId);
+      btn.classList.toggle("active", !isCollapsed() && btn.getAttribute("data-panel-id") === panelId);
     });
 
     const panelBody = document.getElementById("pcV2PanelBody");

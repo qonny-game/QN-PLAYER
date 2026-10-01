@@ -617,3 +617,23 @@
 ## 3.12.6 — PLAYER下部バーとYouTube下段バーの寸法を統一
 - バーの高さ（PC 80px以上）・バー/ボタンの余白（PC: バー10px 12px・ボタン8px 4px）・アイコン（PC 20px／中央32px、SP 26px／38px）・ラベル（PC 9px／SP 11px）・区切り線の余白（6px）・要素間の隙間を、PLAYERとYouTubeで同じ値にそろえた（Speed/Keyのトグルは例外）。
 - 変更ファイル：`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.12.7（ドキュメントのみ）— PLAYER_LAYOUT_V3_SPEC.md を v3.12.6 時点に改訂
+- 旧版（v3.4.0時点）から変わった点を反映：版番号（仕様A＝v3.13.0／仕様B＝v3.14.0）、下段バーの中身の増加（Set A/B・Clear AB・Speed/Keyステッパー・全ラベル）による必要幅の再見積もり（約740px→約1000px、1280pxでもはみ出す）、寸法の共通仕様（v3.12.6）、`layoutHost()` の確認結果（計算式の変更は不要の見込み）、波形の`ResizeObserver`が既にある点（格納時のリスク低下）、body直下ポップアップは切れない点。
+- 新しい未決事項（§8-4 バー幅の方針／§8-6 Seekbarアイコン／§8-7 格納状態の保存／§8-8）と、§10 改訂メモを追加。コードの変更なし。
+
+## 3.12.8（ドキュメントのみ）— 新チャット用の引き継ぎメモを追加
+- `md/HANDOFF_NEXT_CHAT.md` を追加（作業ルール、現状の仕様の要点、次の大仕事、未確認事項、過去の失敗から得た教訓）。コードの変更なし。
+
+## 3.13.0 — PLAYER下段バーを右カラム下端へ集約（仕様A）
+- PC幅（901px以上）で、下段コントロールバー（`#pcV2BottomBar`）を「波形エリアの真下（右カラムだけ）」へ移動。サイドバー・パネルは画面最下端まで縦いっぱいになった。`#pcV2Layout` を2行グリッド化（1行目＝サイドバー/パネル/波形、2行目＝バー）。
+- バーの必要幅（約1030px）が右カラムより広い時は、横スクロール（スクロールバー非表示）で全ボタンに届く（方針は「横スクロールのみ」。コンパクト表示は入れていない）。
+- `syncBottomBarPosition()` のPC分岐を「`#pcV2Layout` の末尾へ置く」に変更。SP幅の分岐・CSSは変更なし。
+- 変更ファイル：`JS/player-ui-pc-v2.js`、`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`、`md/PC_V2_FILE_INDEX.md`、`md/DOM_ID_REFERENCE.md`、`md/UI_TERMINOLOGY.md`、`md/AI_ASSISTANT_PROJECT_CONTEXT.md`、`md/PLAYER_LAYOUT_V3_SPEC.md`。
+
+## 3.14.0 — PLAYERパネル格納（仕様B）
+- PC幅（901px以上）：開いているパネルのサイドアイコンをもう一度押すと、パネル(375px)が左へ格納され（220ms）、波形と下段バーが広がる。格納中にどのアイコンを押しても開く。格納中は全アイコンの選択表示を外す。
+- 状態は `localStorage: qn_panel_collapsed` に保存（YouTubeアプリの `qn_yt_panel_collapsed` とは別）。初期は展開。
+- `switchPanel()` の先頭で「格納中なら展開」（Speed/Key/EQの右クリック、Backup/Import完了後のLibrary復帰など外部呼び出しの取りこぼし防止）。初期表示のみ `keepCollapsed` で保存状態を維持。
+- SP幅は従来どおり（格納クラスは付けない）。PC⇄SPをまたぐ時は `applyCollapse()` で付け外し。Seekbarアイコンは元々PC幅で非表示のため、§8-6は対応不要。
+- 変更ファイル：`JS/player-ui-pc-v2.js`、`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`、`md/PC_V2_FILE_INDEX.md`、`md/DOM_ID_REFERENCE.md`、`md/PLAYER_LAYOUT_V3_SPEC.md`。

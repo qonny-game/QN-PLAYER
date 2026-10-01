@@ -27,9 +27,11 @@ PC v2のシェル＝外枠）・`style-pcv2-panels.css`（約910行、PC v2の�
 ### レイアウト同期（SP⇔PC幅切り替え時にも呼ばれる）
 - `syncBottomBarPosition()` — 下段バー(`#pcV2BottomBar`)とPLAY/MARKER
   アンカータブ(`#pcV2BottomBarAnchorTabs`)を、SP幅では`#pcV2Layout`内
-  （アイコンバーの直前）へ、PC幅では`#pcV2Root`直下へDOM移動する。
+  （アイコンバーの直前）へ、PC幅（v3.13.0〜）では`#pcV2Layout`の末尾
+  （2行グリッドの右カラム下端）へDOM移動する。
   **新しい要素を下段バー周辺に追加したときは、ここも一緒に見直すこと**
   （`AI_ASSISTANT_PROJECT_CONTEXT.md`§2参照）。
+- `applyCollapse()` / `setCollapsed(on)` / `isCollapsed()` — PC幅のパネル格納（v3.14.0〜）。`#pcV2Layout.pcv2-collapsed` の付け外しと、アイコンの`.active`同期。`switchPanel()`先頭と`openPanelOverlay()`のPC分岐から呼ばれる。
 - `syncTimeRowPosition()` — 時刻表示行(`#pcV2TimeRow`)のDOM位置調整。
 - `updateIconBarScrollHint()` / `setupIconBarScrollHint()` — アイコン
   バーが横スクロール可能なことを示す右端の矢印ヒント。
@@ -123,7 +125,7 @@ PC v2の外枠（アイコンバー・波形エリア・下部バー・Volumeポ
 
 ### 基本ブロック（PC幅、メディアクエリなし）
 - `#pcV2Root` / `#pcV2Layout` — 全体の入れ物。PC幅では`#pcV2Layout`は
-  `display: grid`（3カラム）、SP幅では`display: flex; flex-direction: column`
+  `display: grid`（3カラム×2行。v3.13.0〜。2行目は下段バー専用）、SP幅では`display: flex; flex-direction: column`
   に切り替わる（§2の3カラム⇔縦積みの要）。
 - `#pcV2TimeRow` — 時刻表示行。PC幅では`display: none`（SP幅でのみ表示）。
 - `#pcV2IconBar` / `.pcv2-icon-item` — 左の縦アイコンバー（サイドメニュー）。
