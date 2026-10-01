@@ -610,15 +610,15 @@ body.pc-v2-active > .app-container {
   #pcV2Panel > #pcV2PanelHeader,
   #pcV2Panel > #pcV2PanelBody {
     min-width: 374px;
+    /* paddingを含めて374pxにする（content-boxだとpadding分だけ幅が増えて、
+       Backup/Importなどの中身がパネルから右へはみ出して見切れる） */
+    box-sizing: border-box;
   }
   #pcV2Layout.pcv2-collapsed #pcV2Panel {
+    border-right-color: transparent;
     visibility: hidden;
-    border-right-width: 0;
     transition: visibility 0s linear 220ms;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  #pcV2Layout { transition: none; }
 }
 
 

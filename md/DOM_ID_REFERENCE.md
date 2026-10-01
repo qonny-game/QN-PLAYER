@@ -97,6 +97,7 @@ PC v2の骨組み要素は全てJSの`build()`関数（`PC_V2_FILE_INDEX.md`参�
 | `pcV2TimeRow` | 時刻表示行（SP幅限定） |
 | `pcV2BottomBar` | 下段固定コントロールバー（PC幅v3.13.0〜：`#pcV2Layout`の子、右カラム下端。SP幅はアイコンバー直上） |
 | `pcV2Layout.pcv2-collapsed` | PC幅でパネルを格納中のクラス（v3.14.0〜。localStorage `qn_panel_collapsed`） |
+| `pcV2SkipBackBtn` / `pcV2SkipFwdBtn` | 下段バーの-10s/+10s（v3.16.0〜。Startボタン`pcV2StartBtn`は撤去） |
 | `pcV2WaveHead` | PC幅の波形エリア先頭行（左＝`#appTitle`、右＝時刻表示。v3.15.0〜） |
 | `pcV2BottomBarGroupRight` | 下段バー右グループ（Volume/Speed/Key/EQ）。狭いPC幅では非表示 |
 | `pcV2BottomBarAnchorTabs` | PLAY/MARKERアンカータブ |

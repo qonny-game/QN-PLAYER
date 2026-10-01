@@ -312,42 +312,32 @@
       // 独自のrestoreAnchorで#topControls直下へ戻そうとすると、
       // restoreForSp()が済ませた配置を上書きしてしまい競合する。
 
-      // Prev/NextのアイコンをSVGごとモック準拠（二枚羽根の早戻し/早送り）に
-      // 差し替える。既存は「一枚羽根の前へ」アイコンのみのため。
-      const prevTrackBtn = playbackTripleBtn ? playbackTripleBtn.querySelector("#prevTrackBtn") : null;
-      const nextTrackBtn = playbackTripleBtn ? playbackTripleBtn.querySelector("#nextTrackBtn") : null;
-      if (prevTrackBtn) {
-        const svg = prevTrackBtn.querySelector("svg");
-        if (svg && !svg.dataset.pcv2Swapped) {
-          svg.dataset.pcv2OriginalHtml = svg.innerHTML;
-          svg.innerHTML = '<path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>';
-          svg.dataset.pcv2Swapped = "1";
-        }
+      // 【v3.16.0】Start(頭出し)ボタンは撤去し、YouTubeアプリの下段バーと同じ
+      // 「Track(前) / -10s / Play / +10s / Track(次) / Repeat」の並びにする。
+      // Track(前/次)のアイコンはYouTubeと同じ「|◀ / ▶|」（index.html元のSVGのまま。
+      // 以前はここでモック風の二枚羽根に差し替えていたが、-10s/+10sに譲った）。
+      // 頭出しはEnterキー（seekToTrackStart）で引き続き使える。
+      const skipSvg = {
+        back: '<path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>',
+        fwd: '<path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>'
+      };
+      function makeSkipBtn(id, kind, label, title, sec) {
+        const btn = el(
+          '<button type="button" id="' + id + '" class="tripleNavBtn-third" title="' + title + '">' +
+            '<svg viewBox="0 0 24 24">' + skipSvg[kind] + '</svg>' +
+            '<span class="top-controls-btn-label">' + label + '</span>' +
+          '</button>'
+        );
+        btn.addEventListener("click", () => pcv2SkipBy(sec));
+        return btn;
       }
-      if (nextTrackBtn) {
-        const svg = nextTrackBtn.querySelector("svg");
-        if (svg && !svg.dataset.pcv2Swapped) {
-          svg.dataset.pcv2OriginalHtml = svg.innerHTML;
-          svg.innerHTML = '<path d="M13 6v12l8.5-6zm-.5 6L4 6v12z"/>';
-          svg.dataset.pcv2Swapped = "1";
-        }
-      }
-
-      // 新規：Start(頭出し)ボタン。モックには存在するが既存実装には
-      // 対応する機能が無いため、player-playlist.jsのseekToTrackStart()を
-      // 呼ぶボタンとして新設する。playbackTripleBtnの最初の子として
-      // 差し込む（コンテナ自体は解体しないため、内部への追加になる）。
-      const startBtn = el(
-        '<button type="button" id="pcV2StartBtn" class="tripleNavBtn-third" title="Seek to Start (Enter)">' +
-          '<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6l-8.5 6z"/></svg>' +
-          '<span class="top-controls-btn-label">Start</span>' +
-        '</button>'
-      );
-      startBtn.addEventListener("click", () => {
-        if (typeof seekToTrackStart === "function") seekToTrackStart();
-      });
-      if (playbackTripleBtn && playbackTripleBtn.firstChild) {
-        playbackTripleBtn.insertBefore(startBtn, playbackTripleBtn.firstChild);
+      const skipBackBtn = makeSkipBtn("pcV2SkipBackBtn", "back", "-10s", "10秒戻る", -10);
+      const skipFwdBtn = makeSkipBtn("pcV2SkipFwdBtn", "fwd", "+10s", "10秒進む", 10);
+      const playToggleEl = playbackTripleBtn ? playbackTripleBtn.querySelector("#playToggle") : null;
+      if (playbackTripleBtn && playToggleEl) {
+        playbackTripleBtn.insertBefore(skipBackBtn, playToggleEl.previousElementSibling || playToggleEl);
+        // 「再生」の次のdividerの直後（=Next Trackの前）へ+10s
+        playbackTripleBtn.insertBefore(skipFwdBtn, playToggleEl.nextElementSibling ? playToggleEl.nextElementSibling.nextElementSibling : null);
       }
 
       // allRepeatToggleBtn/loopToggleBtnは、playbackTripleBtn/markerNavBtnの
@@ -902,6 +892,18 @@
       document.body.appendChild(holder);
     }
     if (fullscreenBtn) holder.appendChild(fullscreenBtn);
+  }
+
+  // 【v3.16.0】±10秒スキップ（下段バーの-10s/+10s）。矢印キーのシークと同じく
+  // beginSeek()でループ区間の固定を外してから動かす。
+  function pcv2SkipBy(sec) {
+    if (typeof audio === "undefined" || !audio || !isFinite(audio.duration) || audio.duration <= 0) return;
+    if (typeof hapticTap === "function") hapticTap();
+    beginSeek();
+    const t = Math.max(0, Math.min(audio.duration, audio.currentTime + sec));
+    audio.currentTime = t;
+    prevTime = t;
+    setTimeout(() => { isSeeking = false; }, 150);
   }
 
   // 【SP幅レイアウト】#pcV2BottomBar（再生コントロール）を、SP幅では
@@ -1902,8 +1904,10 @@
     });
 
     // Startボタンを除去（playbackTripleBtnコンテナ内に追加していたもの）
-    const startBtn = document.getElementById("pcV2StartBtn");
-    if (startBtn) startBtn.parentNode.removeChild(startBtn);
+    ["pcV2SkipBackBtn", "pcV2SkipFwdBtn"].forEach(id => {
+      const sb = document.getElementById(id);
+      if (sb && sb.parentNode) sb.parentNode.removeChild(sb);
+    });
 
     // allRepeatToggleBtn/loopToggleBtnはbuild()時にplaybackTripleBtn/
     // markerNavBtnの子として組み込んだため、restoreForSp()が

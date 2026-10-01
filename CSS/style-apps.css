@@ -1720,3 +1720,27 @@ body.qn-app-open #pcV2TimeRow {
   #pcV2BottomBar .top-controls-btn-label,
   #pcV2BottomBar .pcv2-ctrl-btn span { font-size: 11px; }
 }
+
+
+/* ============================================================
+   v3.16.0：PLAYER下部バーのラベル・Speed/Keyステッパーを、YouTube下段バーと同じ表示にそろえる
+   （PLは大文字化＋行の高さ9pxで、YouTubeより幅が広く・1px低く出ていた。Speed/Keyの2行表示でバーも高くなっていた）。
+   ============================================================ */
+#pcV2BottomBar .top-controls-btn-label,
+#pcV2BottomBar .pcv2-ctrl-btn span {
+  text-transform: none;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+/* Speed/Keyの表示もYouTubeのSpeedと同じ1行（「1.00x Speed」）にして、バー全体の高さをYouTubeと同じ80pxにそろえる。
+   区切り線まわりの間隔（グループ4px＋区切り余白6px）もYouTubeと同じにする。 */
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span {
+  display: block;
+  min-width: 0;
+  line-height: normal;
+  text-align: center;
+  white-space: nowrap;
+}
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { min-height: 59px; }
+#pcV2BottomBar #topControls.top-controls { gap: 4px; }

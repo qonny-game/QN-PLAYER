@@ -642,3 +642,11 @@
 - PC幅：時刻表示（`.time-controls-row`）を下段バーから、波形エリア先頭行（新設 `#pcV2WaveHead`、左＝曲名 `#appTitle`／右＝時刻）の右端へ移設。SP幅は従来どおり `#pcV2TimeRow`。`syncTimeRowPosition()` のPC分岐を変更し、`#pcV2WaveHead` 生成直後にも1回呼ぶ。
 - PC幅でウインドウが狭い時は、下段バーの右グループ（`#pcV2BottomBarGroupRight`＝Volume/Speed/Key/EQ）とspacerを非表示（操作はControlパネルで可能）。境目：パネル展開中は画面幅1340px以下、格納中は960px以下（バー全体の必要幅は約883px）。広い時は従来どおり表示。
 - 変更ファイル：`JS/player-ui-pc-v2.js`、`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`、`md/DOM_ID_REFERENCE.md`。
+
+## 3.16.0 — PLAYER下部バーをYouTube下段バーと完全にそろえる／Start撤去・±10s追加／格納アニメ・Backup見切れ修正
+- ラベルがPLだけ大文字化（`text-transform:uppercase`）＋行の高さ9pxで、YouTubeより幅が広く・1px低く出ていた。YouTubeと同じ（大文字化なし・行の高さnormal）にそろえた。実測でボタン幅・上端・アイコン位置（20px/中央32px）・文字（9px/600）・バー高さ(80px)が一致。
+- Speed/Keyの表示を1行（「1.00x Speed」）にして、バーの高さがYouTubeより約10px高くなる問題を解消。グループと区切り線の間隔（4px＋6px）もYouTubeと同じに。
+- PLの再生系を「Track / -10s / Play / +10s / Track / Repeat」に。**Startボタンを撤去**（頭出しはEnterキーで継続）、**-10s/+10sを新設**（`#pcV2SkipBackBtn` / `#pcV2SkipFwdBtn`、`pcv2SkipBy()`。`beginSeek()`後に`audio.currentTime`を±10秒、0〜曲長にクランプ）。Trackのアイコンは元の「|◀ / ▶|」（YouTubeと同じ）に戻した。
+- パネル格納（v3.14.0）：`prefers-reduced-motion` で動きを止める指定を削除（OSの「視覚効果を減らす」設定で格納がパッと切り替わっていた）。格納後の枠線の消し方もYouTubeと同じ（`border-right-color: transparent`）に。
+- **v3.14.0で入れた不具合の修正**：`#pcV2PanelBody` の `min-width:374px` がcontent-boxで、paddingぶん(40px)広がって414pxになり、Backup/Importなどの中身が右へはみ出して見切れていた。`box-sizing:border-box` を追加して374pxに。全パネル（Library/Markers/Text/Control/Backup/Import/Keyboard/Color）で幅374pxに収まることを確認。
+- 変更ファイル：`JS/player-ui-pc-v2.js`、`CSS/style-layout-pc-v2.css`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`、`md/DOM_ID_REFERENCE.md`。
