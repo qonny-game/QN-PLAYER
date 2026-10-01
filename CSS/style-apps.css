@@ -1563,3 +1563,28 @@ body.qn-app-open #pcV2TimeRow {
   .qn-yt-bbtn { padding: 8px 4px; }
   .qn-yt-bdiv { margin: 0 6px; }
 }
+
+/* ---------- PLAYER側 A/B（v3.7.0〜） ---------- */
+/* A点・B点のマーカーの旗（YouTube側の.qn-yt-marker-abと同じ考え方）。A=線の右、B=線の左 */
+.vbar-line .vbar-ab-flag {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  z-index: 3;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: var(--marker-color, var(--accent-primary));
+  color: #0b0b0d;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateX(3px);
+}
+.vbar-line.is-ab-b .vbar-ab-flag { transform: translateX(calc(-100% - 3px)); }
+#pcV2WaveArea .vbar-line.is-ab-a::before,
+#pcV2WaveArea .vbar-line.is-ab-b::before { width: 4px; }
+/* 下部バーのSet A/Set B：設定済みはテーマ色 */
+#pcV2BottomBar .ab-set-btn.has-point { color: var(--accent-primary); }
+/* ポップアップのA/B：設定済みの位置は地色で示す */
+.qn-yt-seekpop-btn.is-set { background: color-mix(in srgb, var(--accent-primary) 20%, transparent); border-radius: 8px; }

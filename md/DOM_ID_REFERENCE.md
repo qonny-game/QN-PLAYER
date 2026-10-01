@@ -61,7 +61,7 @@
 
 ### その他の主要グループ
 - `eq*`（27個）: EQ（5バンドイコライザー）関連、`player-control-eq.js`。
-- `control*`（23個）: Speed/AutoSpeed/Key関連、`player-controls.js`。
+- `control*`（23個→v3.6.0で`controlSpeedDownBtn`/`controlSpeedUpBtn`を追加）: Speed/AutoSpeed/Key関連、`player-controls.js`。`controlSpeedEnableToggle`/`controlKeyEnableToggle`はv3.6.0からスイッチではなく「アイコンボタン(role=switch, aria-checked)」で、`.control-stepper`内に`[アイコン][−][＋]`で並ぶ（Speed=5%刻み、Key=1刻み。`controlKeyDownBtn`/`controlKeyUpBtn`もラベル行へ移動し、下のバーは表示のみ）。
 - `export*`（21個）: 現在曲の範囲書き出し、`player-export.js`。
 - `user*`（10個）: シェアウェア/課金関連、`player-shareware.js`。
 - `qn*`（8個）: ハンバーガーメニュー（`#qnMenuMount`配下）、`player-theme.js`。

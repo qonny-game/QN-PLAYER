@@ -353,6 +353,17 @@
       if (playbackTripleBtn && allRepeatToggleBtn) {
         playbackTripleBtn.appendChild(allRepeatToggleBtn);
       }
+      // v3.7.0〜：Set A / Set B（現在地をA点/B点に。YouTubeアプリの下段バーと同じ）。
+      // Loopボタンの手前に、markerNavBtnの子として入れる（SP幅へ戻る際もmarkerNavBtnごと動くため）。
+      const abGlyph = ch => '<svg viewBox="0 0 24 24"><text x="12" y="18" text-anchor="middle" font-size="17" font-weight="700" font-family="Instrument Sans, sans-serif" fill="currentColor">' + ch + '</text></svg>';
+      const setABtn = el('<button type="button" id="setABtn" class="loopbtn ab-set-btn" title="現在位置をA点に（もう一度押すと解除）">' + abGlyph("A") + '<span class="top-controls-btn-label">A --</span></button>');
+      const setBBtn = el('<button type="button" id="setBBtn" class="loopbtn ab-set-btn" title="現在位置をB点に（もう一度押すと解除）">' + abGlyph("B") + '<span class="top-controls-btn-label">B --</span></button>');
+      setABtn.addEventListener("click", () => { if (typeof setABFromCurrent === "function") setABFromCurrent("A"); });
+      setBBtn.addEventListener("click", () => { if (typeof setABFromCurrent === "function") setABFromCurrent("B"); });
+      if (markerNavBtn) {
+        markerNavBtn.appendChild(setABtn);
+        markerNavBtn.appendChild(setBBtn);
+      }
       if (markerNavBtn && loopToggleBtn) {
         markerNavBtn.appendChild(loopToggleBtn);
       }

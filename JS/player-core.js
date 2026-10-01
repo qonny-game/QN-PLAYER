@@ -10,6 +10,8 @@
 let audio = new Audio();
 let pins = [];
 let loopEnabled = false;
+// v3.7.0〜：ループの種類。loopEnabled=trueの時だけ意味を持つ。"sec"=マーカー〜次のマーカー(従来)、"ab"=A点〜B点。
+let loopMode = "sec";
 let isSeeking = false;
 
 // マーカー区間ループ折り返し判定用：現在ループ対象として固定している
@@ -653,8 +655,21 @@ function saveNoteText() {
   }
 }
 
+// v3.7.0〜：A点/B点（マーカー自身に pin.ab = "A"|"B" として持たせる。保存・バックアップもpinごと）。
+// A・Bが両方そろっていれば {start,end,color} を返す（時刻の早い方が開始）。
+function getABRange() {
+  let a = null, b = null;
+  pins.forEach(p => { if (p.ab === "A") a = p; else if (p.ab === "B") b = p; });
+  if (!a || !b) return null;
+  return a.t <= b.t
+    ? { start: a.t, end: b.t, color: a.color || null }
+    : { start: b.t, end: a.t, color: b.color || null };
+}
+
 function getActiveSegment(atTime) {
   const dur = audio.duration;
+  // A-Bループ中は、マーカー区間ではなくA〜Bを対象区間にする
+  if (loopEnabled && loopMode === "ab") return dur ? getABRange() : null;
   const activePinObjs = pins.filter(p => p.enabled);
   const activePins = activePinObjs.map(p => p.t);
   if (!dur || activePins.length < 2) return null;

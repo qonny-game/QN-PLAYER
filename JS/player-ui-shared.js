@@ -682,7 +682,13 @@ function updateBars() {
   // マーカー区間ループの折り返し判定はタイミングの正確さが重要なため、見た目更新の間引きとは
   // 独立して毎フレーム行う。ループがOFFの間はこの配列生成自体が無駄になるため、
   // loopEnabledの判定を先に行う。
-  if (loopEnabled && !isSeeking && !isJumping && !audio.paused) {
+  // v3.7.0〜：A-Bループ（A点〜B点）。折り返し処理はloopWrapAB()。
+  if (loopEnabled && loopMode === "ab" && !isSeeking && !isJumping && !audio.paused) {
+    const abr = getABRange();
+    if (abr) loopWrapAB(abr, ct);
+  }
+
+  if (loopEnabled && loopMode !== "ab" && !isSeeking && !isJumping && !audio.paused) {
     const activePinObjs = pins.filter(p => p.enabled);
     const activePins = activePinObjs.map(p => p.t);
     if (activePins.length >= 2) {
@@ -766,6 +772,33 @@ function updateBars() {
 }
 
 updateBars();
+
+// A-Bループの折り返し。マーカー区間ループと同じ「プリロール/ポストロール」「無料版の回数制限」
+// 「オートスピードの周回カウント」を適用する（updateBars()から毎フレーム呼ばれる）。
+function loopWrapAB(abr, ct) {
+  const preroll = typeof loopPreRollSeconds === "number" ? loopPreRollSeconds : 0;
+  const jumpTarget = Math.max(0, abr.start - preroll);
+  const endPlayback = Math.min(audio.duration || abr.end, abr.end + preroll);
+  if (!(prevTime < endPlayback && ct >= endPlayback)) return;
+
+  if (typeof isUnlocked === "function" && !isUnlocked()) {
+    swAbLoopCount++;
+    swUpdateLoopCounterUI();
+    if (swAbLoopCount >= SW_LIMITS.AB_LOOP_MAX_COUNT) {
+      loopEnabled = false;
+      swAbLoopCount = 0;
+      if (typeof applyLoopButtonUI === "function") applyLoopButtonUI();
+      swUpdateLoopCounterUI();
+      swShowUnlockToast(`無料版のAB間ループは${SW_LIMITS.AB_LOOP_MAX_COUNT}回で自動停止します。`);
+      return;
+    }
+  }
+  audio.currentTime = jumpTarget;
+  isJumping = true;
+  renderSegments({ start: abr.start, end: abr.end, color: abr.color });
+  notifyLoopCompleted();
+  setTimeout(() => { isJumping = false; }, 200);
+}
 
 function calcTimeFromBarPosition(bar, barIndex, clientX) {
   const rect = bar.getBoundingClientRect();

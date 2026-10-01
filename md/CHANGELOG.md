@@ -530,3 +530,14 @@
 - PLAYERの波形バーをクリック/タップすると、従来のシーク＆再生に加えてポップアップを表示。空き位置は＋Marker、既存マーカーは－（2回押しで削除）／Color／Hide⇄Show。
 - YouTubeポップアップのColorボタンが上にずれていた崩れを修正。YouTubeのプリロール上限をPLAYERと同じ5秒に統一。
 - 変更ファイル：`JS/player-markers.js`、`JS/player-ui-shared.js`、`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`。
+
+## 3.6.0 — PLAYER: Speed/Keyを「アイコン(ON/OFF)＋−＋」の操作に統一
+- Controlパネルの Speed / Key のトグルスイッチを、YouTubeアプリと同じ「−＋ステッパー」に置き換え。アイコン（メーター／音符）を押すと従来のON/OFF（効果のバイパス）、−＋は Speed 5%刻み・Key 1刻み。Speedスライダーは残す。
+- Speedは5%の倍数にそろえてから進める（1.03→＋で1.05）。無料版の制限（Speed/Key変更不可）は従来どおり。
+- 変更ファイル：`index.html`、`CSS/style-core.css`、`JS/player-controls.js`、`md/DOM_ID_REFERENCE.md`。
+
+## 3.7.0 — PLAYER: A/B（Set A/Set B・ポップアップ）とLOOP 3モード
+- PLAYERにもA-Bループを追加。LOOPボタンは YouTubeアプリと同じ OFF → A-B → Section → OFF。A点/B点は波形バーのポップアップ、または下部バーのSet A/Set Bで設定（現在地。近くのマーカーにスナップ）。
+- A/Bのマーカーに「A」「B」の旗。A-B区間はループ帯で表示。プリロール/ポストロール・無料版回数制限・Auto Speedは従来どおり適用。
+- マーカーバックアップ/インポートに`ab`を追加（互換あり）。
+- 変更ファイル：`JS/player-core.js`、`JS/player-ui-shared.js`、`JS/player-controls.js`、`JS/player-markers.js`、`JS/player-track-backup.js`、`JS/player-ui-pc-v2.js`、`CSS/style-apps.css`、`index.html`。

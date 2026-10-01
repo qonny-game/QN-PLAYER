@@ -5,7 +5,7 @@
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
 - 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（アプリ名バッジ・アプリ一覧フライアウト・表示領域）
-- 最終更新：QNPLAYER v3.5.0（PLAYERにもシークバーポップアップ／Colorの崩れ修正／プリロール上限5秒）（2026-10-01）
+- 最終更新：QNPLAYER v3.7.0（PLAYER側にもA/B・LOOP 3モード）（2026-10-01）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---
@@ -321,6 +321,16 @@ PC幅                                             SP幅（パネルを開いた�
   - マウスのドラッグ直後のclickではポップアップを出さない（`lastPinDragAt`）。タップは`startDragPin`のstop内で出す。無料版でロック中のマーカーは従来どおり出さない。
   - 波形マーカー線に`data-pin-index`を付与（Colorの基準位置の取得用）。
 - 変更ファイル：`JS/player-markers.js`、`JS/player-ui-shared.js`（バー1クリック後に呼ぶ）、`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`。
+
+## 付録：PLAYER側のA/B・LOOP 3モード（v3.7.0）
+YouTubeアプリと同じ考え方をPLAYERにも入れた（マーカー機能は両アプリで基本統一する方針）。
+- **データ**：A点/B点はマーカー自身に`pin.ab = "A"|"B"`として持たせる（PLAYERのマーカーはIDを持たないため。`mp3_pins_<ファイル名>`にそのまま保存される）。同じ種類は常に1つ。1つのマーカーがA兼Bにはならない。`getABRange()`（player-core.js）がA・Bの揃った時だけ`{start,end,color}`を返す。
+- **LOOPボタン**（`#loopToggleBtn`、`player-controls.js`）：押すたびに `OFF → A-B → Section → OFF`（A/B未設定の間はA-Bを飛ばす）。ラベルは Loop / A-B Loop / Section。`loopEnabled`（ON/OFF）＋`loopMode`（`"ab"|"sec"`）で持ち、保存は`mp3player_loop_mode`（旧`mp3player_loop_enabled`も書き続ける）。Section＝従来のマーカー〜次のマーカーのループ（再生位置に追従）。A/Bが無くなった時はA-Bを自動でOFFに戻す（`syncLoopModeWithAB`。保存はしない）。
+- **折り返し**：`updateBars()`内。A-Bは`loopWrapAB()`（`player-ui-shared.js`）で、Sectionと同じくプリロール/ポストロール・無料版の回数制限・Auto Speedの周回カウントを適用。区間帯・ハイライトは既存の`segmentHighlight`を流用（`getActiveSegment`がA-B中はA〜Bを返す）。
+- **設定方法**：①波形バーのポップアップ（空き位置＝`A / B / ＋Marker`、既存マーカー＝`A / B / － / Color / Hide⇄Show`。A/Bは設定済みの所を押すと解除、設定済みは地色で表示）。②下部バーの`Set A` / `Set B`（`#setABtn`/`#setBBtn`、現在地。±0.5秒以内に既存マーカーがあればそれを使い、無ければ作る。ラベルは`A 01:00`／`B --`、設定済みはテーマ色）。
+- **見た目**：A・Bのマーカー線を太くし「A」「B」の旗（`.vbar-ab-flag`）を付ける。
+- **バックアップ**：`markers[].ab`を追加（`player-track-backup.js`。古いバックアップ・`ab`なしも読める）。
+- 変更ファイル：`JS/player-core.js`、`JS/player-ui-shared.js`、`JS/player-controls.js`、`JS/player-markers.js`、`JS/player-track-backup.js`、`JS/player-ui-pc-v2.js`、`CSS/style-apps.css`、`index.html`。
 
 ## 付録：再生ボタン・Library前/次ボタン（v2.26.0）
 - シークバー下の`.qn-yt-transport`行（Prev / 再生⇄一時停止 / Next）。すべて利用者のクリックを起点に公式メソッド（`playVideo`/`pauseVideo`/`loadVideoById`）を呼ぶだけ。

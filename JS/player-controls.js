@@ -81,6 +81,24 @@ function handleSpeedRangeInput(e) {
 }
 if (controlSpeedRange) controlSpeedRange.oninput = handleSpeedRangeInput;
 
+// v3.6.0: Speedの−＋ボタン（5%刻み。5%の倍数にそろえてから進める：1.03→+で1.05）
+const SPEED_STEP = 0.05;
+function snapSpeedStep(dir) {
+  const q = currentSpeed / SPEED_STEP;
+  const n = dir > 0 ? Math.floor(q + 1e-6) + 1 : Math.ceil(q - 1e-6) - 1;
+  return n * SPEED_STEP;
+}
+const controlSpeedDownBtn = document.getElementById("controlSpeedDownBtn");
+const controlSpeedUpBtn = document.getElementById("controlSpeedUpBtn");
+function stepSpeed(dir) {
+  hapticTap();
+  // スライダー操作と同様、実際に操作された瞬間にWeb Audio API接続を試みる
+  setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
+  setSpeed(snapSpeedStep(dir));
+}
+if (controlSpeedDownBtn) controlSpeedDownBtn.onclick = () => stepSpeed(-1);
+if (controlSpeedUpBtn) controlSpeedUpBtn.onclick = () => stepSpeed(1);
+
 function resetSpeed() {
   currentSpeed = 1.0;
   syncSpeedDisplays();
@@ -315,7 +333,7 @@ renderKeyDisplay();
 // 非対応時はトグルごとまとめて触れなくする。
 function updateKeyControlAvailability() {
   const keyElements = [controlKeyUpBtn, controlKeyDownBtn, controlKeyResetBtn, controlKeyEnableToggle];
-  const speedElements = [controlSpeedRange, controlSpeedResetBtn, controlSpeedEnableToggle];
+  const speedElements = [controlSpeedRange, controlSpeedResetBtn, controlSpeedEnableToggle, controlSpeedDownBtn, controlSpeedUpBtn];
 
   if (pitchShiftAvailable) {
     keyElements.forEach(el => {
@@ -361,29 +379,67 @@ const loopToggleBtn = document.getElementById("loopToggleBtn");
 // localStorageに保存する。曲ごとではなくアプリ全体の設定として扱う。
 const LOOP_ENABLED_STORAGE_KEY = "mp3player_loop_enabled";
 
+// v3.7.0〜：LOOPボタンは YouTubeアプリと同じ3モード「OFF → A-B → Section → OFF」。
+// Section＝従来のマーカー区間ループ（再生位置に追従）。A-B＝A点〜B点（マーカーにA/Bを割り当てる）。
+// A/Bが未設定の間は A-B を飛ばして OFF → Section → OFF。
+// 保存：LOOP_MODE_STORAGE_KEY（"off"|"ab"|"sec"）。旧キー(LOOP_ENABLED_STORAGE_KEY)も互換のため書き続ける。
+const LOOP_MODE_STORAGE_KEY = "mp3player_loop_mode";
+
 function applyLoopButtonUI() {
   if (!loopToggleBtn) return;
   loopToggleBtn.classList.toggle("is-active", loopEnabled);
+  const lbl = loopToggleBtn.querySelector(".top-controls-btn-label");
+  if (lbl) lbl.textContent = !loopEnabled ? "Loop" : (loopMode === "ab" ? "A-B Loop" : "Section");
+  loopToggleBtn.title = !loopEnabled ? "Loop OFF (click: A-B / Section)" : (loopMode === "ab" ? "A-B Loop (click: Section)" : "Section Loop (click: OFF)");
+}
+
+// mode: "off" | "ab" | "sec"。persist=falseは「A/Bが無くなったので自動でOFFにした」時など、利用者の操作ではない切替。
+function setLoopModeState(mode, persist) {
+  loopEnabled = mode !== "off";
+  if (mode !== "off") loopMode = mode;
+  if (persist) {
+    try {
+      localStorage.setItem(LOOP_MODE_STORAGE_KEY, mode);
+      localStorage.setItem(LOOP_ENABLED_STORAGE_KEY, loopEnabled ? "1" : "0");
+    } catch (e) {}
+  }
+  // ループをONにする瞬間、AB間ループ回数カウンターをリセットする。
+  if (typeof swAbLoopCount !== "undefined") swAbLoopCount = 0;
+  if (typeof swUpdateLoopCounterUI === "function") swUpdateLoopCounterUI();
+  // ループ対象区間の固定インデックスもリセットし、ON時は現在地から
+  // 改めて対象区間を計算させる（OFF→ON時に古い区間を引きずらないため）。
+  loopActiveMarkerIndex = null;
+  applyLoopButtonUI();
+  renderSegments();
+}
+
+// A点/B点が揃っていないのにA-Bモードのままになっている場合は、自動でOFFに戻す（保存はしない）。
+function syncLoopModeWithAB() {
+  if (loopEnabled && loopMode === "ab" && !getABRange()) setLoopModeState("off", false);
 }
 
 if (loopToggleBtn) {
   try {
-    loopEnabled = localStorage.getItem(LOOP_ENABLED_STORAGE_KEY) === "1";
+    const savedMode = localStorage.getItem(LOOP_MODE_STORAGE_KEY);
+    if (savedMode === "ab" || savedMode === "sec") {
+      loopMode = savedMode; loopEnabled = true;
+    } else if (savedMode === "off") {
+      loopEnabled = false;
+    } else {
+      // 旧バージョンの保存値（ON/OFFのみ）からの引き継ぎ
+      loopEnabled = localStorage.getItem(LOOP_ENABLED_STORAGE_KEY) === "1";
+      loopMode = "sec";
+    }
   } catch (e) {}
   applyLoopButtonUI();
 
   loopToggleBtn.onclick = () => {
     hapticTap();
-    loopEnabled = !loopEnabled;
-    try { localStorage.setItem(LOOP_ENABLED_STORAGE_KEY, loopEnabled ? "1" : "0"); } catch (e) {}
-    // ループをONにする瞬間、AB間ループ回数カウンターをリセットする。
-    if (typeof swAbLoopCount !== "undefined") swAbLoopCount = 0;
-    if (typeof swUpdateLoopCounterUI === "function") swUpdateLoopCounterUI();
-    // ループ対象区間の固定インデックスもリセットし、ON時は現在地から
-    // 改めて対象区間を計算させる（OFF→ON時に古い区間を引きずらないため）。
-    loopActiveMarkerIndex = null;
-    applyLoopButtonUI();
-    renderSegments();
+    let next;
+    if (!loopEnabled) next = getABRange() ? "ab" : "sec";
+    else if (loopMode === "ab") next = "sec";
+    else next = "off";
+    setLoopModeState(next, true);
   };
 }
 

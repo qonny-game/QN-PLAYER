@@ -35,7 +35,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "3.5.0";
+  window.QN_APP_VERSION = "3.7.0";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -348,9 +348,12 @@
           <label>
             Speed <span id="controlSpeedDisplay" style="color:#fff;">1.00</span>x
             <button class="mini-reset-btn" id="controlSpeedResetBtn" title="Reset speed to 1.00x">RESET</button>
-            <button class="glow-switch control-effect-toggle" id="controlSpeedEnableToggle" role="switch" aria-checked="true" title="Toggle Speed effect on/off">
-              <span class="glow-switch-knob"></span>
-            </button>
+            <!-- v3.6.0: トグルスイッチを「アイコン(ON/OFF)＋−＋(5%刻み)」に置き換え。YouTubeアプリのSpeedと同じ操作感 -->
+            <span class="control-stepper">
+              <button type="button" class="control-effect-toggle control-effect-icon" id="controlSpeedEnableToggle" role="switch" aria-checked="true" title="Speed effect ON/OFF"><svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg></button>
+              <button type="button" class="control-step-btn" id="controlSpeedDownBtn" title="Speed −5%">−</button>
+              <button type="button" class="control-step-btn" id="controlSpeedUpBtn" title="Speed +5%">＋</button>
+            </span>
           </label>
           <input type="range" id="controlSpeedRange" min="0.5" max="1.5" step="0.01" value="1.0">
 
@@ -402,16 +405,16 @@
           <label>
             Key <span id="controlKeyDisplay" style="color:#fff;">0</span> st
             <button class="mini-reset-btn" id="controlKeyResetBtn" title="Reset key to 0">RESET</button>
-            <button class="glow-switch control-effect-toggle" id="controlKeyEnableToggle" role="switch" aria-checked="true" title="Toggle Key effect on/off">
-              <span class="glow-switch-knob"></span>
-            </button>
+            <span class="control-stepper">
+              <button type="button" class="control-effect-toggle control-effect-icon" id="controlKeyEnableToggle" role="switch" aria-checked="true" title="Key effect ON/OFF"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></button>
+              <button type="button" class="control-step-btn" id="controlKeyDownBtn" title="Key down 1 semitone">−</button>
+              <button type="button" class="control-step-btn" id="controlKeyUpBtn" title="Key up 1 semitone">＋</button>
+            </span>
           </label>
           <div class="key-stepper">
-            <button id="controlKeyDownBtn" class="key-step-btn" title="Key down 1 semitone">−</button>
             <div class="key-stepper-bar">
               <div class="key-stepper-fill" id="controlKeyStepperFill"></div>
             </div>
-            <button id="controlKeyUpBtn" class="key-step-btn" title="Key up 1 semitone">+</button>
           </div>
         </div>
       </div>

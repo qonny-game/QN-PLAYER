@@ -218,11 +218,24 @@ function renderPins() {
 
     line.appendChild(label);
 
+    // v3.7.0〜：A点/B点のマーカーには「A」「B」の旗を付ける（線も少し太く）
+    if (pinObj.ab === "A" || pinObj.ab === "B") {
+      line.classList.add(pinObj.ab === "A" ? "is-ab-a" : "is-ab-b");
+      const flag = document.createElement("span");
+      flag.className = "vbar-ab-flag";
+      flag.textContent = pinObj.ab;
+      line.appendChild(flag);
+    }
+
     const targetBar = document.getElementById(`bar${row}`);
     if (targetBar) {
       targetBar.appendChild(line);
     }
   });
+
+  // A/Bが揃わなくなったらA-Bループを自動でOFFに戻し、下部バーのSet A/Set Bの表示も更新
+  if (typeof syncLoopModeWithAB === "function") syncLoopModeWithAB();
+  updateABButtons();
 
   const activeCount = pins.filter(p => p.enabled).length;
   const loopInfo = document.getElementById("loopInfo");
@@ -697,6 +710,8 @@ function ensurePinPopup() {
   pinPopEl.innerHTML =
     '<div class="qn-yt-seekpop-time" data-pop="time">00:00.0</div>' +
     '<div class="qn-yt-seekpop-row">' +
+      '<button type="button" class="qn-yt-seekpop-btn" data-pop="A" title="この位置をA点(ループ開始)に（もう一度押すと解除）"><b>A</b><span>Start</span></button>' +
+      '<button type="button" class="qn-yt-seekpop-btn" data-pop="B" title="この位置をB点(ループ終了)に（もう一度押すと解除）"><b>B</b><span>End</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="M" title="この位置にマーカーを追加"><b>＋</b><span>Marker</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="D" title="このマーカーを削除" hidden><b>－</b><span>Marker</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="C" title="マーカーの色を変える" hidden><b><i class="qn-yt-seekpop-dot"></i></b><span>Color</span></button>' +
@@ -709,7 +724,8 @@ function ensurePinPopup() {
     const b = e.target.closest ? e.target.closest("[data-pop]") : null;
     if (!b) return;
     const k = b.getAttribute("data-pop");
-    if (k === "M") pinPopAdd();
+    if (k === "A" || k === "B") pinPopAB(k);
+    else if (k === "M") pinPopAdd();
     else if (k === "D") pinPopDelete();
     else if (k === "C") pinPopColor();
     else if (k === "H") pinPopToggle();
@@ -756,6 +772,9 @@ function showPinPopup(t, barEl, clientX, pinObj) {
   pop.querySelector('[data-pop="time"]').textContent = formatTime(pinPopTime);
   pop.querySelector('[data-pop="M"]').hidden = !!pinObj;
   ["D", "C", "H"].forEach(k => { pop.querySelector(`[data-pop="${k}"]`).hidden = !pinObj; });
+  // A/Bが設定済みの位置のボタンは色付きの地で示す（もう一度押すと解除）
+  pop.querySelector('[data-pop="A"]').classList.toggle("is-set", !!pinObj && pinObj.ab === "A");
+  pop.querySelector('[data-pop="B"]').classList.toggle("is-set", !!pinObj && pinObj.ab === "B");
   if (pinObj) {
     const hex = pinObj.color && MARKER_COLOR_PALETTE[pinObj.color] ? MARKER_COLOR_PALETTE[pinObj.color] : "#3a3a48";
     pop.querySelector(".qn-yt-seekpop-dot").style.background = hex;
@@ -774,6 +793,64 @@ function showPinPopup(t, barEl, clientX, pinObj) {
   pop.style.left = left + "px";
   pop.style.top = top + "px";
   resetPinPopTimer();
+}
+
+function pinPopAB(kind) {
+  const t = pinPopTime, pin = pinPopPin;
+  hidePinPopup();
+  hapticTap();
+  setABAt(kind, t, pin);
+}
+
+// ============================================================
+// 【v3.7.0】A/B（YouTubeアプリと同じ）。マーカー自身に pin.ab = "A"|"B" を持たせる。
+// setABAt: 指定位置(秒)にA点/B点を設定。pinObj指定＝そのマーカーを使う。未指定なら±0.5秒以内の
+// 最も近い既存マーカーを使い、無ければ新しいマーカーを作る。すでに同じ種類なら解除（トグル）。
+// 同じ種類は常に1つだけ（別のマーカーに付けると前のは外れる）。1つのマーカーがA兼Bにはならない。
+// ============================================================
+const AB_SNAP_SEC = 0.5;
+function setABAt(kind, t, pinObj) {
+  if (!audio.duration) return;
+  let pin = pinObj || null;
+  if (!pin) {
+    let best = AB_SNAP_SEC + 1e-9;
+    pins.forEach(p => { const d = Math.abs(p.t - t); if (d <= best) { best = d; pin = p; } });
+  }
+  if (!pin) {
+    pin = { t: Math.max(0, Math.min(audio.duration, t)), enabled: true, memo: "", color: null };
+    pins.push(pin);
+    pins.sort((a, b) => a.t - b.t);
+  }
+  if (pin.ab === kind) {
+    delete pin.ab;
+  } else {
+    pins.forEach(p => { if (p.ab === kind) delete p.ab; });
+    pin.ab = kind;
+  }
+  refreshAfterPinChange();
+}
+
+// 下部バーの Set A / Set B：現在の再生位置を A点/B点に
+function setABFromCurrent(kind) {
+  hapticTap();
+  setABAt(kind, audio.currentTime, null);
+}
+
+function fmtABTime(t) {
+  const m = Math.floor(t / 60), s = Math.floor(t % 60);
+  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+// 下部バーのSet A/Set Bのラベル（設定済みなら時刻を表示し、テーマ色にする）
+function updateABButtons() {
+  ["A", "B"].forEach(kind => {
+    const btn = document.getElementById(kind === "A" ? "setABtn" : "setBBtn");
+    if (!btn) return;
+    const pin = pins.find(p => p.ab === kind);
+    const lbl = btn.querySelector(".top-controls-btn-label");
+    if (lbl) lbl.textContent = kind + " " + (pin ? fmtABTime(pin.t) : "--");
+    btn.classList.toggle("has-point", !!pin);
+  });
 }
 
 function pinPopAdd() {

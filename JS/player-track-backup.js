@@ -242,7 +242,9 @@ async function runTrackBackup() {
           time: p.t,
           enabled: p.enabled !== false,
           color: p.color || null,
-          memo: p.memo || ""
+          memo: p.memo || "",
+          // v3.7.0〜：A-Bループ用のA点/B点（"A"|"B"。無ければ省略）
+          ...(p.ab === "A" || p.ab === "B" ? { ab: p.ab } : {})
         }));
         trackData.noteText = loadStoredNoteTextFor(track.name);
       }
@@ -733,7 +735,8 @@ function applyImportedMarkersAndText(name, trackData) {
       t: typeof m.time === "number" ? m.time : 0,
       enabled: m.enabled !== false,
       memo: m.memo || "",
-      color: m.color || null
+      color: m.color || null,
+      ...(m.ab === "A" || m.ab === "B" ? { ab: m.ab } : {})
     }));
     try {
       localStorage.setItem("mp3_pins_" + name, JSON.stringify(pinsToSave));
