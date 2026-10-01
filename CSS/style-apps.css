@@ -1654,3 +1654,16 @@ body.qn-app-open #pcV2TimeRow {
 }
 .qn-yt-preroll-value b { font-weight: 400; }
 .qn-yt-preroll-unit { font-size: 0.6em; margin-left: 1px; }
+
+/* YouTube：ループのプリロール/ポストロール範囲（PLAYERの.segmentHighlight-prerollと同じ薄い破線帯・v3.10.2） */
+.qn-yt-loop-pre {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  border-top: 2px dashed color-mix(in srgb, var(--accent-primary) 60%, transparent);
+  border-bottom: 2px dashed color-mix(in srgb, var(--accent-primary) 60%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+.qn-yt-loop-pre[hidden] { display: none; }

@@ -570,3 +570,9 @@
 - PLAYER下部バーのSpeed/Keyステッパー：値と名前（`1.00x Speed`／`+0 Key`）が表示されず−＋も見えなかった不具合を修正。YouTubeアプリのステッパーと同じ見た目に。
 - PLAYER下部バーのA/Bボタン：Set A / Set B のラベル（`A --`等）を表示し、YouTubeと同じ並び（A・B・Loop・プリロール・Clear AB）に。Clear ABを追加（A/B点を両方クリア）。
 - 変更ファイル：`JS/qn-app-youtube.js`、`JS/player-ui-pc-v2.js`、`JS/player-markers.js`、`CSS/style-layout-pc-v2.css`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.10.2 — YouTube: プリロール帯の表示／Speedアイコンで1xに戻す／プリロール中に別区間へ飛ぶバグ修正
+- シークバーに、ループ区間の前後のプリロール/ポストロール範囲を薄い破線帯で表示（PLAYERの`segmentHighlight-preroll`と同じ見た目）。秒数を変えると即反映。
+- 下部のSpeedのアイコン部分を押すと再生スピードを1xに戻す。
+- 区間ループ中、プリロール部分（区間の開始より前）を再生している間に、位置が前の区間と判定されてループ対象が切り替わる（例：2-3ループが1に戻される）不具合を修正。判定の余裕を広げ、ループの折り返し直後1.5秒は区間の切替判定をしない。
+- 変更ファイル：`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。

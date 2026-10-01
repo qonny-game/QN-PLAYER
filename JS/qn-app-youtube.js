@@ -46,7 +46,7 @@
   var duration = 0;
   var seeking = false;             // シークバー/マーカードラッグ中は表示更新を止める
   var pollTimer = null;
-  var tracks = [], fills = [], heads = [], loopRanges = [];
+  var tracks = [], fills = [], heads = [], loopRanges = [], loopPres = [], loopJumpAt = 0;
   var titleFetchToken = 0;
 
   // ---------- ユーティリティ ----------
@@ -428,7 +428,10 @@
       var fill = document.createElement("div"); fill.className = "qn-yt-fill vfill";
       var loop = document.createElement("div"); loop.className = "qn-yt-loop-range"; loop.hidden = true;
       var head = document.createElement("div"); head.className = "qn-yt-head"; head.style.display = "none";
-      track.appendChild(fill); track.appendChild(loop); track.appendChild(head);
+      var preA = document.createElement("div"); preA.className = "qn-yt-loop-pre"; preA.hidden = true;
+      var preB = document.createElement("div"); preB.className = "qn-yt-loop-pre"; preB.hidden = true;
+      track.appendChild(fill); track.appendChild(preA); track.appendChild(preB); track.appendChild(loop); track.appendChild(head);
+      loopPres.push([preA, preB]);
       refs.seekTracks.insertBefore(track, refs.markerLayer); // マーカーレイヤーは最前面
       tracks.push(track); fills.push(fill); loopRanges.push(loop); heads.push(head);
       attachTrackSeek(track);
@@ -729,6 +732,13 @@
     syncAutoNextBtn();
     refs.autoNext.addEventListener("click", function () { setAutoNext(!autoNext); });
     refs.speedDown.addEventListener("click", function () { stepRate(-1, true); });
+    // アイコン（中央）を押すと 1x に戻す
+    var spMid = refs.speedVal && refs.speedVal.closest(".qn-yt-bstep-mid");
+    if (spMid) {
+      spMid.style.cursor = "pointer";
+      spMid.title = "クリックで 1x に戻す";
+      spMid.addEventListener("click", function () { resetRate(); });
+    }
     refs.speedUp.addEventListener("click", function () { stepRate(1, true); });
     renderSpeed();
 
@@ -1489,6 +1499,7 @@
     preRoll = Math.max(0, Math.min(PREROLL_MAX, v));
     try { localStorage.setItem(PREROLL_KEY, String(preRoll)); } catch (e) {}
     renderPreRoll();
+    updateLoopUI();
   }
   function renderPreRoll() {
     if (refs.preVal) refs.preVal.textContent = String(preRoll);
@@ -1561,6 +1572,25 @@
         }
       }
       if (!shown) loopRanges[i].hidden = true;
+      // プリロール/ポストロール範囲（PLAYERのsegmentHighlight-prerollと同じ：本編の前後に薄い破線帯）
+      var pr = [null, null];
+      if (range && duration && lm !== "off" && preRoll > 0) {
+        pr[0] = [Math.max(0, range.start - preRoll), range.start];
+        pr[1] = [range.end, Math.min(duration, range.end + preRoll)];
+      }
+      for (var k = 0; k < 2; k++) {
+        var pe = loopPres[i][k], seg = pr[k], on = false;
+        if (seg) {
+          var pa = Math.max(seg[0], i * len), pb = Math.min(seg[1], (i + 1) * len);
+          if (pb > pa) {
+            pe.hidden = false;
+            pe.style.left = segPct(i, pa) + "%";
+            pe.style.width = Math.max(0, segPct(i, pb) - segPct(i, pa)) + "%";
+            on = true;
+          }
+        }
+        if (!on) pe.hidden = true;
+      }
     }
   }
 
@@ -1878,7 +1908,9 @@
       // 区間の終わりに達した時は従来どおり先頭へ戻る(プリロール分の余裕を見て判定)。
       if (current.loopMode === "sec" && current.secRange) {
         var sr = current.secRange;
-        if (t < sr.start - preRoll - 1 || t > sr.end + preRoll + 1) {
+        // プリロール/ポストロール部分（開始の前・終わりの後）は「今の区間」に含める。自分のループ折り返し直後(1.5秒)も判定しない
+        // （折り返し直後は再生位置の更新が遅れ、前後の区間に見えてしまうため）
+        if (Date.now() - loopJumpAt > 1500 && (t < sr.start - preRoll - 1.5 || t > sr.end + preRoll + 1.5)) {
           var nr = sectionRangeAt(t);
           if (nr && (nr.start !== sr.start || nr.end !== sr.end)) {
             current.secRange = nr;
@@ -1891,7 +1923,7 @@
       // 区間の終わりが動画の終わりの時は、終了(ended)になる前に少し手前で戻す
       // プリロール/ポストロール：区間の「終わりの何秒後まで」再生してから「開始の何秒前」へ戻る
       var endAt = Math.min(duration - 0.3, range.end + preRoll);
-      if (range && t >= endAt) { seekTo(Math.max(0, range.start - preRoll)); return; }
+      if (range && t >= endAt) { loopJumpAt = Date.now(); seekTo(Math.max(0, range.start - preRoll)); return; }
     }
     updateDisplay(t);
   }
@@ -2219,6 +2251,13 @@
     try { if (window.QNApps && window.QNApps.toast) window.QNApps.toast(text); } catch (e) {}
   }
 
+  function resetRate() {
+    desiredRate = 1;
+    try { localStorage.setItem(RATE_KEY, "1"); } catch (e) {}
+    try { if (player && playerReady && player.setPlaybackRate) player.setPlaybackRate(1); } catch (e) {}
+    renderSpeed();
+    ytToast("Speed 1x");
+  }
   function stepRate(dir, quiet) {
     var rates = availableRates(), actual = desiredRate, i, idx = -1;
     try { if (player && playerReady && player.getPlaybackRate) actual = player.getPlaybackRate(); } catch (e) {}
