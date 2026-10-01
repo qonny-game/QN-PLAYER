@@ -811,6 +811,10 @@ function calcTimeFromBarPosition(bar, barIndex, clientX) {
 
 document.querySelectorAll(".vbar").forEach((bar, index) => {
   bar.addEventListener("click", e => {
+    // マーカー線のクリック直後(player-markers.jsのstartDragPin内で処理済み)に、DOM作り直しの
+    // 影響で波形バー側へ届いたclickは無視する（マーカーとは別の位置へシークされたり、
+    // ポップアップが＋Marker用に置き換わるのを防ぐ）。
+    if (typeof lastPinTapAt !== "undefined" && Date.now() - lastPinTapAt < 400) return;
     beginSeek();
 
     const clickedTime = calcTimeFromBarPosition(bar, index, e.clientX);

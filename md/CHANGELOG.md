@@ -541,3 +541,7 @@
 - A/Bのマーカーに「A」「B」の旗。A-B区間はループ帯で表示。プリロール/ポストロール・無料版回数制限・Auto Speedは従来どおり適用。
 - マーカーバックアップ/インポートに`ab`を追加（互換あり）。
 - 変更ファイル：`JS/player-core.js`、`JS/player-ui-shared.js`、`JS/player-controls.js`、`JS/player-markers.js`、`JS/player-track-backup.js`、`JS/player-ui-pc-v2.js`、`CSS/style-apps.css`、`index.html`。
+
+## 3.7.1 — PLAYER: マーカー線のクリックでポップアップが出ない不具合を修正
+- マウスでマーカー線をクリックしても、ドラッグ処理の終わり(`startDragPin`のstop)でマーカー線のDOMが作り直され、線のonclickが呼ばれずポップアップが出なかった。タッチ・マウスとも`stop()`内でシーク＆再生＋ポップアップを行うように変更（二重処理は`lastPinTapAt`で防止。波形バー側の`click`は直後なら無視）。
+- 変更ファイル：`JS/player-markers.js`、`JS/player-ui-shared.js`、`index.html`。

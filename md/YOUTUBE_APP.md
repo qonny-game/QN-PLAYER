@@ -5,7 +5,7 @@
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
 - 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（アプリ名バッジ・アプリ一覧フライアウト・表示領域）
-- 最終更新：QNPLAYER v3.7.0（PLAYER側にもA/B・LOOP 3モード）（2026-10-01）
+- 最終更新：QNPLAYER v3.7.1（PLAYERのマーカー線クリックでポップアップが出ない不具合を修正）（2026-10-01）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---

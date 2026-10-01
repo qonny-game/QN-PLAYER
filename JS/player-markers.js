@@ -199,7 +199,7 @@ function renderPins() {
       setTimeout(() => { isSeeking = false; }, 150);
       // v3.5.0〜：シーク＆再生に加えて、−/Color/Hide のポップアップも出す
       // （マウスのドラッグ直後に出るclickでは出さない）。
-      if (Date.now() - lastPinDragAt > 400) showPinPopup(pinObj.t, line.parentNode, e.clientX, pinObj);
+      if (Date.now() - lastPinDragAt > 400 && Date.now() - lastPinTapAt > 400) showPinPopup(pinObj.t, line.parentNode, e.clientX, pinObj);
     }
 
     label.onclick = handleMarkerTapOrDrag;
@@ -469,17 +469,22 @@ function startDragPin(index) {
         dragTarget.removeEventListener("touchcancel", stop);
       }
 
-      if (!hasDragged && isTouch) {
-        // 実質的にタップだった（touchstartのpreventDefaultでclickが発火しないため、
-        // ここでタップ時と同じ処理＝そのマーカーへシーク＆再生を行う）。
+      if (!hasDragged) {
+        // 実質的にタップ(クリック)だった。タッチはtouchstartのpreventDefaultでclickが発火しない。
+        // マウスも、このstop()の最後のrenderPins()でマーカー線のDOMが作り直され、mousedownした
+        // 元の要素が消えるため、線のonclick(handleMarkerTapOrDrag)が呼ばれないことがある
+        // （v3.5.0でマウスのクリックでポップアップが出なかった原因）。
+        // そこで、タッチ・マウスとも、ここでタップ時と同じ処理＝そのマーカーへシーク＆再生＋ポップアップを行う。
+        // （clickが来た場合は、lastPinTapAtで二重にポップアップを出さない）
         const pinObj = pins[index];
         if (pinObj) {
+          lastPinTapAt = Date.now();
           audio.currentTime = pinObj.t;
           prevTime = pinObj.t;
           audio.play();
           updatePlayButtonState();
           renderSegments(getActiveSegment(pinObj.t));
-          // v3.5.0〜：タップ時はポップアップも出す（マウスはclick側で出す）
+          // v3.5.0〜：タップ・クリック時はポップアップも出す
           showPinPopup(pinObj.t, lineEl ? lineEl.parentNode : null, startClientX, pinObj);
         }
       } else {
@@ -686,6 +691,7 @@ function renderPinList() {
 // ※PLAYERにはA/Bの概念が無い（ループはマーカー〜次のマーカー）ため A/B は出さない。
 // ============================================================
 let lastPinDragAt = 0;
+let lastPinTapAt = 0; // startDragPinのstop()でタップ処理(シーク＋ポップアップ)をした時刻。clickとの二重処理防止用
 let pinPopEl = null, pinPopTimer = null, pinPopTime = 0, pinPopPin = null;
 let pinPopDelArmed = false, pinPopDelTimer = null;
 const PINPOP_MS = 4000;
