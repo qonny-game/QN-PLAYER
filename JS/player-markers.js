@@ -852,6 +852,13 @@ function fmtABTime(t) {
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
+// 下部バーのClear AB：A点・B点を両方クリア（A-Bループ中ならLOOPもOFFになる）
+function clearAB() {
+  hapticTap();
+  abA = null; abB = null;
+  afterABChange();
+}
+
 // 下部バーのSet A/Set Bのラベル（設定済みなら時刻を表示し、テーマ色にする）
 function updateABButtons() {
   [["A", abA], ["B", abB]].forEach(([kind, v]) => {

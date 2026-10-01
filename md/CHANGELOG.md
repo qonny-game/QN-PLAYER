@@ -563,3 +563,10 @@
 - 下部バーの Speed / Key を「−［アイコン＋現在値］＋」に変更。アイコン（値表示）を押すと従来どおりON/OFF、−＋はControlパネルと同じ（Speed 5%刻み・Key ±1）。値は1.00x / +0 の形式で表示。右クリックでControlパネルを開く動作も従来どおり。
 - A-Bループ中に、A〜Bの範囲外の波形をクリック、または範囲外のマーカーをタップしたら、LOOPをOFFにする（A/B点は残る。再度LOOPを押せば同じA-Bで再開）。範囲内のクリックはそのままループ継続。
 - 変更ファイル：`JS/player-ui-pc-v2.js`、`JS/player-ui-shared.js`、`JS/player-markers.js`、`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.10.1 — YouTube不具合の緊急修正／プリロール表示の統一／PLAYER下部バー調整
+- 【重要】v3.8.0・v3.9.0の`JS/qn-app-youtube.js`で、プリロール関連（`preRoll`/`setPreRoll`/`renderPreRoll`）と`setBtnLabel`が誤って消えており、YouTubeアプリが正しく動かない状態だった。復活させた（この版で必ず差し替えること）。
+- YouTube下段バーのプリロール表示を、PLAYERと同じ「− 0s ＋」（アイコン・文字なしのコンパクト表示）に変更。
+- PLAYER下部バーのSpeed/Keyステッパー：値と名前（`1.00x Speed`／`+0 Key`）が表示されず−＋も見えなかった不具合を修正。YouTubeアプリのステッパーと同じ見た目に。
+- PLAYER下部バーのA/Bボタン：Set A / Set B のラベル（`A --`等）を表示し、YouTubeと同じ並び（A・B・Loop・プリロール・Clear AB）に。Clear ABを追加（A/B点を両方クリア）。
+- 変更ファイル：`JS/qn-app-youtube.js`、`JS/player-ui-pc-v2.js`、`JS/player-markers.js`、`CSS/style-layout-pc-v2.css`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。

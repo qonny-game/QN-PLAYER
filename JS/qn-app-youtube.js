@@ -149,10 +149,10 @@
         bbtn("setABtn", "", BI.setA, "A --", "現在地をA点に設定（マーカーを作ります）") +
         bbtn("setBBtn", "", BI.setB, "B --", "現在地をB点に設定（マーカーを作ります）") +
         bbtn("loopToggleBtn", "", BI.loop, "Loop", "LOOP：OFF → A-B → 区間 → OFF") +
-        '<div class="qn-yt-bstep" title="ループのプリロール/ポストロール秒数（区間の何秒前から・何秒後まで）">' +
-          '<button type="button" data-yt="preDown" class="qn-yt-bstep-btn" title="Decrease">−</button>' +
-          '<div class="qn-yt-bstep-mid"><svg viewBox="0 0 24 24">' + BI.preroll + '</svg><span><b data-yt="preVal">0s</b> Pre/Post</span></div>' +
-          '<button type="button" data-yt="preUp" class="qn-yt-bstep-btn" title="Increase">＋</button>' +
+        '<div class="qn-yt-preroll" title="ループのプリロール/ポストロール秒数（区間の何秒前から・何秒後まで）">' +
+          '<button type="button" data-yt="preDown" class="qn-yt-preroll-btn" title="Decrease">−</button>' +
+          '<span class="qn-yt-preroll-value"><b data-yt="preVal">0</b><span class="qn-yt-preroll-unit">s</span></span>' +
+          '<button type="button" data-yt="preUp" class="qn-yt-preroll-btn" title="Increase">＋</button>' +
         '</div>' +
         bbtn("loopClearBtn", "", BI.clear, "Clear AB", "AB点をクリア") +
       '</div>' +
@@ -1477,6 +1477,26 @@
     if (current.loopA === null || current.loopB === null) { if (current.loopMode === "ab") setLoopMode("off"); }
     persistLoop();
     renderMarkers();
+  }
+
+  // ---------- プリロール/ポストロール（PLAYER本体と同じ：前後共通の秒数） ----------
+  // ループの折り返しで、区間の開始の何秒前へ戻るか／終わりの何秒後まで再生してから戻るか。
+  var PREROLL_KEY = "qn_yt_preroll", PREROLL_MAX = 5, PREROLL_STEP = 1;
+  var preRoll = (function () {
+    try { var v = parseInt(localStorage.getItem(PREROLL_KEY), 10); return v >= 0 && v <= PREROLL_MAX ? v : 0; } catch (e) { return 0; }
+  })();
+  function setPreRoll(v) {
+    preRoll = Math.max(0, Math.min(PREROLL_MAX, v));
+    try { localStorage.setItem(PREROLL_KEY, String(preRoll)); } catch (e) {}
+    renderPreRoll();
+  }
+  function renderPreRoll() {
+    if (refs.preVal) refs.preVal.textContent = String(preRoll);
+  }
+
+  function setBtnLabel(btn, text) {
+    var sp = btn && btn.querySelector("span");
+    if (sp) sp.textContent = text;
   }
 
   function setLoopMode(m) {

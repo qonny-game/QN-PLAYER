@@ -374,6 +374,10 @@
       if (markerNavBtn && loopPreRollControl) {
         markerNavBtn.appendChild(loopPreRollControl);
       }
+      // v3.10.1〜：Clear AB（YouTubeアプリの下段バーと同じ位置＝プリロールの右。A/B点を両方クリア）
+      const clearABBtn = el('<button type="button" id="clearABBtn" class="loopbtn ab-set-btn" title="A/B点をクリア"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg><span class="top-controls-btn-label">Clear AB</span></button>');
+      clearABBtn.addEventListener("click", () => { if (typeof clearAB === "function") clearAB(); });
+      if (markerNavBtn) markerNavBtn.appendChild(clearABBtn);
 
       // 各ボタンのtitle(ネイティブツールチップ)に対応するキーボード
       // ショートカットを追記する（window.QN_SHORTCUTSのaction文字列と
@@ -473,7 +477,7 @@
       if (entry.id === "speed" || entry.id === "key") {
         const cap = entry.id === "speed" ? "Speed" : "Key";
         const mk = (sign, dir) => {
-          const b = el('<button type="button" class="pcv2-ctrl-btn pcv2-step-btn" title="' + cap + (dir < 0 ? " −" : " ＋") + '"><span>' + sign + '</span></button>');
+          const b = el('<button type="button" class="pcv2-ctrl-btn pcv2-step-btn" title="' + cap + (dir < 0 ? " −" : " ＋") + '">' + sign + '</button>');
           b.addEventListener("click", () => {
             const t = document.getElementById("control" + cap + (dir < 0 ? "DownBtn" : "UpBtn"));
             if (t) t.click();
@@ -483,6 +487,9 @@
         };
         const wrap = el('<div class="pcv2-stepper"></div>');
         wrap.appendChild(mk("−", -1));
+        // 値と名前をラベルに表示（YouTubeアプリのステッパーと同じ「1.00x Speed」）
+        const lab = btn.querySelector("span");
+        if (lab) lab.innerHTML = '<b>' + (entry.id === "speed" ? "1.00x" : "0") + '</b> ' + cap;
         wrap.appendChild(btn);
         wrap.appendChild(mk("＋", 1));
         rightGroup.appendChild(wrap);
@@ -498,11 +505,11 @@
     function updateBottomStepperValues() {
       const sp = bottomBarEffectButtons.speed, ky = bottomBarEffectButtons.key;
       if (sp && typeof currentSpeed === "number") {
-        const l = sp.querySelector("span"); const v = currentSpeed.toFixed(2) + "x";
+        const l = sp.querySelector("b"); const v = currentSpeed.toFixed(2) + "x";
         if (l && l.textContent !== v) l.textContent = v;
       }
       if (ky && typeof currentKeySemitones === "number") {
-        const l = ky.querySelector("span"); const v = (currentKeySemitones > 0 ? "+" : "") + currentKeySemitones;
+        const l = ky.querySelector("b"); const v = (currentKeySemitones > 0 ? "+" : "") + currentKeySemitones;
         if (l && l.textContent !== v) l.textContent = v;
       }
     }

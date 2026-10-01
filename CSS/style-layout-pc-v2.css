@@ -1503,3 +1503,11 @@ html {
 #pcV2BottomBar .pcv2-stepper { display: inline-flex; align-items: center; gap: 0; }
 #pcV2BottomBar .pcv2-step-btn { min-width: 26px; padding-left: 4px; padding-right: 4px; font-size: 18px; line-height: 1; }
 #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span { min-width: 3.2em; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* v3.10.1：Speed/Keyステッパーの値表示（.pcv2-ctrl-btn spanは通常非表示なのでここだけ表示）と、Set A/Set B/Clear ABのラベル */
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span { display: block; white-space: nowrap; }
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span b { font-weight: 700; }
+#pcV2BottomBar .pcv2-step-btn { font-size: 18px; min-height: 0; align-self: center; }
+#pcV2BottomBar #setABtn .top-controls-btn-label,
+#pcV2BottomBar #setBBtn .top-controls-btn-label,
+#pcV2BottomBar #clearABBtn .top-controls-btn-label { display: block; white-space: nowrap; }
