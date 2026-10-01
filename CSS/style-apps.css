@@ -273,3 +273,45 @@ body.qn-app-open #pcV2TimeRow {
 .qn-app-view[hidden] {
   display: none;
 }
+
+/* ---------- マイク使用中の表示(TUNER/PITCH共通)。静止表示のみ(無限アニメ禁止=GOTCHAS §3) ---------- */
+.qn-mic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: var(--btn-h);
+  padding: 0 var(--btn-pad-x);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+  font-size: var(--fs-btn);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.qn-mic-pill[hidden] { display: none; }
+.qn-mic-dot { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--danger); flex-shrink: 0; }
+.qn-mic-lv { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+.qn-mic-lv b { width: 3px; border-radius: 1px; background: rgba(255, 255, 255, 0.22); }
+.qn-mic-lv b:nth-child(1) { height: 4px; }
+.qn-mic-lv b:nth-child(2) { height: 6px; }
+.qn-mic-lv b:nth-child(3) { height: 8px; }
+.qn-mic-lv b:nth-child(4) { height: 10px; }
+.qn-mic-lv b:nth-child(5) { height: 12px; }
+.qn-mic-lv b.on { background: var(--danger); }
+
+/* どの画面でもわかるように、アプリ名バッジにも赤丸 */
+body.qn-mic-on #qnAppBadge::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-round);
+  background: var(--danger);
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}

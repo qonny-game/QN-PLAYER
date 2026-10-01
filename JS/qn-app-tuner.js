@@ -149,6 +149,7 @@
         '</div>' +
       '</aside>' +
       '<section class="qn-tn-stage">' +
+        '<div class="qn-mic-pill" data-tn="micPill" hidden><i class="qn-mic-dot"></i><span>MIC ON</span><span class="qn-mic-lv"><b></b><b></b><b></b><b></b><b></b></span></div>' +
         '<div class="qn-tn-prompt" data-tn="prompt">' +
           '<p>下のMicボタンを押すと、リアルタイムに音程を表示します</p>' +
           '<p class="qn-tn-error" data-tn="micError" role="status"></p>' +
@@ -281,6 +282,7 @@
   }
   function onMicFrame(res) {
     var freq = res.freq;
+    window.QNApps.setMicLevel(refs.micPill, res.rms < 0.005 ? 0 : Math.min(5, 1 + Math.floor(res.rms * 15)));
     if (freq === -1 || freq < 30 || freq > 2000) {
       silenceFrames++;
       if (silenceFrames === holdFrames()) resetReadout();
@@ -298,6 +300,9 @@
     refs.micBtn.classList.toggle("is-active", micRunning);
     refs.display.hidden = !micRunning;
     refs.prompt.hidden = micRunning;
+    refs.micPill.hidden = !micRunning;
+    if (!micRunning) window.QNApps.setMicLevel(refs.micPill, 0);
+    try { window.QNApps.setMic(micRunning); } catch (e) {}
     try { if (window.QNWake) window.QNWake.set("tuner", micRunning); } catch (e) {}
   }
 

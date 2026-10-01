@@ -186,6 +186,7 @@
 
 /* ---------- ステージ(メイン表示) ---------- */
 .qn-tn-stage {
+  position: relative;
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
@@ -383,3 +384,5 @@
   .qn-tn-bdiv { margin: 0 10px; }
   .qn-tn-note { font-size: 56px; min-height: 62px; }
 }
+
+.qn-tn-stage > .qn-mic-pill { position: absolute; top: 16px; right: 20px; z-index: 1; }

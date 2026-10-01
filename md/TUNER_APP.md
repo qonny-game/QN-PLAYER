@@ -14,6 +14,8 @@
 - **ショートカット**（表示中のみ）：Space/M=Mic、D=表示切替、1〜9=Toneの弦を鳴らす、Esc=発信音停止。
 - **PC幅**：サイドアイコン再押下でパネル格納（`qn_tuner_panel_collapsed`）。
 
+- **マイク使用中の表示**：`QNApps.setMic(on)`でアプリバッジに赤丸(`body.qn-mic-on`)、`.qn-mic-pill`(赤ピル+レベル5段。`QNApps.setMicLevel(pill,0〜5)`)をステージに置く。静止表示のみ。マイクを使うアプリは`onHide`で必ずOFFに戻す。
+
 ## 規約（守る）
 - マイク・Tone・AudioContextは**表示中だけ**。`onHide`で必ず全停止して`AudioContext`をclose（PLAYER側との同時鳴りも防ぐ）。マイク用ContextはToneとは別。
 - 解析は約30fps（`qn-pitch-core.js`の`FRAME_MS`）＋`document.hidden`中は計算しない。DOM更新は値が変わった時だけ（`setText/setState`）。`requestAnimationFrame`ループを足す時は`GOTCHAS.md`§3。

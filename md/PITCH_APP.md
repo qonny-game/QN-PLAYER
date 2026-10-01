@@ -22,6 +22,8 @@
 - 同一性は`createdAt`。Importの重複は上書き/スキップ（共通の切替）。上書き＝古いレコードを消して新規add（再putしない）。音声なしJSONは「既存録音の名前の上書き」だけ可能、新規は「音声なしのためスキップ」。
 - `QNPitchBackup`: `list()`(同期・キャッシュ) / `refresh()`(IndexedDBから読み直し) / `buildExport(ids,withAudio)`(async) / `parseImport(raw)` / `exists(key)` / `titleOf(key)` / `applyImport(list,audioMap,choices)`(async)。アプリを一度も開いていなくても、共通画面を開く時に`refresh()`される。
 
+- **マイク使用中の表示**：`QNApps.setMic(on)`でアプリバッジに赤丸(`body.qn-mic-on`)、`.qn-mic-pill`(赤ピル+レベル5段。`QNApps.setMicLevel(pill,0〜5)`)をステージに置く。静止表示のみ。マイクを使うアプリは`onHide`で必ずOFFに戻す。
+
 ## 規約（守る）
 - マイク・録音・再生は**表示中だけ**。`onHide`で録音を止め（未保存の録音はメモリに残りSaveできる）、再生は一時停止。マイクは1回の`getUserMedia`を解析とMediaRecorderで共有（`createAnalysisSession().stream`）。
 - ロールは**仮想スクロール**：canvasはビューポート幅だけ。内容幅は`.qn-pt-content`のwidthで作り、canvasと鍵盤列は`position:sticky`。iOSのcanvas面積上限があるので、全長ぶんのcanvasを作らない。

@@ -10,3 +10,4 @@
 - 3.21.0 TUNERアプリを追加(qn-app-tuner.js/qn-pitch-core.js/style-tuner.css)。Mic Tuner(Gauge/Guitar Meter)・Tone Generator・Sensitivity・Display。PLAYERのパネル/下段バー/部品デザインで統一。QNPITCH(旧アプリ)から移植、保存キーはqn_tuner_*で新規。
 - 3.22.0 PITCHアプリを追加(qn-app-pitch.js/qn-pitch-filters.js/style-pitch.css)。ピッチロール(仮想スクロール)・録音(MediaRecorder+解析で1本のマイク共有)・再生・スコア・Filters・Recordings(EDIT/削除/改名)。QNPITCH(旧アプリ)から移植、保存キーはqn_pitch_*・DBはqn_pitch_dbで新規。Backup/Importは次段階。
 - 3.23.0 PITCHのBackup/Importを追加。共通Backup/Import画面(player-track-backup.js)にPITCH録音の枠を追加(pitch.json+pitch/音声をZIPへ。PLAYER/YouTubeと同じZIPに同梱可・Import自動判定・重複は上書き/スキップ)。PITCHアプリのサイドバーにBackup/Import。
+- 3.23.1 TUNER/PITCHのマイク使用中表示を追加(ステージ右上/左上の「MIC ON」「REC」ピル+入力レベル、サイドバーのアプリバッジに赤丸)。PITCHのStopアイコン修正。

@@ -578,6 +578,14 @@
     renderShortcuts: renderShortcuts,
     fillShortcutRows: fillShortcutRows,
     setSideActive: setSideActive,
+    // マイク使用中の表示(TUNER/PITCHが使う)。setMic=サイドバーのバッジに赤丸(body.qn-mic-on)、setMicLevel=.qn-mic-pill内のレベル(0〜5)。値が変わった時だけDOMを書く
+    setMic: function (on) { document.body.classList.toggle("qn-mic-on", !!on); },
+    setMicLevel: function (pill, lv) {
+      if (!pill || pill._lv === lv) return;
+      pill._lv = lv;
+      var bars = pill._bars || (pill._bars = pill.querySelectorAll(".qn-mic-lv b"));
+      for (var i = 0; i < bars.length; i++) bars[i].classList.toggle("on", i < lv);
+    },
     getCurrentId: function () { return current ? current.id : null; },
     layout: layoutHost
   };
