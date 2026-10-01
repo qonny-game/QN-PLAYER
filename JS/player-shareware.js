@@ -90,16 +90,6 @@ function swSetCancelAtPeriodEnd(value) {
   } catch (e) {}
 }
 
-function swGetLocalUpdatedAt() {
-  try {
-    const raw = localStorage.getItem(SW_UNLOCK_UPDATED_AT_KEY);
-    const n = parseInt(raw, 10);
-    return Number.isFinite(n) ? n : 0;
-  } catch (e) {
-    return 0;
-  }
-}
-
 // value: 新しい解除状態。updatedAtMsを省略した場合は「今、この端末で操作した」
 // ものとして現在時刻を記録する。Firestoreからのマージ結果を書き戻す時だけ、
 // 呼び出し側からリモート側のupdatedAtMsをそのまま渡す（時刻の二重更新を防ぐため）。

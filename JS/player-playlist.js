@@ -430,7 +430,7 @@ function removeTrackAt(index) {
 
 function playTrackAt(index, autoplay = true) {
   if (index < 0 || index >= playlist.length) return;
-  // 【v2.16.8】シェアウェア制限の最終防衛ライン（§3-25）。無料版で
+  // 【v2.16.8】シェアウェア制限の最終防衛ライン（GOTCHAS.md）。無料版で
   // ロック対象(index >= LIBRARY_MAX_TRACKS)の曲を再生させないための
   // チェックが、以前は「行をクリックした時」「サムネイルをクリックした
   // 時」の2箇所にしかなく、playTrackAt()自体はどこからでも無条件に

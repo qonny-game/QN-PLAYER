@@ -203,7 +203,7 @@
   background: var(--accent-primary, #3b82f6);
 }
 /* 【v2.16.3】style-controls.cssの.glow-switchと同じ理由で、box-shadowは
-   固定の擬似要素に持たせてopacityだけをアニメーションする（§3-21）。 */
+   固定の擬似要素に持たせてopacityだけをアニメーションする（GOTCHAS.md）。 */
 .qn-glow-switch[aria-checked="true"]::after {
   content: "";
   position: absolute;
@@ -213,7 +213,7 @@
   opacity: 0.6;
   pointer-events: none;
   /* 無限ループにはせず、表示された時(パネルを開いた時・ONにした時)に
-     2回だけ明滅して、あとは柔らかく光ったまま止まる（§3-21）。 */
+     2回だけ明滅して、あとは柔らかく光ったまま止まる（GOTCHAS.md）。 */
   animation: qn-glow-switch-pulse 3s ease-in-out 2;
 }
 @keyframes qn-glow-switch-pulse {

@@ -158,7 +158,7 @@ function openPlaylistDB() {
 // お気に入り）は、音声Blobを持つIndexedDBレコードとは別に、localStorageの
 // PLAYLIST_META_KEYへ保存する。
 //
-// 理由（§3-11）：iOS Safari(WebKit)のIndexedDBでは、Blobを含むレコードを
+// 理由（GOTCHAS.md）：iOS Safari(WebKit)のIndexedDBでは、Blobを含むレコードを
 // get→putし直すと、たとえBlobの中身を変えていなくてもBlobの実体ファイルが
 // 作り直され、古い実体が削除される。すると、起動時に読み込んでplaylist配列に
 // 持っている各曲のFile(=古い実体を指している)が「中身の無い死んだBlob」になり、
@@ -323,7 +323,7 @@ async function loadAllPlaylistTracks() {
 // ここでは既存レコードのBlobには一切触れず、savedAt/enabled/title/
 // artist/favoriteだけを更新する軽量な書き込みに直列で回す。
 async function persistPlaylistOrder() {
-  // 【v2.13.5】IndexedDBには一切書き込まない（§3-11）。並び順・状態は
+  // 【v2.13.5】IndexedDBには一切書き込まない（GOTCHAS.md）。並び順・状態は
   // localStorageのメタデータにだけ保存する。
   const meta = readPlaylistMeta();
   const base = Date.now();
@@ -346,7 +346,7 @@ async function persistPlaylistOrder() {
 // 1曲分だけメタデータを保存したい場合に使う軽量版。savedAtは指定しないため
 // 既存のIndexedDB上の値（＝現在の並び順）がそのまま保たれる。
 async function savePlaylistMetadataFor(track) {
-  // 【v2.13.5】IndexedDB（音声Blobを持つレコード）には書き込まない（§3-11）。
+  // 【v2.13.5】IndexedDB（音声Blobを持つレコード）には書き込まない（GOTCHAS.md）。
   const name = track.file ? track.file.name : track.name;
   if (!name) return;
   updatePlaylistMetaEntry(name, {
@@ -518,7 +518,7 @@ async function setupAudioGraph() {
   if (audioGraphSetupDone) return;
   audioGraphSetupDone = true;
 
-  // 【v2.14.2】「準備を全部終えてから、最後に一瞬で差し替える」順序に変更（§3-17）。
+  // 【v2.14.2】「準備を全部終えてから、最後に一瞬で差し替える」順序に変更（GOTCHAS.md）。
   // 以前は最初にcreateMediaElementSource(audio)を呼んでいた。この瞬間から
   // <audio>の音は通常の出力経路を離れてWeb Audioのグラフ側へ回されるが、
   // 出力先(destination)への接続は、SoundTouchJSのCDN読み込み・AudioWorklet

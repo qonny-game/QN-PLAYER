@@ -370,18 +370,6 @@
   cursor: not-allowed;
 }
 
-.key-disabled-badge {
-  flex-shrink: 0;
-  font-size: var(--fs-micro);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  border-radius: var(--radius-pill);
-  padding: 1px 5px;
-  text-transform: uppercase;
-}
 
 .key-stepper {
   display: flex;
@@ -389,44 +377,12 @@
   gap: 8px;
 }
 
-.key-step-btn {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-round);
-  border: 1px solid var(--border-strong);
-  background: none;
-  color: var(--icon-muted);
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
 
-.key-step-btn:hover {
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
-}
-
-.key-step-btn:active {
-  transform: scale(0.92);
-}
-
-.key-step-btn:disabled,
 .mini-reset-btn:disabled {
   cursor: not-allowed;
   pointer-events: none;
 }
 
-.key-step-btn:disabled:hover {
-  background: none;
-  color: var(--icon-muted);
-  border-color: var(--border-subtle);
-}
 
 .key-stepper-bar {
   flex: 1;
@@ -473,7 +429,7 @@
    アニメーションさせていたが、box-shadowはGPUだけで動かせない性質の
    ため、表示中は毎フレーム（60〜120回/秒）スタイル再計算と再描画が
    走っていた（Controlパネルを開いている間だけ「スタイル再計算/秒」が
-   約100になる原因、§3-21）。光(box-shadow)は固定の擬似要素に持たせ、
+   約100になる原因、GOTCHAS.md）。光(box-shadow)は固定の擬似要素に持たせ、
    その不透明度(opacity)だけを動かす。さらに、無限に動き続ける
    アニメーションは（opacityであっても）表示中ずっとスタイル再計算を
    発生させ得るため、明滅は2回で止める。 */
@@ -486,7 +442,7 @@
   opacity: 0.6;
   pointer-events: none;
   /* 無限ループにはせず、表示された時(パネルを開いた時・ONにした時)に
-     2回だけ明滅して、あとは柔らかく光ったまま止まる（§3-21）。 */
+     2回だけ明滅して、あとは柔らかく光ったまま止まる（GOTCHAS.md）。 */
   animation: glow-switch-pulse 3s ease-in-out 2;
 }
 

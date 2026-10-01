@@ -846,7 +846,7 @@ async function runTrackImport() {
         // 保存する。
         // 【v2.13.5】音声ごと差し替えた場合だけIndexedDBの音声レコードも
         // 書き直す（新しいBlobはメモリ上のデータなので安全）。メタデータだけの
-        // 上書きならIndexedDBには触れない（§3-11）。
+        // 上書きならIndexedDBには触れない（GOTCHAS.md）。
         if (audioBlob && typeof savePlaylistTrackAudioKeepingOrder === "function") {
           await savePlaylistTrackAudioKeepingOrder(existingTrack);
         } else if (typeof savePlaylistMetadataFor === "function") {

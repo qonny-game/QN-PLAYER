@@ -1,65 +1,34 @@
-# QN-PLAYER クイックスタート（作業開始時に最初に読むファイル）
+# QN-PLAYER クイックスタート（作業開始時に最初に読む）
 
-新しいセッションでQN-PLAYERの修正依頼を受けたら、コードを開く前にこの
-手順で進める。
+新しいセッションで修正依頼を受けたら、コードを開く前にこの手順で進める。
 
----
+## 0. 最初に確認すること
+- 添付が**全体ZIP**か**部分ファイル**か。全体ZIPなら`index.html`の`window.QN_APP_VERSION`と`md/CHANGELOG.md`末尾で現在地を確認。部分ファイルなら、判断に必要なファイル名を具体的に挙げて送付を依頼する（推測で進めない）。
+- スクリーンショットがあれば、文章より先に見る（`md/UI_TERMINOLOGY.md`）。
+- ユーザーはコード素人。専門用語は噛み砕き、口調はタメ口でフレンドリー。判断は任せてもらう。
 
-## 0. まず確認すること
-
-- **添付されたファイル形式の確認（全体ZIP か 部分ファイルか）**
-  - **全体ZIPの場合:** ユーザーにバージョンを確認（不明なら `index.html` の `window.QN_APP_VERSION` を確認）し、`CHANGELOG.md` と照らし合わせる。
-  - **部分ファイル（単体コード等）の場合:** `index.html` が手元にないため、バージョン指定や前提知識が必要な修正であればユーザーに現在バージョンを確認する。
-　- **必要なファイルが揃っているか確認する**
-  　セクション1の早見表と照らし合わせ、依頼内容の判断に必要なファイルが
-  　添付されていない場合は、コードを推測で進めず、**該当ファイル名を
-  　具体的に挙げてユーザーに送付を依頼する。**
-  　（例：「SP表示の不具合修正には `AI_ASSISTANT_PROJECT_CONTEXT.md` と
-  　`player-ui-pc-v2.js` / `style-layout-pc-v2.css` が必要です。お手数ですが
-  　添付をお願いします」）
-　- **スクショの確認:** スクリーンショットが添付されていれば文章より先に確認する（`UI_TERMINOLOGY.md` 参照）。
-
-
-## 1. 依頼内容から読むべきファイルを絞る
-
-| 依頼の種類 | 最初に開くファイル |
+## 1. 依頼の種類 → 最初に開くファイル（`md/`）
+| 依頼 | 見るもの |
 |---|---|
-| 「SP/スマホで◯◯がおかしい」 | `AI_ASSISTANT_PROJECT_CONTEXT.md` §2（PC v2が唯一の実UI） |
-| 再生できない/フリーズ/不安定系のバグ | `AI_ASSISTANT_PROJECT_CONTEXT.md` §3-3・3-5（既知の重い処理・タイミング問題） |
-| 削除・選択・EDITモード関連 | §3-4・3-7（IndexedDB未削除、`attachSelectionHandlers`のonclick横取り） |
-| ループ・マーカー・シーク関連 | §3-1・3-2（プリロール区間の固定、`beginSeek()`） |
-| レイアウト・表示順がおかしい | §3-6（CSSの`order`は整数のみ）、`PC_V2_FILE_INDEX.md` |
-| 新しいモーダル/パネルを作る | §3-8（モーダル共通化）、`DOM_ID_REFERENCE.md`（命名を揃える） |
-| YouTubeアプリ（Library/Markers/シークバー/チャプター/Backup等） | **`YOUTUBE_APP.md`（仕様＋規約ルール。最優先で読む）**、`AI_ASSISTANT_PROJECT_CONTEXT.md` §9 |
-| 新しいアプリを足す／アプリ共通の見た目（Color・MORE・バッジ） | `AI_ASSISTANT_PROJECT_CONTEXT.md` §9、`PC_V2_FILE_INDEX.md` 末尾（qn-apps.js） |
-| マーカーメモのプリセット／Colorパネル | `AI_ASSISTANT_PROJECT_CONTEXT.md` §4（カスタムプリセット）、`player-markers.js` |
-| 再生中に画面が暗くなる（スリープ） | `JS/qn-wakelock.js`（`QNWake.set`） |
-| 「あのボタン」「あの画面」が指す場所が曖昧 | `UI_TERMINOLOGY.md` |
-| `player-ui-pc-v2.js`かCSS（`style-layout-pc-v2.css`＝シェル/`style-pcv2-panels.css`＝パネル）のどこに書くか探す | `PC_V2_FILE_INDEX.md` |
-| 「前回どこまでやった？」 | `CHANGELOG.md` 末尾（ファイル未添付時はユーザーへヒアリング） |
+| SP/スマホで◯◯がおかしい | `AI_ASSISTANT_PROJECT_CONTEXT.md`§2（PC v2が唯一の実UI）、`CSS/style-layout-pc-v2-sp.css` |
+| 再生できない・フリーズ・不安定 | `GOTCHAS.md`§1・§3 |
+| 削除・選択・EDITモード | `GOTCHAS.md`§5（`attachSelectionHandlers`が奪う） |
+| ループ・マーカー・シーク | `GOTCHAS.md`§2、`JS/qn-marker-core.js` |
+| レイアウト・表示順 | `GOTCHAS.md`§4、`PC_V2_FILE_INDEX.md` |
+| 新しいモーダル/パネル/ボタン | `GOTCHAS.md`、`DOM_ID_REFERENCE.md`、`PC_V2_FILE_INDEX.md` |
+| YouTubeアプリ | **`YOUTUBE_APP.md`（最優先。§2の規約ルール）** |
+| 新しいアプリ（TUNER/PITCH）／アプリ共通の見た目 | `AI_ASSISTANT_PROJECT_CONTEXT.md`§6、`PC_V2_FILE_INDEX.md`（qn-apps.js） |
+| マーカーメモのプリセット／Colorパネル | `JS/player-marker-presets.js` |
+| 保存されるデータ・キー | `AI_ASSISTANT_PROJECT_CONTEXT.md`§3 |
+| 「あのボタン」が指す場所が曖昧 | `UI_TERMINOLOGY.md` |
 
-## 2. 実装フロー
+## 2. 進め方
+1. 該当ファイルを`grep -n`で確認（`PC_V2_FILE_INDEX.md`で当たりを付ける）。
+2. 既知の落とし穴（`GOTCHAS.md`）と重なっていないか照らす。**既存のCSS/処理を探してから足す。**
+3. 検証：`AI_ASSISTANT_PROJECT_CONTEXT.md`§4のコマンド＋ローカルHTTPサーバーとPlaywright。見た目を変えない作業は計算済みスタイルの前後比較。**実機で確認できていない範囲は正直に伝える。**
+4. `index.html`の`window.QN_APP_VERSION`を上げる（機能追加=マイナー、修正/お掃除=パッチ）。`md/CHANGELOG.md`の末尾に追記。構成・保存キー・ID・目次が変わったら該当mdも直す。
+5. **納品の標準＝変更ファイルだけのパッチZIP**（フォルダ構成を保つ、`PATCH_FILES.txt`は作らない）、名前は`QNPLAYER_v<版>_patch.zip`。まとめ作業で「完全版で」と言われたら完全版ZIP。
 
-1. 該当ファイルをコードで確認する（`grep -n`でキーワード検索、`PC_V2_FILE_INDEX.md`があれば先に見当をつける）。
-2. 修正内容が§3の既知バグの領域と重なる場合、同じ失敗を作り込んでいないか照らし合わせる。
-3. **検証:** 添付されているファイルに応じて構文チェック（JS/CSS/HTML）を行う。
-   ※部分ファイル添付の場合は、プロジェクト全体のID重複チェック等はスキップし、対象コード内のチェックにとどめる。
-4. **バージョン更新（部分修正時は除く）:** 
-   `index.html` が添付対象に含まれる場合のみ `window.QN_APP_VERSION` を更新する（機能追加はマイナー、バグ修正/微調整はパッチ）。部分修正で `index.html` を触らない場合は省略してよい。
-5. **納品（標準＝パッチZIP）:**
-   - **変更したファイルだけ**を、フォルダ構成を保ったままZIPにして渡す（例：`JS/…`、`CSS/…`、`md/…`）。**`PATCH_FILES.txt`（ファイル一覧）は付けない。**
-   - ZIP名は `QNPLAYER_v<バージョン>_patch.zip`。全体ZIPは依頼された時だけ。
-   - 部分ファイルだけ添付された場合は、修正済みファイル単品、または修正箇所のコードブロック（差分）を提示する。
-   - YouTube/アプリの作業は、実装前に `YOUTUBE_APP.md` の規約ルール（§2）に反しないか確認する。
-
-## 3. 修正が終わったら（ドキュメント更新）
-
-`AI_ASSISTANT_PROJECT_CONTEXT.md` §5のルール7に従い、該当するファイルへ追記する。
-
-- **通常（パッチZIP運用）:** 更新したドキュメント（`md/…`）も、変更があれば同じパッチZIPに含める。CHANGELOGは `## <バージョン> — <一言タイトル>` の見出しを新しく作って追記する。
-- **部分修正時（ドキュメント類も添付されている場合）:** 該当ファイルに直接追記して提示する。
-- **部分修正時（ドキュメント類を添付していない場合）:**
-  ドキュメントファイルの更新・出力は省略してよい。ただし、ユーザーが手元で追記できるよう、**回答文末に `CHANGELOG.md` 用の追記テキスト（日付・バージョン・変更内容）を箇条書きで出力**すること。
-
-
----
+## 3. いま未確認・要判断のこと（実機で見てもらうもの）
+- 直近の下段バー変更（v3.12〜3.16）後のSP幅の見た目。YouTubeの実再生（プリロール中に別区間へ飛ぶ件の修正）。アプリ一覧フライアウトがPCで「シュッ」と出るか（OSの「視覚効果を減らす」設定の影響の可能性）。
+- YouTubeアプリに「権利者に無断でアップロードされた動画は使わない」旨の注意書きが**出ていない**（v3.4.1で撤去）。公開・収益化の前に再掲するか判断する（`YOUTUBE_APP.md`§2-6）。

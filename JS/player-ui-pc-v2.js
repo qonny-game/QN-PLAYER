@@ -710,7 +710,7 @@
     // closePanelOverlay()は「currentPanelをseekbarにし、アイコンバーの
     // 色もSeekbarに揃える」処理をそのまま流用できる（パネルを開いた
     // 直後に閉じるのと、最初から閉じているのは、内部的には同じ状態）。
-    const isSpWidthInit = window.matchMedia("(max-width: 900px)").matches;
+    const isSpWidthInit = isSpWidthNow();
     if (isSpWidthInit) {
       closePanelOverlay();
     } else {
@@ -933,7 +933,7 @@
     const rootEl = document.getElementById("pcV2Root");
     if (!bottomBar || !layoutEl || !iconBar || !rootEl) return;
 
-    const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
+    const isSpWidth = isSpWidthNow();
     if (isSpWidth) {
       // anchorTabs（PLAY/MARKERアンカータブ）はbottomBarの直前に置く
       // ことで常に「バーのすぐ上」の位置を保つ。bottomBarを先に動かして
@@ -1018,7 +1018,7 @@
     const waveHead = document.getElementById("pcV2WaveHead");
     if (!timeControlsRow || !timeRow || !waveHead) return;
 
-    const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
+    const isSpWidth = isSpWidthNow();
     if (isSpWidth) {
       if (timeControlsRow.parentElement !== timeRow) {
         timeRow.appendChild(timeControlsRow);
@@ -1065,7 +1065,7 @@
   // 両方から呼ばれる共通の入口。
   function openPanelOverlay(panelId) {
     const layoutEl = document.getElementById("pcV2Layout");
-    const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
+    const isSpWidth = isSpWidthNow();
     if (isSpWidth && layoutEl) {
       const alreadyOpen = layoutEl.classList.contains("pcv2-panel-open");
       const isSamePanel = currentPanel === panelId;
@@ -1130,7 +1130,7 @@
   // ライブラリをそのまま確認できるように）。
   window.qnPcv2DismissAuxPanel = function () {
     if (currentPanel !== "backup" && currentPanel !== "import") return;
-    const isSpWidth = window.matchMedia("(max-width: 900px)").matches;
+    const isSpWidth = isSpWidthNow();
     if (isSpWidth) {
       closePanelOverlay();
     } else {
@@ -1284,7 +1284,7 @@
     // ため、別パネルを表示中は#pinList・#playlistBox・#noteTextArea等が
     // document上に存在せず、document.getElementById()がnullを返していた。
     // その間に曲が切り替わると、renderPinList()等の更新が空振りし、
-    // 次にそのパネルを開いた時に前の曲の内容が表示されていた（§3-19）。
+    // 次にそのパネルを開いた時に前の曲の内容が表示されていた（GOTCHAS.md）。
     stashPanelContents(panelBody);
     panelBody.innerHTML = "";
     panelHeader.innerHTML = "";
@@ -2022,7 +2022,7 @@
     const key = hex + "|" + alpha;
     let v = pcv2RgbaCache.get(key);
     if (v === undefined) {
-      v = hexToRgbaLocal(hex, alpha);
+      v = hexToRgba(hex, alpha);
       pcv2RgbaCache.set(key, v);
     }
     return v;
@@ -2145,15 +2145,6 @@
         ctx2d.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
       }
     }
-  }
-
-  // player-core.jsのhexToRgba相当を、依存を増やさずここでも使えるよう
-  // 軽量に複製する（外部関数の有無に依存しないようにするため）。
-  function hexToRgbaLocal(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
   function pcv2WaveLoop(now) {

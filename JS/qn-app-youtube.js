@@ -303,12 +303,6 @@
     refs.panelTitle.textContent = t;
   }
 
-  function pausePlayer() {
-    try {
-      if (player && playerReady && typeof player.pauseVideo === "function") player.pauseVideo();
-    } catch (e) {}
-  }
-
   function onSidebar(id) {
     if (isSp()) {
       if (panelState === id) setPanel("none"); else setPanel(id);
@@ -796,55 +790,6 @@
   }
 
   // ---------- 保存リスト ----------
-  // タイトル編集は行の中でそのまま入力欄に切り替える。Enter/フォーカス外れ=確定、Esc=キャンセル。
-  function startInlineEdit(it, titleSpan, editBtn) {
-    var input = document.createElement("input");
-    input.type = "text";
-    input.className = "qn-yt-input qn-yt-title-edit";
-    input.value = it.title;
-    var done = false;
-
-    function commit() {
-      if (done) return; done = true;
-      it.title = input.value.trim() || "(無題)";
-      if (current && current.itemId === it.id) refs.titleInput.value = it.title;
-      saveItems(); renderList();
-    }
-    function cancel() {
-      if (done) return; done = true;
-      renderList();
-    }
-    input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); commit(); }
-      else if (e.key === "Escape") { e.preventDefault(); cancel(); }
-    });
-    input.addEventListener("blur", commit);
-
-    titleSpan.replaceWith(input);
-    editBtn.disabled = true;
-    input.focus();
-    input.select();
-  }
-
-  // 削除ボタンの2度押し確認（ダイアログを使わない）。1回目で「Sure?」に変わり、
-  // 3秒以内にもう一度押すと実行。
-  function armDelete(btn, run) {
-    var armed = false, timer = null;
-    btn.addEventListener("click", function () {
-      if (!armed) {
-        armed = true;
-        btn.textContent = "Sure?";
-        btn.classList.add("danger");
-        timer = setTimeout(function () {
-          armed = false; btn.textContent = "Del"; btn.classList.remove("danger");
-        }, 3000);
-        return;
-      }
-      clearTimeout(timer);
-      run();
-    });
-  }
-
   // 並べ替え：つかみ部分をドラッグ。ドラッグ中は行をtransformで動かすだけで
   // DOMは動かさず（ポインターキャプチャを保つため）、離した時に配列を並べ替える。
   function attachReorder(grip, li) {

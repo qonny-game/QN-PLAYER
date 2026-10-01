@@ -20,11 +20,13 @@
 <link rel="stylesheet" href="CSS/style-text.css">
 <link rel="stylesheet" href="CSS/style-layout-sp.css">
 <link rel="stylesheet" href="CSS/style-layout-pc-v2.css">
+<link rel="stylesheet" href="CSS/style-layout-pc-v2-sp.css">
 <link rel="stylesheet" href="CSS/style-pcv2-panels.css">
 <link rel="stylesheet" href="CSS/style-auth.css">
 <link rel="stylesheet" href="CSS/style-shareware.css">
 <link rel="stylesheet" href="CSS/style-theme.css">
 <link rel="stylesheet" href="CSS/style-apps.css">
+<link rel="stylesheet" href="CSS/style-youtube.css">
 <script>
   // ============================================================
   // アプリバージョンの一元管理。
@@ -35,7 +37,7 @@
   // インラインscriptでこの値を読んで反映する（head内のこの時点では
   // body側の要素がまだ存在しないため、ここでは<title>だけ即座に
   // 更新し、残り2箇所は該当箇所で個別に反映する）。
-  window.QN_APP_VERSION = "3.20.0";
+  window.QN_APP_VERSION = "3.20.2";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -128,7 +130,7 @@
         <!-- Keyboard Shortcuts Table (hidden if window.QN_SHORTCUTS is not defined) -->
         <div class="qn-menu-section" data-qn-section="shortcuts" id="qnShortcutsSection">
           <span class="qn-menu-section-label">Keyboard Shortcuts</span>
-          <table class="qn-shortcut-table" id="qnShortcutsTable">
+          <table class="qn-shortcut-table">
             <thead>
               <tr><th>Action</th><th>Key</th></tr>
             </thead>
@@ -325,7 +327,7 @@
 
   <div class="sidebar-section" id="sidebarSection">
     <!-- Control / Markers / Playlist の切り替えタブ（旧Basicタブは撤去、Controlは新設） -->
-    <div class="mobile-tabs" id="mobileTabs">
+    <div class="mobile-tabs">
       <button class="mobile-tab-btn" data-tab="control">Control</button>
       <button class="mobile-tab-btn" data-tab="markers">Markers</button>
       <button class="mobile-tab-btn active" data-tab="playlist">Playlist</button>
@@ -368,7 +370,7 @@
             </label>
             <div class="auto-speed-settings" id="controlAutoSpeedSettings">
               <div class="auto-speed-row">
-                <div class="auto-speed-direction" id="controlAutoSpeedDirection">
+                <div class="auto-speed-direction">
                   <button type="button" class="auto-speed-dir-btn" data-dir="down">Speed Down</button>
                   <button type="button" class="auto-speed-dir-btn active" data-dir="up">Speed Up</button>
                 </div>
@@ -538,7 +540,7 @@
           </div>
         </div>
         <div class="eq-preset-row">
-          <div class="eq-preset-buttons" id="eqPresetButtons">
+          <div class="eq-preset-buttons">
             <button type="button" class="eq-preset-btn" data-preset="bass">Bass</button>
             <button type="button" class="eq-preset-btn" data-preset="vocal">Vocal</button>
             <button type="button" class="eq-preset-btn" data-preset="treble">Treble</button>
@@ -633,7 +635,7 @@
         <!-- WAV選択時：サンプルレート（プルダウンではなくボタン選択式） -->
         <div class="export-format-detail" id="exportWavDetail">
           <label class="export-marker-select-label">Sample Rate</label>
-          <div class="export-format-options" id="exportWavSampleRateGroup">
+          <div class="export-format-options">
             <label class="export-radio-row">
               <input type="radio" name="exportWavSampleRate" value="44100" checked>
               <span>44.1 kHz</span>
@@ -648,7 +650,7 @@
         <!-- MP3選択時：ビットレート（プルダウンではなくボタン選択式） -->
         <div class="export-format-detail" id="exportMp3Detail" style="display:none;">
           <label class="export-marker-select-label">Bitrate</label>
-          <div class="export-format-options" id="exportMp3BitrateGroup">
+          <div class="export-format-options">
             <label class="export-radio-row">
               <input type="radio" name="exportMp3Bitrate" value="128" checked>
               <span>128 kbps</span>
@@ -753,9 +755,9 @@
            タイトルなど全部）」の2択に簡略化。折りたたみ・個別サイズ表示は
            廃止し、常時2行を表示する（player-track-backup.js側の
            trackBackupIncludeAudioEl / trackBackupIncludeSettingsElに対応）。 -->
-      <div class="export-section track-backup-options" id="trackBackupOptionsSection">
+      <div class="export-section track-backup-options">
         <label class="export-section-label">含める項目</label>
-        <div class="track-backup-checklist" id="trackBackupOptionsBody">
+        <div class="track-backup-checklist">
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeAudio" checked>
             <span class="track-backup-row-label">音声データ</span>
@@ -793,8 +795,8 @@
     </div>
 
     <div class="export-modal-body">
-      <div class="export-section" id="trackBackupPaneImport">
-        <div class="track-import-layout" id="trackImportLayout">
+      <div class="export-section">
+        <div class="track-import-layout">
           <div class="track-import-col-main">
             <div id="trackImportDropZone" class="track-import-dropzone">
               <svg viewBox="0 0 24 24" class="track-import-dropzone-icon"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
@@ -856,6 +858,7 @@
 <script src="JS/player-playlist.js"></script>
 <script src="JS/player-track-backup.js"></script>
 <script src="JS/player-markers.js"></script>
+<script src="JS/player-marker-presets.js"></script>
 <script src="JS/player-control-eq.js"></script>
 <script src="JS/player-controls.js"></script>
 <script src="JS/player-export.js"></script>

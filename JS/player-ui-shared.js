@@ -256,10 +256,10 @@ function loadFile(file) {
   // 【v2.13.6】マーカー・テキストメモの読み込みは、音声のメタデータ読み込み
   // (loadedmetadata)を待たず、曲を切り替えた瞬間に同期で行う。
   // 以前はonloadedmetadataの中で読んでいたため、読み込みが遅い・失敗した
-  // 場合（§3-11の不具合など）に、曲名(currentFileName)だけ新しい曲に
+  // 場合（GOTCHAS.mdの不具合など）に、曲名(currentFileName)だけ新しい曲に
   // 切り替わり、テキスト欄には前の曲の内容が残ったままになっていた。
   // その状態で編集すると、前の曲のテキストが新しい曲名のキーで保存され、
-  // 「全曲で同じテキストが表示される」状態になってしまう（§3-13）。
+  // 「全曲で同じテキストが表示される」状態になってしまう（GOTCHAS.md）。
   const savedPins = localStorage.getItem("mp3_pins_" + file.name);
   if (savedPins) {
     try {
@@ -447,7 +447,7 @@ audio.onended = () => {
 };
 
 // 【v2.13.5 保険】曲の読み込みに失敗した（playlist側のFileが読めなくなって
-// いた）場合、IndexedDBから音声を読み直して1回だけ再試行する（§3-11）。
+// いた）場合、IndexedDBから音声を読み直して1回だけ再試行する（GOTCHAS.md）。
 let lastAudioRecoveryName = null;
 audio.addEventListener("error", async () => {
   if (typeof currentPlaylistIndex === "undefined" || currentPlaylistIndex < 0) return;

@@ -7,8 +7,7 @@
 
    外枠（アイコンバー・波形エリア・下部バー・Volumeポップアップ・
    ヘッダーナビ・3カラムグリッド・SP幅の縦積みレイアウト）は
-   style-layout-pc-v2.css側（分割の経緯はCSS_SPLIT_INSTRUCTIONS.md、
-   CHANGELOGのバージョン2.16.10参照）。
+   style-layout-pc-v2.css / style-layout-pc-v2-sp.css側。
    ============================================================ */
 
 
@@ -373,7 +372,7 @@
    「overflow-y: autoの要素の中でflex: 1を何段にも重ねて高さを埋めさせる」
    構成は、iOS Safariで曲リストの内容が確定するタイミングによって、
    後続セクション（含める項目・合計・DOWNLOAD）がリストの高さ計算前の
-   位置のまま重なって描画される既知の不具合を踏みやすい（§3-23）。
+   位置のまま重なって描画される既知の不具合を踏みやすい（GOTCHAS.md）。
    flex:1での「埋める」のをやめ、曲選択リストは固定の上限つき高さ
    （max-height、その中だけoverflow-y: auto）にして、パネル全体は他の
    パネルと同じく#pcV2PanelBody側の1箇所だけでスクロールさせる。
@@ -507,17 +506,6 @@
   gap: 0;
   margin-top: 10px;
   border-top: 1px solid var(--border-subtle);
-}
-
-
-/* 含める項目の各行の右端：推定サイズ（音声データは選択曲の合計サイズ） */
-.track-backup-row-size {
-  flex-shrink: 0;
-  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: var(--fs-small);
-  font-weight: 600;
-  color: var(--icon-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 

@@ -318,7 +318,7 @@ body {
 /* ファイル名が長くコンテナに収まらない場合のみ付与されるマーキー（電光掲示板）表示 */
 /* 【v2.16.3】曲を読み込んだ時に3周だけ流して止める（止まった位置は
    流し始めと同じ見た目）。無限ループのアニメーションは、表示中ずっと
-   毎フレームのスタイル再計算を発生させ得るため（§3-21）。
+   毎フレームのスタイル再計算を発生させ得るため（GOTCHAS.md）。
    タイトルにマウスを乗せる/タップすると、もう一度3周流れる
    （player-core.js側のreplayAppTitleMarquee）。 */
 #appTitle.marquee #appTitleInner {
@@ -712,8 +712,7 @@ body {
 }
 
 .adjust-controls-row #eqToggleBtn,
-.adjust-controls-row #exportToggleBtn,
-.adjust-controls-row .header-btn-wrapper {
+.adjust-controls-row #exportToggleBtn{
   flex-grow: 1;
   flex-shrink: 1;
   flex-basis: 0%;
@@ -721,10 +720,6 @@ body {
   min-width: 0;
 }
 
-.adjust-controls-row .header-btn-wrapper .av-toggle-btn {
-  width: 100%;
-  box-sizing: border-box;
-}
 
 /* VOL/SPEED/KEY/EQ/EXPORT/ADD FILEの6つを、PC/SP完全共通で「隙間なく繋がった1つの角丸四角」にする。
    VOLはPC/SP両方で常時表示するようになったため、以前あった「VOLの有無に応じて自動で角丸位置を
@@ -805,12 +800,6 @@ body {
   line-height: 1.2;
 }
 
-.av-toggle-btn-value {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  color: inherit;
-}
 
 .av-toggle-btn-label {
   font-size: 10px;
@@ -838,9 +827,6 @@ body {
   color: var(--text-bright);
 }
 
-.av-toggle-btn .key-disabled-badge {
-  margin-left: 2px;
-}
 
 #loopInfo,
 #playlistInfo {
@@ -1146,7 +1132,6 @@ body {
 /* Textタブ関連スタイルは style-text.css に分割移動済み */
 
 
-
 /* Marker一覧・編集・カラーピッカー関連スタイルは style-markers.css に分割移動済み */
 
 
@@ -1189,14 +1174,10 @@ input[type="text"], input[type="number"], textarea {
    style-layout-pc-v2.css側)に一本化した。 */
 
 
-
-
 /* 旧カラーテーマスウォッチ(.theme-swatches等)は現在どこからも参照されていない
    デッドコードのため削除済み。現行のカラーテーマ選択UIはstyle-theme.css/
    player-theme.js側（ハンバーガーメニュー内、QN_THEMES配列から動的生成）
    に一本化されている。 */
-
-
 
 
 /* --- スマホ表示用スタイル（折りたたみ） --- */
