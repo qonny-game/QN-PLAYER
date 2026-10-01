@@ -159,8 +159,7 @@
 }
 #qnColorPop .qn-menu-section { border-bottom: none; padding-bottom: 0; }
 #qnColorPop .qn-menu-section-label { display: none; }
-/* PLAYER専用のマーカーメモ設定は、アプリ表示中は出さない */
-body.qn-app-open #qnColorPop .qn-marker-preset-colors { display: none; }
+/* v3.20.0：Marker Memo Colors もPLAYERと同じく表示する（以前はアプリ表示中だけ隠していた） */
 /* SPはヘッダーを省スペースに */
 #qnColorPop.qn-colorpanel-sp .qn-colorpanel-head { padding: 8px 16px; }
 

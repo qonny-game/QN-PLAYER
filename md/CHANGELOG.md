@@ -675,3 +675,7 @@
   PL側の見た目は変化なし（計算スタイルの比較で差分0）。YT側はPLと完全に同じ値になった
   （セクション余白 26→18px、フッターの並びなど数px）。
 - `QNApps.register({ shortcuts, shortcutsNote })` を追加。`QNApps.renderShortcuts(hostEl, "<appId>")` の1行でKeyboard表が出る。YTはこの方式に移行。
+
+## 3.20.0 — YouTubeのColorパネルにもMarker Memo Colorsを表示
+- YT表示中のColorパネルだけ「Marker Memo Colors」を隠していたCSS（style-apps.css）を撤去。PLAYERのColorパネルと中身・見た目が同じになった。
+- 仕組みは元から共通（PLの`#qnMenuMount`のColorセクションを両アプリのパネルが借りる）。YTのマーカーメモ色（`getMarkerPresetColors()`）もここで設定した色を使う。
