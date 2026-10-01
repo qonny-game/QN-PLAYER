@@ -44,6 +44,14 @@
 - ポップアップを足したら閉じる経路（外側タップ・Esc・項目選択・スクロール・resize/回転・アプリ切替）を全部洗う。タッチに`hover`は頼れない。
 - `hidden`属性は`display:none`で遷移が効かない。開閉状態は`hidden`ではなく変数で持ち、遅延`hidden`はタイマーを取り消せるようにする。
 
+## 5.5 ライブラリのフォルダ（v3.24.0）
+- **`playlist[]`は常に「フォルダ順にグループ化」した並びを保つ**（`normalizePlaylistGrouping()`。未分類は末尾）。だから行の`data-index`=配列indexのまま、選択/削除/ドラッグ/Auto Nextがindexベースで動く。配列を直接いじってフォルダを変えたら必ずnormalize→`persistPlaylistOrder()`。
+- 行は`#playlistBox`の直下に見出し(`.playlistFolderHeader`)と交互に並ぶ。`container.children`のindexを行番号に使うな（`data-index`か`getRowItems()`を使う）。折りたたみ中は行を描画しない（編集モードは全展開）。
+- フォルダ操作でindexがズレる前に`window.playlistClearSelection()`。indexが変わらない再描画は`playlistReapplySelection()`が選択表示を戻す。
+- ドラッグ並び替えは同じフォルダ内だけ（そのグループの配列スロットへ書き戻す）。お気に入りの上段固定もフォルダ内。
+- Auto Nextの範囲は`findEnabledTrackIndex()`の1箇所（前/次・メディアキー・曲終了が全部通る）。フォルダ定義は`qn_folders_v1`、曲の所属はメタの`folder`（localStorageのみ。IndexedDBの音声は書かない）。
+- Backupのmarkers.jsonにはフォルダ**名**で入れる（idは端末ごと）。キーが無い旧バックアップはフォルダを触らない。
+
 ## 6. 制限（無料版）・アプリ
 - **制限チェックは「みんなが通る一番奥の関数」に置く**（例：`playTrackAt()`）。入口ごとに書くと、新しい入口（前/次ボタン・メディアキー・自動送り）で素通りする。
 - 無料版制限（`SW_LIMITS`）は「新しく増やす」操作にだけ掛かる。インポートは復元用途なので意図的に無制限。新機能ごとに適用するか明示的に決める。

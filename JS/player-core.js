@@ -210,7 +210,8 @@ async function loadAllPlaylistTracks() {
         enabled: pick(m, "enabled", r.enabled) !== false,
         title: pick(m, "title", r.title) || null,
         artist: pick(m, "artist", r.artist) || null,
-        favorite: pick(m, "favorite", r.favorite) === true
+        favorite: pick(m, "favorite", r.favorite) === true,
+        folder: pick(m, "folder", null) || null
       };
     });
     merged.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
@@ -219,12 +220,162 @@ async function loadAllPlaylistTracks() {
       enabled: x.enabled,
       title: x.title,
       artist: x.artist,
-      favorite: x.favorite
+      favorite: x.favorite,
+      folder: x.folder
     }));
   } catch (err) {
     console.warn("loadAllPlaylistTracks failed:", err);
     return [];
   }
+}
+
+// ---------- 【v3.24.0】ライブラリのフォルダ ----------
+// 1曲=1フォルダ(track.folder=フォルダid|null=未分類)。フォルダ定義はqn_folders_v1=[{id,name,parentId,collapsed}](配列順=表示順)。parentIdは将来のネスト用に予約(今は常にnull、1階層のみ)。
+// playlist[]は常に「フォルダ順にグループ化」した状態を保つ(normalizePlaylistGrouping)。→ 行のdata-index=配列indexのまま、選択/削除/ドラッグ/Auto Nextの既存ロジックがindexベースで動く。未分類は末尾グループ。
+// 曲ごとのfolderはqn_playlist_meta_v1(localStorageのみ。IndexedDBの音声レコードは書かない=GOTCHAS)
+const FOLDERS_KEY = "qn_folders_v1";
+const AUTONEXT_SCOPE_KEY = "qn_autonext_scope";
+let playlistFolders = readPlaylistFolders();
+
+function readPlaylistFolders() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(FOLDERS_KEY) || "[]");
+    if (!Array.isArray(arr)) return [];
+    const seen = new Set();
+    return arr.filter(f => f && typeof f.id === "string" && f.id && !seen.has(f.id) && seen.add(f.id)).map(f => ({
+      id: f.id,
+      name: typeof f.name === "string" && f.name ? f.name : "フォルダ",
+      parentId: typeof f.parentId === "string" ? f.parentId : null,
+      collapsed: f.collapsed === true
+    }));
+  } catch (e) {
+    return [];
+  }
+}
+
+function writePlaylistFolders() {
+  try {
+    localStorage.setItem(FOLDERS_KEY, JSON.stringify(playlistFolders));
+  } catch (e) {
+    console.warn("writePlaylistFolders failed:", e);
+  }
+}
+
+function getPlaylistFolder(id) {
+  return playlistFolders.find(f => f.id === id) || null;
+}
+
+// 存在するフォルダidだけ返す(消えたフォルダを指す曲は未分類=null扱い)
+function trackFolderId(track) {
+  return track && track.folder && getPlaylistFolder(track.folder) ? track.folder : null;
+}
+
+function createPlaylistFolder(name) {
+  const base = (name || "").trim() || "新しいフォルダ";
+  let finalName = base, n = 2;
+  while (playlistFolders.some(f => f.name === finalName)) finalName = base + " " + (n++);
+  const folder = { id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: finalName, parentId: null, collapsed: false };
+  playlistFolders.push(folder);
+  writePlaylistFolders();
+  return folder;
+}
+
+function findOrCreatePlaylistFolderByName(name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return null;
+  const hit = playlistFolders.find(f => f.name === trimmed);
+  return hit || createPlaylistFolder(trimmed);
+}
+
+function renamePlaylistFolder(id, name) {
+  const f = getPlaylistFolder(id);
+  const trimmed = (name || "").trim();
+  if (!f || !trimmed || f.name === trimmed) return;
+  f.name = trimmed;
+  writePlaylistFolders();
+}
+
+function togglePlaylistFolderCollapsed(id) {
+  const f = getPlaylistFolder(id);
+  if (!f) return;
+  f.collapsed = !f.collapsed;
+  writePlaylistFolders();
+}
+
+// フォルダ表示順を1つ動かす(dir=-1上/+1下)。曲の並びも合わせて直す
+function movePlaylistFolder(id, dir) {
+  const i = playlistFolders.findIndex(f => f.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= playlistFolders.length) return;
+  const tmp = playlistFolders[i];
+  playlistFolders[i] = playlistFolders[j];
+  playlistFolders[j] = tmp;
+  writePlaylistFolders();
+  normalizePlaylistGrouping();
+}
+
+// フォルダ削除: 中の曲は消さず未分類へ戻す
+function deletePlaylistFolder(id) {
+  const i = playlistFolders.findIndex(f => f.id === id);
+  if (i < 0) return;
+  playlist.forEach(t => { if (t.folder === id) t.folder = null; });
+  playlistFolders.splice(i, 1);
+  writePlaylistFolders();
+  normalizePlaylistGrouping();
+}
+
+// playlist[]をフォルダ順(未分類は末尾)へ安定ソート。currentPlaylistIndexは曲の参照で追従。並びが変わったらtrueを返す(保存は呼び出し側のpersistPlaylistOrder)
+function normalizePlaylistGrouping() {
+  const rank = new Map();
+  playlistFolders.forEach((f, i) => rank.set(f.id, i));
+  const rankOf = t => {
+    const id = trackFolderId(t);
+    return id ? rank.get(id) : playlistFolders.length;
+  };
+  let sorted = true;
+  for (let i = 1; i < playlist.length; i++) {
+    if (rankOf(playlist[i - 1]) > rankOf(playlist[i])) { sorted = false; break; }
+  }
+  if (sorted) return false;
+  const current = currentPlaylistIndex >= 0 ? playlist[currentPlaylistIndex] : null;
+  const keyed = playlist.map((t, i) => ({ t, i, r: rankOf(t) }));
+  keyed.sort((a, b) => a.r - b.r || a.i - b.i);
+  playlist.length = 0;
+  keyed.forEach(k => playlist.push(k.t));
+  if (current) currentPlaylistIndex = playlist.indexOf(current);
+  return true;
+}
+
+// 指定index群の曲を別フォルダ(null=未分類)の末尾へ移す
+function moveTracksToFolder(indices, folderId) {
+  const target = folderId && getPlaylistFolder(folderId) ? folderId : null;
+  const set = new Set(indices);
+  const moving = playlist.filter((t, i) => set.has(i));
+  if (!moving.length) return;
+  const current = currentPlaylistIndex >= 0 ? playlist[currentPlaylistIndex] : null;
+  const rest = playlist.filter((t, i) => !set.has(i));
+  moving.forEach(t => { t.folder = target; });
+  playlist.length = 0;
+  rest.forEach(t => playlist.push(t));
+  moving.forEach(t => playlist.push(t));
+  normalizePlaylistGrouping();
+  if (current) currentPlaylistIndex = playlist.indexOf(current);
+  persistPlaylistOrder();
+}
+
+// Auto Nextの範囲: "folder"=今の曲と同じフォルダ内だけ / "all"=ライブラリ全体。フォルダが無い間は結果が同じ
+function getAutoNextScope() {
+  try {
+    return localStorage.getItem(AUTONEXT_SCOPE_KEY) === "all" ? "all" : "folder";
+  } catch (e) {
+    return "folder";
+  }
+}
+
+function setAutoNextScope(scope) {
+  try {
+    localStorage.setItem(AUTONEXT_SCOPE_KEY, scope === "all" ? "all" : "folder");
+  } catch (e) {}
 }
 
 // playlistの並びをsavedAtへ反映(連番)。Blobに触れず軽量更新のみ。savePlaylistTrack()で全曲書き直すと重くフリーズする
@@ -242,6 +393,7 @@ async function persistPlaylistOrder() {
     cur.title = track.title;
     cur.artist = track.artist;
     cur.favorite = track.favorite || false;
+    cur.folder = track.folder || null;
     meta[name] = cur;
   }
   writePlaylistMeta(meta);
@@ -256,7 +408,8 @@ async function savePlaylistMetadataFor(track) {
     enabled: track.enabled !== false,
     title: track.title,
     artist: track.artist,
-    favorite: track.favorite || false
+    favorite: track.favorite || false,
+    folder: track.folder || null
   });
 }
 

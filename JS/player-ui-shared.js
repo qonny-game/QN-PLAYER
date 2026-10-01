@@ -827,9 +827,10 @@ async function restorePlaylistFromStorage() {
   const savedTracks = await loadAllPlaylistTracks();
   if (savedTracks.length === 0) return;
 
-  savedTracks.forEach(({ file, enabled, title, artist, favorite }) => {
-    playlist.push({ file, name: file.name, enabled, title: title || null, artist: artist || null, duration: null, favorite: !!favorite });
+  savedTracks.forEach(({ file, enabled, title, artist, favorite, folder }) => {
+    playlist.push({ file, name: file.name, enabled, title: title || null, artist: artist || null, duration: null, favorite: !!favorite, folder: folder || null });
   });
+  if (typeof normalizePlaylistGrouping === "function") normalizePlaylistGrouping();
   renderPlaylist();
 
   playlist.forEach(track => {

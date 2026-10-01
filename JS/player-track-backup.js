@@ -373,6 +373,9 @@ async function runTrackBackup() {
           trackData.abA = storedAB.a;
           trackData.abB = storedAB.b;
           trackData.noteText = loadStoredNoteTextFor(track.name);
+          // 【v3.24.0】所属フォルダは名前で持つ(idは端末ごと)。未分類=null。古い版は無視、古いバックアップ(キー無し)は読み込み側で触らない
+          const folderNameForExport = typeof trackFolderId === "function" && typeof getPlaylistFolder === "function" && trackFolderId(track) ? getPlaylistFolder(track.folder).name : null;
+          trackData.folder = folderNameForExport;
         }
 
         return trackData;
@@ -779,6 +782,13 @@ async function runTrackImport() {
   let overwrittenCount = 0;
   let skippedCount = 0;
   let noAudioSkippedCount = 0;
+  let folderTouched = false;
+
+  // バックアップのフォルダ名→このライブラリのフォルダid(無ければ作る)。null/空=未分類
+  function importFolderIdFor(name) {
+    if (typeof name !== "string" || !name.trim() || typeof findOrCreatePlaylistFolderByName !== "function") return null;
+    return findOrCreatePlaylistFolderByName(name).id;
+  }
 
   try {
     const existingByName = new Map((Array.isArray(playlist) ? playlist : []).map(t => [t.name, t]));
@@ -803,6 +813,7 @@ async function runTrackImport() {
         const existingTrack = existingByName.get(name);
         if (trackData.title !== undefined) existingTrack.title = trackData.title;
         if (trackData.artist !== undefined) existingTrack.artist = trackData.artist;
+        if (trackData.folder !== undefined) { existingTrack.folder = importFolderIdFor(trackData.folder); folderTouched = true; }
         if (audioBlob) {
           existingTrack.file = new File([audioBlob], name, { type: audioBlob.type || "audio/mpeg" });
         }
@@ -828,17 +839,25 @@ async function runTrackImport() {
           artist: trackData.artist || null,
           duration: null,
           enabled: true,
-          favorite: false
+          favorite: false,
+          folder: trackData.folder !== undefined ? importFolderIdFor(trackData.folder) : null
         };
+        if (newTrack.folder) folderTouched = true;
         playlist.push(newTrack);
         if (typeof savePlaylistTrack === "function") {
           await savePlaylistTrack(newTrack.file, undefined, newTrack.enabled, newTrack.title, newTrack.artist, newTrack.favorite);
         }
+        if (newTrack.folder && typeof savePlaylistMetadataFor === "function") await savePlaylistMetadataFor(newTrack);
         applyImportedMarkersAndText(name, trackData);
         addedCount++;
       }
     }
 
+    // フォルダが変わった曲があればグループ順へ並べ直してメタ保存(フォルダ指定の無い旧バックアップでは何もしない)
+    if (folderTouched && typeof normalizePlaylistGrouping === "function") {
+      normalizePlaylistGrouping();
+      if (typeof persistPlaylistOrder === "function") await persistPlaylistOrder(); // localStorageのメタのみ(Blobに触れない)。folderも一緒に保存される
+    }
     if (typeof renderPlaylist === "function") renderPlaylist();
 
     // ---------- YouTube分（YouTubeアプリの保存先へ反映） ----------

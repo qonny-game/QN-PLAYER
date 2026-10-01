@@ -749,6 +749,22 @@
         if (fileInputEl) fileInputEl.click();
       });
       addGroup.appendChild(addFileBtn);
+
+      // 【v3.24.0】フォルダ作成。作成直後は名前入力状態になる
+      const newFolderBtn = el(
+        '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2NewFolderBtn" title="New Folder">' +
+          '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg>' +
+          '<span>NEW FOLDER</span>' +
+        '</button>'
+      );
+      newFolderBtn.addEventListener("click", () => {
+        if (typeof isUnlocked === "function" && !isUnlocked()) {
+          if (typeof swShowUnlockToast === "function") swShowUnlockToast("無料版ではフォルダ分けはできません。");
+          return;
+        }
+        if (typeof addPlaylistFolderInteractive === "function") addPlaylistFolderInteractive();
+      });
+      addGroup.appendChild(newFolderBtn);
     }
 
     if (panelId === "markers") {
@@ -773,6 +789,17 @@
       '</button>'
     );
     deleteBtn.addEventListener("click", () => deleteSelectedItems(panelId));
+    if (panelId === "playlist") {
+      // 【v3.24.0】選択した曲をフォルダへ移動(編集モードのみ表示。Deleteと同じ選択を使う)
+      const moveBtn = el(
+        '<button type="button" class="panel-fab-btn panel-fab-move-btn" id="pcV2MoveSelectedBtn" disabled>' +
+          '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 11l-4-4h3V9h2v4h3l-4 4z"/></svg>' +
+          '<span>Move</span>' +
+        '</button>'
+      );
+      moveBtn.addEventListener("click", () => moveSelectedItems(moveBtn));
+      fab.appendChild(moveBtn);
+    }
     fab.appendChild(deleteBtn);
 
     const editBtn = el(
@@ -839,6 +866,12 @@
       }
     }
 
+    // 【v3.24.0】Library見出しに置いたAuto Nextスコープボタンを、ヘッダーを消す前に退避(innerHTML=""で破棄されるため)
+    const scopeBtnEl = document.getElementById("playlistScopeBtn");
+    if (scopeBtnEl && textControlsHolder && panelHeader.contains(scopeBtnEl)) {
+      textControlsHolder.appendChild(scopeBtnEl);
+    }
+
     // 【v2.15.1】前回の中身は#pcV2PanelStash(非表示の退避場所)へ移す。innerHTML=""で切り離すと#pinList/#playlistBox/#noteTextArea等がdocumentから消え、曲切替時の更新が空振りして前の曲が表示される(GOTCHAS.md)
     stashPanelContents(panelBody);
     panelBody.innerHTML = "";
@@ -884,6 +917,8 @@
         if (playlistBody) panelBody.appendChild(playlistBody);
         attachDisableGuard("playlist");
         panelBody.appendChild(buildPanelFab(panelId));
+        if (scopeBtnEl) panelHeader.appendChild(scopeBtnEl);
+        if (typeof syncAutoNextScopeButton === "function") syncAutoNextScopeButton();
       } else if (panelId === "text") {
         if (textBody) panelBody.appendChild(textBody);
         setupTextPanelHeaderControls();
@@ -943,6 +978,11 @@
       deleteBtn.style.display = editModeState[panelId] ? "flex" : "none";
       deleteBtn.disabled = true;
     }
+    const moveBtnEl = document.getElementById("pcV2MoveSelectedBtn");
+    if (moveBtnEl) {
+      moveBtnEl.style.display = editModeState[panelId] ? "flex" : "none";
+      moveBtnEl.disabled = true;
+    }
 
     if (panelId === "playlist" && typeof renderPlaylist === "function") {
       renderPlaylist();
@@ -978,7 +1018,57 @@
   function getRowItems(panelId) {
     const container = getListContainer(panelId);
     if (!container) return [];
-    return Array.from(container.children);
+    // playlistはフォルダ見出し行(.playlistFolderHeader)が混ざるので曲の行だけ。行のindexはdata-index(=playlist[]のindex。折りたたみで行が省かれても一致)
+    return Array.from(container.children).filter(c => panelId !== "playlist" || c.classList.contains("playlistItem"));
+  }
+
+  function rowIndexOf(panelId, items, row) {
+    if (panelId === "playlist") return row && row.dataset ? parseInt(row.dataset.index, 10) : -1;
+    return items.indexOf(row);
+  }
+
+  function syncSelectionButtons(panelId) {
+    const n = selectedIndices[panelId].size;
+    const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
+    if (deleteBtn) deleteBtn.disabled = n === 0;
+    if (panelId === "playlist") {
+      const moveBtn = document.getElementById("pcV2MoveSelectedBtn");
+      if (moveBtn) moveBtn.disabled = n === 0;
+    }
+  }
+
+  // 再描画(renderPlaylist)で消えた選択表示を、同じindexの行へ付け直す(開閉・タイトル読込などindexが変わらない再描画用)
+  window.playlistReapplySelection = function () {
+    if (!editModeState.playlist || selectedIndices.playlist.size === 0) return;
+    const container = getListContainer("playlist");
+    if (!container) return;
+    getRowItems("playlist").forEach(row => {
+      if (!selectedIndices.playlist.has(parseInt(row.dataset.index, 10))) return;
+      const b = row.querySelector(".del-btn");
+      if (b) b.classList.add("pcv2-selected");
+    });
+  };
+  // フォルダ操作でindexがズレる前に選択を捨てる
+  window.playlistClearSelection = function () {
+    selectedIndices.playlist.clear();
+    syncSelectionButtons("playlist");
+  };
+
+  function moveSelectedItems(btn) {
+    if (typeof isUnlocked === "function" && !isUnlocked()) {
+      if (typeof swShowUnlockToast === "function") swShowUnlockToast("無料版ではフォルダへの移動はできません。");
+      return;
+    }
+    const indices = Array.from(selectedIndices.playlist).sort((a, b) => a - b);
+    if (indices.length === 0 || typeof showFolderPicker !== "function") return;
+    hapticTap();
+    showFolderPicker(btn, (folderId) => {
+      const target = folderId === "__new__" ? createPlaylistFolder("").id : folderId;
+      moveTracksToFolder(indices, target);
+      selectedIndices.playlist.clear();
+      syncSelectionButtons("playlist");
+      renderPlaylist();
+    });
   }
 
   const selectionHandlers = { markers: null, playlist: null };
@@ -998,8 +1088,8 @@
       e.stopPropagation();
       e.preventDefault();
       const items = getRowItems(panelId);
-      const index = items.indexOf(zone.closest(".pinItem, .playlistItem"));
-      if (index === -1) return;
+      const index = rowIndexOf(panelId, items, zone.closest(".pinItem, .playlistItem"));
+      if (index === -1 || Number.isNaN(index)) return;
       if (selectedIndices[panelId].has(index)) {
         selectedIndices[panelId].delete(index);
         delBtn.classList.remove("pcv2-selected");
@@ -1007,8 +1097,7 @@
         selectedIndices[panelId].add(index);
         delBtn.classList.add("pcv2-selected");
       }
-      const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
-      if (deleteBtn) deleteBtn.disabled = selectedIndices[panelId].size === 0;
+      syncSelectionButtons(panelId);
       if (panelId === "playlist") {
         const hasSelection = selectedIndices.playlist.size > 0;
         items.forEach(item => {
@@ -1054,7 +1143,7 @@
 
     const container = getListContainer(panelId);
     const items = getRowItems(panelId);
-    const fadingEls = indices.map(i => items[i]).filter(Boolean);
+    const fadingEls = indices.map(i => panelId === "playlist" ? items.find(r => parseInt(r.dataset.index, 10) === i) : items[i]).filter(Boolean);
     const FADE_MS = 260;
 
     if (container) container.style.pointerEvents = "none";
@@ -1092,8 +1181,7 @@
       renderPlaylist();
     }
     selectedIndices[panelId].clear();
-    const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
-    if (deleteBtn) deleteBtn.disabled = true;
+    syncSelectionButtons(panelId);
     attachSelectionHandlers(panelId);
   }
 

@@ -109,6 +109,19 @@
 }
 
 
+/* 【v3.24.0】編集モードのMOVEボタン(曲をフォルダへ。編集モードのみJSで表示。色は通常FAB=アクセント) */
+.panel-fab-move-btn {
+  display: none;
+}
+
+
+.panel-fab-move-btn:disabled {
+  background: var(--accent-primary);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
 /* Markers/Playlist操作ボタン: 編集モード時以外はクリックしても反応しない(薄く表示)。無効化はplayer-ui-pc-v2.jsがキャプチャフェーズで止める(player-markers/playlist側は無改造)。削除チェックは編集モードのみ表示。markers=.del-btn自体がgridセル、playlist=.playlist-del-zone(.del-btnを包む広い判定)がgridセル */
 #pcV2PanelBody #pinList .pin-del-zone,
 #pcV2PanelBody #playlistBox .playlist-del-zone {

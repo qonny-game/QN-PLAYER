@@ -13,7 +13,7 @@ function addFilesToPlaylist(files) {
 
   const wasEmpty = playlist.length === 0;
   audioFiles.forEach(file => {
-    const track = { file, name: file.name, title: null, artist: null, duration: null, enabled: true, favorite: false };
+    const track = { file, name: file.name, title: null, artist: null, duration: null, enabled: true, favorite: false, folder: null };
     playlist.push(track);
     // IndexedDBへ自動保存(非同期。失敗しても再生に影響しないので待たない)
     savePlaylistTrack(file);
@@ -105,10 +105,11 @@ function renderPlaylist() {
   const editMode = typeof isPlaylistEditMode === "function" && isPlaylistEditMode();
 
   box.innerHTML = "";
-  playlist.forEach((track, i) => {
+  const buildRow = (track, i) => {
     const item = document.createElement("div");
     item.className = "playlistItem";
     item.dataset.index = i;
+    item.dataset.folder = trackFolderId(track) || "";
     if (i === currentPlaylistIndex) item.classList.add("playing");
     if (!track.enabled) item.classList.add("disabled");
 
@@ -273,10 +274,214 @@ function renderPlaylist() {
       item.appendChild(delZone);
     }
 
-    box.appendChild(item);
-  });
+    return item;
+  };
 
+  // フォルダが無ければ従来どおり全曲を並べるだけ。有れば「フォルダ見出し→その曲」をフォルダ順に、未分類は末尾。編集モードは全フォルダを展開(移動/削除の対象を隠さない)
+  const frag = document.createDocumentFragment();
+  if (playlistFolders.length === 0) {
+    playlist.forEach((track, i) => frag.appendChild(buildRow(track, i)));
+  } else {
+    const buckets = new Map();
+    playlistFolders.forEach(f => buckets.set(f.id, []));
+    buckets.set(null, []);
+    playlist.forEach((track, i) => buckets.get(trackFolderId(track)).push(i));
+    playlistFolders.forEach((folder, fi) => {
+      const idxs = buckets.get(folder.id);
+      frag.appendChild(buildFolderHeader(folder, idxs.length, fi, editMode));
+      if (!folder.collapsed || editMode) idxs.forEach(i => frag.appendChild(buildRow(playlist[i], i)));
+    });
+    const loose = buckets.get(null);
+    if (loose.length) {
+      frag.appendChild(buildFolderHeader(null, loose.length, -1, editMode));
+      loose.forEach(i => frag.appendChild(buildRow(playlist[i], i)));
+    }
+  }
+  box.appendChild(frag);
+
+  syncAutoNextScopeButton();
   setupPlaylistDragReorder(box);
+  if (typeof window.playlistReapplySelection === "function") window.playlistReapplySelection();
+}
+
+// フォルダ見出し行(folder=nullは「未分類」。操作ボタン無し)。通常: クリックで開閉+ホバー鉛筆で改名。編集モード: 名前は常時入力、▲▼で順序、✕で削除(中の曲は未分類へ)
+function buildFolderHeader(folder, count, folderIdx, editMode) {
+  const head = document.createElement("div");
+  head.className = "playlistFolderHeader";
+  if (!folder) head.classList.add("is-loose");
+  if (folder && folder.collapsed && !editMode) head.classList.add("is-collapsed");
+  head.dataset.folderId = folder ? folder.id : "";
+
+  const chev = document.createElement("span");
+  chev.className = "playlist-folder-chev";
+  chev.innerHTML = folder
+    ? '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>'
+    : '<svg viewBox="0 0 24 24"><path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"/></svg>';
+  head.appendChild(chev);
+
+  const nameWrap = document.createElement("div");
+  nameWrap.className = "playlist-folder-name-wrap";
+  if (folder) {
+    const nameField = makeEditableText(folder.name, "playlist-folder-name", "", (newVal) => {
+      if (newVal) renamePlaylistFolder(folder.id, newVal);
+      renderPlaylist();
+    });
+    nameWrap.appendChild(nameField);
+    if (editMode) {
+      nameField.startEdit();
+    } else {
+      const pen = document.createElement("button");
+      pen.type = "button";
+      pen.className = "playlist-hover-edit-btn";
+      pen.title = "フォルダ名を変更";
+      pen.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+      pen.onclick = (e) => { e.stopPropagation(); nameField.startEdit(); };
+      nameWrap.appendChild(pen);
+    }
+  } else {
+    const label = document.createElement("span");
+    label.className = "playlist-folder-name";
+    label.textContent = "未分類";
+    nameWrap.appendChild(label);
+  }
+  head.appendChild(nameWrap);
+
+  const cnt = document.createElement("span");
+  cnt.className = "playlist-folder-count";
+  cnt.textContent = String(count);
+  head.appendChild(cnt);
+
+  if (folder && editMode) {
+    const mk = (cls, title, html, onClick, disabled) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "playlist-folder-btn " + cls;
+      b.title = title;
+      b.innerHTML = html;
+      b.disabled = !!disabled;
+      b.onclick = (e) => { e.stopPropagation(); onClick(b); };
+      return b;
+    };
+    head.appendChild(mk("is-up", "上へ", '<svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>', () => {
+      hapticTap(); clearPlaylistSelectionForRegroup(); movePlaylistFolder(folder.id, -1); persistPlaylistOrder(); renderPlaylist();
+    }, folderIdx === 0));
+    head.appendChild(mk("is-down", "下へ", '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>', () => {
+      hapticTap(); clearPlaylistSelectionForRegroup(); movePlaylistFolder(folder.id, 1); persistPlaylistOrder(); renderPlaylist();
+    }, folderIdx === playlistFolders.length - 1));
+    // 削除は2タップ確認(曲の✕と同じ流儀)
+    head.appendChild(mk("is-del", "フォルダを削除（中の曲は未分類へ戻ります）", "✕", (b) => {
+      if (b.classList.contains("confirm")) {
+        hapticWarning();
+        clearPlaylistSelectionForRegroup();
+        deletePlaylistFolder(folder.id);
+        persistPlaylistOrder();
+        renderPlaylist();
+      } else {
+        hapticTap();
+        b.classList.add("confirm");
+        b.textContent = "✓";
+        clearTimeout(b._confirmTimer);
+        b._confirmTimer = setTimeout(() => { b.classList.remove("confirm"); b.textContent = "✕"; }, 3000);
+      }
+    }));
+  }
+
+  if (folder && !editMode) {
+    head.addEventListener("click", (e) => {
+      if (e.target.closest("button, input")) return;
+      hapticTap();
+      togglePlaylistFolderCollapsed(folder.id);
+      renderPlaylist();
+    });
+  }
+  return head;
+}
+
+// フォルダ操作で配列indexが変わる前に、PC v2側の削除選択を捨てる(indexがズレるため)
+function clearPlaylistSelectionForRegroup() {
+  if (typeof window.playlistClearSelection === "function") window.playlistClearSelection();
+}
+
+// 新規フォルダ(FABのNEW FOLDERから)。作った直後は名前入力状態にする
+function addPlaylistFolderInteractive() {
+  hapticTap();
+  const folder = createPlaylistFolder("");
+  renderPlaylist();
+  const box = document.getElementById("playlistBox");
+  const field = box && box.querySelector('.playlistFolderHeader[data-folder-id="' + folder.id + '"] .playlist-editable-field');
+  if (field && typeof field.startEdit === "function") field.startEdit();
+  return folder;
+}
+
+// Auto Nextの範囲ボタン(Libraryの見出し行)。フォルダが1つも無い間は隠す
+function syncAutoNextScopeButton() {
+  const btn = document.getElementById("playlistScopeBtn");
+  if (!btn) return;
+  const has = playlistFolders.length > 0;
+  btn.hidden = !has;
+  if (!has) return;
+  const scope = getAutoNextScope();
+  const label = scope === "folder" ? "NEXT: FOLDER" : "NEXT: ALL";
+  const txt = btn.querySelector(".playlist-scope-label");
+  if (txt && txt.textContent !== label) txt.textContent = label;
+  btn.dataset.scope = scope;
+  btn.title = scope === "folder" ? "Auto Next: 同じフォルダ内だけ（タップで全体に切替）" : "Auto Next: ライブラリ全体（タップでフォルダ内に切替）";
+}
+
+(function setupAutoNextScopeButton() {
+  const btn = document.getElementById("playlistScopeBtn");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    hapticTap();
+    setAutoNextScope(getAutoNextScope() === "folder" ? "all" : "folder");
+    syncAutoNextScopeButton();
+  });
+})();
+
+// 曲の移動先ピッカー(EDIT時のMOVEボタンから)。anchorの上に小さなメニュー。onPick(folderId|null)
+function showFolderPicker(anchor, onPick) {
+  closeFolderPicker();
+  const menu = document.createElement("div");
+  menu.className = "playlist-folder-picker";
+  menu.id = "playlistFolderPicker";
+  const add = (label, folderId, cls) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "playlist-folder-picker-item" + (cls ? " " + cls : "");
+    b.textContent = label;
+    b.onclick = (e) => { e.stopPropagation(); closeFolderPicker(); onPick(folderId); };
+    menu.appendChild(b);
+  };
+  playlistFolders.forEach(f => add(f.name, f.id));
+  add("未分類", null, "is-loose");
+  add("＋ 新しいフォルダへ", "__new__", "is-new");
+  document.body.appendChild(menu);
+  // 開いた瞬間に1回だけ位置計算(ループ内では測らない)
+  const r = anchor.getBoundingClientRect();
+  const mh = menu.offsetHeight, mw = menu.offsetWidth;
+  const left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw));
+  const top = r.top - mh - 8 >= 8 ? r.top - mh - 8 : Math.min(window.innerHeight - mh - 8, r.bottom + 8);
+  menu.style.left = left + "px";
+  menu.style.top = top + "px";
+  setTimeout(() => {
+    document.addEventListener("pointerdown", folderPickerOutside, true);
+  }, 0);
+  document.addEventListener("keydown", folderPickerKey, true);
+  window.addEventListener("resize", closeFolderPicker);
+}
+function folderPickerKey(e) {
+  if (e.key === "Escape") { e.stopPropagation(); closeFolderPicker(); }
+}
+function folderPickerOutside(e) {
+  const m = document.getElementById("playlistFolderPicker");
+  if (m && !m.contains(e.target)) closeFolderPicker();
+}
+function closeFolderPicker() {
+  const m = document.getElementById("playlistFolderPicker");
+  if (m) m.remove();
+  document.removeEventListener("pointerdown", folderPickerOutside, true);
+  document.removeEventListener("keydown", folderPickerKey, true);
+  window.removeEventListener("resize", closeFolderPicker);
 }
 
 // お気に入り: ONは「お気に入り群の末尾」、OFFは「非お気に入り群の先頭」へ配列内を実際に移動。ドラッグ並び替えは変更しない(群をまたいだらピンを押し直すと境界へ戻る)
@@ -290,15 +495,18 @@ function toggleTrackFavorite(index) {
   track.favorite = !track.favorite;
 
   playlist.splice(index, 1);
+  // 同じフォルダ内(グループ内)だけで上段/下段を入れ替える。フォルダ無し(全曲未分類)なら従来と同じ
+  const fid = trackFolderId(track);
+  let gStart = playlist.length, gEnd = 0;
+  playlist.forEach((t, i) => { if (trackFolderId(t) === fid) { if (i < gStart) gStart = i; gEnd = i + 1; } });
+  if (gStart > gEnd) { gStart = gEnd = index; }
   let insertAt;
   if (track.favorite) {
-    insertAt = playlist.findIndex(t => !t.favorite);
-    if (insertAt === -1) insertAt = playlist.length;
+    insertAt = gEnd;
+    for (let i = gStart; i < gEnd; i++) { if (!playlist[i].favorite) { insertAt = i; break; } }
   } else {
-    let lastFavoriteIndex = -1;
-    for (let i = 0; i < playlist.length; i++) {
-      if (playlist[i].favorite) lastFavoriteIndex = i;
-    }
+    let lastFavoriteIndex = gStart - 1;
+    for (let i = gStart; i < gEnd; i++) { if (playlist[i].favorite) lastFavoriteIndex = i; }
     insertAt = lastFavoriteIndex + 1;
   }
   playlist.splice(insertAt, 0, track);
@@ -358,11 +566,20 @@ function playTrackAt(index, autoplay = true) {
 
 function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
   if (playlist.length === 0) return -1;
+  // 【v3.24.0】Auto Next範囲: フォルダがあり設定が"folder"なら、今の曲と同じフォルダ(連続グループ)内だけで進む/戻る/ラップする
+  let lo = 0, hi = playlist.length - 1;
+  if (playlistFolders.length > 0 && getAutoNextScope() === "folder" && playlist[fromIndex]) {
+    const fid = trackFolderId(playlist[fromIndex]);
+    lo = hi = fromIndex;
+    while (lo > 0 && trackFolderId(playlist[lo - 1]) === fid) lo--;
+    while (hi < playlist.length - 1 && trackFolderId(playlist[hi + 1]) === fid) hi++;
+  }
+  const span = hi - lo + 1;
   let i = fromIndex + direction;
-  for (let steps = 0; steps < playlist.length; steps++) {
-    if (i < 0 || i >= playlist.length) {
+  for (let steps = 0; steps < span; steps++) {
+    if (i < lo || i > hi) {
       if (!wrapAround) return -1;
-      i = i < 0 ? playlist.length - 1 : 0;
+      i = i < lo ? hi : lo;
     }
     if (playlist[i] && playlist[i].enabled !== false) return i;
     i += direction;
@@ -407,8 +624,10 @@ function setupPlaylistDragReorder(box) {
     let itemHeight = 0;
     let itemCount = 0;
 
+    // ドラッグは同じフォルダ内だけ(見出し行を跨ぐと高さ計算が崩れる＆所属変更は移動UIで行う)
     function getItems() {
-      return Array.from(box.querySelectorAll(".playlistItem"));
+      const all = Array.from(box.querySelectorAll(".playlistItem"));
+      return draggedItem ? all.filter(el => el.dataset.folder === draggedItem.dataset.folder) : all;
     }
 
     // ドラッグ中アイテム以外を最終位置へ。draggedItemはtransformのみ、DOM順変更はonEndで1回だけ(ドラッグ中のinsertBeforeは基準がズレて複数要素が一気に動く)
@@ -457,18 +676,19 @@ function setupPlaylistDragReorder(box) {
       getItems().forEach(item => { item.style.transform = ""; });
 
       if (targetIndex !== startIndex) {
-        const originalOrder = getItems()
+        const itemsInOrder = getItems()
           .slice()
-          .sort((a, b) => parseInt(a.dataset.dragOriginalIndex, 10) - parseInt(b.dataset.dragOriginalIndex, 10))
-          .map(el => playlist[parseInt(el.dataset.index, 10)]);
+          .sort((a, b) => parseInt(a.dataset.dragOriginalIndex, 10) - parseInt(b.dataset.dragOriginalIndex, 10));
+        const slots = itemsInOrder.map(el => parseInt(el.dataset.index, 10));
+        const originalOrder = itemsInOrder.map(el => playlist[parseInt(el.dataset.index, 10)]);
 
         const movedTrack = originalOrder[startIndex];
         originalOrder.splice(startIndex, 1);
         originalOrder.splice(targetIndex, 0, movedTrack);
 
+        // グループが占める配列スロットへ並べ直して書き戻す(他フォルダの曲は動かさない)
         const playingTrack = currentPlaylistIndex >= 0 ? playlist[currentPlaylistIndex] : null;
-        playlist.length = 0;
-        originalOrder.forEach(t => playlist.push(t));
+        slots.forEach((slot, k) => { playlist[slot] = originalOrder[k]; });
         if (playingTrack) {
           currentPlaylistIndex = playlist.indexOf(playingTrack);
         }

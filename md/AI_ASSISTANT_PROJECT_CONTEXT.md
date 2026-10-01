@@ -18,7 +18,7 @@ JS/
   player-core.js              中核の状態（audio, pins, playlist）、IndexedDB(qnaudio_playlist_db)、beginSeek()、hexToRgba()
   player-ui-shared.js         loadFile / updateBars（毎フレームのループ判定）/ togglePlay / キーボードショートカット
   player-id3.js               ID3v2タグ（Title/Artist）
-  player-playlist.js          ライブラリ：追加/削除/並び替え/お気に入り
+  player-playlist.js          ライブラリ：追加/削除/並び替え/お気に入り/フォルダ見出し・Auto Next範囲
   player-track-backup.js      Backup/Import（本体・YouTube共通の画面。qnBackupMount/qnBackupMountInto/qnBackupParts）
   player-markers.js           マーカー：追加/削除/ドラッグ/波形上のポップアップ/A-B点/Color
   player-marker-presets.js    マーカーメモのプリセット・自動カラー・カスタムプリセット・メモ編集ポップアップ（player-markers.jsの続き）
@@ -77,7 +77,8 @@ favicon/  md/  pricing*.html  QUICK_START.md
 |---|---|---|
 | `playlist`配列 | メモリ（`player-core.js`） | `{file,name,title,artist,duration,enabled,favorite}`。並び順＝表示順＝再生順 |
 | 音声実体 | IndexedDB `qnaudio_playlist_db` / `tracks`（keyPath `name`） | **書いたら書き直さない**（`GOTCHAS.md`§1）。接続はキャッシュして使い回す |
-| ライブラリのメタ（並び・ON/OFF・表示名・お気に入り） | localStorage | `qn_playlist_meta_v1`＝`{ファイル名:{savedAt,enabled,title,artist,favorite}}` |
+| ライブラリのメタ（並び・ON/OFF・表示名・お気に入り） | localStorage | `qn_playlist_meta_v1`＝`{ファイル名:{savedAt,enabled,title,artist,favorite,folder}}` |
+| ライブラリのフォルダ | localStorage | `qn_folders_v1`＝`[{id,name,parentId(将来のネスト用・今はnull),collapsed}]`(配列順=表示順)／曲の所属は上記メタのfolder(フォルダid|null=未分類)／`qn_autonext_scope`＝`folder`(既定)\|`all` |
 | マーカー | localStorage | `mp3_pins_<ファイル名>`（`pins`配列。曲切替時に`loadFile()`が同期で読む） |
 | A/B点 | localStorage | `mp3_ab_<ファイル名>`＝`{a,b}`（秒数だけ。マーカーに紐づかない） |
 | テキストメモ | localStorage | `mp3_text_<ファイル名>` |

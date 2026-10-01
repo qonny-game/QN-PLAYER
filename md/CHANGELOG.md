@@ -12,3 +12,4 @@
 - 3.23.0 PITCHのBackup/Importを追加。共通Backup/Import画面(player-track-backup.js)にPITCH録音の枠を追加(pitch.json+pitch/音声をZIPへ。PLAYER/YouTubeと同じZIPに同梱可・Import自動判定・重複は上書き/スキップ)。PITCHアプリのサイドバーにBackup/Import。
 - 3.23.1 TUNER/PITCHのマイク使用中表示を追加(ステージ右上/左上の「MIC ON」「REC」ピル+入力レベル、サイドバーのアプリバッジに赤丸)。PITCHのStopアイコン修正。
 - 3.23.2 テーマ色背景のボタン(サイドバーのホバー/アプリ名バッジ/フライアウト等)の文字・アイコン色を黒→白に変更(--sidebar-on-accent)。
+- 3.24.0 ライブラリをフォルダ分け可能に(1階層・1曲=1フォルダ。データはネスト拡張可能な形)。見出しの開閉、NEW FOLDERで作成、EDITで改名/▲▼並び替え/✕削除(中の曲は未分類へ)、曲を選んでMOVEで移動。Auto Nextの範囲を「フォルダ内/全体」で切替(Libraryヘッダーの NEXT ボタン。前/次ボタン・メディアキーも同じ範囲)。Backup/Importにフォルダ名を含む(旧バックアップはそのまま読める)。無料版はフォルダ作成・移動を不可。
