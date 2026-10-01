@@ -660,3 +660,11 @@
 - YouTubeパネル内の見た目：本体の`#pcV2PanelBody`向けBackup/Importのcssを`.qn-yt-sec-backup/.qn-yt-sec-import`へミラー（`style-apps.css`末尾）。**本体側(`style-pcv2-panels.css`)のそのブロックを直したら、ここも同じに直すこと。**
 - 見出し「重複する曲」→「重複する項目」。
 - 変更ファイル：`JS/player-track-backup.js`、`JS/qn-app-youtube.js`、`JS/qn-apps.js`、`JS/player-ui-pc-v2.js`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`、`md/YOUTUBE_APP.md`。
+
+## 3.18.0 — Keyboard表の共通化（PL/YT共用）
+- `QNApps.renderShortcuts(hostEl, list, note)` / `QNApps.fillShortcutRows(tbody, list)` を qn-apps.js に追加。
+  表の組み立て（`<kbd>`枠、`+ / -` は記号扱い）を全アプリ共通にした。各アプリは行リスト `[{key, action}]`（と任意の注記）を渡すだけ。
+- PL（player-theme.js）は `window.QN_SHORTCUTS` を共通関数で描画。YT（qn-app-youtube.js）は旧・表複製コード約40行を撤去し共通関数を呼ぶだけに。
+  YTのキー表示もPLと同じ `<kbd>` 枠になる（見た目の統一）。
+- 今後のTUNER/PITCHは自分のショートカット配列を `QNApps.renderShortcuts` に渡せばKeyboard表が出る。
+- Color は共通ポップ（qn-apps.js）を既に両アプリで共用しているため変更なし。

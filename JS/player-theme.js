@@ -389,31 +389,9 @@
   const shortcutsSection = document.getElementById('qnShortcutsSection');
   const shortcutsTbody = document.getElementById('qnShortcutsTbody');
   const shortcuts = window.QN_SHORTCUTS;
-  if (Array.isArray(shortcuts) && shortcuts.length > 0 && shortcutsSection && shortcutsTbody) {
-    shortcuts.forEach(row => {
-      const tr = document.createElement('tr');
-      const tdAction = document.createElement('td');
-      tdAction.textContent = row.action;
-      const tdKey = document.createElement('td');
-      // key は "Space" のような単一表記、または "↑ ↓" のように
-      // スペース区切りで複数キーをまとめて1セルに入れてよい。
-      // "+" "/" "-" は実際に押すキーではなく、組み合わせを示す説明記号
-      // のため、<kbd>の枠は付けずにプレーンテキストとして挟む。
-      const connectorTokens = ['+', '/', '-'];
-      String(row.key).split(' ').forEach((part, i) => {
-        if (i > 0) tdKey.appendChild(document.createTextNode(' '));
-        if (connectorTokens.includes(part)) {
-          tdKey.appendChild(document.createTextNode(part));
-        } else {
-          const kbd = document.createElement('kbd');
-          kbd.textContent = part;
-          tdKey.appendChild(kbd);
-        }
-      });
-      tr.appendChild(tdAction);
-      tr.appendChild(tdKey);
-      shortcutsTbody.appendChild(tr);
-    });
+  if (window.QNApps && Array.isArray(shortcuts) && shortcuts.length > 0 && shortcutsSection && shortcutsTbody) {
+    // 表の組み立ては全アプリ共通の QNApps.fillShortcutRows（qn-apps.js）
+    window.QNApps.fillShortcutRows(shortcutsTbody, shortcuts);
   } else if (shortcutsSection) {
     // window.QN_SHORTCUTS が無い/空のアプリでは Section 3 を丸ごと非表示にする
     shortcutsSection.style.display = 'none';

@@ -595,11 +595,53 @@
     renderAppItems();
   }
 
+  // ---------- 共通：ショートカット表（Keyboard） ----------
+  // 各アプリは「行のリスト」[{key, action}] と任意の注記文字列を渡すだけ。
+  // 表の見た目（<kbd>枠・"+ / -" は記号扱い）は全アプリ共通。PL/YT/今後のTUNER・PITCHで共用する。
+  var SHORTCUT_CONNECTORS = ["+", "/", "-"];
+  function fillShortcutRows(tbody, list) {
+    tbody.textContent = "";
+    (list || []).forEach(function (row) {
+      var tr = document.createElement("tr");
+      var tdA = document.createElement("td");
+      tdA.textContent = row.action;
+      var tdK = document.createElement("td");
+      String(row.key).split(" ").forEach(function (part, i) {
+        if (i > 0) tdK.appendChild(document.createTextNode(" "));
+        if (SHORTCUT_CONNECTORS.indexOf(part) >= 0) tdK.appendChild(document.createTextNode(part));
+        else { var kbd = document.createElement("kbd"); kbd.textContent = part; tdK.appendChild(kbd); }
+      });
+      tr.appendChild(tdA); tr.appendChild(tdK);
+      tbody.appendChild(tr);
+    });
+  }
+  // hostEl の中身を「ショートカット表（＋注記）」に置き換える
+  function renderShortcuts(hostEl, list, note) {
+    if (!hostEl) return;
+    hostEl.textContent = "";
+    var sec = document.createElement("div");
+    sec.className = "qn-menu-section";
+    var table = document.createElement("table");
+    table.className = "qn-shortcut-table";
+    table.innerHTML = "<thead><tr><th>Action</th><th>Key</th></tr></thead><tbody></tbody>";
+    fillShortcutRows(table.tBodies[0], list);
+    sec.appendChild(table);
+    if (note) {
+      var p = document.createElement("p");
+      p.className = "qn-yt-kbd-note";
+      p.textContent = note;
+      sec.appendChild(p);
+    }
+    hostEl.appendChild(sec);
+  }
+
   window.QNApps = {
     register: register,
     open: open,
     close: close,
     toast: toast,
+    renderShortcuts: renderShortcuts,
+    fillShortcutRows: fillShortcutRows,
     setSideActive: setSideActive,
     getCurrentId: function () { return current ? current.id : null; },
     layout: layoutHost

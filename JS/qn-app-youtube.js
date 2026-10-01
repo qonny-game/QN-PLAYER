@@ -2149,50 +2149,10 @@
     if (handled) e.preventDefault();
   }
 
-  // Keyboardパネル：本体のKeyboard Shortcuts表（#qnShortcutsTable）を複製して、同じ見た目のまま
-  // 行だけYouTube用に差し替える。本体の表が見つからない時は、同じクラス名で自前で組み立てる。
-  function setCellText(cell, text) {
-    var n = cell;
-    while (n.children.length === 1) n = n.children[0];
-    n.textContent = text;
-  }
+  // Keyboardパネル：表の組み立ては共通（QNApps.renderShortcuts）。ここは行リストと注記を渡すだけ。
   function renderShortcuts() {
     if (!refs.kbdBox) return;
-    refs.kbdBox.textContent = "";
-    var sec = document.createElement("div");
-    sec.className = "qn-menu-section";
-    var src = document.getElementById("qnShortcutsTable");
-    var table = null;
-    if (src && src.tBodies[0] && src.tBodies[0].rows.length) {
-      table = src.cloneNode(true);
-      table.removeAttribute("id");
-      table.style.display = "";
-      var tb = table.tBodies[0], tpl = tb.rows[0].cloneNode(true);
-      tb.textContent = "";
-      SHORTCUTS.forEach(function (sc) {
-        var tr = tpl.cloneNode(true);
-        // 見出しは「Action | Key」の順。列数が違う場合は自前の構築に任せる
-        if (tr.cells.length >= 2) { setCellText(tr.cells[0], sc.action); setCellText(tr.cells[1], sc.key); }
-        tb.appendChild(tr);
-      });
-    } else {
-      table = document.createElement("table");
-      table.className = "qn-shortcut-table";
-      table.innerHTML = "<thead><tr><th>Action</th><th>Key</th></tr></thead><tbody></tbody>";
-      SHORTCUTS.forEach(function (sc) {
-        var tr = document.createElement("tr");
-        var a = document.createElement("td"), k = document.createElement("td");
-        a.textContent = sc.action; k.textContent = sc.key;
-        tr.appendChild(a); tr.appendChild(k);
-        table.tBodies[0].appendChild(tr);
-      });
-    }
-    sec.appendChild(table);
-    var note = document.createElement("p");
-    note.className = "qn-yt-kbd-note";
-    note.textContent = "YouTube本家と同じキーです。文字入力中は動きません。";
-    sec.appendChild(note);
-    refs.kbdBox.appendChild(sec);
+    window.QNApps.renderShortcuts(refs.kbdBox, SHORTCUTS, "YouTube本家と同じキーです。文字入力中は動きません。");
   }
 
   var spaceBound = false;
