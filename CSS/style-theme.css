@@ -302,6 +302,6 @@
   cursor: pointer;
 }
 @media (hover: hover) {
-  .qn-marker-custom-del:hover { color: #0a0a0c; background: var(--accent-primary); }
+  .qn-marker-custom-del:hover { color: #fff; background: var(--accent-primary); }
 }
 .qn-marker-custom-row { gap: 6px; }

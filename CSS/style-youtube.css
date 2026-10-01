@@ -938,7 +938,7 @@
   padding: 0 3px;
   box-sizing: border-box;
   background: var(--accent-primary);
-  color: var(--sidebar-on-accent, #0a0a0c);
+  color: var(--sidebar-on-accent, #fff);
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
   font-size: 11px;
   font-weight: 700;

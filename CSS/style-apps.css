@@ -155,9 +155,9 @@ body直下fixed。PC=サイドバー右に重ねる(clip-pathで縁から出る)
 }
 
 /* ---------- ホバー/バッジ色(v2.18.1) ----------
-ホバー=背景テーマ色+文字黒(#0a0a0c)。ホバー可能端末のみ(タッチは:hoverが残る)。#qnAppBadgeは常にテーマ背景+黒文字 */
+ホバー=背景テーマ色+文字白(#fff)。ホバー可能端末のみ(タッチは:hoverが残る)。#qnAppBadgeは常にテーマ背景+白文字 */
 :root {
-  --sidebar-on-accent: #0a0a0c;
+  --sidebar-on-accent: #fff;
 }
 
 #pcV2IconBar #qnAppBadge {
