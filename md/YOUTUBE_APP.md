@@ -74,7 +74,7 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 - `.qn-yt-legal`（Libraryパネル内）：「権利者に無断でアップロードされた動画は使用しないでください」の注意書き(§2-6)、YouTube API Services利用の明示、YouTube利用規約・Googleプライバシーポリシーへのリンク、「保存データは端末内のみ・YouTubeと通信する」旨。
 - 画面スリープ防止：`QNWake`（再生中PLAYINGだけ保持）。
 - 広告：コード無し。`.qn-yt-ad-slot`で枠だけ確保（今は表示していない）。
-- 未対応：TUNER / PITCH は準備中の枠のみ。
+- 他アプリ：TUNER / PITCH は別アプリ（`TUNER_APP.md` / `PITCH_APP.md`）。
 
 ---
 

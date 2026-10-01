@@ -8,3 +8,4 @@
 - 3.20.3 JS/CSS/HTMLのコメントを「注意・禁止・規約・順序依存・仕様メモ」だけに圧縮。検証用swDebugコード(JS/CSS)と無効なCSSルール(`.tripleNavBtn`重複)を削除。
 - 3.20.4 YouTubeに無断アップロード禁止の注意書きを再表示、Set A/Bのツールチップ修正。Backup/Importの外枠(モーダル)とPC v2の旧レイアウト復元処理(`deactivate`/anchor)を削除し、Backup/Import表示を`qnBackupMount`に一本化。
 - 3.21.0 TUNERアプリを追加(qn-app-tuner.js/qn-pitch-core.js/style-tuner.css)。Mic Tuner(Gauge/Guitar Meter)・Tone Generator・Sensitivity・Display。PLAYERのパネル/下段バー/部品デザインで統一。QNPITCH(旧アプリ)から移植、保存キーはqn_tuner_*で新規。
+- 3.22.0 PITCHアプリを追加(qn-app-pitch.js/qn-pitch-filters.js/style-pitch.css)。ピッチロール(仮想スクロール)・録音(MediaRecorder+解析で1本のマイク共有)・再生・スコア・Filters・Recordings(EDIT/削除/改名)。QNPITCH(旧アプリ)から移植、保存キーはqn_pitch_*・DBはqn_pitch_dbで新規。Backup/Importは次段階。

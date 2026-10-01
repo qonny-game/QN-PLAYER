@@ -108,7 +108,8 @@
       analyser = null; dataBuf = null; corrBuf = null;
     }
 
-    return { startFromMic: startFromMic, stop: stop };
+    // streamは録音(MediaRecorder)と共有する用。getUserMediaを二重に開かない
+    return { startFromMic: startFromMic, stop: stop, get stream() { return stream; } };
   }
 
   window.QNPitchCore = {

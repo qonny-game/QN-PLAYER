@@ -4,7 +4,7 @@ QN-PLAYER（QNシリーズのブラウザ完結型MP3プレイヤー）の設計
 修正依頼の前に該当節を見て、同じ調査・同じ失敗を繰り返さないようにする。
 
 **関連ファイル（`md/`）：** `QUICK_START.md`（最初に読む）／`GOTCHAS.md`（落とし穴）／`PC_V2_FILE_INDEX.md`（大きいファイルの目次）／
-`YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約ルール。最優先）／`TUNER_APP.md`（TUNERアプリの仕様）／`DOM_ID_REFERENCE.md`／`UI_TERMINOLOGY.md`／`CHANGELOG.md`
+`YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約ルール。最優先）／`TUNER_APP.md`（TUNERアプリの仕様）／`PITCH_APP.md`（PITCHアプリの仕様）／`DOM_ID_REFERENCE.md`／`UI_TERMINOLOGY.md`／`CHANGELOG.md`
 
 ---
 
@@ -32,6 +32,8 @@ JS/
   qn-app-youtube.js           YouTubeアプリ本体（IIFE）
   qn-pitch-core.js            TUNER/PITCH共通：マイク入力・ピッチ検出(自己相関)・音名変換（QNPitchCore。DOM操作なし）
   qn-app-tuner.js             TUNERアプリ本体（IIFE。Mic Tuner/Tone Generator/Sensitivity/Display）
+  qn-pitch-filters.js         PITCH用：ノイズ除去/ビブラート/ズレ検出/スコア＋フィルタ設定（QNPitchFilters。DOM操作なし）
+  qn-app-pitch.js             PITCHアプリ本体（IIFE。ピッチロール/録音/再生/Filters/Recordings）
   player-theme.js             カラーテーマ・ショートカット一覧・ハンバーガーメニュー
   player-auth.js              Firebase Auth（module）
   jszip.min.js / lame_min.js  外部ライブラリ（触らない）
@@ -45,12 +47,13 @@ CSS/
   style-apps.css              アプリ枠（バッジ・フライアウト・トースト・#qnAppHost）
   style-youtube.css           YouTubeアプリ専用（.qn-yt*）
   style-tuner.css             TUNERアプリ専用（.qn-tn*）
+  style-pitch.css             PITCHアプリ専用（.qn-pt*）
 favicon/  md/  pricing*.html  QUICK_START.md
 ```
 
 **読み込み順（`index.html`）。順序で上書きが決まる／グローバルでつながるので変えない：**
-- CSS：core → playlist → markers → control-eq → controls → export → text → layout-sp → layout-pc-v2 → **layout-pc-v2-sp** → pcv2-panels → auth → shareware → theme → apps → **youtube** → tuner
-- JS：jszip → lame → player-shareware → qn-marker-core → player-core → player-ui-shared → player-id3 → player-playlist → player-track-backup → player-markers → **player-marker-presets** → player-control-eq → player-controls → player-export → player-text → player-ui-pc-v2 → qn-wakelock → qn-apps → qn-app-youtube → qn-pitch-core → qn-app-tuner → player-theme → player-auth(module)
+- CSS：core → playlist → markers → control-eq → controls → export → text → layout-sp → layout-pc-v2 → **layout-pc-v2-sp** → pcv2-panels → auth → shareware → theme → apps → **youtube** → tuner → pitch
+- JS：jszip → lame → player-shareware → qn-marker-core → player-core → player-ui-shared → player-id3 → player-playlist → player-track-backup → player-markers → **player-marker-presets** → player-control-eq → player-controls → player-export → player-text → player-ui-pc-v2 → qn-wakelock → qn-apps → qn-app-youtube → qn-pitch-core → qn-app-tuner → qn-pitch-filters → qn-app-pitch → player-theme → player-auth(module)
 
 新しい関数を他ファイルから使う時は「呼ぶ側より前に定義されているか」を確認する。共通ヘルパーは`player-core.js`が定位置。
 `player-ui-pc-v2.js`と`qn-app-youtube.js`は、それぞれ1つのIIFEの中で多数の変数を共有している。**ファイル分割はしない**（変数の持ち方から作り直しになるため）。
@@ -82,6 +85,7 @@ favicon/  md/  pricing*.html  QUICK_START.md
 | マーカーメモのプリセット色／カスタムプリセット | localStorage | `qn_marker_preset_colors_v1`（`{名前:色キー|null}`、初期値`MARKER_PRESET_COLOR_DEFAULTS`）／`qn_marker_custom_presets_v1`（`[{label,color}]`最大30）。PLAYERとYouTubeで共用（`getAllMarkerPresetLabels()`） |
 | パネル格納／最後のアプリ | localStorage | `qn_panel_collapsed`（PLAYER）／`qn_yt_panel_collapsed`／`qn_last_app` |
 | TUNER | localStorage | `qn_tuner_display` `qn_tuner_sens` `qn_tuner_smooth` `qn_tuner_panel_collapsed`（詳細は`TUNER_APP.md`） |
+| PITCH | localStorage／IndexedDB | `qn_pitch_filters` `qn_pitch_rec_meta`(録音の改名) `qn_pitch_panel_collapsed`／IndexedDB `qn_pitch_db`(録音実体。レコードは再putしない)（詳細は`PITCH_APP.md`） |
 | YouTube | localStorage | `qn_yt_items` `qn_yt_rate` `qn_yt_autonext` `qn_yt_preroll`（詳細は`YOUTUBE_APP.md`§4） |
 | 無料版/アンロック | localStorage | `qnplayer_unlock_until` ほか`qnplayer_*`（`player-shareware.js`） |
 
@@ -130,7 +134,7 @@ favicon/  md/  pricing*.html  QUICK_START.md
 
 ---
 
-## 6. アプリ（YouTube／TUNER／今後のPITCH）共通ルール
+## 6. アプリ（YouTube／TUNER／PITCH）共通ルール
 
 `QNApps.register({id,label,icon,order,ready,sidebar,onSidebar,shortcuts,shortcutsNote,mount,onShow,onHide})`（`qn-apps.js`冒頭にコメントあり）で足す。共通部品：`QNApps.renderShortcuts(hostEl,id)` / `setSideActive` / `toast` / Colorパネル借用。
 

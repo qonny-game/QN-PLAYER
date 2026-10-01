@@ -90,3 +90,12 @@
 - 感度/表示：`setSens/setSmooth/syncSliders`、`renderDisplayChoices/setDisplay/cycleDisplay`
 - ショートカット：`SHORTCUTS`配列＋`onKey`（`QNApps.register`の`shortcuts`にも渡す）
 - `CSS/style-tuner.css` — `.qn-tn*`（パネル・メーター・下段バー。下段バーの寸法は`#pcV2BottomBar`と同仕様）
+
+## JS/qn-app-pitch.js（PITCHアプリ。IIFE、約1050行）／JS/qn-pitch-filters.js
+`grep -n "// ----------"`で見出しが出る。構造はYouTube/TUNERアプリと同じ（`TEMPLATE`→`mount`、`SIDEBAR`/`setPanel`/`onSidebar`、`onShow`/`onHide`）。
+- ロール：`setupSize`（行高・canvas幅の計算。非表示中は何もしない→ResizeObserver/onShowで再実行）、`redraw(forceLeft)`（見えている範囲だけ描く仮想スクロール）、`scheduleRedraw`
+- 録音：`startRec/endRec/onFrame`（getUserMediaは1回。`session.stream`をMediaRecorderと共有）。再生：`loadPlayback/playAudio/pauseAudio/tick/seekTo/stopPlayback`
+- 保存：`openSave/doSave/closeSave`（`save`は一時パネル）、`onClear`（2回タップ）。DB：`dbAdd/dbGet/dbList/dbDelete`
+- Recordings：`renderList/refreshList`、EDIT/削除は`setEditMode/updateFab/deleteSelected`（YouTubeアプリと同じ）、改名は`names`(localStorage)
+- Filters：`FILTER_UI`（設定項目の定義）→`buildFilters`。設定の実体・保存は`qn-pitch-filters.js`（`QNPitchFilters.set/reset`）
+- `CSS/style-pitch.css` — `.qn-pt*`（パネル・ロール・下段バー。下段バーの寸法は`#pcV2BottomBar`と同仕様）
