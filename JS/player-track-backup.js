@@ -665,7 +665,7 @@ async function handleTrackImportFileSelected(file) {
     if (trackImportYtList && yt) {
       trackImportYtList.forEach(x => {
         if (yt.exists(x.videoId)) {
-          duplicateEntries.push({ key: "yt:" + x.videoId, label: "[YouTube] " + (x.title || yt.titleOf(x.videoId) || x.videoId) });
+          duplicateEntries.push({ key: "yt:" + x.videoId, label: "[YouTube] " + (x.customTitle || yt.titleOf(x.videoId) || x.videoId) });
         }
       });
     }

@@ -13,7 +13,7 @@
 
 - 使うのは**YouTube公式のIFrame Player API（埋め込みプレイヤー）のみ**。
 - 音声・映像の抽出／ダウンロード／保存／Web Audio接続は**一切しない**。そのためYouTubeでは波形・ピッチ変更・EQは**できない**。
-- 保存するのは「URL・**利用者が手入力したタイトル**・マーカー（秒数・メモ・色）・A/B点」だけ。
+- 永続保存するのは「URL・**利用者が手入力したタイトル(`customTitle`)**・マーカー（秒数・メモ・色）・A/B点」だけ。YouTube由来のタイトルは端末ローカルの短期キャッシュ(28日で削除)のみ。
 - 本体（PLAYER）と同じ操作・見た目に揃える（§3）。
 
 ---
@@ -27,7 +27,7 @@
 ### URL読み込み
 - 対応：`youtube.com/watch?v=` / `youtu.be/` / `youtube.com/shorts/` / `youtube.com/embed/`。不正URLはエラー表示。
 - IFrame APIは**初めて動画を読み込む時まで取得しない**。埋め込み禁止の動画は`onError`で「埋め込み再生できません」（回避策は作らない）。
-- **Save**＝読み込み＋保存（同じ動画があればタイトル更新、なければ新規）。保存後は入力欄を空に戻す。
+- **Save**＝読み込み＋保存（同じ動画があればタイトル更新、なければ新規）。保存後は入力欄を空に戻す。**タイトル欄は空欄OK**：空欄ならYouTubeのタイトルをoEmbedで自動取得して表示（既に手入力タイトルがあっても、空欄でSaveすると手入力を消して自動取得に戻る）。Libraryの鉛筆編集も同じ（空欄で確定＝自動に戻す）。表示タイトル＝`customTitle`→キャッシュ済みYouTubeタイトル→`youtu.be/<id>`。
 
 ### Library（本体のLibraryと同じ行・操作）
 - 行：つかみ（ドラッグ並べ替え）／サムネイル（`i.ytimg.com/vi/<id>/mqdefault.jpg`を`<img>`で**表示のみ**・保存しない・加工しない）／タイトル（鉛筆で編集）。行クリックで再生。
@@ -92,7 +92,7 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 
 ### 2-2. 自前UIは「埋め込みの外」に置く
 - 自前シークバー・マーカーUI・スピードUIはプレイヤーの**外側（下）**に余白を空けて置く。
-- 呼んでよいのは**公式ドキュメントに載っているメソッドだけ**。現在使用：`seekTo` / `getCurrentTime` / `getDuration` / `loadVideoById` / `cueVideoById` / `playVideo`（利用者操作起点のみ）/ `pauseVideo` / `setPlaybackRate` / `getPlaybackRate` / `getAvailablePlaybackRates`／`getPlayerState` / `getVolume` / `setVolume` / `isMuted` / `mute` / `unMute`（ショートカット用）。タイトルの画面表示用に、YouTube公開の`oembed`エンドポイントも`fetch`している（`fetchTitleForDisplay`。表示のみ・保存しない）。新しいメソッドは公式ドキュメントで確認してから。
+- 呼んでよいのは**公式ドキュメントに載っているメソッドだけ**。現在使用：`seekTo` / `getCurrentTime` / `getDuration` / `loadVideoById` / `cueVideoById` / `playVideo`（利用者操作起点のみ）/ `pauseVideo` / `setPlaybackRate` / `getPlaybackRate` / `getAvailablePlaybackRates`／`getPlayerState` / `getVolume` / `setVolume` / `isMuted` / `mute` / `unMute`（ショートカット用）。タイトル取得用に、YouTube公開の`oembed`エンドポイントも`fetch`している（`fetchYtTitle`。結果は端末ローカルの28日キャッシュのみ）。新しいメソッドは公式ドキュメントで確認してから。
 - 非公式・未文書のAPIやYouTubeページのDOM操作には頼らない。再生/停止は標準コントロールを使い、自前の再生・停止ボタンは**付けない**（下段バーのPlayは、利用者操作起点で公式メソッドを呼ぶだけの補助）。
 - 再生開始は**利用者の操作起点**（`autoplay: 0`）。マーカーのクリックによるジャンプは利用者操作なのでOK。
 - **Auto Next**は利用者が明示的にONにした時だけ（初期OFF、`qn_yt_autonext`）。自動再生は「プレイヤーが見えていて半分超が見えている」時に限る（別タブ/アプリ非表示/半分以上隠れている時は進まない：`playerMostlyVisible()`）。
@@ -104,7 +104,7 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 
 ### 2-4. 保存するデータを最小限にする
 - 保存してよい：`videoId` / URL / **利用者が付けたタイトル** / マーカー（秒数・メモ・色・有効/無効）/ A/B点 / PLAY・SKIP。
-- **YouTubeから自動取得したタイトル・サムネイル・再生数などは保存しない**（oEmbedで取得して画面に一時表示するだけ。保存・Backupには含めない）。タイトルは常に利用者の手入力。
+- **YouTubeから自動取得したタイトルは端末ローカルの短期キャッシュ(`qn_yt_title_cache`＝`{videoId:{title,fetchedAt}}`)にだけ置く。28日経過で削除**：起動時とアプリ表示時に`purgeTitleCache`が期限切れ・壊れたエントリ・Libraryに無い動画の分をまとめて削除し、読み出し時も期限切れなら消す。Library削除時もその動画の分を消す。**Backup/Import・サーバー同期には含めない**（同期するのは`customTitle`だけ）。サムネイル・再生数などは引き続き保存しない。iOSでキャッシュが消えても再取得されるだけなので「消える前提」。
 
 ### 2-5. 広告・課金（収益化を見据えて）
 - 広告はプレイヤーの外に置く（上・中・重なる位置・直接隣接は不可）。「YouTubeのコンテンツしかないページ」にならない（マーカー管理・リスト管理・ローカル再生など独自機能が価値になること）。
@@ -142,19 +142,20 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 | キー | 内容 |
 |---|---|
 | `qn_yt_items` | Libraryの配列（下記） |
+| `qn_yt_title_cache` | YouTube由来タイトルの短期キャッシュ(28日で削除。Backup/同期対象外) |
 | `qn_yt_rate` / `qn_yt_autonext` / `qn_yt_preroll` / `qn_yt_panel_collapsed` | 再生スピード / Auto Next / プリロール秒(0〜5) / PC幅のパネル格納 |
 | `qn_marker_preset_colors_v1` / `qn_marker_custom_presets_v1` | 本体と共通のメモプリセット色／カスタムプリセット |
 
 ```json
 [{ "id": "item_xxx", "type": "youtube", "videoId": "xxxxxxxxxxx", "url": "https://youtu.be/xxxxxxxxxxx",
-   "title": "利用者が手入力したタイトル", "skip": true,
+   "customTitle": "利用者が手入力したタイトル(任意。無ければYouTube由来を表示)", "skip": true,
    "markers": [{ "id": "m_xxx", "time": 83.5, "label": "Chorus", "color": "red", "enabled": false }],
    "loopA": 60.0, "loopB": null, "createdAt": 1790000000000 }]
 ```
-- `skip`・`color`・`enabled`は**付いている時だけ**保存。`time`は0.1秒刻み。`loopA/loopB`は秒数（旧形式のマーカーIDは`abTimeOf`で変換）。音声・映像・YouTube由来のタイトル/サムネイルは一切含めない。
+- `customTitle`・`skip`・`color`・`enabled`は**付いている時だけ**保存。旧形式の`title`は読み込み時に`customTitle`へ移行("(無題)"は破棄)。`time`は0.1秒刻み。`loopA/loopB`は秒数（旧形式のマーカーIDは`abTimeOf`で変換）。音声・映像・YouTube由来のタイトル/サムネイルは一切含めない。
 
 ### Backup / Import形式
-`{ "format": "qn-youtube-library", "version": 1, "exportedAt": "...", "items": [{ videoId, url, title?, markers?[{id,time,label,color?,enabled?}], loopA?, loopB? }] }`（旧形式も読める。`color`は`MARKER_COLOR_PALETTE`にある名前のみ。結合ZIPでは`youtube.json`）。
+`{ "format": "qn-youtube-library", "version": 1, "exportedAt": "...", "items": [{ videoId, url, customTitle?, markers?[{id,time,label,color?,enabled?}], loopA?, loopB? }] }`（旧形式の`title`も読める。`color`は`MARKER_COLOR_PALETTE`にある名前のみ。結合ZIPでは`youtube.json`）。
 
 ---
 
@@ -171,11 +172,11 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 - [ ] 標準コントロール表示（`controls: 1`）／プレイヤーの上に何も重なっていない（パネル・Colorパネル・ポップアップ含む。SP幅も）
 - [ ] プレイヤーがCSSで切り抜かれ/隠されていない／SPで200px以上
 - [ ] 見えないまま音だけ流れる状態がない（閉じる/隠す時は一時停止）／自動再生していない（Auto Nextは初期OFF・見えている時だけ）
-- [ ] 使用APIが§2-2の公式メソッドだけ／保存データにYouTube由来のタイトル・サムネイル・音声・映像がない／ダウンロード・書き出し機能がない
+- [ ] 使用APIが§2-2の公式メソッドだけ／永続保存・BackupにYouTube由来のタイトル・サムネイル・音声・映像がない（タイトルは28日キャッシュのみ・起動時に期限切れ削除）／ダウンロード・書き出し機能がない
 - [ ] 権利者への注意書き(`.qn-yt-legal`)が消えていない
 
 **機能**
-- [ ] URL読み込み／不正URLのエラー／Saveで保存（入力欄が空に戻る）／リロード後も残る
+- [ ] URL読み込み／不正URLのエラー／Saveで保存（入力欄が空に戻る）／リロード後も残る／タイトル空欄Saveで自動取得（手入力済みでも空欄Saveで自動に戻る）
 - [ ] Library：並べ替え、EDIT→PLAY/SKIP・選択削除、Auto Next
 - [ ] Markers：追加、色、メモ＋プリセット、表示/非表示、選択削除、チャプター貼り付け、A/B・Loop 3モード・Clear AB
 - [ ] シークバー：クリック/ドラッグ、マーカーのドラッグ、前/次マーカー、ポップアップ

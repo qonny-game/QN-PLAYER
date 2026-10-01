@@ -5,12 +5,15 @@
 // - 自前UIはプレイヤーの外(下)。再生/停止の自前ボタン禁止
 // - 呼ぶのは公式メソッドのみ: seekTo/getCurrentTime/getDuration/loadVideoById/cueVideoById/pauseVideo等
 // - 音声・映像に触れない(Web Audio接続・ダウンロード・キャッシュ禁止)
-// - 保存はvideoId/URL/手入力タイトル/マーカー(秒・ラベル)のみ。YouTube由来タイトル等は表示のみで保存しない
+// - 永続保存はvideoId/URL/手入力タイトル(customTitle)/マーカー(秒・ラベル)のみ。YouTube由来タイトルは端末ローカルの短期キャッシュ(28日で自動削除。起動時に期限切れを削除)だけ。Backup/将来の同期には含めない
 // - 広告は.qn-yt-ad-slot(プレイヤーから離す)。現在広告コードなし
 (function () {
   "use strict";
 
   var STORAGE_KEY = "qn_yt_items";
+  // YouTube由来タイトルの端末ローカル短期キャッシュ {videoId:{title,fetchedAt}}。28日で削除(規約30日に余裕を持たせる)。Backup/同期に含めない
+  var TITLE_CACHE_KEY = "qn_yt_title_cache";
+  var TITLE_TTL_MS = 28 * 24 * 60 * 60 * 1000;
   var SEGS = 3;
 
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
@@ -36,7 +39,19 @@
   function loadItems() {
     try {
       var a = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      return Array.isArray(a) ? a : [];
+      if (!Array.isArray(a)) return [];
+      // 旧形式(title=手入力)→customTitleへ移行。"(無題)"は旧プレースホルダなので捨てる(→自動取得)
+      var migrated = false;
+      a.forEach(function (it) {
+        if (it && Object.prototype.hasOwnProperty.call(it, "title")) {
+          var t = typeof it.title === "string" ? it.title.trim() : "";
+          if (t && t !== "(無題)" && !it.customTitle) it.customTitle = t;
+          delete it.title;
+          migrated = true;
+        }
+      });
+      if (migrated) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(a)); } catch (e2) {} }
+      return a;
     } catch (e) { return []; }
   }
   function saveItems() {
@@ -55,6 +70,104 @@
     refs.message.textContent = text || "";
     refs.message.className = "qn-yt-message" + (ok ? " ok" : "");
   }
+  // ---------- YouTube由来タイトル: 端末ローカルの短期キャッシュ(28日) ----------
+  function readTitleCache() {
+    try {
+      var o = JSON.parse(localStorage.getItem(TITLE_CACHE_KEY) || "{}");
+      return o && typeof o === "object" && !Array.isArray(o) ? o : {};
+    } catch (e) { return {}; }
+  }
+  function writeTitleCache(o) {
+    try {
+      if (Object.keys(o).length) localStorage.setItem(TITLE_CACHE_KEY, JSON.stringify(o));
+      else localStorage.removeItem(TITLE_CACHE_KEY);
+    } catch (e) {}
+  }
+  function titleEntryAlive(e, now) {
+    return !!e && typeof e.title === "string" && e.title && typeof e.fetchedAt === "number" &&
+      e.fetchedAt <= now + 60000 && now - e.fetchedAt < TITLE_TTL_MS;
+  }
+  // 期限切れ・壊れた・Libraryに無い動画のキャッシュを削除(「使わない」だけでなく「消す」)。起動時とアプリ表示時に実行
+  function purgeTitleCache() {
+    var c = readTitleCache(), now = Date.now(), changed = false;
+    Object.keys(c).forEach(function (vid) {
+      if (!titleEntryAlive(c[vid], now) || !findItemByVideoId(vid)) { delete c[vid]; changed = true; }
+    });
+    if (changed) writeTitleCache(c);
+  }
+  function getCachedTitle(vid) {
+    var c = readTitleCache(), e = c[vid];
+    if (titleEntryAlive(e, Date.now())) return e.title;
+    if (e) { delete c[vid]; writeTitleCache(c); }
+    return "";
+  }
+  function setCachedTitle(vid, title) {
+    var c = readTitleCache();
+    c[vid] = { title: title, fetchedAt: Date.now() };
+    writeTitleCache(c);
+  }
+  function removeCachedTitles(videoIds) {
+    var c = readTitleCache(), changed = false;
+    videoIds.forEach(function (vid) { if (c[vid]) { delete c[vid]; changed = true; } });
+    if (changed) writeTitleCache(c);
+  }
+  // 表示用タイトル: 手入力(customTitle)があればそれ、無ければYouTube由来キャッシュ、取得前はID
+  function displayTitle(it) {
+    return it.customTitle || getCachedTitle(it.videoId) || "youtu.be/" + it.videoId;
+  }
+
+  var titleInflight = {}, titleFailed = {}, listRefreshTimer = 0;
+  // oEmbed(APIキー不要)でタイトル取得→キャッシュ。成功時はタイトル、失敗時は""を返すPromise。force=キャッシュを無視して再取得
+  function fetchYtTitle(videoId, force) {
+    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return Promise.resolve("");
+    if (!force) {
+      var hit = getCachedTitle(videoId);
+      if (hit) return Promise.resolve(hit);
+    }
+    if (titleInflight[videoId]) return titleInflight[videoId];
+    var oembedUrl = "https://www.youtube.com/oembed?format=json&url=" +
+      encodeURIComponent("https://www.youtube.com/watch?v=" + videoId);
+    var p = fetch(oembedUrl)
+      .then(function (res) { if (!res.ok) throw new Error("oembed failed"); return res.json(); })
+      .then(function (data) {
+        var t = data && typeof data.title === "string" ? data.title.trim().slice(0, 300) : "";
+        if (!t) throw new Error("no title");
+        delete titleFailed[videoId];
+        setCachedTitle(videoId, t);
+        return t;
+      })
+      .catch(function () { titleFailed[videoId] = true; return ""; })
+      .then(function (t) { delete titleInflight[videoId]; return t; });
+    titleInflight[videoId] = p;
+    return p;
+  }
+  // 取得結果をLibraryに反映。入力欄(鉛筆編集中・EDIT中)があるときは壊さないよう見送る(次のrenderListで反映)
+  function scheduleListRefresh() {
+    clearTimeout(listRefreshTimer);
+    listRefreshTimer = setTimeout(function () {
+      if (root && refs.itemList && !refs.itemList.querySelector("input")) renderList();
+    }, 150);
+  }
+  // 手入力タイトルが無く、有効なキャッシュも無い動画のタイトルをまとめて取得(同時3件まで)
+  function ensureTitles() {
+    purgeTitleCache();
+    var queue = items.filter(function (it) {
+      return !it.customTitle && !titleFailed[it.videoId] && !getCachedTitle(it.videoId);
+    }).map(function (it) { return it.videoId; });
+    var active = 0;
+    function next() {
+      while (active < 3 && queue.length) {
+        active++;
+        fetchYtTitle(queue.shift()).then(function (t) {
+          active--;
+          if (t) scheduleListRefresh();
+          next();
+        });
+      }
+    }
+    next();
+  }
+
   function findItem(id) {
     for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
     return null;
@@ -157,7 +270,7 @@
                 '<input data-yt="urlInput" class="qn-yt-input" type="text" placeholder="YouTube URL" autocomplete="off" spellcheck="false">' +
               '</div>' +
               '<div class="qn-yt-row">' +
-                '<input data-yt="titleInput" class="qn-yt-input" type="text" placeholder="Title (type it yourself)" autocomplete="off">' +
+                '<input data-yt="titleInput" class="qn-yt-input" type="text" placeholder="Title (blank = auto from YouTube)" autocomplete="off">' +
                 '<button type="button" data-yt="saveBtn" class="qn-yt-btn primary">Save</button>' +
               '</div>' +
               '<div class="qn-yt-message" data-yt="message" role="status"></div>' +
@@ -448,21 +561,15 @@
     else showMessage("再生できませんでした(エラーコード: " + c + ")");
   }
 
-  // ---------- タイトル表示(画面表示のみ。保存はしない) ----------
-  function fetchTitleForDisplay(videoId, url) {
+  // ---------- ステージ見出し: YouTube由来タイトルを表示(キャッシュ利用。端末ローカルのみ) ----------
+  function fetchTitleForDisplay(videoId) {
     var myToken = ++titleFetchToken;
-    refs.fetchedTitle.textContent = "";
-    var oembedUrl = "https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent(url);
-    fetch(oembedUrl)
-      .then(function (res) { if (!res.ok) throw new Error("oembed failed"); return res.json(); })
-      .then(function (data) {
-        if (myToken !== titleFetchToken) return;
-        refs.fetchedTitle.textContent = data.title || "";
-      })
-      .catch(function () {
-        if (myToken !== titleFetchToken) return;
-        refs.fetchedTitle.textContent = "";
-      });
+    refs.fetchedTitle.textContent = getCachedTitle(videoId);
+    fetchYtTitle(videoId).then(function (t) {
+      if (myToken !== titleFetchToken) return;
+      refs.fetchedTitle.textContent = t || "";
+      if (t) scheduleListRefresh();
+    });
   }
 
   function refreshDuration() {
@@ -494,9 +601,9 @@
     duration = 0;
     if (refs.durTime) refs.durTime.textContent = "00:00";
     updateDisplay(0);
-    if (item) refs.titleInput.value = item.title;
+    if (item) refs.titleInput.value = item.customTitle || "";
     showMessage("");
-    fetchTitleForDisplay(videoId, url);
+    fetchTitleForDisplay(videoId);
     requestApi();
     if (player && playerReady) {
       if (shouldPlay) player.loadVideoById(videoId); else player.cueVideoById(videoId);
@@ -522,18 +629,20 @@
       var id = parseVideoId(url);
       if (!url) { showMessage("YouTubeのURLを入力してください"); return; }
       if (!id) { showMessage("YouTubeのURLとして認識できません"); return; }
-      var title = refs.titleInput.value.trim() || "(無題)";
+      // 入力欄=手入力タイトル(customTitle)。空欄ならYouTubeのタイトルを自動取得して表示(既に手入力があっても空欄Saveで自動に戻す)
+      var title = refs.titleInput.value.trim().slice(0, 200);
       var item = findItemByVideoId(id);
       var isNew = !item;
       if (item) {
-        item.title = title;
+        if (title) item.customTitle = title; else delete item.customTitle;
         item.url = url;
       } else {
         item = {
           id: uid("item"), type: "youtube", videoId: id, url: url,
-          title: title, markers: [], loopA: null, loopB: null,
+          markers: [], loopA: null, loopB: null,
           createdAt: Date.now()
         };
+        if (title) item.customTitle = title;
         items.push(item);
       }
       saveItems();
@@ -547,7 +656,14 @@
       }
       refs.urlInput.value = "";
       refs.titleInput.value = "";
-      showMessage(isNew ? "リストに追加しました" : "タイトルを更新しました", true);
+      if (!title) {
+        titleFailed[id] = false;
+        fetchYtTitle(id, true).then(function (t) {
+          if (t) scheduleListRefresh();
+          else showMessage("タイトルを取得できませんでした(後で自動で再取得します)");
+        });
+      }
+      showMessage(isNew ? "リストに追加しました" : (title ? "タイトルを更新しました" : "タイトルを自動取得します"), true);
       closePanelOnSp();
     }
     refs.saveBtn.addEventListener("click", saveFromInputs);
@@ -823,6 +939,7 @@
     setTimeout(function () {
       box.style.pointerEvents = "";
       if (mode === "library") {
+        removeCachedTitles(items.filter(function (x) { return selected[x.id]; }).map(function (x) { return x.videoId; }));
         items = items.filter(function (x) { return !selected[x.id]; });
         if (current && current.itemId && selected[current.itemId]) current.itemId = null;
         saveItems();
@@ -901,12 +1018,21 @@
       });
       var titleRow = document.createElement("div");
       titleRow.className = "playlist-title-row";
-      var titleField = makeEditableText(it.title, "playlist-title", "", function (v) {
-        if (!v) { renderList(); return; }
-        it.title = v;
-        if (current && current.itemId === it.id) refs.titleInput.value = v;
+      var titleField = makeEditableText(displayTitle(it), "playlist-title", "", function (v) {
+        // 空欄で確定=手入力を消してYouTubeのタイトル自動取得に戻す
+        if (v) it.customTitle = v.slice(0, 200); else delete it.customTitle;
+        if (current && current.itemId === it.id) refs.titleInput.value = it.customTitle || "";
         saveItems();
         updatePanelTitle();
+        if (!v) {
+          titleFailed[it.videoId] = false;
+          fetchYtTitle(it.videoId, true).then(function (t) { if (t) scheduleListRefresh(); });
+          if (!edit) renderList();
+          else {
+            var disp = titleField.querySelector(".playlist-editable-display");
+            if (disp) disp.textContent = displayTitle(it);
+          }
+        }
       });
       titleRow.appendChild(titleField);
       if (!edit) {
@@ -1734,8 +1860,9 @@
       seen[vid] = true;
       var url = typeof r.url === "string" && parseVideoId(r.url) === vid ? r.url.trim().slice(0, 300) : "https://youtu.be/" + vid;
       var o = { videoId: vid, url: url };
-      var title = cleanStr(r.title, 200);
-      if (title) o.title = title;
+      // 新形式customTitle。旧形式のtitle(手入力だった)も読む。"(無題)"は旧プレースホルダなので無視
+      var title = cleanStr(r.customTitle !== undefined ? r.customTitle : r.title, 200);
+      if (title && title !== "(無題)") o.customTitle = title;
       if (Array.isArray(r.markers)) {
         var ids = {}, ms = [];
         r.markers.forEach(function (m) {
@@ -1768,7 +1895,7 @@
       items: sel.map(function (it) {
         var o = { videoId: it.videoId, url: it.url };
         if (includeSettings) {
-          o.title = it.title;
+          if (it.customTitle) o.customTitle = it.customTitle;
           o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; return o2; });
           o.loopA = abTimeOf(it.loopA, it.markers);
           o.loopB = abTimeOf(it.loopB, it.markers);
@@ -1784,7 +1911,7 @@
       var ex = findItemByVideoId(x.videoId);
       if (ex) {
         if (choices && choices[x.videoId] === "skip") { skipped++; return; }
-        if (x.title) ex.title = x.title;
+        if (x.customTitle) ex.customTitle = x.customTitle;
         ex.url = x.url;
         if (x.markers) {
           ex.markers = x.markers; ex.loopA = x.loopA; ex.loopB = x.loopB;
@@ -1794,22 +1921,25 @@
         }
         over++;
       } else {
-        items.push({
+        var ni = {
           id: uid("item"), type: "youtube", videoId: x.videoId, url: x.url,
-          title: x.title || "(無題)", markers: x.markers || [],
+          markers: x.markers || [],
           loopA: (typeof x.loopA === "number") ? x.loopA : null, loopB: (typeof x.loopB === "number") ? x.loopB : null, createdAt: Date.now()
-        });
+        };
+        if (x.customTitle) ni.customTitle = x.customTitle;
+        items.push(ni);
         added++;
       }
     });
     saveItems();
     if (root) { renderList(); renderMarkers(); }
+    ensureTitles();
     return { added: added, over: over, skipped: skipped };
   }
 
   window.QNYouTubeBackup = {
     list: function () {
-      return items.map(function (it) { return { id: it.id, title: it.title, markerCount: it.markers.length }; });
+      return items.map(function (it) { return { id: it.id, title: displayTitle(it), markerCount: it.markers.length }; });
     },
     buildExport: buildExportObject,
     // YouTube形式でなければnull
@@ -1819,7 +1949,7 @@
       return list && list.length ? list : null;
     },
     exists: function (videoId) { return !!findItemByVideoId(videoId); },
-    titleOf: function (videoId) { var it = findItemByVideoId(videoId); return it ? it.title : ""; },
+    titleOf: function (videoId) { var it = findItemByVideoId(videoId); return it ? displayTitle(it) : ""; },
     applyImport: applyImportList
   };
 
@@ -1975,6 +2105,7 @@
 
   function onShow() {
     bindSpace(true);
+    ensureTitles();
     var want = panelState || (isSp() ? "none" : "library");
     setPanel(want);
     applyCollapse();
@@ -1993,6 +2124,9 @@
       if (player && playerReady && typeof player.pauseVideo === "function") player.pauseVideo();
     } catch (e) {}
   }
+
+  // 起動時: 期限切れ(28日)のYouTube由来タイトルのキャッシュを必ず削除
+  purgeTitleCache();
 
   // ---------- アプリ登録 ----------
   if (window.QNApps) {
