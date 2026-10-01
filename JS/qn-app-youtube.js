@@ -580,8 +580,10 @@
       url: url,
       itemId: item ? item.id : null,
       markers: item ? item.markers : [],
-      loopA: item ? (item.loopA || null) : null,
-      loopB: item ? (item.loopB || null) : null,
+      // v3.8.0〜：A/Bはマーカーではなく「秒」で持つ（使い捨ての区切り点。ドラッグで動かせる）。
+      // 旧バージョンの保存値（マーカーID）は、そのマーカーの時刻に読み替える。
+      loopA: item ? abTimeOf(item.loopA, item.markers) : null,
+      loopB: item ? abTimeOf(item.loopB, item.markers) : null,
       looping: false, // 動画を開き直したら自動ではループしない
       loopMode: "off", // "off" | "ab"(A/Bループ) | "sec"(区間ループ)
       secRange: null
@@ -987,10 +989,6 @@
         saveItems();
       } else if (current) {
         current.markers = current.markers.filter(function (x) { return !selected[x.id]; });
-        // 消えたマーカーを指すAB点は外す
-        if (current.loopA && selected[current.loopA]) current.loopA = null;
-        if (current.loopB && selected[current.loopB]) current.loopB = null;
-        if (!current.loopA || !current.loopB) { if (current.loopMode === "ab") setLoopMode("off"); }
         var it = current.itemId ? findItem(current.itemId) : null;
         if (it) it.markers = current.markers;
         persistMarkers(); persistLoop();
@@ -1123,6 +1121,14 @@
   // ---------- マーカー ----------
   function persistMarkers() {
     if (current && current.itemId) saveItems(); // markers は item と同じ配列参照
+  }
+  // 保存されたA/B値 → 秒。数値ならそのまま、旧形式(マーカーID文字列)ならそのマーカーの時刻。
+  function abTimeOf(v, markers) {
+    if (typeof v === "number" && isFinite(v) && v >= 0) return v;
+    if (typeof v === "string" && markers) {
+      for (var i = 0; i < markers.length; i++) if (markers[i].id === v) return markers[i].time;
+    }
+    return null;
   }
   function persistLoop() {
     if (!current) return;
@@ -1299,17 +1305,11 @@
       // シークバー上のマーカー(クリックでジャンプ / ドラッグで移動)。非表示にしたものは出さない
       var el = document.createElement("div");
       if (m.enabled !== false) {
-        el.className = "qn-yt-marker" + (current.loopA === m.id ? " is-loop-a" : "") + (current.loopB === m.id ? " is-loop-b" : "");
+        el.className = "qn-yt-marker";
         el.dataset.mid = m.id;
         el.title = fmt(m.time) + " " + (m.label || "");
         if (hex) el.style.setProperty("--marker-color", hex);
         fillMarkerLabel(el, m, i);
-        if (current.loopA === m.id || current.loopB === m.id) {
-          var tag = document.createElement("span");
-          tag.className = "qn-yt-marker-ab";
-          tag.textContent = current.loopA === m.id ? "A" : "B";
-          el.appendChild(tag);
-        }
         positionMarker(el, m.time);
         attachMarkerDrag(el, m);
         refs.markerLayer.appendChild(el);
@@ -1356,13 +1356,13 @@
       ab.className = "qn-yt-ab-cell";
       var abtnA = document.createElement("button");
       abtnA.type = "button";
-      abtnA.className = "qn-yt-btn mini ab" + (current.loopA === m.id ? " active-a" : "");
-      abtnA.textContent = "A"; abtnA.title = "ABループのA点(開始)に設定";
+      abtnA.className = "qn-yt-btn mini ab" + (current.loopA === m.time ? " active-a" : "");
+      abtnA.textContent = "A"; abtnA.title = "このマーカーの位置をA点(ループ開始)に（A/Bはマーカーとは別の点）";
       abtnA.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("A", m.id); });
       var abtnB = document.createElement("button");
       abtnB.type = "button";
-      abtnB.className = "qn-yt-btn mini ab" + (current.loopB === m.id ? " active-b" : "");
-      abtnB.textContent = "B"; abtnB.title = "ABループのB点(終了)に設定";
+      abtnB.className = "qn-yt-btn mini ab" + (current.loopB === m.time ? " active-b" : "");
+      abtnB.textContent = "B"; abtnB.title = "このマーカーの位置をB点(ループ終了)に（A/Bはマーカーとは別の点）";
       abtnB.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("B", m.id); });
       ab.appendChild(abtnA); ab.appendChild(abtnB);
       row.appendChild(ab);
@@ -1394,6 +1394,21 @@
         row.appendChild(zone);
       }
       box.appendChild(row);
+    });
+
+    // A点・B点（マーカーではない使い捨ての区切り点。ドラッグで動かせる）
+    [["A", current ? current.loopA : null], ["B", current ? current.loopB : null]].forEach(function (pt) {
+      if (pt[1] === null || pt[1] === undefined || !duration) return;
+      var a = document.createElement("div");
+      a.className = "qn-yt-marker qn-yt-abpt is-" + pt[0].toLowerCase();
+      a.title = pt[0] + " " + fmt(pt[1]);
+      var tag = document.createElement("span");
+      tag.className = "qn-yt-marker-ab";
+      tag.textContent = pt[0];
+      a.appendChild(tag);
+      positionMarker(a, pt[1]);
+      attachABDrag(a, pt[0]);
+      refs.markerLayer.appendChild(a);
     });
 
     updateLoopUI();
@@ -1452,38 +1467,16 @@
 
   // ---------- ABループ ----------
   // マーカー2つをA点(開始)・B点(終了)に指定し、再生中にB点へ達したらA点へseekTo()で戻す。
+  // Markersパネルの行のA/Bボタン：そのマーカーの「位置」をA点/B点にする（点はマーカーとは別。もう一度押すと解除）
   function toggleLoopPoint(which, markerId) {
     if (!current) return;
-    if (which === "A") {
-      current.loopA = (current.loopA === markerId) ? null : markerId;
-      if (current.loopB === markerId) current.loopB = null; // 同じマーカーをA/B両方にはしない
-    } else {
-      current.loopB = (current.loopB === markerId) ? null : markerId;
-      if (current.loopA === markerId) current.loopA = null;
-    }
-    if (!current.loopA || !current.loopB) { if (current.loopMode === "ab") setLoopMode("off"); }
+    var m = findMarker(markerId);
+    if (!m) return;
+    var key = which === "A" ? "loopA" : "loopB";
+    current[key] = (current[key] === m.time) ? null : m.time;
+    if (current.loopA === null || current.loopB === null) { if (current.loopMode === "ab") setLoopMode("off"); }
     persistLoop();
     renderMarkers();
-  }
-
-  // ---------- プリロール/ポストロール（PLAYER本体と同じ：前後共通の秒数） ----------
-  // ループの折り返しで、区間の開始の何秒前へ戻るか／終わりの何秒後まで再生してから戻るか。
-  var PREROLL_KEY = "qn_yt_preroll", PREROLL_MAX = 5, PREROLL_STEP = 1;
-  var preRoll = (function () {
-    try { var v = parseInt(localStorage.getItem(PREROLL_KEY), 10); return v >= 0 && v <= PREROLL_MAX ? v : 0; } catch (e) { return 0; }
-  })();
-  function setPreRoll(v) {
-    preRoll = Math.max(0, Math.min(PREROLL_MAX, v));
-    try { localStorage.setItem(PREROLL_KEY, String(preRoll)); } catch (e) {}
-    renderPreRoll();
-  }
-  function renderPreRoll() {
-    if (refs.preVal) refs.preVal.textContent = preRoll + "s";
-  }
-
-  function setBtnLabel(btn, text) {
-    var sp = btn && btn.querySelector("span");
-    if (sp) sp.textContent = text;
   }
 
   function setLoopMode(m) {
@@ -1512,19 +1505,18 @@
   }
 
   function loopRangeTimes() {
-    if (!current || !current.loopA || !current.loopB) return null;
-    var ma = findMarker(current.loopA), mb = findMarker(current.loopB);
-    if (!ma || !mb) return null;
-    return ma.time <= mb.time ? { start: ma.time, end: mb.time } : { start: mb.time, end: ma.time };
+    if (!current || current.loopA === null || current.loopB === null) return null;
+    var a = current.loopA, b = current.loopB;
+    return a <= b ? { start: a, end: b } : { start: b, end: a };
   }
 
   function updateLoopUI() {
     if (!current) return;
-    var ma = findMarker(current.loopA), mb = findMarker(current.loopB);
-    setBtnLabel(refs.setABtn, "A " + (ma ? fmt(ma.time) : "--"));
-    setBtnLabel(refs.setBBtn, "B " + (mb ? fmt(mb.time) : "--"));
-    refs.setABtn.classList.toggle("has-point", !!ma);
-    refs.setBBtn.classList.toggle("has-point", !!mb);
+    var ha = current.loopA !== null, hb = current.loopB !== null;
+    setBtnLabel(refs.setABtn, "A " + (ha ? fmt(current.loopA) : "--"));
+    setBtnLabel(refs.setBBtn, "B " + (hb ? fmt(current.loopB) : "--"));
+    refs.setABtn.classList.toggle("has-point", ha);
+    refs.setBBtn.classList.toggle("has-point", hb);
 
     var range = activeLoopRange();
     var lm = current.loopMode || "off";
@@ -1586,6 +1578,41 @@
     });
   }
 
+  // A点/B点（マーカーではない点）のドラッグ。マーカーのドラッグと同じ操作感。
+  // 動かさずに離した時は、その位置へシークし、「－ Point」（その点の削除）だけのポップアップを出す。
+  function attachABDrag(el, kind) {
+    var key = kind === "A" ? "loopA" : "loopB";
+    var moved = false, startX = 0, startY = 0;
+    el.addEventListener("pointerdown", function (e) {
+      if (!duration) return;
+      e.stopPropagation();
+      el.setPointerCapture(e.pointerId);
+      seeking = true; moved = false; startX = e.clientX; startY = e.clientY;
+      el.classList.add("dragging");
+    });
+    el.addEventListener("pointermove", function (e) {
+      if (!seeking || !el.hasPointerCapture(e.pointerId)) return;
+      if (Math.abs(e.clientX - startX) > 3 || Math.abs(e.clientY - startY) > 3) moved = true;
+      if (!moved) return;
+      var t = Math.round(timeFromPoint(e) * 10) / 10;
+      current[key] = t;
+      positionMarker(el, t);
+      el.title = kind + " " + fmt(t);
+    });
+    el.addEventListener("pointerup", function (e) {
+      if (!el.hasPointerCapture(e.pointerId)) return;
+      el.releasePointerCapture(e.pointerId);
+      seeking = false;
+      el.classList.remove("dragging");
+      if (moved) { persistLoop(); renderMarkers(); }
+      else {
+        seekTo(current[key]);
+        var er = el.getBoundingClientRect();
+        showSeekPop(current[key], tracks[segIndex(current[key])].getBoundingClientRect(), er.left + er.width / 2, null, kind);
+      }
+    });
+  }
+
   // ---------- 自前シークバー(3行それぞれで操作可能・ドラッグで行をまたげる) ----------
   function attachTrackSeek(track) {
     var downX = 0, downY = 0, dragged = false;
@@ -1631,6 +1658,7 @@
         '<button type="button" class="qn-yt-seekpop-btn" data-pop="A" title="この位置をA点(ループ開始)に"><b>A</b><span>Start</span></button>' +
         '<button type="button" class="qn-yt-seekpop-btn" data-pop="B" title="この位置をB点(ループ終了)に"><b>B</b><span>End</span></button>' +
         '<button type="button" class="qn-yt-seekpop-btn" data-pop="M" title="この位置にマーカーを追加"><b>＋</b><span>Marker</span></button>' +
+        '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="X" title="このA/B点を削除" hidden><b>－</b><span>Point</span></button>' +
         '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="D" title="このマーカーを削除" hidden><b>－</b><span>Marker</span></button>' +
         '<button type="button" class="qn-yt-seekpop-btn" data-pop="C" title="マーカーの色を変える" hidden><b><i class="qn-yt-seekpop-dot"></i></b><span>Color</span></button>' +
         '<button type="button" class="qn-yt-seekpop-btn" data-pop="H" title="このマーカーを非表示にする（Markersパネルの目で再表示）" hidden><b>' + SVG_EYE_ON + '</b><span>Hide</span></button>' +
@@ -1641,6 +1669,7 @@
       var b = e.target.closest ? e.target.closest("[data-pop]") : null;
       if (!b) return;
       var k = b.getAttribute("data-pop");
+      if (k === "X") { seekPopClearPoint(); return; }
       if (k === "D") { seekPopDelete(b); return; }
       if (k === "C") { seekPopColor(); return; }
       if (k === "H") { seekPopHide(); return; }
@@ -1669,16 +1698,25 @@
     if (seekPop) seekPop.hidden = true;
   }
 
-  function showSeekPop(t, trackRect, clientX, marker) {
+  var seekPopAbKind = null;
+  function showSeekPop(t, trackRect, clientX, marker, abKind) {
     if (!current || !duration) return;
     var pop = ensureSeekPop();
     seekPopTime = Math.round(clampTime(t) * 10) / 10;
     seekPopMarkerId = marker ? marker.id : null;
     pop.querySelector('[data-pop="time"]').textContent = fmt(seekPopTime);
-    pop.querySelector('[data-pop="M"]').hidden = !!marker; // 既存マーカー上では＋Markerは不要
+    seekPopAbKind = abKind || null;
+    // A/B点の上では「－ Point」だけ。既存マーカー上ではA/B/－/Color/Hide。空き位置ではA/B/＋Marker
+    pop.querySelector('[data-pop="X"]').hidden = !abKind;
+    pop.querySelector('[data-pop="A"]').hidden = !!abKind;
+    pop.querySelector('[data-pop="B"]').hidden = !!abKind;
+    pop.querySelector('[data-pop="M"]').hidden = !!marker || !!abKind; // 既存マーカー上では＋Markerは不要
     pop.querySelector('[data-pop="D"]').hidden = !marker;  // 既存マーカー上だけ－Marker(削除)
     pop.querySelector('[data-pop="C"]').hidden = !marker;  // Color / Hide も既存マーカー上だけ
     pop.querySelector('[data-pop="H"]').hidden = !marker;
+    // すでにA/Bが近く(±0.5秒)にあるボタンは地色で示す（押すと解除）
+    pop.querySelector('[data-pop="A"]').classList.toggle("is-set", current.loopA !== null && Math.abs(current.loopA - seekPopTime) <= SEEKPOP_SNAP);
+    pop.querySelector('[data-pop="B"]').classList.toggle("is-set", current.loopB !== null && Math.abs(current.loopB - seekPopTime) <= SEEKPOP_SNAP);
     if (marker) pop.querySelector(".qn-yt-seekpop-dot").style.background = markerColorHex(marker) || "#3a3a48";
     armSeekPopDel(false);
     pop.hidden = false;
@@ -1712,10 +1750,6 @@
     hideSeekPop();
     if (!current || !m) return;
     current.markers = current.markers.filter(function (x) { return x.id !== id; });
-    // 消えたマーカーを指すA/B点は外す（A-Bループ中なら解除）
-    if (current.loopA === id) current.loopA = null;
-    if (current.loopB === id) current.loopB = null;
-    if (!current.loopA || !current.loopB) { if (current.loopMode === "ab") setLoopMode("off"); }
     // 区間ループ中は、区間を引き直す（消したマーカーが境界だった場合）
     if (current.loopMode === "sec") { var r = sectionRangeAt(currentPos()); if (r) current.secRange = r; else setLoopMode("off"); }
     var it = current.itemId ? findItem(current.itemId) : null;
@@ -1729,11 +1763,12 @@
   function seekPopColor() {
     var id = seekPopMarkerId, m = id ? findMarker(id) : null;
     hideSeekPop();
-    if (!m || typeof openColorChoicePopup !== "function") return;
+    if (!m || typeof openMarkerStylePopup !== "function") return;
     var anchor = refs.markerLayer.querySelector('[data-mid="' + id + '"]');
     if (!anchor) return;
-    openColorChoicePopup(anchor, m.color || null, function (name) {
-      if (name) m.color = name; else delete m.color;
+    openMarkerStylePopup(anchor, { label: m.label || "", color: m.color || null, placeholder: fmt(m.time) }, function (v) {
+      m.label = v.label;
+      if (v.color) m.color = v.color; else delete m.color;
       persistMarkers(); renderMarkers();
     });
   }
@@ -1748,44 +1783,51 @@
     ytToast("Marker非表示 " + fmt(m.time) + "（Markersパネルの目で再表示）");
   }
 
-  function seekPopAction(kind) {
+  // A/B点の削除（－ Point）
+  function seekPopClearPoint() {
+    var kind = seekPopAbKind;
     hideSeekPop();
-    setLoopPointAt(kind, seekPopTime, seekPopMarkerId);
+    if (!current || !kind) return;
+    current[kind === "A" ? "loopA" : "loopB"] = null;
+    if (current.loopMode === "ab") setLoopMode("off");
+    persistLoop();
+    renderMarkers();
+    ytToast(kind + " 解除");
   }
 
-  // 指定の位置(秒)にA点/B点(またはマーカー追加)を設定する共通処理。
-  // markerId指定＝その既存マーカーを使う。未指定なら±0.5秒以内の最も近い既存マーカーを使い、無ければ新規作成。
-  function setLoopPointAt(kind, t, markerId) {
+  function seekPopAction(kind) {
+    hideSeekPop();
+    setLoopPointAt(kind, seekPopTime);
+  }
+
+  // 指定の位置(秒)にA点/B点を設定する、またはマーカーを追加する共通処理。
+  // v3.8.0〜：A/Bはマーカーを作らない（使い捨ての区切り点）。同じ種類の点が±0.5秒以内にあれば解除（トグル）。
+  // kind="M"だけがマーカー追加（±0.5秒以内に既存マーカーがあれば作らない）。
+  function setLoopPointAt(kind, t) {
     if (!current) return;
-    var i, m = markerId ? findMarker(markerId) : null;
-    if (!m) {
-      var best = SEEKPOP_SNAP + 1e-9;
-      for (i = 0; i < current.markers.length; i++) {
-        var d = Math.abs(current.markers[i].time - t);
-        if (d <= best) { best = d; m = current.markers[i]; }
+    var tt = Math.round(clampTime(t) * 10) / 10, msg;
+    if (kind === "A" || kind === "B") {
+      var key = kind === "A" ? "loopA" : "loopB";
+      if (current[key] !== null && Math.abs(current[key] - tt) <= SEEKPOP_SNAP) {
+        current[key] = null; msg = kind + " 解除";
+      } else {
+        current[key] = tt; msg = kind + " " + fmt(tt);
       }
-    }
-    var created = false;
-    if (!m) {
-      m = { id: uid("m"), time: Math.round(clampTime(t) * 10) / 10, label: "" };
-      current.markers.push(m);
-      sortMarkers();
-      persistMarkers();
-      created = true;
-    }
-    var msg;
-    if (kind === "A") {
-      current.loopA = m.id; if (current.loopB === m.id) current.loopB = null;
-      msg = "A " + fmt(m.time);
-    } else if (kind === "B") {
-      current.loopB = m.id; if (current.loopA === m.id) current.loopA = null;
-      msg = "B " + fmt(m.time);
-    } else {
-      msg = created ? "Marker " + fmt(m.time) : "Markerは既にあります " + fmt(m.time);
-    }
-    if (kind !== "M") {
-      if (!current.loopA || !current.loopB) { if (current.loopMode === "ab") setLoopMode("off"); }
+      if (current.loopA === null || current.loopB === null) { if (current.loopMode === "ab") setLoopMode("off"); }
       persistLoop();
+    } else {
+      var i, near = null, best = SEEKPOP_SNAP + 1e-9;
+      for (i = 0; i < current.markers.length; i++) {
+        var d = Math.abs(current.markers[i].time - tt);
+        if (d <= best) { best = d; near = current.markers[i]; }
+      }
+      if (near) {
+        msg = "Markerは既にあります " + fmt(near.time);
+      } else {
+        current.markers.push({ id: uid("m"), time: tt, label: "" });
+        sortMarkers(); persistMarkers();
+        msg = "Marker " + fmt(tt);
+      }
     }
     renderMarkers();
     ytToast(msg);
@@ -1899,8 +1941,8 @@
         if (incTitle) o.title = it.title;
         if (incMarkers) {
           o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; return o2; });
-          o.loopA = it.loopA || null;
-          o.loopB = it.loopB || null;
+          o.loopA = abTimeOf(it.loopA, it.markers);   // v3.8.0〜：秒（マーカーとは別の点）。旧形式(マーカーID)は時刻に読み替え
+          o.loopB = abTimeOf(it.loopB, it.markers);
         }
         return o;
       })
@@ -1948,9 +1990,9 @@
         });
         ms.sort(function (a, b) { return a.time - b.time; });
         o.markers = ms;
-        var a = cleanStr(r.loopA, 40), b = cleanStr(r.loopB, 40);
-        o.loopA = ids[a] ? a : null;
-        o.loopB = ids[b] && b !== a ? b : null;
+        // A/B：新形式は秒(数値)、旧形式(v3.8.0より前)はマーカーID→そのマーカーの時刻に読み替える
+        o.loopA = abTimeOf(typeof r.loopA === "string" ? cleanStr(r.loopA, 40) : r.loopA, ms);
+        o.loopB = abTimeOf(typeof r.loopB === "string" ? cleanStr(r.loopB, 40) : r.loopB, ms);
       }
       out.push(o);
     });
@@ -2060,7 +2102,7 @@
         items.push({
           id: uid("item"), type: "youtube", videoId: x.videoId, url: x.url,
           title: x.title || "(無題)", markers: x.markers || [],
-          loopA: x.loopA || null, loopB: x.loopB || null, createdAt: Date.now()
+          loopA: (typeof x.loopA === "number") ? x.loopA : null, loopB: (typeof x.loopB === "number") ? x.loopB : null, createdAt: Date.now()
         });
         added++;
       }

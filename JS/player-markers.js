@@ -218,22 +218,14 @@ function renderPins() {
 
     line.appendChild(label);
 
-    // v3.7.0〜：A点/B点のマーカーには「A」「B」の旗を付ける（線も少し太く）
-    if (pinObj.ab === "A" || pinObj.ab === "B") {
-      line.classList.add(pinObj.ab === "A" ? "is-ab-a" : "is-ab-b");
-      const flag = document.createElement("span");
-      flag.className = "vbar-ab-flag";
-      flag.textContent = pinObj.ab;
-      line.appendChild(flag);
-    }
-
     const targetBar = document.getElementById(`bar${row}`);
     if (targetBar) {
       targetBar.appendChild(line);
     }
   });
 
-  // A/Bが揃わなくなったらA-Bループを自動でOFFに戻し、下部バーのSet A/Set Bの表示も更新
+  // A点/B点（マーカーではない独立した点）を描き直し、揃わなくなったらA-Bループを自動でOFFに戻す
+  renderABPoints();
   if (typeof syncLoopModeWithAB === "function") syncLoopModeWithAB();
   updateABButtons();
 
@@ -692,7 +684,7 @@ function renderPinList() {
 // ============================================================
 let lastPinDragAt = 0;
 let lastPinTapAt = 0; // startDragPinのstop()でタップ処理(シーク＋ポップアップ)をした時刻。clickとの二重処理防止用
-let pinPopEl = null, pinPopTimer = null, pinPopTime = 0, pinPopPin = null;
+let pinPopEl = null, pinPopTimer = null, pinPopTime = 0, pinPopPin = null, pinPopAbKind = null;
 let pinPopDelArmed = false, pinPopDelTimer = null;
 const PINPOP_MS = 4000;
 
@@ -719,6 +711,7 @@ function ensurePinPopup() {
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="A" title="この位置をA点(ループ開始)に（もう一度押すと解除）"><b>A</b><span>Start</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="B" title="この位置をB点(ループ終了)に（もう一度押すと解除）"><b>B</b><span>End</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="M" title="この位置にマーカーを追加"><b>＋</b><span>Marker</span></button>' +
+      '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="X" title="このA/B点を削除" hidden><b>－</b><span>Point</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="D" title="このマーカーを削除" hidden><b>－</b><span>Marker</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="C" title="マーカーの色を変える" hidden><b><i class="qn-yt-seekpop-dot"></i></b><span>Color</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="H" title="マーカーのON/OFF" hidden><b></b><span>Hide</span></button>' +
@@ -730,7 +723,8 @@ function ensurePinPopup() {
     const b = e.target.closest ? e.target.closest("[data-pop]") : null;
     if (!b) return;
     const k = b.getAttribute("data-pop");
-    if (k === "A" || k === "B") pinPopAB(k);
+    if (k === "X") pinPopClearPoint();
+    else if (k === "A" || k === "B") pinPopAB(k);
     else if (k === "M") pinPopAdd();
     else if (k === "D") pinPopDelete();
     else if (k === "C") pinPopColor();
@@ -769,18 +763,23 @@ function hidePinPopup() {
 }
 
 // t: クリック位置の秒数 / barEl: クリックした波形バー / pinObj: 既存マーカー(無ければnull)
-function showPinPopup(t, barEl, clientX, pinObj) {
+function showPinPopup(t, barEl, clientX, pinObj, abKind) {
   if (!audio.duration || !barEl) return;
   const pop = ensurePinPopup();
   pinPopPin = pinObj || null;
+  pinPopAbKind = abKind || null;
   pinPopTime = Math.max(0, Math.min(audio.duration, t));
   armPinPopDel(false);
   pop.querySelector('[data-pop="time"]').textContent = formatTime(pinPopTime);
-  pop.querySelector('[data-pop="M"]').hidden = !!pinObj;
+  // A/B点の上＝「－ Point」だけ / 既存マーカー上＝A/B/－/Color/Hide / 空き位置＝A/B/＋Marker
+  pop.querySelector('[data-pop="X"]').hidden = !abKind;
+  pop.querySelector('[data-pop="A"]').hidden = !!abKind;
+  pop.querySelector('[data-pop="B"]').hidden = !!abKind;
+  pop.querySelector('[data-pop="M"]').hidden = !!pinObj || !!abKind;
   ["D", "C", "H"].forEach(k => { pop.querySelector(`[data-pop="${k}"]`).hidden = !pinObj; });
-  // A/Bが設定済みの位置のボタンは色付きの地で示す（もう一度押すと解除）
-  pop.querySelector('[data-pop="A"]').classList.toggle("is-set", !!pinObj && pinObj.ab === "A");
-  pop.querySelector('[data-pop="B"]').classList.toggle("is-set", !!pinObj && pinObj.ab === "B");
+  // すでにA/Bが近く(±0.5秒)にあるボタンは地色で示す（もう一度押すと解除）
+  pop.querySelector('[data-pop="A"]').classList.toggle("is-set", abA !== null && Math.abs(abA - pinPopTime) <= AB_SNAP_SEC);
+  pop.querySelector('[data-pop="B"]').classList.toggle("is-set", abB !== null && Math.abs(abB - pinPopTime) <= AB_SNAP_SEC);
   if (pinObj) {
     const hex = pinObj.color && MARKER_COLOR_PALETTE[pinObj.color] ? MARKER_COLOR_PALETTE[pinObj.color] : "#3a3a48";
     pop.querySelector(".qn-yt-seekpop-dot").style.background = hex;
@@ -802,44 +801,49 @@ function showPinPopup(t, barEl, clientX, pinObj) {
 }
 
 function pinPopAB(kind) {
-  const t = pinPopTime, pin = pinPopPin;
+  const t = pinPopTime;
   hidePinPopup();
   hapticTap();
-  setABAt(kind, t, pin);
+  setABAt(kind, t);
+}
+
+// A/B点の削除（－ Point）
+function pinPopClearPoint() {
+  const kind = pinPopAbKind;
+  hidePinPopup();
+  if (!kind) return;
+  hapticTap();
+  if (kind === "A") abA = null; else abB = null;
+  afterABChange();
 }
 
 // ============================================================
-// 【v3.7.0】A/B（YouTubeアプリと同じ）。マーカー自身に pin.ab = "A"|"B" を持たせる。
-// setABAt: 指定位置(秒)にA点/B点を設定。pinObj指定＝そのマーカーを使う。未指定なら±0.5秒以内の
-// 最も近い既存マーカーを使い、無ければ新しいマーカーを作る。すでに同じ種類なら解除（トグル）。
-// 同じ種類は常に1つだけ（別のマーカーに付けると前のは外れる）。1つのマーカーがA兼Bにはならない。
+// 【v3.8.0】A/B（YouTubeアプリと同じ）。A点/B点はマーカーではなく、秒の独立した点（abA/abB、player-core.js）。
+// 使い捨ての区切り位置で、マーカーには登録されない。波形上の「A」「B」の旗(.vbar-ab-pt)をドラッグして動かせる。
+// setABAt: 指定位置(秒)をA点/B点に。同じ種類の点が±0.5秒以内にあれば解除（トグル）。
 // ============================================================
 const AB_SNAP_SEC = 0.5;
-function setABAt(kind, t, pinObj) {
+function afterABChange() {
+  saveAB();
+  renderABPoints();
+  if (typeof syncLoopModeWithAB === "function") syncLoopModeWithAB();
+  updateABButtons();
+  renderSegments();
+}
+
+function setABAt(kind, t) {
   if (!audio.duration) return;
-  let pin = pinObj || null;
-  if (!pin) {
-    let best = AB_SNAP_SEC + 1e-9;
-    pins.forEach(p => { const d = Math.abs(p.t - t); if (d <= best) { best = d; pin = p; } });
-  }
-  if (!pin) {
-    pin = { t: Math.max(0, Math.min(audio.duration, t)), enabled: true, memo: "", color: null };
-    pins.push(pin);
-    pins.sort((a, b) => a.t - b.t);
-  }
-  if (pin.ab === kind) {
-    delete pin.ab;
-  } else {
-    pins.forEach(p => { if (p.ab === kind) delete p.ab; });
-    pin.ab = kind;
-  }
-  refreshAfterPinChange();
+  const tt = Math.max(0, Math.min(audio.duration, Math.round(t * 10) / 10));
+  const cur = kind === "A" ? abA : abB;
+  const next = (cur !== null && Math.abs(cur - tt) <= AB_SNAP_SEC) ? null : tt;
+  if (kind === "A") abA = next; else abB = next;
+  afterABChange();
 }
 
 // 下部バーの Set A / Set B：現在の再生位置を A点/B点に
 function setABFromCurrent(kind) {
   hapticTap();
-  setABAt(kind, audio.currentTime, null);
+  setABAt(kind, audio.currentTime);
 }
 
 function fmtABTime(t) {
@@ -849,13 +853,102 @@ function fmtABTime(t) {
 
 // 下部バーのSet A/Set Bのラベル（設定済みなら時刻を表示し、テーマ色にする）
 function updateABButtons() {
-  ["A", "B"].forEach(kind => {
+  [["A", abA], ["B", abB]].forEach(([kind, v]) => {
     const btn = document.getElementById(kind === "A" ? "setABtn" : "setBBtn");
     if (!btn) return;
-    const pin = pins.find(p => p.ab === kind);
     const lbl = btn.querySelector(".top-controls-btn-label");
-    if (lbl) lbl.textContent = kind + " " + (pin ? fmtABTime(pin.t) : "--");
-    btn.classList.toggle("has-point", !!pin);
+    if (lbl) lbl.textContent = kind + " " + (v !== null ? fmtABTime(v) : "--");
+    btn.classList.toggle("has-point", v !== null);
+  });
+}
+
+// 波形(6本のバー)上の座標 → 秒（startDragPinのmoveAtと同じ行判定）
+function timeFromBarsPoint(clientX, clientY) {
+  const dur = audio.duration;
+  const { s1, s2, s3, s4, s5 } = getSegments(dur);
+  const bounds = [0, s1, s2, s3, s4, s5, dur];
+  const bars = [1, 2, 3, 4, 5, 6].map(n => document.getElementById("bar" + n));
+  const rects = bars.map(b => b.getBoundingClientRect());
+  let idx = 0;
+  if (clientY <= rects[0].bottom) idx = 0;
+  else if (clientY >= rects[rects.length - 1].top) idx = rects.length - 1;
+  else {
+    for (let i = 0; i < rects.length - 1; i++) {
+      const mid = (rects[i].bottom + rects[i + 1].top) / 2;
+      if (clientY <= mid) { idx = i; break; }
+      idx = i + 1;
+    }
+  }
+  const ratio = Math.max(0, Math.min(1, (clientX - rects[idx].left) / rects[idx].width));
+  return bounds[idx] + ratio * (bounds[idx + 1] - bounds[idx]);
+}
+
+// A点/B点を波形上に描く（renderPins()の最後に毎回呼ばれる）
+function renderABPoints() {
+  document.querySelectorAll(".vbar .vbar-ab-pt").forEach(e => e.remove());
+  const dur = audio.duration;
+  if (!dur) return;
+  [["A", abA], ["B", abB]].forEach(([kind, v]) => {
+    if (v === null) return;
+    const el = document.createElement("div");
+    el.className = "vbar-ab-pt is-" + kind.toLowerCase();
+    el.title = kind + " " + fmtABTime(v);
+    const flag = document.createElement("span");
+    flag.className = "vbar-ab-flag";
+    flag.textContent = kind;
+    el.appendChild(flag);
+    el.style.left = timeToPercentInRow(v, dur) + "%";
+    attachABDrag(el, kind);
+    const bar = document.getElementById("bar" + getPinRow(v, dur));
+    if (bar) bar.appendChild(el);
+  });
+}
+
+// A点/B点のドラッグ（マーカーと同じ操作感）。動かさずに離した時は、その位置へシーク＆再生し、
+// 「－ Point」（その点の削除）だけのポップアップを出す。
+function attachABDrag(el, kind) {
+  let moved = false, startX = 0, startY = 0;
+  el.addEventListener("pointerdown", e => {
+    if (!audio.duration) return;
+    e.stopPropagation();
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    moved = false; startX = e.clientX; startY = e.clientY;
+    el.classList.add("dragging");
+    beginSeek();
+  });
+  el.addEventListener("pointermove", e => {
+    if (!el.hasPointerCapture(e.pointerId)) return;
+    if (Math.abs(e.clientX - startX) > 4 || Math.abs(e.clientY - startY) > 4) moved = true;
+    if (!moved) return;
+    const t = Math.round(timeFromBarsPoint(e.clientX, e.clientY) * 10) / 10;
+    if (kind === "A") abA = t; else abB = t;
+    const dur = audio.duration;
+    const bar = document.getElementById("bar" + getPinRow(t, dur));
+    if (bar && el.parentNode !== bar) bar.appendChild(el);
+    el.style.left = timeToPercentInRow(t, dur) + "%";
+    el.title = kind + " " + fmtABTime(t);
+    renderSegments();
+  });
+  el.addEventListener("pointerup", e => {
+    if (!el.hasPointerCapture(e.pointerId)) return;
+    el.releasePointerCapture(e.pointerId);
+    el.classList.remove("dragging");
+    const v = kind === "A" ? abA : abB;
+    if (moved) {
+      lastPinTapAt = Date.now(); // 直後にバー側へ届くclickを無視させる
+      afterABChange();
+      prevTime = audio.currentTime;
+    } else {
+      lastPinTapAt = Date.now();
+      audio.currentTime = v;
+      prevTime = v;
+      audio.play();
+      updatePlayButtonState();
+      renderSegments(getActiveSegment(v));
+      showPinPopup(v, el.parentNode, e.clientX, null, kind);
+    }
+    setTimeout(() => { isSeeking = false; }, 150);
   });
 }
 
@@ -892,7 +985,14 @@ function pinPopColor() {
   }
   const anchor = document.querySelector(`.vbar-line[data-pin-index="${i}"]`);
   if (!anchor) return;
-  openMarkerColorPicker(anchor, pin, i);
+  openMarkerStylePopup(anchor, { label: pin.memo || "", color: pin.color || null, placeholder: fmtABTime(pin.t) }, (v) => {
+    pin.memo = v.label;
+    pin.color = v.color;
+    savePins();
+    renderPins();
+    renderSegments();
+    renderPinList();
+  });
 }
 
 // Hide/Show：Markersリストの目と同じ（pin.enabledの切替。PLAYERでは波形上に残り、無効の見た目になる）
@@ -993,6 +1093,102 @@ function openMarkerColorPicker(anchorBtn, pinObj, index) {
     renderSegments();
     renderPinList();
   });
+}
+
+// ポップアップのColor用：「ラベル入力＋プリセット＋色」を1セットにした編集パネル（PLAYER・YouTube共通）。
+// プリセット（名前と色の組）はMarkersの設定と共用。プリセットを選ぶとラベルと色が一緒に入る。
+// opts = { label, color, placeholder }。変更のたびに onChange({label, color}) を呼ぶ（パネルは開いたまま）。
+function openMarkerStylePopup(anchorEl, opts, onChange) {
+  closeMarkerColorPicker();
+  closePinMemoPresetPopup();
+  const state = { label: opts.label || "", color: opts.color || null };
+  const popup = document.createElement("div");
+  popup.className = "qn-style-pop";
+  popup.onclick = e => e.stopPropagation();
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "qn-style-input";
+  input.maxLength = 60;
+  input.placeholder = opts.placeholder || "Label";
+  input.value = state.label;
+  popup.appendChild(input);
+
+  const chipsEl = document.createElement("div");
+  chipsEl.className = "qn-style-chips";
+  popup.appendChild(chipsEl);
+  const swEl = document.createElement("div");
+  swEl.className = "qn-style-swatches";
+  popup.appendChild(swEl);
+
+  function emit() { onChange({ label: state.label, color: state.color }); }
+  function renderSwatches() {
+    swEl.innerHTML = "";
+    const none = document.createElement("button");
+    none.type = "button";
+    none.className = "marker-color-swatch marker-color-none" + (state.color ? "" : " active");
+    none.title = "No color";
+    none.onclick = e => { e.stopPropagation(); state.color = null; renderSwatches(); emit(); };
+    swEl.appendChild(none);
+    Object.keys(MARKER_COLOR_PALETTE).forEach(name => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "marker-color-swatch" + (state.color === name ? " active" : "");
+      b.style.background = MARKER_COLOR_PALETTE[name];
+      b.title = name;
+      b.onclick = e => { e.stopPropagation(); state.color = name; renderSwatches(); emit(); };
+      swEl.appendChild(b);
+    });
+  }
+  const presetColors = getMarkerPresetColors();
+  getAllMarkerPresetLabels().forEach(label => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "pin-memo-preset-chip";
+    const c = presetColors[label];
+    if (c && MARKER_COLOR_PALETTE[c]) {
+      const dot = document.createElement("span");
+      dot.className = "pin-memo-preset-dot";
+      dot.style.background = MARKER_COLOR_PALETTE[c];
+      chip.appendChild(dot);
+    }
+    chip.appendChild(document.createTextNode(label));
+    chip.onclick = e => {
+      e.stopPropagation();
+      state.label = label;
+      if (c && MARKER_COLOR_PALETTE[c]) state.color = c;
+      input.value = label;
+      renderSwatches();
+      emit();
+    };
+    chipsEl.appendChild(chip);
+  });
+  renderSwatches();
+
+  function commitLabel() {
+    const v = input.value.trim();
+    if (v === state.label) return;
+    state.label = v;
+    emit();
+  }
+  input.addEventListener("change", commitLabel);
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); commitLabel(); closeMarkerColorPicker(); }
+    else if (e.key === "Escape") { e.preventDefault(); closeMarkerColorPicker(); }
+  });
+
+  document.body.appendChild(popup);
+  activeMarkerColorPopup = popup;
+  const rect = anchorEl.getBoundingClientRect();
+  popup.style.position = "fixed";
+  popup.style.top = (rect.bottom + 6) + "px";
+  popup.style.left = rect.left + "px";
+  requestAnimationFrame(() => {
+    const pr = popup.getBoundingClientRect();
+    if (pr.right > window.innerWidth - 8) popup.style.left = Math.max(8, window.innerWidth - pr.width - 8) + "px";
+    if (pr.bottom > window.innerHeight - 8) popup.style.top = Math.max(8, rect.top - pr.height - 6) + "px";
+  });
+  setTimeout(() => document.addEventListener("click", closeMarkerColorPicker), 0);
 }
 
 // マーカーのメモ編集：infoSpanをその場でテキスト入力に差し替える。

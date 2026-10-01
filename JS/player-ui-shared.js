@@ -269,6 +269,8 @@ function loadFile(file) {
   } else {
     pins = [];
   }
+  // v3.8.0〜：A点/B点（マーカーとは別の点）も曲ごとに読み込む
+  loadABFor(file.name);
   if (typeof renderPinList === "function") renderPinList();
 
   // player-text.js側のトップレベル変数noteTextAreaElに依存すると、

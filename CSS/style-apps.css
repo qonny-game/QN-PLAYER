@@ -1518,8 +1518,9 @@ body.qn-app-open #pcV2TimeRow {
 .qn-yt-fetched-title:empty { display: none; }
 
 /* ---------- A/B点のマーカー強調（v3.5.0〜） ---------- */
-.qn-yt-marker.is-loop-a::before,
-.qn-yt-marker.is-loop-b::before { width: 4px; background: var(--accent-primary); }
+/* v3.8.0〜：A/Bはマーカーではない独立した点(.qn-yt-abpt)。マーカーより太い線＋旗で区別する */
+.qn-yt-abpt { z-index: 3; }
+.qn-yt-abpt::before { width: 4px; background: var(--accent-primary); }
 .qn-yt-marker-ab {
   position: absolute;
   top: 0;
@@ -1539,8 +1540,8 @@ body.qn-app-open #pcV2TimeRow {
   z-index: 2;
 }
 /* A旗は線の右（区間の内側）へ、B旗は線の左へ */
-.qn-yt-marker.is-loop-a .qn-yt-marker-ab { transform: translateX(2px); }
-.qn-yt-marker.is-loop-b .qn-yt-marker-ab { transform: translateX(calc(-100% - 2px)); }
+.qn-yt-abpt.is-a .qn-yt-marker-ab { transform: translateX(2px); }
+.qn-yt-abpt.is-b .qn-yt-marker-ab { transform: translateX(calc(-100% - 2px)); }
 
 /* 下段バーの Set A / Set B：設定済みの間はテーマ色 */
 .qn-yt-bbtn.has-point { color: var(--accent-primary); }
@@ -1565,15 +1566,36 @@ body.qn-app-open #pcV2TimeRow {
 }
 
 /* ---------- PLAYER側 A/B（v3.7.0〜） ---------- */
-/* A点・B点のマーカーの旗（YouTube側の.qn-yt-marker-abと同じ考え方）。A=線の右、B=線の左 */
-.vbar-line .vbar-ab-flag {
+/* A点・B点（マーカーではない使い捨ての区切り位置。ドラッグで移動可）。A=旗が線の右、B=旗が線の左 */
+.vbar-ab-pt {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  z-index: 6;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.vbar-ab-pt::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 1px;
+  width: 4px;
+  background: var(--accent-primary);
+}
+.vbar-ab-pt::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: -8px; right: -8px;
+}
+.vbar-ab-pt .vbar-ab-flag {
   position: absolute;
   bottom: 3px;
   left: 50%;
-  z-index: 3;
+  z-index: 1;
   padding: 2px 4px;
   border-radius: 3px;
-  background: var(--marker-color, var(--accent-primary));
+  background: var(--accent-primary);
   color: #0b0b0d;
   font-size: 10px;
   font-weight: 800;
@@ -1581,10 +1603,37 @@ body.qn-app-open #pcV2TimeRow {
   pointer-events: none;
   transform: translateX(3px);
 }
-.vbar-line.is-ab-b .vbar-ab-flag { transform: translateX(calc(-100% - 3px)); }
-#pcV2WaveArea .vbar-line.is-ab-a::before,
-#pcV2WaveArea .vbar-line.is-ab-b::before { width: 4px; }
+.vbar-ab-pt.is-b .vbar-ab-flag { transform: translateX(calc(-100% - 3px)); }
 /* 下部バーのSet A/Set B：設定済みはテーマ色 */
 #pcV2BottomBar .ab-set-btn.has-point { color: var(--accent-primary); }
 /* ポップアップのA/B：設定済みの位置は地色で示す */
 .qn-yt-seekpop-btn.is-set { background: color-mix(in srgb, var(--accent-primary) 20%, transparent); border-radius: 8px; }
+
+/* ---------- ポップアップのColor：ラベル入力＋プリセット＋色（v3.9.0・PLAYER/YouTube共通） ---------- */
+.qn-style-pop {
+  z-index: 340;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #101013;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-popup, 12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+}
+.qn-style-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+}
+.qn-style-input:focus { outline: none; border-color: var(--accent-primary); }
+.qn-style-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.qn-style-swatches { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -655,15 +655,30 @@ function saveNoteText() {
   }
 }
 
-// v3.7.0〜：A点/B点（マーカー自身に pin.ab = "A"|"B" として持たせる。保存・バックアップもpinごと）。
+// v3.8.0〜：A点/B点はマーカーではなく「秒」の独立した点（使い捨ての区切り。マーカー登録されない）。
+// 曲ごとにlocalStorage(mp3_ab_<ファイル名>)へ {a, b} で保存。波形上でドラッグして動かせる。
+let abA = null; // 秒 or null
+let abB = null;
+function saveAB() {
+  if (currentFileName && currentFileName !== "No file loaded") {
+    try { localStorage.setItem("mp3_ab_" + currentFileName, JSON.stringify({ a: abA, b: abB })); } catch (e) {}
+  }
+}
+function loadABFor(fileName) {
+  abA = null; abB = null;
+  try {
+    const raw = localStorage.getItem("mp3_ab_" + fileName);
+    if (raw) {
+      const o = JSON.parse(raw);
+      if (o && typeof o.a === "number" && o.a >= 0) abA = o.a;
+      if (o && typeof o.b === "number" && o.b >= 0) abB = o.b;
+    }
+  } catch (e) {}
+}
 // A・Bが両方そろっていれば {start,end,color} を返す（時刻の早い方が開始）。
 function getABRange() {
-  let a = null, b = null;
-  pins.forEach(p => { if (p.ab === "A") a = p; else if (p.ab === "B") b = p; });
-  if (!a || !b) return null;
-  return a.t <= b.t
-    ? { start: a.t, end: b.t, color: a.color || null }
-    : { start: b.t, end: a.t, color: b.color || null };
+  if (abA === null || abB === null) return null;
+  return { start: Math.min(abA, abB), end: Math.max(abA, abB), color: null };
 }
 
 function getActiveSegment(atTime) {

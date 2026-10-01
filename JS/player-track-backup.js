@@ -191,6 +191,16 @@ function loadStoredPinsFor(fileName) {
   }
 }
 
+function loadStoredABFor(fileName) {
+  const out = { a: null, b: null };
+  try {
+    const o = JSON.parse(localStorage.getItem("mp3_ab_" + fileName) || "null");
+    if (o && typeof o.a === "number") out.a = o.a;
+    if (o && typeof o.b === "number") out.b = o.b;
+  } catch (e) {}
+  return out;
+}
+
 function loadStoredNoteTextFor(fileName) {
   try {
     return localStorage.getItem("mp3_text_" + fileName) || "";
@@ -242,10 +252,12 @@ async function runTrackBackup() {
           time: p.t,
           enabled: p.enabled !== false,
           color: p.color || null,
-          memo: p.memo || "",
-          // v3.7.0〜：A-Bループ用のA点/B点（"A"|"B"。無ければ省略）
-          ...(p.ab === "A" || p.ab === "B" ? { ab: p.ab } : {})
+          memo: p.memo || ""
         }));
+        // v3.8.0〜：A点/B点（マーカーとは別の点。秒。無ければnull）
+        const storedAB = loadStoredABFor(track.name);
+        trackData.abA = storedAB.a;
+        trackData.abB = storedAB.b;
         trackData.noteText = loadStoredNoteTextFor(track.name);
       }
 
@@ -735,12 +747,17 @@ function applyImportedMarkersAndText(name, trackData) {
       t: typeof m.time === "number" ? m.time : 0,
       enabled: m.enabled !== false,
       memo: m.memo || "",
-      color: m.color || null,
-      ...(m.ab === "A" || m.ab === "B" ? { ab: m.ab } : {})
+      color: m.color || null
     }));
     try {
       localStorage.setItem("mp3_pins_" + name, JSON.stringify(pinsToSave));
     } catch (e) {}
+  }
+  // v3.8.0〜：A点/B点（abA/abBが含まれている場合だけ反映。古いバックアップは触らない）
+  if (trackData.abA !== undefined || trackData.abB !== undefined) {
+    const a = typeof trackData.abA === "number" ? trackData.abA : null;
+    const b = typeof trackData.abB === "number" ? trackData.abB : null;
+    try { localStorage.setItem("mp3_ab_" + name, JSON.stringify({ a: a, b: b })); } catch (e) {}
   }
   if (typeof trackData.noteText === "string") {
     try {

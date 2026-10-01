@@ -545,3 +545,16 @@
 ## 3.7.1 — PLAYER: マーカー線のクリックでポップアップが出ない不具合を修正
 - マウスでマーカー線をクリックしても、ドラッグ処理の終わり(`startDragPin`のstop)でマーカー線のDOMが作り直され、線のonclickが呼ばれずポップアップが出なかった。タッチ・マウスとも`stop()`内でシーク＆再生＋ポップアップを行うように変更（二重処理は`lastPinTapAt`で防止。波形バー側の`click`は直後なら無視）。
 - 変更ファイル：`JS/player-markers.js`、`JS/player-ui-shared.js`、`index.html`。
+
+## 3.8.0 — A/Bをマーカー登録しない「使い捨ての区切り位置」に変更（PLAYER・YouTube共通）
+- A/Bをセットしてもマーカーは作られない。A点・B点は秒数だけを持つ独立した点で、波形／シークバー上の「A」「B」の旗をドラッグ（D&D）して動かせる。
+- 設定方法：下部バーのSet A/Set B、またはポップアップのA/B（空き位置でも、マーカー位置でもOK）。同じ位置（±0.5秒）でもう一度押すと解除。点をタップするとシーク＆再生し、「－ Point」だけのポップアップが出る。
+- マーカーを削除してもA/Bは消えない。マーカー一覧のA/Bボタンは、マーカー位置をA/Bにコピーする動作。
+- 保存：YouTubeは動画ごと（秒数）、PLAYERはトラックごと（`mp3_ab_<ファイル名>`）。旧データ（マーカーID方式）は読み込み時に秒数へ自動変換。
+- バックアップ/インポートの項目を`abA`/`abB`（秒数）に変更（旧形式のインポートも可）。
+- 変更ファイル：`JS/qn-app-youtube.js`、`JS/player-core.js`、`JS/player-ui-shared.js`、`JS/player-markers.js`、`JS/player-track-backup.js`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`、`md/YOUTUBE_APP.md`。
+
+## 3.9.0 — ポップアップのColor：「ラベル入力＋プリセット＋色」のセット（PLAYER・YouTube共通）
+- シークバー/波形のポップアップの Color を押すと、ラベル入力欄・プリセット（Intro/Verse…＋自作）・色パレットが1つのパネルで開く。プリセットを選ぶとラベルと色が一緒に入り、色だけ・ラベルだけの変更もできる。変更は即反映され、パネル外クリック/Enter/Escで閉じる。
+- プリセット（名前と色）はMarkersの設定と共用（PLAYERとYouTubeで同じ内容）。
+- 変更ファイル：`JS/player-markers.js`、`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。
