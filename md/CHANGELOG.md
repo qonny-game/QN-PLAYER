@@ -525,3 +525,8 @@
 ## 3.4.5 — YouTube: ポップアップに Color / Hide
 - 既存マーカー上のポップアップに、色変更（Color）と非表示（Hide）を追加。
 - 変更ファイル：`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`（バージョンのみ）。
+
+## 3.5.0 — PLAYER: シークバーポップアップ（＋/－/Color/Hide）、YouTube: Color崩れ修正・プリロール上限5秒
+- PLAYERの波形バーをクリック/タップすると、従来のシーク＆再生に加えてポップアップを表示。空き位置は＋Marker、既存マーカーは－（2回押しで削除）／Color／Hide⇄Show。
+- YouTubeポップアップのColorボタンが上にずれていた崩れを修正。YouTubeのプリロール上限をPLAYERと同じ5秒に統一。
+- 変更ファイル：`JS/player-markers.js`、`JS/player-ui-shared.js`、`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`。

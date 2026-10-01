@@ -1468,7 +1468,7 @@
 
   // ---------- プリロール/ポストロール（PLAYER本体と同じ：前後共通の秒数） ----------
   // ループの折り返しで、区間の開始の何秒前へ戻るか／終わりの何秒後まで再生してから戻るか。
-  var PREROLL_KEY = "qn_yt_preroll", PREROLL_MAX = 10, PREROLL_STEP = 1;
+  var PREROLL_KEY = "qn_yt_preroll", PREROLL_MAX = 5, PREROLL_STEP = 1;
   var preRoll = (function () {
     try { var v = parseInt(localStorage.getItem(PREROLL_KEY), 10); return v >= 0 && v <= PREROLL_MAX ? v : 0; } catch (e) { return 0; }
   })();

@@ -792,6 +792,9 @@ document.querySelectorAll(".vbar").forEach((bar, index) => {
     setTimeout(() => {
       isSeeking = false;
     }, 150);
+
+    // v3.5.0〜：その位置に＋Markerのポップアップも出す（player-markers.js）
+    if (typeof showPinPopup === "function") showPinPopup(clickedTime, bar, e.clientX, null);
   });
 });
 

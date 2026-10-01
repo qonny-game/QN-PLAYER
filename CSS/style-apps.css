@@ -1549,7 +1549,11 @@ body.qn-app-open #pcV2TimeRow {
 .qn-yt-seekpop-btn[hidden] { display: none; }
 .qn-yt-seekpop-del b { color: var(--icon-muted); }
 .qn-yt-seekpop-btn b svg { color: var(--icon-muted); width: 20px; height: 26px; fill: currentColor; display: block; }
-.qn-yt-seekpop-btn b { display: flex; align-items: center; justify-content: center; }
+.qn-yt-seekpop-btn b { display: flex; align-items: center; justify-content: center; height: 26px; }
+@media screen and (max-width: 900px) {
+  .qn-yt-seekpop-btn b { height: 30px; }
+  .qn-yt-seekpop-btn b svg { height: 30px; }
+}
 .qn-yt-seekpop-dot { display: block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); }
 .qn-yt-seekpop-del.is-armed, .qn-yt-seekpop-del.is-armed b { color: var(--danger, #ff5a5a); }
 

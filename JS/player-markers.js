@@ -145,6 +145,7 @@ function renderPins() {
       line.classList.add("sw-locked");
     }
     line.style.left = `${x}%`;
+    line.dataset.pinIndex = String(i);
     // マーカーに色が設定されていれば、ライン(縦線)の背景色に反映する。
     // ただし無効化中(disabled)は専用の見た目を優先し、
     // インラインスタイルで上書きしないようにする（詳細度でCSS側の状態表現が負けてしまうため）。
@@ -196,6 +197,9 @@ function renderPins() {
       updatePlayButtonState();
       renderSegments(getActiveSegment(pinObj.t));
       setTimeout(() => { isSeeking = false; }, 150);
+      // v3.5.0〜：シーク＆再生に加えて、−/Color/Hide のポップアップも出す
+      // （マウスのドラッグ直後に出るclickでは出さない）。
+      if (Date.now() - lastPinDragAt > 400) showPinPopup(pinObj.t, line.parentNode, e.clientX, pinObj);
     }
 
     label.onclick = handleMarkerTapOrDrag;
@@ -438,6 +442,7 @@ function startDragPin(index) {
     function stop() {
       if (finished) return;
       finished = true;
+      if (hasDragged) lastPinDragAt = Date.now();
       pins.sort((a, b) => a.t - b.t);
       // マーカー位置が変わった（並び順が変わり得る）ため、ループ折り返し
       // 判定の対象区間インデックスを破棄する。
@@ -461,6 +466,8 @@ function startDragPin(index) {
           audio.play();
           updatePlayButtonState();
           renderSegments(getActiveSegment(pinObj.t));
+          // v3.5.0〜：タップ時はポップアップも出す（マウスはclick側で出す）
+          showPinPopup(pinObj.t, lineEl ? lineEl.parentNode : null, startClientX, pinObj);
         }
       } else {
         prevTime = audio.currentTime;
@@ -654,6 +661,165 @@ function renderPinList() {
       list.appendChild(div);
     }
   });
+}
+
+
+// ============================================================
+// 【v3.5.0】シークバー（波形バー）のポップアップ。
+//  ・空いている位置をクリック/タップ → ＋Marker（その位置にマーカー追加）
+//  ・既存マーカーをクリック/タップ → － / Color / Hide（削除・色・非表示）
+// 従来どおりクリック位置へのシーク＆再生はそのまま行い、それに加えて出す。
+// 見た目はYouTubeアプリのポップアップ(.qn-yt-seekpop、style-apps.css)と共通。
+// ※PLAYERにはA/Bの概念が無い（ループはマーカー〜次のマーカー）ため A/B は出さない。
+// ============================================================
+let lastPinDragAt = 0;
+let pinPopEl = null, pinPopTimer = null, pinPopTime = 0, pinPopPin = null;
+let pinPopDelArmed = false, pinPopDelTimer = null;
+const PINPOP_MS = 4000;
+
+const PINPOP_EYE_ON = '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+const PINPOP_EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
+
+function refreshAfterPinChange() {
+  loopActiveMarkerIndex = null;
+  renderPins();
+  renderSegments();
+  renderPinList();
+  savePins();
+}
+
+function ensurePinPopup() {
+  if (pinPopEl) return pinPopEl;
+  pinPopEl = document.createElement("div");
+  pinPopEl.className = "qn-yt-seekpop qn-pl-seekpop";
+  pinPopEl.hidden = true;
+  pinPopEl.setAttribute("role", "menu");
+  pinPopEl.innerHTML =
+    '<div class="qn-yt-seekpop-time" data-pop="time">00:00.0</div>' +
+    '<div class="qn-yt-seekpop-row">' +
+      '<button type="button" class="qn-yt-seekpop-btn" data-pop="M" title="この位置にマーカーを追加"><b>＋</b><span>Marker</span></button>' +
+      '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="D" title="このマーカーを削除" hidden><b>－</b><span>Marker</span></button>' +
+      '<button type="button" class="qn-yt-seekpop-btn" data-pop="C" title="マーカーの色を変える" hidden><b><i class="qn-yt-seekpop-dot"></i></b><span>Color</span></button>' +
+      '<button type="button" class="qn-yt-seekpop-btn" data-pop="H" title="マーカーのON/OFF" hidden><b></b><span>Hide</span></button>' +
+    '</div>';
+  document.body.appendChild(pinPopEl);
+  pinPopEl.addEventListener("pointerdown", e => { e.stopPropagation(); resetPinPopTimer(); });
+  pinPopEl.addEventListener("click", e => {
+    e.stopPropagation();
+    const b = e.target.closest ? e.target.closest("[data-pop]") : null;
+    if (!b) return;
+    const k = b.getAttribute("data-pop");
+    if (k === "M") pinPopAdd();
+    else if (k === "D") pinPopDelete();
+    else if (k === "C") pinPopColor();
+    else if (k === "H") pinPopToggle();
+  });
+  // 外側のタップ・Escで閉じる（波形バー自身のタップは、直後のclickで新しい位置のポップアップに置き換わる）
+  document.addEventListener("pointerdown", e => {
+    if (pinPopEl.hidden) return;
+    if (e.target.closest && e.target.closest(".qn-pl-seekpop")) return;
+    hidePinPopup();
+  }, true);
+  window.addEventListener("keydown", e => { if (e.key === "Escape") hidePinPopup(); }, true);
+  window.addEventListener("resize", hidePinPopup);
+  return pinPopEl;
+}
+
+function resetPinPopTimer() {
+  if (pinPopTimer) clearTimeout(pinPopTimer);
+  pinPopTimer = setTimeout(hidePinPopup, PINPOP_MS);
+}
+
+function armPinPopDel(on) {
+  pinPopDelArmed = on;
+  if (pinPopDelTimer) { clearTimeout(pinPopDelTimer); pinPopDelTimer = null; }
+  if (!pinPopEl) return;
+  const b = pinPopEl.querySelector('[data-pop="D"]');
+  b.classList.toggle("is-armed", on);
+  b.querySelector("span").textContent = on ? "Sure?" : "Marker";
+  if (on) pinPopDelTimer = setTimeout(() => armPinPopDel(false), 3000);
+}
+
+function hidePinPopup() {
+  armPinPopDel(false);
+  if (pinPopTimer) { clearTimeout(pinPopTimer); pinPopTimer = null; }
+  if (pinPopEl) pinPopEl.hidden = true;
+}
+
+// t: クリック位置の秒数 / barEl: クリックした波形バー / pinObj: 既存マーカー(無ければnull)
+function showPinPopup(t, barEl, clientX, pinObj) {
+  if (!audio.duration || !barEl) return;
+  const pop = ensurePinPopup();
+  pinPopPin = pinObj || null;
+  pinPopTime = Math.max(0, Math.min(audio.duration, t));
+  armPinPopDel(false);
+  pop.querySelector('[data-pop="time"]').textContent = formatTime(pinPopTime);
+  pop.querySelector('[data-pop="M"]').hidden = !!pinObj;
+  ["D", "C", "H"].forEach(k => { pop.querySelector(`[data-pop="${k}"]`).hidden = !pinObj; });
+  if (pinObj) {
+    const hex = pinObj.color && MARKER_COLOR_PALETTE[pinObj.color] ? MARKER_COLOR_PALETTE[pinObj.color] : "#3a3a48";
+    pop.querySelector(".qn-yt-seekpop-dot").style.background = hex;
+    const hb = pop.querySelector('[data-pop="H"]');
+    hb.querySelector("b").innerHTML = pinObj.enabled ? PINPOP_EYE_ON : PINPOP_EYE_OFF;
+    hb.querySelector("span").textContent = pinObj.enabled ? "Hide" : "Show";
+  }
+  pop.hidden = false;
+  const rect = barEl.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight, gap = 10;
+  const left = Math.min(Math.max(clientX - w / 2, 8), window.innerWidth - w - 8);
+  let top = rect.top - h - gap;
+  const below = top < 8;
+  if (below) top = rect.bottom + gap;
+  pop.classList.toggle("is-below", below);
+  pop.style.left = left + "px";
+  pop.style.top = top + "px";
+  resetPinPopTimer();
+}
+
+function pinPopAdd() {
+  const t = pinPopTime;
+  hidePinPopup();
+  hapticSuccess();
+  pins.push({ t: t, enabled: true, memo: "", color: null });
+  pins.sort((a, b) => a.t - b.t);
+  refreshAfterPinChange();
+}
+
+// －Marker：1回目で「Sure?」、3秒以内にもう1回で削除（Markersリストの✕✓と同じ2段階）
+function pinPopDelete() {
+  if (!pinPopPin) return;
+  if (!pinPopDelArmed) { hapticTap(); armPinPopDel(true); resetPinPopTimer(); return; }
+  const i = pins.indexOf(pinPopPin);
+  hidePinPopup();
+  if (i < 0) return;
+  hapticWarning();
+  pins.splice(i, 1);
+  refreshAfterPinChange();
+}
+
+function pinPopColor() {
+  const pin = pinPopPin;
+  const i = pin ? pins.indexOf(pin) : -1;
+  hidePinPopup();
+  if (i < 0) return;
+  // シェアウェア制限：無料版はマーカーの色変更不可（Markersリストの色ボタンと同じ）
+  if (typeof isUnlocked === "function" && !isUnlocked()) {
+    swShowUnlockToast("無料版ではマーカーの色変更はできません。");
+    return;
+  }
+  const anchor = document.querySelector(`.vbar-line[data-pin-index="${i}"]`);
+  if (!anchor) return;
+  openMarkerColorPicker(anchor, pin, i);
+}
+
+// Hide/Show：Markersリストの目と同じ（pin.enabledの切替。PLAYERでは波形上に残り、無効の見た目になる）
+function pinPopToggle() {
+  const pin = pinPopPin;
+  hidePinPopup();
+  if (!pin) return;
+  hapticTap();
+  pin.enabled = !pin.enabled;
+  refreshAfterPinChange();
 }
 
 // マーカーの色選択ポップアップを開く。既存のポップアップがあれば一旦閉じてから開き直す。

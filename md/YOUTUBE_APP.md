@@ -5,7 +5,7 @@
 （旧名 YT_PROTOTYPE_SPEC.md から改名）
 
 - 実装：`JS/qn-app-youtube.js`（アプリ本体）／`CSS/style-apps.css`（見た目）／`JS/qn-apps.js`（アプリ名バッジ・アプリ一覧フライアウト・表示領域）
-- 最終更新：QNPLAYER v3.4.5（ポップアップにColor・Hide追加）（2026-10-01）
+- 最終更新：QNPLAYER v3.5.0（PLAYERにもシークバーポップアップ／Colorの崩れ修正／プリロール上限5秒）（2026-10-01）
 - **YouTube関連の変更をするときは、まず§2（規約遵守ルール）を読む。** 便利さのために§2を破る実装は入れない。
 
 ---
@@ -310,6 +310,17 @@ PC幅                                             SP幅（パネルを開いた�
 - **Color**（`data-pop="C"`）：ポップアップを閉じ、シークバー上のそのマーカー(`data-mid`)を基準に、Markersパネルの色ボタンと同じ`openColorChoicePopup`を開く。ボタンの丸は現在のマーカー色。
 - **Hide**（`data-pop="H"`）：`m.enabled=false`（Markersパネルの目と同じ）。シークバー上から消えるので、再表示はMarkersパネルの目から。
 - SP幅はボタン最小幅を54pxに縮小（5個でも360px幅に収まる）。
+
+## 付録：PLAYER側のポップアップ／Color崩れ修正／プリロール（v3.5.0）
+- **Colorの崩れ修正**：`.qn-yt-seekpop-btn b`をflexにしたせいで、丸(14px)だけ高さが縮み、他のボタンより上にずれていた。`b`に固定の高さ（PC 26px／SP 30px）を付けて解消。
+- **プリロール上限を5秒に**：PLAYERの実値（`player-controls.js`：0〜5秒・1秒刻み・前後共通）に合わせた（`PREROLL_MAX = 5`。保存済みの6秒以上は0に戻る）。
+- **PLAYER側のシークバーポップアップ**（`player-markers.js`の`showPinPopup`。クラスは`.qn-yt-seekpop`をYouTubeと共用、`.qn-pl-seekpop`を併記）。従来のクリック→シーク＆再生はそのまま、加えて：
+  - 空いている位置：`＋ Marker`（その位置にマーカー追加）。
+  - 既存マーカー：`－ Marker`（1回目Sure?→2回目で削除）／`Color`（`openMarkerColorPicker`。無料版は従来どおり不可のトースト）／`Hide⇄Show`（`pin.enabled`切替。PLAYERでは波形上に残り無効表示になるので、Show表示で戻せる）。
+  - A/Bは出さない（PLAYERのループは「マーカー〜次のマーカー」でA/Bの概念が無いため）。
+  - マウスのドラッグ直後のclickではポップアップを出さない（`lastPinDragAt`）。タップは`startDragPin`のstop内で出す。無料版でロック中のマーカーは従来どおり出さない。
+  - 波形マーカー線に`data-pin-index`を付与（Colorの基準位置の取得用）。
+- 変更ファイル：`JS/player-markers.js`、`JS/player-ui-shared.js`（バー1クリック後に呼ぶ）、`JS/qn-app-youtube.js`、`CSS/style-apps.css`、`index.html`。
 
 ## 付録：再生ボタン・Library前/次ボタン（v2.26.0）
 - シークバー下の`.qn-yt-transport`行（Prev / 再生⇄一時停止 / Next）。すべて利用者のクリックを起点に公式メソッド（`playVideo`/`pauseVideo`/`loadVideoById`）を呼ぶだけ。
