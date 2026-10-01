@@ -600,3 +600,12 @@
 ## 3.12.2 — YouTubeのスクロールバーをPLAYERと同じ値に
 - PLAYERパネル(`#pcV2PanelBody`)のスクロールバー（幅8px・透明トラック・`rgba(255,255,255,.14)`の丸いつまみ・ホバー`.24`・Firefox用`scrollbar-color`）と同じ値をYouTubeのパネル/ステージに適用（v3.12.0の仮デザインを置き換え）。
 - 変更ファイル：`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.12.3 — PLAYER下部バー：Speed/Keyステッパーをさらに詰め、ラベルを上揃えに
+- −＋の幅を14pxに、値ラベルの最小幅を26pxに縮めて、−＋をアイコンに近づけた（Keyも同様）。
+- 下部バーの各アイコンを上揃え（`align-self:flex-start`）にし、2行ラベル（値／SPEED）のぶんは下へ伸びるようにした。1行目の文字の高さが他のアイコンの文字とそろう。−＋はアイコンの高さに合わせて配置。
+- 変更ファイル：`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.12.4 — PLAYER下部バー：すべてのコントロールを「アイコン＋ラベル」に統一
+- これまでアイコンのみだった Track（前/次）・Repeat・Marker（前/次）にもラベルを表示。YouTubeの下段バーと同じ「全アイコン＋文字」になった。アイコン領域の高さを揃えて文字の高さもそろえた。
+- 変更ファイル：`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`。

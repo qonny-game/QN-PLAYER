@@ -1523,3 +1523,32 @@ html {
 #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span b { font-weight: 700; font-variant-numeric: tabular-nums; }
 #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span i { font-style: normal; text-transform: uppercase; font-size: 8px; letter-spacing: 0.4px; opacity: 0.85; }
 #pcV2BottomBar .pcv2-step-btn { min-width: 20px; padding: 8px 2px; }
+
+/* v3.12.3：Speed/Keyステッパーをさらに詰め、全アイコンのラベルを「上揃え」にする（2行ラベルは下へ伸びる）。
+   −＋はアイコンの高さ(上から約24px)に合わせて置く。 */
+#pcV2BottomBar .pcv2-ctrl-btn,
+#pcV2BottomBar .pcv2-stepper { align-self: flex-start; }
+#pcV2BottomBar .pcv2-stepper { align-items: flex-start; margin: 0; }
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { padding-left: 0; padding-right: 0; min-height: 0; }
+#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span { min-width: 26px; }
+#pcV2BottomBar .pcv2-step-btn {
+  min-width: 14px; width: 14px; height: 40px; margin-top: 4px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 0; align-self: flex-start;
+}
+
+/* v3.12.4：下部バーのすべてのコントロール（Track/Play/Repeat/Marker×3/Loop…）をYouTubeと同じ「アイコン＋ラベル」にする。
+   前後の曲送り・前後マーカー・Repeatのラベルも表示し、アイコンの表示領域(32px)をそろえて文字の高さを揃える。 */
+#pcV2BottomBar .top-controls-btn-label {
+  display: block;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+#pcV2BottomBar .tripleNavBtn-third:not(.tripleNavBtn-center) svg {
+  margin: 6px auto;
+  display: block;
+  box-sizing: content-box;
+}
+#pcV2BottomBar .tripleNavBtn-third { min-height: 57px; }
