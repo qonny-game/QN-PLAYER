@@ -609,3 +609,11 @@
 ## 3.12.4 — PLAYER下部バー：すべてのコントロールを「アイコン＋ラベル」に統一
 - これまでアイコンのみだった Track（前/次）・Repeat・Marker（前/次）にもラベルを表示。YouTubeの下段バーと同じ「全アイコン＋文字」になった。アイコン領域の高さを揃えて文字の高さもそろえた。
 - 変更ファイル：`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.12.5 — PLAYER下部バー：Volume/Speed/Key/EQの間隔を広げる
+- Speed/Keyステッパーの左右に12px、Volume・EQの左右に6pxの余白を追加し、隣の−＋との区切りを分かりやすくした。
+- 変更ファイル：`CSS/style-layout-pc-v2.css`、`index.html`、`md/CHANGELOG.md`。
+
+## 3.12.6 — PLAYER下部バーとYouTube下段バーの寸法を統一
+- バーの高さ（PC 80px以上）・バー/ボタンの余白（PC: バー10px 12px・ボタン8px 4px）・アイコン（PC 20px／中央32px、SP 26px／38px）・ラベル（PC 9px／SP 11px）・区切り線の余白（6px）・要素間の隙間を、PLAYERとYouTubeで同じ値にそろえた（Speed/Keyのトグルは例外）。
+- 変更ファイル：`CSS/style-apps.css`、`index.html`、`md/CHANGELOG.md`。

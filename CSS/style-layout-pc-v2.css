@@ -1552,3 +1552,8 @@ html {
   box-sizing: content-box;
 }
 #pcV2BottomBar .tripleNavBtn-third { min-height: 57px; }
+
+/* v3.12.5：Volume / Speed / Key / EQ の各要素の間隔を広げる（隣の−＋と近すぎて区切りが分かりにくかったため） */
+#pcV2BottomBar .pcv2-stepper { margin: 0 12px; }
+#pcV2BottomBar #pcV2VolumeBtn,
+#pcV2BottomBar #pcV2BottomEqToggle { margin: 0 6px; }
