@@ -1125,6 +1125,7 @@
     refs.chapAdd.addEventListener("click", addChapters);
     refs.fabEdit.addEventListener("click", toggleEdit);
     refs.sheetClose.addEventListener("click", function () { setPanel("none"); });
+    if (window.QNApps && window.QNApps.sheetDrag) window.QNApps.sheetDrag(root.querySelector(".qn-yt-panel"), root.querySelector(".qn-yt-panel-header"), function () { setPanel("none"); });
     refs.fabFolder.addEventListener("click", addFolderInteractive);
     refs.fabMove.addEventListener("click", function () { moveSelectedToFolder(refs.fabMove); });
     refs.fabDel.addEventListener("click", deleteSelected);

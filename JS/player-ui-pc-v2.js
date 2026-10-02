@@ -105,6 +105,7 @@
     const sheetClose = el('<button type="button" class="qn-sheet-close" id="pcV2SheetClose" title="閉じる" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>');
     sheetClose.addEventListener("click", () => { if (typeof closePanelOverlay === "function") closePanelOverlay(); });
     panel.appendChild(sheetClose);
+    if (window.QNApps && window.QNApps.sheetDrag) window.QNApps.sheetDrag(panel, panelHeader, () => { if (typeof closePanelOverlay === "function") closePanelOverlay(); });
 
     ICON_ITEMS.forEach(item => {
       if (item.hidden || item.bottom) return;

@@ -28,3 +28,4 @@
 - 3.31.0 YouTube: Libraryにフォルダ(PLと同じ操作: FOLDER/EDIT+MOVE/開閉/改名/並び替え/削除。フォルダ・所属は同期、開閉は端末ごと。Auto Next/前後は表示順)。Playlistsパネル追加(YouTube Data APIで再生リストを取得→一覧表示、クリックで再生、選択してLibraryへ追加。取得結果は保存しない。APIキーは端末のlocalStorageまたはwindow.QN_YT_API_KEY)。
 - 3.31.1 Playlists: My Playlistsボタン追加(ログイン中のGoogleアカウントの再生リスト+高評価を取得。youtube.readonlyの確認ポップアップ→トークンはメモリのみ)。URL入力+APIキーでの取得も残す。
 - 3.32.0 SP: パネルを下からスライドで開閉(閉じるボタン・上端アクセント線・つまみで開いている目印)。YT SPのプレイヤー縮小は上端固定で滑らかに。PC幅1400px以上: アプリ名バッジ/アプリ一覧を「アイコン＋文字」1行に(サイドバー136px)。
+- 3.32.1 SPシート: 開閉アニメ中も下段バー/アイコンバーの背面に出入り。見出し(つまみ)を下へドラッグで閉じる(QNApps.sheetDrag)。

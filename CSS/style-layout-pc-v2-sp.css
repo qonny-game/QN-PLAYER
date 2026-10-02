@@ -71,6 +71,14 @@
     background: rgba(255, 255, 255, 0.06);
   }
 
+  /* シートの開閉アニメ中もボタン群(下段バー・アイコンバー)の背面に潜るよう、パネル(z-index:100)より前面+不透明背景 */
+  #pcV2BottomBar,
+  #pcV2IconBar {
+    position: relative;
+    z-index: 110;
+    background: #0a0a0c;
+  }
+
   #pcV2BottomBar {
     order: 4;
     flex-shrink: 0;
@@ -267,7 +275,7 @@
   }
 
   #pcV2Layout.pcv2-panel-open #pcV2Panel {
-    animation: qn-sheet-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: qn-sheet-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
     display: flex;
     position: absolute;
     top: 0;
@@ -313,6 +321,8 @@
   #pcV2Panel .qn-sheet-close {
     display: flex;
   }
+
+  #pcV2Panel #pcV2PanelHeader { touch-action: none; }
 }
 
 @keyframes qn-sheet-up {
@@ -320,7 +330,6 @@
   to { transform: none; opacity: 1; }
 }
 @keyframes qn-sheet-down {
-  from { transform: none; opacity: 1; }
   to { transform: translateY(100%); opacity: 0; }
 }
 

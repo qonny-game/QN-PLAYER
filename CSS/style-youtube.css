@@ -596,13 +596,15 @@
     border-top: 2px solid var(--accent-primary);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.55);
-    animation: qn-sheet-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: qn-sheet-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    z-index: 1;
   }
   .qn-yt.qn-yt-closing .qn-yt-panel {
     animation: qn-sheet-down 230ms cubic-bezier(0.4, 0, 1, 1) both;
     pointer-events: none;
   }
-  .qn-yt-panel .qn-yt-panel-header { position: relative; padding-top: 22px; padding-right: 64px; }
+  .qn-yt-panel .qn-yt-panel-header { position: relative; padding-top: 22px; padding-right: 64px; touch-action: none; }
+  .qn-yt .qn-yt-bar { position: relative; z-index: 3; background: #0a0a0c; }
   .qn-yt-panel .qn-yt-panel-header::before {
     content: "";
     position: absolute; top: 8px; left: 50%;

@@ -570,7 +570,42 @@
     hostEl.appendChild(sec);
   }
 
+  // SP幅のシート: 見出しを下へドラッグ(スワイプ)で閉じる。panel=動かす要素、header=つかむ要素、onClose=閉じる処理(閉じるアニメは呼び先が担当。ドラッグ位置から続けて下へ出ていく)
+  function sheetDrag(panel, header, onClose) {
+    if (!panel || !header) return;
+    var startY = 0, dy = 0, t0 = 0, active = false;
+    header.addEventListener("pointerdown", function (e) {
+      if (!isSp() || e.target.closest("button, input, a, textarea")) return;
+      active = true; startY = e.clientY; dy = 0; t0 = Date.now();
+      panel.style.transition = "none";
+      panel.style.transform = "";
+      try { header.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    header.addEventListener("pointermove", function (e) {
+      if (!active) return;
+      dy = Math.max(0, e.clientY - startY);
+      panel.style.transform = "translateY(" + dy + "px)";
+    });
+    function end(e, commit) {
+      if (!active) return;
+      active = false;
+      try { header.releasePointerCapture(e.pointerId); } catch (err) {}
+      var v = dy / Math.max(1, Date.now() - t0);
+      if (commit && (dy > 90 || (dy > 30 && v > 0.5))) {
+        onClose();
+        setTimeout(function () { panel.style.transform = ""; panel.style.transition = ""; }, 400);
+      } else {
+        panel.style.transition = "transform 180ms ease";
+        panel.style.transform = "";
+        setTimeout(function () { panel.style.transition = ""; }, 200);
+      }
+    }
+    header.addEventListener("pointerup", function (e) { end(e, true); });
+    header.addEventListener("pointercancel", function (e) { end(e, false); });
+  }
+
   window.QNApps = {
+    sheetDrag: sheetDrag,
     register: register,
     open: open,
     close: close,
