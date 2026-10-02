@@ -482,10 +482,6 @@ body.dragover #dropOverlay {
 .playlist-sync-foot.err { color: #e5534b; opacity: .9; }
 
 /* ---------- v3.29.0 MP3のP2P転送(player-p2p.js)。モーダルは既存の.export-modal*部品を流用、ここは固有部分のみ ---------- */
-.playlist-sync-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
-.playlist-sync-bar .playlist-sync-foot { margin: 0; flex: 1; }
-.playlist-p2p-btn { flex: none; height: var(--btn-h); padding: 0 var(--btn-pad-x); background: transparent; color: var(--icon-muted); border: 1px solid var(--border-strong); border-radius: var(--radius-pill); font-family: var(--font-display, 'Instrument Sans'), sans-serif; font-size: var(--fs-btn); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap); }
-.playlist-p2p-btn:hover { background: var(--bg-hover-subtle); color: var(--text-bright); }
 .qn-p2p-overlay { z-index: 450; }
 .qn-p2p-text { font-family: var(--font-body, 'Instrument Sans'), sans-serif; font-size: var(--fs-small); line-height: 1.7; color: var(--icon-muted); }
 .qn-p2p-modal .export-run-btn:disabled { opacity: 0.4; }

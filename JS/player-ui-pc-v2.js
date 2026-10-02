@@ -66,6 +66,14 @@
       bottom: true,
       panelType: "import",
       icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>'
+    },
+    {
+      // 端末間のMP3転送(player-p2p.js)。同期対象アカウントでログイン中だけ表示(player-sync.jsが表示を切り替える)。パネルは開かずモーダルを開く
+      id: "transfer",
+      label: "Transfer",
+      bottom: true,
+      panelType: "transfer",
+      icon: '<path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>'
     }
   ];
 
@@ -118,6 +126,7 @@
         '</button>'
       );
       btn.addEventListener("click", () => handleIconClick(item));
+      if (item.panelType === "transfer" && !(window.QNLibSync && window.QNLibSync.isActive())) btn.style.display = "none";
       bottomGroup.appendChild(btn);
     });
     [
@@ -669,6 +678,11 @@
 
     if (item.panelType === "close") {
       closePanelOverlay();
+      return;
+    }
+
+    if (item.panelType === "transfer") {
+      if (window.QNP2P) window.QNP2P.open();
       return;
     }
 

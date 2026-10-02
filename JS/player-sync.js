@@ -515,8 +515,13 @@
     syncTimer = setTimeout(syncNow, 3000);
   }
   function syncIfStale() { if (syncUser && ready && Date.now() - lastTry > 20000) { againCount = 0; syncNow(); } }
+  function showTransferButton() {   // サイドバーのTransfer(player-ui-pc-v2.js)は同期対象アカウントのログイン中だけ表示
+    var bs = document.querySelectorAll('[data-panel-id="transfer"]');
+    for (var i = 0; i < bs.length; i++) bs[i].style.display = syncUser ? "" : "none";
+  }
   function onAuthChanged(user) {
     syncUser = !!(user && window.QN_AUTH && typeof window.QN_AUTH.isSyncUser === "function" && window.QN_AUTH.isSyncUser());
+    showTransferButton();
     if (syncUser) { againCount = 0; syncNow(); } else setStatus("");
     if (typeof renderPlaylist === "function" && ready) renderPlaylist();
   }
@@ -624,19 +629,7 @@
     foot.className = "playlist-sync-foot qn-lib-extra";
     foot.addEventListener("click", function () { if (syncUser && status !== "syncing") { againCount = 0; syncNow(); } });
     paintFoot(foot);
-    if (window.QNP2P) {
-      var bar = document.createElement("div");
-      bar.className = "playlist-sync-bar qn-lib-extra";
-      var tb = document.createElement("button");
-      tb.type = "button";
-      tb.className = "playlist-p2p-btn";
-      tb.textContent = "Transfer";
-      tb.title = "MP3を端末間で転送";
-      tb.addEventListener("click", function () { window.QNP2P.open(); });
-      bar.appendChild(tb);
-      bar.appendChild(foot);
-      box.appendChild(bar);
-    } else box.appendChild(foot);
+    box.appendChild(foot);
   }
 
   window.addEventListener("qn-auth-changed", function (e) { onAuthChanged(e && e.detail && e.detail.user); });
@@ -647,6 +640,7 @@
   // 起動時のIndexedDB復元が終わったら呼ばれる(player-ui-shared.js)。復元前に同期すると「ローカルに曲が無い」と誤認するため待つ
   window.qnLibSyncReady = function () {
     ready = true;
+    showTransferButton();
     if (window.QN_AUTH && window.QN_AUTH.currentUser) onAuthChanged(window.QN_AUTH.currentUser);
   };
   // P2P転送(player-p2p.js)用: 未インポート一覧と、hashからこの端末のFileを引く
