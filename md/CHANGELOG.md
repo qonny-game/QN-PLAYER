@@ -25,3 +25,4 @@
 - 3.30.2 YouTubeステージ右下にMARKERボタン追加(PLの波形エリア右下と同位置・プレイヤー外の通常フロー)。FAB/ウェーブのラベルをADD/NEW付きからAUDIO/MARKER/FOLDERに簡略化。
 - 3.30.3 YouTubeのURL入力欄を編集したらタイトル入力欄を空にする。
 - 3.30.4 YouTube: SPでプレイヤーを左右・上いっぱいに配置。埋め込み枠を動画の縦横比(oEmbedの幅/高さ)に合わせる(4:3等の左右黒帯を解消。端末にキャッシュ)。
+- 3.31.0 YouTube: Libraryにフォルダ(PLと同じ操作: FOLDER/EDIT+MOVE/開閉/改名/並び替え/削除。フォルダ・所属は同期、開閉は端末ごと。Auto Next/前後は表示順)。Playlistsパネル追加(YouTube Data APIで再生リストを取得→一覧表示、クリックで再生、選択してLibraryへ追加。取得結果は保存しない。APIキーは端末のlocalStorageまたはwindow.QN_YT_API_KEY)。

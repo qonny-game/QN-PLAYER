@@ -34,6 +34,12 @@
 - 右下FAB **EDIT→OK**：タイトルが入力欄になり、PLAY/SKIPトグル（SKIPはAuto Nextで飛ばす）と削除用の丸チェックが出る。選択して**Delete**。
 - **Auto Next**：動画が終わったらLibraryの次（SKIP除く）を読み込む。初期OFF・利用者がONにした時だけ（§2-2）。
 
+### Libraryのフォルダ（v3.31.0〜）
+PLのLibraryと同じ操作。FOLDERで作成→名前入力、見出しクリックで開閉(端末ごと・同期しない)、EDITで改名/▲▼並び替え/✕削除(2タップ、中の動画は未分類へ)、動画を選んでMoveで移動、つかみのドラッグでも別フォルダへ移動可(見出しにドロップ=その先頭)。データは`qn_yt_folders`=`{list:[{id,name}],at}`と各item.folder。Auto Next/Track前後はフォルダ順の表示順で進む。同期はドキュメントに`folders`/`foldersAt`(一覧は新しい方を丸ごと採用)を追加、動画の所属は`folder`(動画のupdatedAtで合体)。
+
+### Playlists（v3.31.0〜）
+YouTube Data API v3(`playlists`/`playlistItems`、最大500件)で公開/限定公開の再生リストを取得して一覧表示。APIキーは`window.QN_YT_API_KEY`(index.html)か、パネルの「API Key」から入れた端末のlocalStorage(`qn_yt_api_key`)。結果は**メモリのみ**(保存しない)。行クリックで再生(Libraryに無くても可)、チェック→Add to Libraryで追加(フォルダがあれば移動先ピッカー)。追加した動画はvideoIdと、28日キャッシュ経由のタイトルだけ保存。非公開リスト・Mix(RD)・高評価/後で見るは取れない。
+
 ### Markers（本体のMarkersと同じ行・操作）
 - 行：色の丸／「番号 - メモ」／鉛筆（メモ編集＋プリセットチップ。プリセットを選ぶと色も自動。カスタムプリセットも並ぶ）／目（表示/非表示）。FAB：ADD MARKER・EDIT（編集中はDelete・OK）。
 - 非表示マーカーはシークバーにも出さず、前/次マーカー移動でも飛ばす。
@@ -146,6 +152,10 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 |---|---|
 | `qn_yt_items` | Libraryの配列（下記） |
 | `qn_yt_sync_meta` | 同期の補助情報(削除tombstone・並びorderAt・最終同期) |
+| `qn_yt_folders` | Libraryのフォルダ一覧(同期対象) |
+| `qn_yt_folder_collapsed` | フォルダの開閉(端末ローカル) |
+| `qn_yt_api_key` | Playlists用のYouTube Data APIキー(端末ローカル) |
+| `qn_yt_aspect_v1` | 動画の縦横比キャッシュ(28日) |
 | `qn_yt_title_cache` | YouTube由来タイトルの短期キャッシュ(28日で削除。Backup/同期対象外) |
 | `qn_yt_rate` / `qn_yt_autonext` / `qn_yt_preroll` / `qn_yt_panel_collapsed` | 再生スピード / Auto Next / プリロール秒(0〜5) / PC幅のパネル格納 |
 | `qn_marker_preset_colors_v1` / `qn_marker_custom_presets_v1` | 本体と共通のメモプリセット色／カスタムプリセット |

@@ -17,6 +17,7 @@
   var SEGS = 3;
 
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
+  var FOLDERS_KEY = "qn_yt_folders", FOLDER_COLLAPSED_KEY = "qn_yt_folder_collapsed";
   var FLAG_KEY = "qn_yt_autonext", RATE_KEY = "qn_yt_rate";
   var FALLBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -57,8 +58,74 @@
   function saveItems() {
     trackLocalChanges();
     scheduleSync();
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); localStorage.setItem(FOLDERS_KEY, JSON.stringify(ytFolders)); }
     catch (e) { showMessage("保存に失敗しました(容量またはブラウザ設定を確認)"); }
+  }
+
+  // ---------- フォルダ(Library): ytFolders={list:[{id,name}],at}。動画側はitem.folder=フォルダid(無い/存在しないidは未分類)。開閉(collapsed)は端末ローカルで同期しない ----------
+  function loadFolders() {
+    var out = { list: [], at: 0 };
+    try {
+      var o = JSON.parse(localStorage.getItem(FOLDERS_KEY) || "null");
+      if (o && Array.isArray(o.list)) {
+        var seen = {};
+        o.list.forEach(function (f) {
+          if (f && typeof f.id === "string" && typeof f.name === "string" && !seen[f.id]) { seen[f.id] = true; out.list.push({ id: f.id.slice(0, 40), name: f.name.slice(0, 100) }); }
+        });
+        if (typeof o.at === "number" && isFinite(o.at)) out.at = o.at;
+      }
+    } catch (e) {}
+    return out;
+  }
+  function loadCollapsed() {
+    try { var o = JSON.parse(localStorage.getItem(FOLDER_COLLAPSED_KEY) || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; }
+  }
+  function saveCollapsed() { try { localStorage.setItem(FOLDER_COLLAPSED_KEY, JSON.stringify(collapsedMap)); } catch (e) {} }
+  var ytFolders = loadFolders();
+  var collapsedMap = loadCollapsed();
+  function foldersSig() { return JSON.stringify(ytFolders.list); }
+  function folderById(id) {
+    for (var i = 0; i < ytFolders.list.length; i++) if (ytFolders.list[i].id === id) return ytFolders.list[i];
+    return null;
+  }
+  // 動画の所属フォルダid(存在しない/未設定はnull=未分類)
+  function folderIdOf(it) { return it && it.folder && folderById(it.folder) ? it.folder : null; }
+  // 表示順(フォルダ順→各フォルダ内はitems順→未分類)。Auto Next/前後の動画はこの順で進む
+  function orderedItems() {
+    if (!ytFolders.list.length) return items.slice();
+    var out = [];
+    ytFolders.list.forEach(function (f) { items.forEach(function (it) { if (folderIdOf(it) === f.id) out.push(it); }); });
+    items.forEach(function (it) { if (!folderIdOf(it)) out.push(it); });
+    return out;
+  }
+  function createFolder(name) {
+    var base = (name || "").trim() || "新しいフォルダ", fin = base, n = 2;
+    while (ytFolders.list.some(function (f) { return f.name === fin; })) fin = base + " " + (n++);
+    var f = { id: uid("f"), name: fin };
+    ytFolders.list.push(f);
+    saveItems();
+    return f;
+  }
+  function deleteFolder(id) {
+    items.forEach(function (it) { if (it.folder === id) delete it.folder; });
+    ytFolders.list = ytFolders.list.filter(function (f) { return f.id !== id; });
+    delete collapsedMap[id]; saveCollapsed();
+    saveItems();
+  }
+  function moveFolder(id, dir) {
+    var i = -1;
+    ytFolders.list.forEach(function (f, k) { if (f.id === id) i = k; });
+    var j = i + dir;
+    if (i < 0 || j < 0 || j >= ytFolders.list.length) return;
+    var t = ytFolders.list[i]; ytFolders.list[i] = ytFolders.list[j]; ytFolders.list[j] = t;
+    saveItems();
+  }
+  function moveItemsToFolder(itemIds, fid) {
+    items.forEach(function (it) {
+      if (!itemIds[it.id]) return;
+      if (fid) it.folder = fid; else delete it.folder;
+    });
+    saveItems();
   }
   function uid(p) { return p + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function fmt(sec) {
@@ -120,6 +187,7 @@
 
   // 動画の縦横比: oEmbedの幅/高さ(旧4:3動画は200x150)。埋め込み枠をそれに合わせる(切り抜きでなく枠のリサイズ)。端末に永続キャッシュ。16:9付近・縦長・異常値は既定(16:9)扱い
   var ASPECT_KEY = "qn_yt_aspect_v1", aspectInflight = {};
+  function aspectAlive(e) { return Array.isArray(e) && typeof e[1] === "number" && Date.now() - e[1] < TITLE_TTL_MS && e[1] <= Date.now() + 60000; }
   function readAspectCache() {
     try { var o = JSON.parse(localStorage.getItem(ASPECT_KEY) || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; }
   }
@@ -128,8 +196,7 @@
     var r = Math.round(w / h * 1000) / 1000;
     if (!(r >= 1.2 && r <= 2.4) || Math.abs(r - 16 / 9) < 0.03) r = 0;
     var c = readAspectCache();
-    if (c[vid] === r) return;
-    c[vid] = r;
+    c[vid] = [r, Date.now()];   // YouTube由来の値なのでタイトルと同じく28日で無効(取得し直す)
     var keys = Object.keys(c);
     if (keys.length > 500) delete c[keys[0]];
     try { localStorage.setItem(ASPECT_KEY, JSON.stringify(c)); } catch (e) {}
@@ -137,12 +204,11 @@
   function applyAspect(videoId) {
     var yt = root && root.querySelector(".qn-yt");
     if (!yt) return;
-    var r = readAspectCache()[videoId];
+    var e = readAspectCache()[videoId], r = aspectAlive(e) ? e[0] : 0;
     if (r) yt.style.setProperty("--qn-yt-ar", String(r)); else yt.style.removeProperty("--qn-yt-ar");
   }
   function ensureAspect(videoId) {
-    var c = readAspectCache();
-    if (videoId in c) { applyAspect(videoId); return; }
+    if (aspectAlive(readAspectCache()[videoId])) { applyAspect(videoId); return; }
     applyAspect(videoId);
     if (aspectInflight[videoId] || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
     aspectInflight[videoId] = true;
@@ -339,6 +405,28 @@
             '<div class="qn-yt-pinbox" data-yt="markerList"></div>' +
             '<p class="qn-yt-empty" data-yt="emptyMarkers">マーカーはありません</p>' +
           '</section>' +
+          // ---------- Playlists: YouTube公式の再生リストを取得して一覧表示(YouTube Data API。結果は端末に保存しない=メモリのみ) ----------
+          '<section class="qn-yt-sec qn-yt-sec-playlists">' +
+            '<div class="qn-yt-sec-head"><h3>Playlists</h3><span class="qn-yt-count" data-yt="plCount">0</span></div>' +
+            '<div class="qn-yt-input-block">' +
+              '<div class="qn-yt-row">' +
+                '<input data-yt="plUrl" class="qn-yt-input" type="text" placeholder="YouTube Playlist URL" autocomplete="off" spellcheck="false">' +
+                '<button type="button" data-yt="plLoad" class="qn-yt-btn primary">Load</button>' +
+              '</div>' +
+              '<div class="qn-yt-message" data-yt="plMsg" role="status"></div>' +
+              '<div class="qn-yt-row qn-yt-plkey" data-yt="plKeyBox" hidden>' +
+                '<input data-yt="plKey" class="qn-yt-input" type="text" placeholder="YouTube Data API key" autocomplete="off" spellcheck="false">' +
+                '<button type="button" data-yt="plKeySave" class="qn-yt-btn">Save</button>' +
+              '</div>' +
+              '<button type="button" data-yt="plKeyToggle" class="qn-yt-linkbtn">API Key</button>' +
+            '</div>' +
+            '<div class="qn-yt-plhead" data-yt="plHead" hidden>' +
+              '<span class="qn-yt-pltitle" data-yt="plTitle"></span>' +
+              '<button type="button" data-yt="plAll" class="qn-yt-btn mini">All</button>' +
+              '<button type="button" data-yt="plAdd" class="qn-yt-btn mini primary" disabled>Add to Library</button>' +
+            '</div>' +
+            '<div class="qn-yt-libbox qn-yt-pllist" data-yt="plList"></div>' +
+          '</section>' +
           // ---------- Backup / Import: 本体共通画面を借りる(実体player-track-backup.js。setPanel()がqnBackupMountInto()で差し込む) ----------
           '<section class="qn-yt-sec qn-yt-sec-backup"><div data-yt="bkHost"></div></section>' +
           '<section class="qn-yt-sec qn-yt-sec-import"><div data-yt="imHost"></div></section>' +
@@ -351,8 +439,8 @@
             '<p>このアプリはYouTube API Servicesを利用しています。</p>' +
             '<p><a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube利用規約</a>' +
             ' ・ <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Googleプライバシーポリシー</a></p>' +
-            '<p>Libraryやマーカーなどの保存データは、この端末のブラウザにだけ保存されます。ログインして同期を有効にした場合のみ、動画ID・マーカー・A/B点・並び順・手入力タイトルがGoogle Firebaseにも保存されます(YouTube由来のタイトル・サムネイルは含みません)。' +
-            '動画の再生・サムネイル・タイトルの表示のため、YouTubeと通信します。</p>' +
+            '<p>Libraryやマーカーなどの保存データは、この端末のブラウザにだけ保存されます。ログインして同期を有効にした場合のみ、動画ID・マーカー・A/B点・並び順・フォルダ・手入力タイトルがGoogle Firebaseにも保存されます(YouTube由来のタイトル・サムネイルは含みません)。' +
+            '動画の再生・サムネイル・タイトルの表示のため、YouTubeと通信します。Playlistsでは再生リストの取得にYouTube Data APIを利用し、取得した内容は端末に保存せず、Libraryに追加した動画のIDとタイトルのみ保存します。</p>' +
           '</footer>' +
         '</div>' +
         '<div class="qn-yt-fab" data-yt="fab">' +
@@ -361,6 +449,14 @@
               '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>MARKER</span>' +
             '</button>' +
           '</div>' +
+          '<div class="qn-yt-fab-folder">' +
+            '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="fabFolder" title="Add Folder">' +
+              '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg><span>FOLDER</span>' +
+            '</button>' +
+          '</div>' +
+          '<button type="button" class="panel-fab-btn panel-fab-move-btn" data-yt="fabMove" disabled>' +
+            '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 11l-4-4h3V9h2v4h3l-4 4z"/></svg><span>Move</span>' +
+          '</button>' +
           '<button type="button" class="panel-fab-btn panel-fab-delete-btn" data-yt="fabDel" disabled>' +
             '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg><span>Delete</span>' +
           '</button>' +
@@ -390,11 +486,12 @@
   var SIDEBAR = [
     { id: "library", label: "Library", icon: '<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>' },
     { id: "markers", label: "Markers", icon: '<path d="M3 6h12v2H3V6zm0 4h12v2H3v-2zm0 4h7v2H3v-2zm13 0h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/>' },
+    { id: "playlists", label: "Playlists", icon: '<path d="M4 6h12v2H4zm0 4h12v2H4zm0 4h8v2H4zm10 0v6l5-3z"/>' },
     { id: "backup", bottom: true, label: "Backup", icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>' },
     { id: "import", bottom: true, label: "Import", icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' },
     { id: "keyboard", bottom: true, label: "Keyboard", icon: '<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM11 8h2v2h-2V8zM11 11h2v2h-2v-2zM8 8h2v2H8V8zM8 11h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm10 6H9v-2h6v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>' }
   ];
-  var PANEL_TITLES = { library: "Library", markers: "Markers", backup: "Backup", import: "Import", keyboard: "Keyboard" };
+  var PANEL_TITLES = { library: "Library", markers: "Markers", playlists: "Playlists", backup: "Backup", import: "Import", keyboard: "Keyboard" };
   var panelState = null;
 
   function isSp() { return window.matchMedia("(max-width: 900px)").matches; }
@@ -673,6 +770,165 @@
     renderList();
   }
 
+  // ---------- Playlists(YouTube Data API v3)。APIで得た動画情報(タイトル等)は画面表示だけに使いメモリにのみ保持。端末への保存は、Libraryへ追加した動画のvideoIdと(既存の28日キャッシュ経由の)タイトルだけ ----------
+  var PL_KEY_STORE = "qn_yt_api_key", PL_LAST_KEY = "qn_yt_pl_last";
+  var plState = { id: "", title: "", videos: [], sel: {}, loading: false };
+  function getApiKey() {
+    var k = typeof window.QN_YT_API_KEY === "string" ? window.QN_YT_API_KEY.trim() : "";
+    if (k) return k;
+    try { return (localStorage.getItem(PL_KEY_STORE) || "").trim(); } catch (e) { return ""; }
+  }
+  function parsePlaylistId(input) {
+    var v = (input || "").trim();
+    if (!v) return "";
+    var id = "";
+    if (/^[A-Za-z0-9_-]{13,64}$/.test(v) && !/^https?:/i.test(v)) id = v;
+    else {
+      try {
+        var u = new URL(/^https?:\/\//i.test(v) ? v : "https://" + v);
+        if (/(^|\.)youtube\.com$|(^|\.)youtu\.be$/.test(u.hostname)) id = u.searchParams.get("list") || "";
+      } catch (e) {}
+    }
+    return /^[A-Za-z0-9_-]{13,64}$/.test(id) ? id : "";
+  }
+  function plSay(text, ok) {
+    if (!refs.plMsg) return;
+    refs.plMsg.textContent = text || "";
+    refs.plMsg.className = "qn-yt-message" + (ok ? " ok" : "");
+  }
+  function apiErrorText(status, body) {
+    var reason = "";
+    try { reason = body.error.errors[0].reason || ""; } catch (e) {}
+    if (reason === "quotaExceeded" || reason === "rateLimitExceeded") return "APIの利用上限に達しました(翌日以降に再試行してください)";
+    if (reason === "keyInvalid" || reason === "API_KEY_INVALID" || status === 400) return "APIキーが無効です";
+    if (reason === "accessNotConfigured" || reason === "forbidden" && status === 403) return "このAPIキーではYouTube Data APIを利用できません(キーの設定を確認してください)";
+    if (reason === "playlistNotFound" || status === 404) return "再生リストが見つかりません(非公開のリストは取得できません)";
+    if (reason === "playlistForbidden") return "この再生リストは取得できません";
+    return "取得できませんでした(" + status + ")";
+  }
+  function ytApi(path, params, key) {
+    var q = Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&");
+    return fetch("https://www.googleapis.com/youtube/v3/" + path + "?" + q + "&key=" + encodeURIComponent(key)).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        if (!res.ok) { var err = new Error(apiErrorText(res.status, body)); err.api = true; throw err; }
+        return body;
+      });
+    });
+  }
+  function loadPlaylist(id, key) {
+    var out = { title: "", videos: [] }, seen = {};
+    var head = ytApi("playlists", { part: "snippet", id: id }, key).then(function (b) {
+      if (b && b.items && b.items[0] && b.items[0].snippet) out.title = String(b.items[0].snippet.title || "").slice(0, 200);
+      else { var e = new Error("再生リストが見つかりません(非公開のリストは取得できません)"); e.api = true; throw e; }
+    });
+    function page(token, n) {
+      var params = { part: "snippet", maxResults: 50, playlistId: id };
+      if (token) params.pageToken = token;
+      return ytApi("playlistItems", params, key).then(function (b) {
+        (b.items || []).forEach(function (r) {
+          var sn = r && r.snippet, vid = sn && sn.resourceId && sn.resourceId.videoId;
+          if (!vid || !/^[A-Za-z0-9_-]{11}$/.test(vid) || seen[vid]) return;
+          var t = String(sn.title || "");
+          if (t === "Private video" || t === "Deleted video") return;
+          seen[vid] = true;
+          out.videos.push({ videoId: vid, title: t.slice(0, 300) });
+        });
+        if (b.nextPageToken && n < 10) return page(b.nextPageToken, n + 1);
+      });
+    }
+    return head.then(function () { return page("", 0); }).then(function () { return out; });
+  }
+  function doLoadPlaylist() {
+    if (plState.loading) return;
+    var id = parsePlaylistId(refs.plUrl.value);
+    if (!refs.plUrl.value.trim()) { plSay("再生リストのURLを入力してください"); return; }
+    if (!id) { plSay("再生リストのURLとして認識できません"); return; }
+    if (/^RD/.test(id)) { plSay("Mix(自動生成リスト)は取得できません"); return; }
+    var key = getApiKey();
+    if (!key) { refs.plKeyBox.hidden = false; plSay("先にYouTube Data APIキーを入力してください"); return; }
+    plState.loading = true;
+    refs.plLoad.disabled = true;
+    plSay("読み込み中…", true);
+    try { localStorage.setItem(PL_LAST_KEY, refs.plUrl.value.trim()); } catch (e) {}
+    loadPlaylist(id, key).then(function (r) {
+      plState = { id: id, title: r.title, videos: r.videos, sel: {}, loading: false };
+      plSay(r.videos.length ? "" : "取得できる動画がありません");
+      renderPlaylistPanel();
+    }).catch(function (err) {
+      plState.loading = false;
+      plSay(err && err.api ? err.message : "通信に失敗しました");
+    }).then(function () { refs.plLoad.disabled = false; });
+  }
+  function plSelCount() { var n = 0; for (var k in plState.sel) if (plState.sel[k]) n++; return n; }
+  function renderPlaylistPanel() {
+    if (!root) return;
+    var box = refs.plList, vids = plState.videos;
+    box.textContent = "";
+    refs.plCount.textContent = String(vids.length);
+    refs.plHead.hidden = !vids.length;
+    refs.plTitle.textContent = plState.title;
+    refs.plAdd.disabled = plSelCount() === 0;
+    vids.forEach(function (v) {
+      var row = document.createElement("div");
+      row.className = "playlistItem qn-yt-plrow";
+      var inLib = findItemByVideoId(v.videoId);
+      if (current && current.videoId === v.videoId) row.classList.add("playing");
+      if (inLib) row.classList.add("in-lib");
+      var chk = document.createElement("button");
+      chk.type = "button"; chk.className = "qn-yt-plcheck" + (plState.sel[v.videoId] ? " on" : "");
+      chk.title = inLib ? "Libraryに追加済み" : "選択";
+      chk.disabled = !!inLib;
+      chk.innerHTML = inLib ? "✓" : "";
+      chk.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (plState.sel[v.videoId]) delete plState.sel[v.videoId]; else plState.sel[v.videoId] = true;
+        chk.classList.toggle("on", !!plState.sel[v.videoId]);
+        refs.plAdd.disabled = plSelCount() === 0;
+      });
+      row.appendChild(chk);
+      var thumb = document.createElement("div");
+      thumb.className = "playlist-thumb qn-yt-thumb";
+      thumb.innerHTML = SVG_PLAY_ICON;
+      var img = document.createElement("img");
+      img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
+      img.onload = function () { thumb.classList.add("has-img"); };
+      img.onerror = function () { if (img.parentNode) img.parentNode.removeChild(img); };
+      img.src = "https://i.ytimg.com/vi/" + v.videoId + "/mqdefault.jpg";
+      thumb.appendChild(img);
+      row.appendChild(thumb);
+      var info = document.createElement("div");
+      info.className = "playlist-info-block";
+      var t = document.createElement("span");
+      t.className = "playlist-title"; t.textContent = v.title;
+      info.appendChild(t);
+      row.appendChild(info);
+      row.addEventListener("click", function () {
+        var url = "https://youtu.be/" + v.videoId, it = findItemByVideoId(v.videoId);
+        refs.urlInput.value = url;
+        openVideo(v.videoId, url, it ? it.id : null, { play: true });
+        renderPlaylistPanel();
+        closePanelOnSp();
+      });
+      box.appendChild(row);
+    });
+  }
+  function plAddSelected(fid) {
+    var add = plState.videos.filter(function (v) { return plState.sel[v.videoId] && !findItemByVideoId(v.videoId); });
+    if (!add.length) return;
+    var now = Date.now();
+    add.forEach(function (v, i) {
+      var it = { id: uid("item"), type: "youtube", videoId: v.videoId, url: "https://youtu.be/" + v.videoId, markers: [], loopA: null, loopB: null, createdAt: now + i };
+      if (fid) it.folder = fid;
+      items.push(it);
+      setCachedTitle(v.videoId, v.title);
+    });
+    saveItems();
+    plState.sel = {};
+    renderPlaylistPanel();
+    renderList();
+    plSay(add.length + "件をLibraryに追加しました", true);
+  }
+
   // ---------- イベント ----------
   function bindEvents() {
     function saveFromInputs() {
@@ -718,6 +974,37 @@
       closePanelOnSp();
     }
     refs.saveBtn.addEventListener("click", saveFromInputs);
+    // Playlists
+    try { refs.plUrl.value = localStorage.getItem(PL_LAST_KEY) || ""; } catch (e) {}
+    refs.plKeyBox.hidden = true;
+    refs.plLoad.addEventListener("click", doLoadPlaylist);
+    refs.plUrl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); doLoadPlaylist(); } });
+    refs.plKeyToggle.addEventListener("click", function () { refs.plKeyBox.hidden = !refs.plKeyBox.hidden; if (!refs.plKeyBox.hidden) refs.plKey.focus(); });
+    function saveKey() {
+      var k = refs.plKey.value.trim();
+      if (!k) { try { localStorage.removeItem(PL_KEY_STORE); } catch (e) {} plSay("APIキーを削除しました", true); refs.plKeyBox.hidden = true; return; }
+      if (!/^[A-Za-z0-9_-]{20,80}$/.test(k)) { plSay("APIキーの形式が正しくありません"); return; }
+      try { localStorage.setItem(PL_KEY_STORE, k); } catch (e) { plSay("保存に失敗しました"); return; }
+      refs.plKey.value = ""; refs.plKeyBox.hidden = true;
+      plSay("APIキーを保存しました", true);
+    }
+    refs.plKeySave.addEventListener("click", saveKey);
+    refs.plKey.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); saveKey(); } });
+    refs.plAll.addEventListener("click", function () {
+      var free = plState.videos.filter(function (v) { return !findItemByVideoId(v.videoId); });
+      var all = free.length && free.every(function (v) { return plState.sel[v.videoId]; });
+      plState.sel = {};
+      if (!all) free.forEach(function (v) { plState.sel[v.videoId] = true; });
+      renderPlaylistPanel();
+    });
+    refs.plAdd.addEventListener("click", function () {
+      if (!plSelCount()) return;
+      if (!ytFolders.list.length) { plAddSelected(null); return; }
+      showMovePicker(refs.plAdd, function (fid) {
+        if (fid === "__new__") fid = createFolder("").id;
+        plAddSelected(fid);
+      });
+    });
     // URL欄をユーザーが編集したらタイトル欄を空にする(別動画のタイトルが残らないように)。プログラムからのvalue代入ではinputは発火しない
     refs.urlInput.addEventListener("input", function () { refs.titleInput.value = ""; });
     refs.urlInput.addEventListener("keydown", function (e) {
@@ -748,6 +1035,8 @@
     refs.chapClose.addEventListener("click", function () { refs.chapBox.hidden = true; });
     refs.chapAdd.addEventListener("click", addChapters);
     refs.fabEdit.addEventListener("click", toggleEdit);
+    refs.fabFolder.addEventListener("click", addFolderInteractive);
+    refs.fabMove.addEventListener("click", function () { moveSelectedToFolder(refs.fabMove); });
     refs.fabDel.addEventListener("click", deleteSelected);
 
     refs.skipBackBtn.addEventListener("click", function () {
@@ -883,11 +1172,11 @@
 
   function handleEnded() {
     if (!autoNext || !current || !current.itemId) return;
-    var idx = -1;
-    for (var i = 0; i < items.length; i++) if (items[i].id === current.itemId) idx = i;
+    var idx = -1, ord = orderedItems();
+    for (var i = 0; i < ord.length; i++) if (ord[i].id === current.itemId) idx = i;
     if (idx < 0) return;
     var next = null;
-    for (var j = idx + 1; j < items.length; j++) if (!items[j].skip) { next = items[j]; break; }
+    for (var j = idx + 1; j < ord.length; j++) if (!ord[j].skip) { next = ord[j]; break; }
     if (!next) { showMessage("Libraryの最後の動画でした"); return; }
     if (!playerMostlyVisible()) return;
     refs.urlInput.value = next.url;
@@ -918,6 +1207,7 @@
         if (r === li) continue;
         var b = r.getBoundingClientRect();
         if (e.clientY >= b.top && e.clientY <= b.bottom) {
+          if (r.classList.contains("playlistFolderHeader")) { targetId = "folder:" + r.dataset.folderId; before = false; r.classList.add("drop-after"); break; }
           targetId = r.dataset.id;
           before = e.clientY < b.top + b.height / 2;
           r.classList.add(before ? "drop-before" : "drop-after");
@@ -933,9 +1223,19 @@
       if (commit && targetId && targetId !== li.dataset.id) {
         var moving = findItem(li.dataset.id);
         items = items.filter(function (x) { return x !== moving; });
-        var pos = 0;
-        for (var i = 0; i < items.length; i++) if (items[i].id === targetId) pos = i;
-        items.splice(before ? pos : pos + 1, 0, moving);
+        if (targetId.indexOf("folder:") === 0) {
+          // 見出しにドロップ=そのフォルダの先頭へ(空なら末尾)
+          var fid = targetId.slice(7) || null, firstAt = -1;
+          for (var k = 0; k < items.length; k++) if (folderIdOf(items[k]) === fid) { firstAt = k; break; }
+          if (fid) moving.folder = fid; else delete moving.folder;
+          items.splice(firstAt < 0 ? items.length : firstAt, 0, moving);
+        } else {
+          var pos = 0, tgt = null;
+          for (var i = 0; i < items.length; i++) if (items[i].id === targetId) { pos = i; tgt = items[i]; }
+          var tf = folderIdOf(tgt);
+          if (tf) moving.folder = tf; else delete moving.folder;
+          items.splice(before ? pos : pos + 1, 0, moving);
+        }
         saveItems();
       }
       renderList();
@@ -960,6 +1260,7 @@
     refs.fabEdit.classList.toggle("active", !!editMode);
     refs.fabEditLabel.textContent = editMode ? "OK" : "EDIT";
     refs.fabDel.disabled = selectedCount() === 0;
+    refs.fabMove.disabled = selectedCount() === 0;
   }
   function setEditMode(mode) {
     editMode = mode;
@@ -1029,7 +1330,7 @@
     for (var k in selected) if (!findItem(k) && !(current && findMarker(k))) delete selected[k];
     var box = refs.itemList;
 
-    items.forEach(function (it) {
+    function addRow(it) {
       var row = document.createElement("div");
       row.className = "playlistItem";
       row.dataset.id = it.id;
@@ -1130,6 +1431,136 @@
       }
       if (edit) titleField.startEdit();
       box.appendChild(row);
+    }
+
+    // フォルダが無ければ従来どおり。有れば「見出し→その動画」をフォルダ順に、未分類は末尾。EDIT中は全フォルダ展開(移動/削除の対象を隠さない)
+    if (!ytFolders.list.length) { items.forEach(addRow); return; }
+    var buckets = {}, loose = [];
+    ytFolders.list.forEach(function (f) { buckets[f.id] = []; });
+    items.forEach(function (it) { var fid = folderIdOf(it); if (fid) buckets[fid].push(it); else loose.push(it); });
+    ytFolders.list.forEach(function (f, fi) {
+      box.appendChild(buildFolderHead(f, buckets[f.id].length, fi, edit));
+      if (!collapsedMap[f.id] || edit) buckets[f.id].forEach(addRow);
+    });
+    if (loose.length) {
+      box.appendChild(buildFolderHead(null, loose.length, -1, edit));
+      loose.forEach(addRow);
+    }
+  }
+
+  // フォルダ見出し(folder=nullは未分類)。通常: クリックで開閉+ホバー鉛筆で改名。EDIT: 名前は常時入力、▲▼で順序、✕で削除(2タップ確認。中の動画は未分類へ)
+  function buildFolderHead(folder, count, fi, edit) {
+    var head = document.createElement("div");
+    head.className = "playlistFolderHeader";
+    if (!folder) head.classList.add("is-loose");
+    if (folder && collapsedMap[folder.id] && !edit) head.classList.add("is-collapsed");
+    head.dataset.folderId = folder ? folder.id : "";
+    var chev = document.createElement("span");
+    chev.className = "playlist-folder-chev";
+    chev.innerHTML = folder ? '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"/></svg>';
+    head.appendChild(chev);
+    var nameWrap = document.createElement("div");
+    nameWrap.className = "playlist-folder-name-wrap";
+    if (folder) {
+      var nameField = makeEditableText(folder.name, "playlist-folder-name", "", function (v) {
+        if (v && v !== folder.name) { folder.name = v.slice(0, 100); saveItems(); }
+        renderList();
+      });
+      nameWrap.appendChild(nameField);
+      if (edit) nameField.startEdit();
+      else {
+        var pen = document.createElement("button");
+        pen.type = "button"; pen.className = "playlist-hover-edit-btn"; pen.title = "フォルダ名を変更";
+        pen.innerHTML = SVG_PENCIL;
+        pen.addEventListener("click", function (e) { e.stopPropagation(); nameField.startEdit(); });
+        nameWrap.appendChild(pen);
+      }
+    } else {
+      var label = document.createElement("span");
+      label.className = "playlist-folder-name";
+      label.textContent = "未分類";
+      nameWrap.appendChild(label);
+    }
+    head.appendChild(nameWrap);
+    var cnt = document.createElement("span");
+    cnt.className = "playlist-folder-count";
+    cnt.textContent = String(count);
+    head.appendChild(cnt);
+    if (folder && edit) {
+      var mk = function (cls, title, html, onClick, disabled) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "playlist-folder-btn " + cls; b.title = title; b.innerHTML = html; b.disabled = !!disabled;
+        b.addEventListener("click", function (e) { e.stopPropagation(); onClick(b); });
+        return b;
+      };
+      head.appendChild(mk("is-up", "上へ", '<svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>', function () { moveFolder(folder.id, -1); renderList(); }, fi === 0));
+      head.appendChild(mk("is-down", "下へ", '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>', function () { moveFolder(folder.id, 1); renderList(); }, fi === ytFolders.list.length - 1));
+      head.appendChild(mk("is-del", "フォルダを削除（中の動画は未分類へ戻ります）", "✕", function (b) {
+        if (b.classList.contains("confirm")) { selected = {}; deleteFolder(folder.id); updateFab(); renderList(); }
+        else {
+          b.classList.add("confirm"); b.textContent = "✓";
+          clearTimeout(b._confirmTimer);
+          b._confirmTimer = setTimeout(function () { b.classList.remove("confirm"); b.textContent = "✕"; }, 3000);
+        }
+      }));
+    }
+    if (folder && !edit) {
+      head.addEventListener("click", function (e) {
+        if (e.target.closest("button, input")) return;
+        if (collapsedMap[folder.id]) delete collapsedMap[folder.id]; else collapsedMap[folder.id] = true;
+        saveCollapsed();
+        renderList();
+      });
+    }
+    return head;
+  }
+
+  // FOLDERボタン: 作成直後は名前入力状態
+  function addFolderInteractive() {
+    var f = createFolder("");
+    renderList();
+    var field = refs.itemList.querySelector('.playlistFolderHeader[data-folder-id="' + f.id + '"] .playlist-editable-field');
+    if (field && typeof field.startEdit === "function") field.startEdit();
+  }
+
+  // 移動先ピッカー(MOVEボタンから)。onPick(folderId|null)
+  function closeMovePicker() {
+    var m = document.getElementById("qnYtFolderPicker");
+    if (m && m.parentNode) m.parentNode.removeChild(m);
+    document.removeEventListener("pointerdown", movePickerOutside, true);
+    document.removeEventListener("keydown", movePickerKey, true);
+  }
+  function movePickerOutside(e) { var m = document.getElementById("qnYtFolderPicker"); if (m && !m.contains(e.target)) closeMovePicker(); }
+  function movePickerKey(e) { if (e.key === "Escape") { e.stopPropagation(); closeMovePicker(); } }
+  function showMovePicker(anchor, onPick) {
+    closeMovePicker();
+    var menu = document.createElement("div");
+    menu.className = "playlist-folder-picker";
+    menu.id = "qnYtFolderPicker";
+    function add(label, fid, cls) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "playlist-folder-picker-item" + (cls ? " " + cls : ""); b.textContent = label;
+      b.addEventListener("click", function (e) { e.stopPropagation(); closeMovePicker(); onPick(fid); });
+      menu.appendChild(b);
+    }
+    ytFolders.list.forEach(function (f) { add(f.name, f.id); });
+    add("未分類", null, "is-loose");
+    add("＋ 新しいフォルダへ", "__new__", "is-new");
+    document.body.appendChild(menu);
+    var r = anchor.getBoundingClientRect(), mh = menu.offsetHeight, mw = menu.offsetWidth;
+    menu.style.left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw)) + "px";
+    menu.style.top = (r.top - mh - 8 >= 8 ? r.top - mh - 8 : Math.min(window.innerHeight - mh - 8, r.bottom + 8)) + "px";
+    setTimeout(function () { document.addEventListener("pointerdown", movePickerOutside, true); }, 0);
+    document.addEventListener("keydown", movePickerKey, true);
+  }
+  function moveSelectedToFolder(btn) {
+    if (!selectedCount()) return;
+    showMovePicker(btn, function (fid) {
+      if (fid === "__new__") fid = createFolder("").id;
+      moveItemsToFolder(selected, fid);
+      selected = {};
+      updateFab();
+      renderList();
     });
   }
 
@@ -2027,11 +2458,11 @@
   }
   function gotoNeighbor(dir) {
     if (!current || !current.itemId) { showMessage("Libraryの動画を選んでください"); return; }
-    var idx = -1, i;
-    for (i = 0; i < items.length; i++) if (items[i].id === current.itemId) idx = i;
+    var idx = -1, i, ord = orderedItems();
+    for (i = 0; i < ord.length; i++) if (ord[i].id === current.itemId) idx = i;
     if (idx < 0) return;
     var target = null;
-    for (i = idx + dir; i >= 0 && i < items.length; i += dir) if (!items[i].skip) { target = items[i]; break; }
+    for (i = idx + dir; i >= 0 && i < ord.length; i += dir) if (!ord[i].skip) { target = ord[i]; break; }
     if (!target) { showMessage(dir > 0 ? "Libraryの最後の動画です" : "Libraryの最初の動画です"); return; }
     refs.urlInput.value = target.url;
     openVideo(target.videoId, target.url, target.id, { play: true });
@@ -2203,11 +2634,13 @@
     p.loopA = abTimeOf(src.loopA, ms);
     p.loopB = abTimeOf(src.loopB, ms);
     if (src.skip) p.skip = true;
+    if (typeof src.folder === "string" && src.folder) p.folder = src.folder.slice(0, 40);
     p.createdAt = isFiniteNum(src.createdAt) ? src.createdAt : 0;
     p.updatedAt = isFiniteNum(src.updatedAt) ? src.updatedAt : 0;
     return p;
   }
   function sigOf(it) { var p = mkPayload(it); p.updatedAt = 0; return JSON.stringify(p); }
+  var knownFoldersSig = "";
   function orderSig() { return items.map(function (it) { return it.videoId; }).join(","); }
 
   function loadSyncMeta() {
@@ -2226,7 +2659,7 @@
     try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(syncMeta)); } catch (e) {}
   }
   function persistItemsRaw() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); localStorage.setItem(FOLDERS_KEY, JSON.stringify(ytFolders)); } catch (e) {}
   }
   function initSyncState() {
     loadSyncMeta();
@@ -2236,6 +2669,7 @@
       knownSigs[it.videoId] = sigOf(it);
     });
     knownOrder = orderSig();
+    knownFoldersSig = foldersSig();
     if (fixed) persistItemsRaw();
   }
   // saveItems()から呼ぶ: 前回との差分を見て、変わった動画のupdatedAt・消えた動画のtombstone・並び替えのorderAtを更新(各所の保存処理を個別に直さなくて済む)
@@ -2256,20 +2690,29 @@
     });
     var os = orderSig();
     if (os !== knownOrder) { knownOrder = os; syncMeta.orderAt = now; dirty = true; }
+    var fs2 = foldersSig();
+    if (fs2 !== knownFoldersSig) { knownFoldersSig = fs2; ytFolders.at = Math.max(now, ytFolders.at + 1); dirty = true; }
     if (dirty) saveSyncMeta();
     localVersion++;
   }
 
   function buildLocalState() {
-    var st = { items: {}, deleted: {}, order: [], orderAt: syncMeta.orderAt };
+    var st = { items: {}, deleted: {}, order: [], orderAt: syncMeta.orderAt, folders: ytFolders.list.map(function (f) { return { id: f.id, name: f.name }; }), foldersAt: ytFolders.at };
     items.forEach(function (it) { st.items[it.videoId] = mkPayload(it); st.order.push(it.videoId); });
     Object.keys(syncMeta.tomb).forEach(function (k) { st.deleted[k] = syncMeta.tomb[k]; });
     return st;
   }
   // リモートのドキュメントを検証・整形(壊れた値は捨てる)
   function parseRemote(data) {
-    var st = { items: {}, deleted: {}, order: [], orderAt: 0 };
+    var st = { items: {}, deleted: {}, order: [], orderAt: 0, folders: [], foldersAt: 0 };
     if (!data || typeof data !== "object") return st;
+    if (Array.isArray(data.folders)) {
+      var fseen = {};
+      data.folders.forEach(function (f) {
+        if (f && typeof f.id === "string" && f.id && typeof f.n === "string" && !fseen[f.id]) { fseen[f.id] = true; st.folders.push({ id: f.id.slice(0, 40), name: f.n.slice(0, 100) }); }
+      });
+    }
+    if (isFiniteNum(data.foldersAt)) st.foldersAt = data.foldersAt;
     var ri = data.items && typeof data.items === "object" ? data.items : {};
     Object.keys(ri).forEach(function (vid) {
       if (!/^[A-Za-z0-9_-]{11}$/.test(vid) || !ri[vid] || typeof ri[vid] !== "object") return;
@@ -2278,6 +2721,7 @@
       if (!norm || !norm[0]) return;
       var o = norm[0];
       o.skip = r.skip === true;
+      if (typeof r.folder === "string" && r.folder) o.folder = r.folder.slice(0, 40);
       o.createdAt = r.createdAt;
       o.updatedAt = r.updatedAt;
       st.items[vid] = mkPayload(o);
@@ -2290,11 +2734,14 @@
   }
   function canonicalState(st) {
     function sortedObj(o) { var r = {}; Object.keys(o).sort().forEach(function (k) { r[k] = o[k]; }); return r; }
-    return JSON.stringify({ items: sortedObj(st.items), deleted: sortedObj(st.deleted), order: st.order, orderAt: st.orderAt });
+    return JSON.stringify({ items: sortedObj(st.items), deleted: sortedObj(st.deleted), order: st.order, orderAt: st.orderAt, folders: st.folders, foldersAt: st.foldersAt });
   }
   // 2つの状態を合体(純粋関数)。同時刻はリモート優先(両端末が同じ結果に収束してピンポン書き込みしないため)
   function mergeStates(L, R) {
     var now = Date.now(), deleted = {}, out = { items: {}, deleted: deleted, order: [], orderAt: Math.max(L.orderAt, R.orderAt) };
+    var useRF = R.foldersAt >= L.foldersAt;   // フォルダ一覧は新しい方を丸ごと採用(同時刻はリモート)
+    out.folders = (useRF ? R.folders : L.folders).map(function (f) { return { id: f.id, name: f.name }; });
+    out.foldersAt = Math.max(L.foldersAt, R.foldersAt);
     [L.deleted, R.deleted].forEach(function (d) {
       Object.keys(d).forEach(function (vid) { if (deleted[vid] === undefined || d[vid] > deleted[vid]) deleted[vid] = d[vid]; });
     });
@@ -2322,7 +2769,7 @@
   function serializeState(st) {
     var items2 = {};
     Object.keys(st.items).forEach(function (vid) { var p = JSON.parse(JSON.stringify(st.items[vid])); delete p.videoId; items2[vid] = p; });
-    return { v: 1, items: items2, deleted: st.deleted, order: st.order, orderAt: st.orderAt };
+    return { v: 1, items: items2, deleted: st.deleted, order: st.order, orderAt: st.orderAt, folders: st.folders.map(function (f) { return { id: f.id, n: f.name }; }), foldersAt: st.foldersAt };
   }
 
   function syncBusy() {
@@ -2343,6 +2790,7 @@
           if (P.customTitle) it.customTitle = P.customTitle; else delete it.customTitle;
           it.markers = P.markers; it.loopA = P.loopA; it.loopB = P.loopB;
           if (P.skip) it.skip = true; else delete it.skip;
+          if (P.folder) it.folder = P.folder; else delete it.folder;
           it.createdAt = P.createdAt;
         }
         it.updatedAt = P.updatedAt;
@@ -2350,6 +2798,7 @@
         it = { id: uid("item"), type: "youtube", videoId: vid, url: P.url, markers: P.markers, loopA: P.loopA, loopB: P.loopB, createdAt: P.createdAt, updatedAt: P.updatedAt };
         if (P.customTitle) it.customTitle = P.customTitle;
         if (P.skip) it.skip = true;
+        if (P.folder) it.folder = P.folder;
       }
       next.push(it);
     });
@@ -2357,6 +2806,8 @@
     knownSigs = {};
     items.forEach(function (it) { knownSigs[it.videoId] = sigOf(it); });
     knownOrder = orderSig();
+    ytFolders = { list: m.folders.map(function (f) { return { id: f.id, name: f.name }; }), at: m.foldersAt };
+    knownFoldersSig = foldersSig();
     syncMeta.tomb = m.deleted; syncMeta.orderAt = m.orderAt; syncMeta.lastSync = Date.now();
     saveSyncMeta();
     persistItemsRaw();
