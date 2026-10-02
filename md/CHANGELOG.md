@@ -23,3 +23,4 @@
 - 3.30.0 MarkersパネルのタイトルとMarkersリストの間に、再生中の曲をライブラリと同じ行デザインで表示(並び替えつまみ無し。`buildPlaylistRow()`をライブラリと共用、`renderNowPlaying()`が`renderPlaylist()`末尾で更新)。
 - 3.30.1 サイドバーのMarkersアイコンを「リスト＋プラス」に変更(PLAYER/YouTube共通)。ADD MARKERボタンのプラスは従来のまま。
 - 3.30.2 YouTubeステージ右下にMARKERボタン追加(PLの波形エリア右下と同位置・プレイヤー外の通常フロー)。FAB/ウェーブのラベルをADD/NEW付きからAUDIO/MARKER/FOLDERに簡略化。
+- 3.30.3 YouTubeのURL入力欄を編集したらタイトル入力欄を空にする。

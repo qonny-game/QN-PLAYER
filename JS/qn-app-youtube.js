@@ -678,6 +678,8 @@
       closePanelOnSp();
     }
     refs.saveBtn.addEventListener("click", saveFromInputs);
+    // URL欄をユーザーが編集したらタイトル欄を空にする(別動画のタイトルが残らないように)。プログラムからのvalue代入ではinputは発火しない
+    refs.urlInput.addEventListener("input", function () { refs.titleInput.value = ""; });
     refs.urlInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); refs.titleInput.focus(); }
     });
