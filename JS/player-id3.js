@@ -167,3 +167,58 @@ function readAudioDuration(file) {
     }
   });
 }
+
+// ID3v2のAPIC(v2.2はPIC)からジャケット画像を取り出してBlobで返す。無ければnull。タグ全体(上限12MB)を読む
+async function readId3Art(file) {
+  try {
+    const h = new Uint8Array(await file.slice(0, 10).arrayBuffer());
+    if (h.length < 10 || h[0] !== 0x49 || h[1] !== 0x44 || h[2] !== 0x33) return null;
+    const ver = h[3];
+    if (ver < 2 || ver > 4) return null;
+    const total = Math.min(file.size, 10 + synchsafeToInt(h[6], h[7], h[8], h[9]), 12 * 1024 * 1024);
+    const b = new Uint8Array(await file.slice(0, total).arrayBuffer());
+    let o = 10;
+    if ((h[5] & 0x40) && ver >= 3) {
+      o += ver === 4 ? synchsafeToInt(b[o], b[o + 1], b[o + 2], b[o + 3]) : readUint32BE(b, o) + 4;
+    }
+    const hdr = ver === 2 ? 6 : 10;
+    while (o + hdr <= b.length) {
+      const id = String.fromCharCode(b[o], b[o + 1], b[o + 2], ver === 2 ? 0 : b[o + 3]).replace(/\0/g, "");
+      if (!id || b[o] === 0) break;
+      let size;
+      if (ver === 2) size = (b[o + 3] << 16) | (b[o + 4] << 8) | b[o + 5];
+      else if (ver === 3) size = readUint32BE(b, o + 4);
+      else size = synchsafeToInt(b[o + 4], b[o + 5], b[o + 6], b[o + 7]);
+      const start = o + hdr, end = start + size;
+      if (size <= 0 || end > b.length) break;
+      if (id === "APIC" || id === "PIC") {
+        const enc = b[start];
+        let p = start + 1, mime;
+        if (id === "PIC") {
+          const f = String.fromCharCode(b[p], b[p + 1], b[p + 2]).toUpperCase();
+          mime = f === "PNG" ? "image/png" : "image/jpeg";
+          p += 3;
+        } else {
+          let q = p; while (q < end && b[q] !== 0) q++;
+          mime = String.fromCharCode.apply(null, b.subarray(p, q)) || "image/jpeg";
+          p = q + 1;
+        }
+        p += 1; // picture type
+        if (enc === 1 || enc === 2) {
+          while (p + 1 < end && !(b[p] === 0 && b[p + 1] === 0)) p += 2;
+          p += 2;
+        } else {
+          while (p < end && b[p] !== 0) p++;
+          p += 1;
+        }
+        if (p >= end) return null;
+        if (!/^image\//.test(mime)) mime = (b[p] === 0x89) ? "image/png" : "image/jpeg";
+        return new Blob([b.slice(p, end)], { type: mime });
+      }
+      o = end;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}

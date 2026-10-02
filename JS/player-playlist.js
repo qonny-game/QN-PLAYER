@@ -51,6 +51,22 @@ function formatTrackDuration(seconds) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// MP3埋め込みジャケット(ID3 APIC)。メモリ上のBlob URLのみ(保存・同期しない)。曲ごとに1回だけ読み、未取得なら非同期で読んでonReady(url)。取得済みはURLを返す
+const trackArtCache = new WeakMap();
+function getTrackArt(track, onReady) {
+  if (!track || !track.file || typeof readId3Art !== "function") return null;
+  const c = trackArtCache.get(track);
+  if (c) { if (!c.url && onReady) c.waiters.push(onReady); return c.url || null; }
+  const entry = { url: null, waiters: [onReady] };
+  trackArtCache.set(track, entry);
+  readId3Art(track.file).then((blob) => {
+    if (!blob) return;
+    entry.url = URL.createObjectURL(blob);
+    entry.waiters.forEach((f) => f(entry.url));
+  });
+  return null;
+}
+
 function makeEditableText(value, className, placeholder, onCommit) {
   const wrapper = document.createElement("span");
   wrapper.className = "playlist-editable-field " + className;
@@ -131,8 +147,13 @@ function buildPlaylistRow(track, i, editMode, nowPlaying) {
 
   const thumb = document.createElement("div");
   thumb.className = "playlist-thumb";
-  if (track.thumbnailUrl) {
-    thumb.style.backgroundImage = `url("${track.thumbnailUrl}")`;
+  const artUrl = track.thumbnailUrl || getTrackArt(track, (url) => {
+    thumb.style.backgroundImage = `url("${url}")`;
+    const ic = thumb.querySelector(":scope > svg");
+    if (ic) ic.remove();
+  });
+  if (artUrl) {
+    thumb.style.backgroundImage = `url("${artUrl}")`;
   } else {
     thumb.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
   }
