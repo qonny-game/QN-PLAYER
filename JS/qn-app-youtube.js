@@ -369,6 +369,7 @@
     '<div class="qn-yt">' +
       '<aside class="qn-yt-panel">' +
         '<div class="qn-yt-panel-header"><span class="pcv2-panel-header-title" data-yt="panelTitle">Library</span></div>' +
+        '<button type="button" class="qn-sheet-close" data-yt="sheetClose" title="閉じる" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>' +
         '<div class="qn-yt-panel-scroll">' +
           '<section class="qn-yt-sec qn-yt-sec-library">' +
             '<div class="qn-yt-sec-head"><h3>Library</h3><span class="qn-yt-count" data-yt="listCount">0</span></div>' +
@@ -499,8 +500,23 @@
 
   function isSp() { return window.matchMedia("(max-width: 900px)").matches; }
 
+  var sheetClosing = false, sheetSkipAnim = false;
   function setPanel(id) {
     if (!isSp() && id === "none") id = "library";
+    // SP: 閉じる時は下へスライドしてから非表示(.qn-yt-closing中だけパネルを残す。プレイヤーもこの間に元の大きさへ戻る)
+    if (id === "none" && isSp() && root && panelState && panelState !== "none" && !sheetSkipAnim) {
+      if (sheetClosing) return;
+      sheetClosing = true;
+      root.querySelector(".qn-yt").classList.add("qn-yt-closing");
+      setTimeout(function () {
+        sheetClosing = false;
+        if (root) root.querySelector(".qn-yt").classList.remove("qn-yt-closing");
+        sheetSkipAnim = true;
+        setPanel("none");
+        sheetSkipAnim = false;
+      }, 230);
+      return;
+    }
     panelState = id;
     if (!root) return;
     if (editMode && editMode !== id) { editMode = null; selected = {}; }
@@ -1108,6 +1124,7 @@
     refs.chapClose.addEventListener("click", function () { refs.chapBox.hidden = true; });
     refs.chapAdd.addEventListener("click", addChapters);
     refs.fabEdit.addEventListener("click", toggleEdit);
+    refs.sheetClose.addEventListener("click", function () { setPanel("none"); });
     refs.fabFolder.addEventListener("click", addFolderInteractive);
     refs.fabMove.addEventListener("click", function () { moveSelectedToFolder(refs.fabMove); });
     refs.fabDel.addEventListener("click", deleteSelected);

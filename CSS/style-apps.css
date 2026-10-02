@@ -315,3 +315,33 @@ body.qn-mic-on #qnAppBadge::after {
   background: var(--danger);
   box-shadow: 0 0 0 2px var(--accent-primary);
 }
+
+
+/* v3.32.0 広いPC幅(1400px以上): アプリ名バッジとアプリ一覧を「アイコン＋文字」の1行にする(サイドバー幅を136pxへ拡張。これ未満は幅が足りず下段バーの右グループが隠れるので従来表示) */
+@media screen and (min-width: 1400px) {
+  :root { --pcv2-bar-w: 136px; }
+  #pcV2IconBar #qnAppBadge,
+  #qnAppFlyout .qn-flyout-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 14px 12px;
+  }
+  #pcV2IconBar #qnAppBadge svg,
+  #qnAppFlyout .qn-flyout-item svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  #pcV2IconBar #qnAppBadge span,
+  #qnAppFlyout .qn-flyout-item span {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+  #qnAppBadge .qn-badge-chev { right: 2px; margin-top: -6px; width: 12px; height: 12px; }
+  #qnAppFlyout .qn-flyout-item { padding-right: 12px; }
+  #qnAppFlyout { width: 190px; }
+}

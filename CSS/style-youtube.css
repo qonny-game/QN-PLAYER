@@ -536,6 +536,14 @@
     overflow: visible;
     padding: 0 0 8px;
     flex-shrink: 0;
+    container-type: inline-size;
+  }
+
+  /* プレイヤー枠は高さを明示して滑らかに縮む(上端固定=上基準で縮小)。閉じ=幅÷縦横比、パネル開=max(200px,30dvh) */
+  .qn-yt-player-wrap {
+    aspect-ratio: auto;
+    height: calc(100cqw / var(--qn-yt-ar, 1.7778));
+    transition: height 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
   .qn-yt-custom {
@@ -577,11 +585,31 @@
     display: none;
   }
 
-  .qn-yt:not([data-panel="none"]) .qn-yt-player-wrap {
-    aspect-ratio: auto;
+  .qn-yt:not([data-panel="none"]):not(.qn-yt-closing) .qn-yt-player-wrap {
     height: max(200px, 30dvh);
     min-height: 200px;
   }
+
+  /* シート: 開く=下からスライド、閉じる=下へスライド。開いている目印=上端アクセント線+角丸+影+つまみ */
+  .qn-yt-panel {
+    position: relative;
+    border-top: 2px solid var(--accent-primary);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.55);
+    animation: qn-sheet-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .qn-yt.qn-yt-closing .qn-yt-panel {
+    animation: qn-sheet-down 230ms cubic-bezier(0.4, 0, 1, 1) both;
+    pointer-events: none;
+  }
+  .qn-yt-panel .qn-yt-panel-header { position: relative; padding-top: 22px; padding-right: 64px; }
+  .qn-yt-panel .qn-yt-panel-header::before {
+    content: "";
+    position: absolute; top: 8px; left: 50%;
+    width: 40px; height: 4px; margin-left: -20px;
+    border-radius: 2px; background: var(--accent-primary); opacity: 0.7;
+  }
+  .qn-yt-panel .qn-sheet-close { display: flex; }
 
   .qn-yt-panel-header {
     font-size: var(--fs-heading);

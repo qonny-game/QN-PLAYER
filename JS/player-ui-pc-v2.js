@@ -101,6 +101,10 @@
 
     panel.appendChild(panelHeader);
     panel.appendChild(panelBody);
+    // SP幅のシート用: 見出し右端の閉じるボタン(PC幅はCSSで非表示)。ヘッダーは切替のたび作り直すのでパネル直下に1つだけ置く
+    const sheetClose = el('<button type="button" class="qn-sheet-close" id="pcV2SheetClose" title="閉じる" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>');
+    sheetClose.addEventListener("click", () => { if (typeof closePanelOverlay === "function") closePanelOverlay(); });
+    panel.appendChild(sheetClose);
 
     ICON_ITEMS.forEach(item => {
       if (item.hidden || item.bottom) return;
@@ -701,6 +705,8 @@
         return;
       }
       updatePcv2BottomBarsHeightVar();
+      clearTimeout(sheetCloseTimer);
+      layoutEl.classList.remove("pcv2-panel-closing");
       layoutEl.classList.add("pcv2-panel-open");
     } else if (!isSpWidth && layoutEl && !panelCollapsed && currentPanel === panelId) {
       setCollapsed(true);
@@ -726,9 +732,17 @@
     }
   });
 
+  // 閉じる時は下へスライドしてから非表示(.pcv2-panel-closing=アニメ中だけパネルを残す)。再度開く操作で中断できる
+  let sheetCloseTimer = 0;
   function closePanelOverlay() {
     const layoutEl = document.getElementById("pcV2Layout");
-    if (layoutEl) layoutEl.classList.remove("pcv2-panel-open");
+    if (layoutEl && layoutEl.classList.contains("pcv2-panel-open") && !layoutEl.classList.contains("pcv2-panel-closing")) {
+      layoutEl.classList.add("pcv2-panel-closing");
+      clearTimeout(sheetCloseTimer);
+      sheetCloseTimer = setTimeout(() => {
+        layoutEl.classList.remove("pcv2-panel-open", "pcv2-panel-closing");
+      }, 230);
+    } else if (layoutEl) layoutEl.classList.remove("pcv2-panel-open", "pcv2-panel-closing");
 
     currentPanel = "seekbar";
     document.querySelectorAll("#pcV2IconBar .pcv2-icon-item").forEach(btn => {
