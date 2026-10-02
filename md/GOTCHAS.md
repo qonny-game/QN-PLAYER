@@ -73,3 +73,4 @@
 - 曲の削除は`deletePlaylistTrack`の明示呼び出しだけを削除として扱う。「ローカルに無い=削除」と判断すると、IndexedDB読み込み失敗時に全曲がクラウドから消える。
 - ghost(未インポート)は`playlist[]`に入れない(行のdata-index=配列indexの前提・選択/ドラッグを壊すため)。描画は`.qn-lib-extra`クラスで曲行と区別し、`measureFolderBlocks`は`.qn-lib-extra`を最後のフォルダの範囲に含めない。
 - 並びの主導権(`ou`)は「両端末にある曲の相対順が変わった時」だけ更新。曲の追加・取り込みで更新すると、取り込み順で相手の並びを上書きする。
+- P2P転送(player-p2p.js): 合図は「経路候補が出そろってから1回だけ書く」(trickleにしない=書き込みと読み取りが増える)。DataChannelのメッセージは16KB以下、`bufferedAmount`が1MBを超えたら`bufferedamountlow`まで待つ(待たないとiOSでメモリが膨らむ/切断する)。空のライブラリへ最初の1曲を入れると`addFilesToPlaylist`が自動再生するので取り込み直後に`audio.pause()`する。

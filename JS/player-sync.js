@@ -624,7 +624,18 @@
     foot.className = "playlist-sync-foot qn-lib-extra";
     foot.addEventListener("click", function () { if (syncUser && status !== "syncing") { againCount = 0; syncNow(); } });
     paintFoot(foot);
-    box.appendChild(foot);
+    if (window.QNP2P) {
+      var bar = document.createElement("div");
+      bar.className = "playlist-sync-bar qn-lib-extra";
+      var tb = document.createElement("button");
+      tb.type = "button";
+      tb.className = "playlist-p2p-btn";
+      tb.textContent = "📡 MP3を端末間で転送";
+      tb.addEventListener("click", function () { window.QNP2P.open(); });
+      bar.appendChild(tb);
+      bar.appendChild(foot);
+      box.appendChild(bar);
+    } else box.appendChild(foot);
   }
 
   window.addEventListener("qn-auth-changed", function (e) { onAuthChanged(e && e.detail && e.detail.user); });
@@ -637,5 +648,7 @@
     ready = true;
     if (window.QN_AUTH && window.QN_AUTH.currentUser) onAuthChanged(window.QN_AUTH.currentUser);
   };
-  window.QNLibSync = { decorateLibrary: decorateLibrary, syncNow: function () { againCount = 0; syncNow(); }, _meta: meta, _hashOf: hashOf, _capture: capture };
+  // P2P転送(player-p2p.js)用: 未インポート一覧と、hashからこの端末のFileを引く
+  function fileFor(h) { var t = findTrack(h); return t && t.file ? t.file : null; }
+  window.QNLibSync = { decorateLibrary: decorateLibrary, ghosts: ghostList, fileFor: fileFor, isActive: function () { return syncUser; }, syncNow: function () { againCount = 0; syncNow(); }, _meta: meta, _hashOf: hashOf, _capture: capture };
 })();
