@@ -38,7 +38,7 @@
 PLのLibraryと同じ操作。FOLDERで作成→名前入力、見出しクリックで開閉(端末ごと・同期しない)、EDITで改名/▲▼並び替え/✕削除(2タップ、中の動画は未分類へ)、動画を選んでMoveで移動、つかみのドラッグでも別フォルダへ移動可(見出しにドロップ=その先頭)。データは`qn_yt_folders`=`{list:[{id,name}],at}`と各item.folder。Auto Next/Track前後はフォルダ順の表示順で進む。同期はドキュメントに`folders`/`foldersAt`(一覧は新しい方を丸ごと採用)を追加、動画の所属は`folder`(動画のupdatedAtで合体)。
 
 ### Playlists（v3.31.0〜）
-YouTube Data API v3(`playlists`/`playlistItems`、最大500件)で公開/限定公開の再生リストを取得して一覧表示。APIキーは`window.QN_YT_API_KEY`(index.html)か、パネルの「API Key」から入れた端末のlocalStorage(`qn_yt_api_key`)。結果は**メモリのみ**(保存しない)。行クリックで再生(Libraryに無くても可)、チェック→Add to Libraryで追加(フォルダがあれば移動先ピッカー)。追加した動画はvideoIdと、28日キャッシュ経由のタイトルだけ保存。非公開リスト・Mix(RD)・高評価/後で見るは取れない。
+YouTube Data API v3(`playlists`/`playlistItems`、最大500件)で公開/限定公開の再生リストを取得して一覧表示。APIキーは`window.QN_YT_API_KEY`(index.html)か、パネルの「API Key」から入れた端末のlocalStorage(`qn_yt_api_key`)。結果は**メモリのみ**(保存しない)。行クリックで再生(Libraryに無くても可)、チェック→Add to Libraryで追加(フォルダがあれば移動先ピッカー)。追加した動画はvideoIdと、28日キャッシュ経由のタイトルだけ保存。URL+APIキー方式では非公開リスト・Mix(RD)・高評価/後で見るは取れない。**My Playlists**(v3.31.1〜)はログイン中アカウントに`youtube.readonly`の確認ポップアップ(`QN_AUTH.getYtToken`=`reauthenticateWithPopup`)を出し、アクセストークン(メモリのみ・約1時間)で自分の再生リスト一覧(`playlists?mine=true`)と高評価(`LL`)を取得。APIキー不要。要件: Google CloudでYouTube Data API v3の有効化、OAuth同意画面でテストユーザー登録(未審査の間)。
 
 ### Markers（本体のMarkersと同じ行・操作）
 - 行：色の丸／「番号 - メモ」／鉛筆（メモ編集＋プリセットチップ。プリセットを選ぶと色も自動。カスタムプリセットも並ぶ）／目（表示/非表示）。FAB：ADD MARKER・EDIT（編集中はDelete・OK）。

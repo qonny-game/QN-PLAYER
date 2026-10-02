@@ -1203,3 +1203,7 @@
 .qn-yt-pllist .playlistItem button.qn-yt-plcheck:hover:not(:disabled):not(.on) { border-color: var(--accent-primary); background: none; }
 .qn-yt-pllist .playlistItem button.qn-yt-plcheck.on { background: var(--accent-primary); border-color: var(--accent-primary); }
 .qn-yt-pllist .playlistItem button.qn-yt-plcheck:disabled { cursor: default; border-color: transparent; color: var(--accent-primary); }
+.qn-yt-plmine { margin: 0 0 4px; }
+.qn-yt-pllist .playlistItem.qn-yt-pllistrow { grid-template-columns: auto 1fr auto; }
+.qn-yt-plicon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: var(--icon-muted); }
+.qn-yt-plicon svg { width: 22px; height: 22px; fill: currentColor; }

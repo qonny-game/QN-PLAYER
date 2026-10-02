@@ -5,6 +5,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  reauthenticateWithPopup,
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -177,9 +178,28 @@ if (btnLogout) btnLogout.addEventListener("click", handleLogout);
 
 window.QN_AUTH.login = handleLogin;
 
+// ---------- YouTube読み取り権限(自分の再生リスト取得用)。ログイン中アカウントで追加権限(youtube.readonly)を確認するポップアップを出し、アクセストークンをメモリにだけ保持(保存しない・約1時間有効)。ユーザー操作(クリック)から直接呼ぶこと(ポップアップがブロックされるため) ----------
+const ytProvider = new GoogleAuthProvider();
+ytProvider.addScope("https://www.googleapis.com/auth/youtube.readonly");
+let ytToken = null, ytTokenAt = 0;
+window.QN_AUTH.getYtToken = function (force) {
+  const u = auth.currentUser;
+  if (!u) return Promise.reject(new Error("not-logged-in"));
+  if (!force && ytToken && Date.now() - ytTokenAt < 50 * 60 * 1000) return Promise.resolve(ytToken);
+  ytProvider.setCustomParameters({ login_hint: u.email || "" });
+  return reauthenticateWithPopup(u, ytProvider).then((res) => {
+    const cred = GoogleAuthProvider.credentialFromResult(res);
+    if (!cred || !cred.accessToken) throw new Error("no-token");
+    ytToken = cred.accessToken; ytTokenAt = Date.now();
+    return ytToken;
+  });
+};
+window.QN_AUTH.clearYtToken = function () { ytToken = null; ytTokenAt = 0; };
+
 // ---------- ログイン状態監視・UI自動切り替え ----------
 onAuthStateChanged(auth, async (user) => {
   window.QN_AUTH.currentUser = user;
+  if (!user && window.QN_AUTH.clearYtToken) window.QN_AUTH.clearYtToken();
 
   if (user) {
     if (userPhotoEl) userPhotoEl.src = user.photoURL || "";

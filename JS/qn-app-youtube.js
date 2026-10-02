@@ -418,6 +418,9 @@
                 '<input data-yt="plKey" class="qn-yt-input" type="text" placeholder="YouTube Data API key" autocomplete="off" spellcheck="false">' +
                 '<button type="button" data-yt="plKeySave" class="qn-yt-btn">Save</button>' +
               '</div>' +
+              '<div class="qn-yt-row qn-yt-plmine" data-yt="plMineRow">' +
+                '<button type="button" data-yt="plMine" class="qn-yt-btn">My Playlists</button>' +
+              '</div>' +
               '<button type="button" data-yt="plKeyToggle" class="qn-yt-linkbtn">API Key</button>' +
             '</div>' +
             '<div class="qn-yt-plhead" data-yt="plHead" hidden>' +
@@ -806,25 +809,32 @@
     if (reason === "playlistForbidden") return "この再生リストは取得できません";
     return "取得できませんでした(" + status + ")";
   }
-  function ytApi(path, params, key) {
+  // auth={key}(公開リスト用APIキー) か {token}(自分のアカウント。OAuthアクセストークン)
+  function ytApi(path, params, auth) {
     var q = Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&");
-    return fetch("https://www.googleapis.com/youtube/v3/" + path + "?" + q + "&key=" + encodeURIComponent(key)).then(function (res) {
+    var url = "https://www.googleapis.com/youtube/v3/" + path + "?" + q, opt = {};
+    if (auth.token) opt.headers = { Authorization: "Bearer " + auth.token }; else url += "&key=" + encodeURIComponent(auth.key);
+    return fetch(url, opt).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (body) {
-        if (!res.ok) { var err = new Error(apiErrorText(res.status, body)); err.api = true; throw err; }
+        if (!res.ok) {
+          var err = new Error(res.status === 401 && auth.token ? "ログインの権限が切れました。My Playlistsをもう一度押してください" : apiErrorText(res.status, body));
+          err.api = true; err.status = res.status;
+          throw err;
+        }
         return body;
       });
     });
   }
-  function loadPlaylist(id, key) {
-    var out = { title: "", videos: [] }, seen = {};
-    var head = ytApi("playlists", { part: "snippet", id: id }, key).then(function (b) {
+  function loadPlaylist(id, key, token) {
+    var out = { title: "", videos: [] }, seen = {}, auth = token ? { token: token } : { key: key };
+    var head = id === "LL" ? Promise.resolve().then(function () { out.title = "Liked videos"; }) : ytApi("playlists", { part: "snippet", id: id }, auth).then(function (b) {
       if (b && b.items && b.items[0] && b.items[0].snippet) out.title = String(b.items[0].snippet.title || "").slice(0, 200);
       else { var e = new Error("再生リストが見つかりません(非公開のリストは取得できません)"); e.api = true; throw e; }
     });
     function page(token, n) {
       var params = { part: "snippet", maxResults: 50, playlistId: id };
       if (token) params.pageToken = token;
-      return ytApi("playlistItems", params, key).then(function (b) {
+      return ytApi("playlistItems", params, auth).then(function (b) {
         (b.items || []).forEach(function (r) {
           var sn = r && r.snippet, vid = sn && sn.resourceId && sn.resourceId.videoId;
           if (!vid || !/^[A-Za-z0-9_-]{11}$/.test(vid) || seen[vid]) return;
@@ -846,28 +856,90 @@
     if (/^RD/.test(id)) { plSay("Mix(自動生成リスト)は取得できません"); return; }
     var key = getApiKey();
     if (!key) { refs.plKeyBox.hidden = false; plSay("先にYouTube Data APIキーを入力してください"); return; }
-    plState.loading = true;
-    refs.plLoad.disabled = true;
-    plSay("読み込み中…", true);
     try { localStorage.setItem(PL_LAST_KEY, refs.plUrl.value.trim()); } catch (e) {}
-    loadPlaylist(id, key).then(function (r) {
-      plState = { id: id, title: r.title, videos: r.videos, sel: {}, loading: false };
+    runLoad(id, key, "");
+  }
+  function runLoad(id, key, token) {
+    plState.loading = true;
+    refs.plLoad.disabled = true; refs.plMine.disabled = true;
+    plSay("読み込み中…", true);
+    return loadPlaylist(id, key, token).then(function (r) {
+      plState = { id: id, title: r.title, videos: r.videos, sel: {}, loading: false, mode: "videos", token: token };
       plSay(r.videos.length ? "" : "取得できる動画がありません");
       renderPlaylistPanel();
     }).catch(function (err) {
       plState.loading = false;
       plSay(err && err.api ? err.message : "通信に失敗しました");
-    }).then(function () { refs.plLoad.disabled = false; });
+    }).then(function () { refs.plLoad.disabled = false; refs.plMine.disabled = false; });
+  }
+  // 自分のアカウントの再生リスト一覧(OAuth)。クリック(ユーザー操作)から直接呼ぶ=ポップアップがブロックされない
+  function doLoadMine() {
+    var A = window.QN_AUTH;
+    if (plState.loading) return;
+    if (!A || !A.currentUser || typeof A.getYtToken !== "function") { plSay("先にGoogleでログインしてください"); return; }
+    plState.loading = true;
+    refs.plMine.disabled = true;
+    plSay("権限を確認中…", true);
+    A.getYtToken().then(function (token) {
+      plSay("読み込み中…", true);
+      var lists = [{ id: "LL", title: "Liked videos", count: -1 }];
+      function page(tk, n) {
+        var params = { part: "snippet,contentDetails", mine: "true", maxResults: 50 };
+        if (tk) params.pageToken = tk;
+        return ytApi("playlists", params, { token: token }).then(function (b) {
+          (b.items || []).forEach(function (r) {
+            if (r && r.id) lists.push({ id: r.id, title: String((r.snippet && r.snippet.title) || "").slice(0, 200), count: r.contentDetails ? r.contentDetails.itemCount : -1 });
+          });
+          if (b.nextPageToken && n < 10) return page(b.nextPageToken, n + 1);
+        });
+      }
+      return page("", 0).then(function () {
+        plState = { id: "", title: "My Playlists", videos: [], lists: lists, sel: {}, loading: false, mode: "lists", token: token };
+        plSay("");
+        renderPlaylistPanel();
+      });
+    }).catch(function (err) {
+      plState.loading = false;
+      var code = err && err.code ? String(err.code) : "";
+      if (err && err.api) plSay(err.message);
+      else if (/popup-closed|cancelled/.test(code)) plSay("キャンセルされました");
+      else if (/popup-blocked/.test(code)) plSay("ポップアップがブロックされました");
+      else plSay("権限を取得できませんでした");
+    }).then(function () { refs.plMine.disabled = false; });
   }
   function plSelCount() { var n = 0; for (var k in plState.sel) if (plState.sel[k]) n++; return n; }
   function renderPlaylistPanel() {
     if (!root) return;
     var box = refs.plList, vids = plState.videos;
     box.textContent = "";
-    refs.plCount.textContent = String(vids.length);
-    refs.plHead.hidden = !vids.length;
+    var listMode = plState.mode === "lists";
+    refs.plCount.textContent = String(listMode ? plState.lists.length : vids.length);
+    refs.plHead.hidden = listMode ? false : !vids.length;
     refs.plTitle.textContent = plState.title;
+    refs.plAll.hidden = listMode; refs.plAdd.hidden = listMode;
     refs.plAdd.disabled = plSelCount() === 0;
+    if (listMode) {
+      plState.lists.forEach(function (l) {
+        var row = document.createElement("div");
+        row.className = "playlistItem qn-yt-plrow qn-yt-pllistrow";
+        var ic = document.createElement("span");
+        ic.className = "qn-yt-plicon";
+        ic.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 6h12v2H4zm0 4h12v2H4zm0 4h8v2H4zm10 0v6l5-3z"/></svg>';
+        row.appendChild(ic);
+        var info = document.createElement("div");
+        info.className = "playlist-info-block";
+        var t = document.createElement("span");
+        t.className = "playlist-title"; t.textContent = l.title;
+        info.appendChild(t);
+        row.appendChild(info);
+        var c = document.createElement("span");
+        c.className = "playlist-folder-count"; c.textContent = l.count >= 0 ? String(l.count) : "";
+        row.appendChild(c);
+        row.addEventListener("click", function () { runLoad(l.id, "", plState.token); });
+        box.appendChild(row);
+      });
+      return;
+    }
     vids.forEach(function (v) {
       var row = document.createElement("div");
       row.className = "playlistItem qn-yt-plrow";
@@ -978,6 +1050,7 @@
     try { refs.plUrl.value = localStorage.getItem(PL_LAST_KEY) || ""; } catch (e) {}
     refs.plKeyBox.hidden = true;
     refs.plLoad.addEventListener("click", doLoadPlaylist);
+    refs.plMine.addEventListener("click", doLoadMine);
     refs.plUrl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); doLoadPlaylist(); } });
     refs.plKeyToggle.addEventListener("click", function () { refs.plKeyBox.hidden = !refs.plKeyBox.hidden; if (!refs.plKeyBox.hidden) refs.plKey.focus(); });
     function saveKey() {
