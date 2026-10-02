@@ -683,7 +683,6 @@
 .qn-yt[data-edit="markers"] .qn-yt-pinbox .toggle-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .qn-yt-pinbox .pinItem { grid-template-columns: auto 1fr auto auto auto; }
-.qn-yt-ab-cell { display: flex; gap: 4px; }
 .qn-yt[data-edit="markers"] .qn-yt-ab-cell { display: none; }
 .qn-yt[data-edit="markers"] .qn-yt-pinbox .pinItem { grid-template-columns: auto 1fr auto auto; }
 @media (hover: none), (pointer: coarse) {

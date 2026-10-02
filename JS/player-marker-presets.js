@@ -206,6 +206,30 @@ function closePinMemoPresetPopup() {
   }
 }
 
+// プリセットポップアップを入力欄に重ねず、広い側(下/上)に置く。収まらない分はポップアップ内スクロール。キーボード表示中はvisualViewportの範囲で計算
+function qnPlacePresetPopup(input, popup) {
+  const vv = window.visualViewport;
+  const vTop = vv ? vv.offsetTop : 0;
+  const vBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+  const vLeft = vv ? vv.offsetLeft : 0;
+  const vRight = vv ? vv.offsetLeft + vv.width : window.innerWidth;
+  const r = input.getBoundingClientRect();
+  popup.style.maxHeight = "";
+  popup.style.overflowY = "auto";
+  const h = popup.scrollHeight + 2;
+  const below = vBottom - r.bottom - 12;
+  const above = r.top - vTop - 12;
+  let top, room;
+  if (h <= below || below >= above) { top = r.bottom + 6; room = below; }
+  else { room = above; top = r.top - 6 - Math.min(h, room); }
+  popup.style.maxHeight = Math.max(60, room) + "px";
+  const w = popup.offsetWidth;
+  let left = r.left;
+  if (left + w > vRight - 8) left = Math.max(vLeft + 8, vRight - w - 8);
+  popup.style.top = Math.max(vTop + 4, top) + "px";
+  popup.style.left = left + "px";
+}
+
 function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   if (itemDiv.querySelector(".pin-memo-input")) return;
 
@@ -296,18 +320,7 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
 
   function reposition() {
     if (!input.isConnected) { closePinMemoPresetPopup(); return; }
-    const r = input.getBoundingClientRect();
-    const popupRect = presetPopup.getBoundingClientRect();
-    let top = r.bottom + 6;
-    if (top + popupRect.height > window.innerHeight - 8) {
-      top = Math.max(8, r.top - popupRect.height - 6);
-    }
-    let left = r.left;
-    if (left + popupRect.width > window.innerWidth - 8) {
-      left = Math.max(8, window.innerWidth - popupRect.width - 8);
-    }
-    presetPopup.style.top = top + "px";
-    presetPopup.style.left = left + "px";
+    qnPlacePresetPopup(input, presetPopup);
   }
 
   closePinMemoPresetPopup();
@@ -316,6 +329,7 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   reposition();
   window.addEventListener("scroll", reposition, true);
   window.addEventListener("resize", reposition);
+  if (window.visualViewport) { window.visualViewport.addEventListener("resize", reposition); window.visualViewport.addEventListener("scroll", reposition); }
 
   input.addEventListener("keydown", e => {
     if (e.key === "Enter") {

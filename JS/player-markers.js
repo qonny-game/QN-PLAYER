@@ -473,6 +473,31 @@ function renderPinList() {
     };
     labelRow.appendChild(editBtn);
 
+    // A/Bボタン(ブロック型)。この位置をA点/B点に設定(同位置をもう一度で解除)。labelRow内に置く(.pinItemは4列固定)
+    const abCell = document.createElement("div");
+    abCell.className = "pin-ab-cell";
+    ["A", "B"].forEach(kind => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "qn-ab-block";
+      b.dataset.abKind = kind;
+      b.dataset.t = String(pinObj.t);
+      b.textContent = kind;
+      b.title = kind === "A" ? "このマーカーの位置をA点(ループ開始)に" : "このマーカーの位置をB点(ループ終了)に";
+      b.onclick = (e) => {
+        e.stopPropagation();
+        if (isLockedMarker) {
+          swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
+          return;
+        }
+        hapticTap();
+        setABAt(kind, pinObj.t);
+      };
+      abCell.appendChild(b);
+    });
+    labelRow.appendChild(abCell);
+    updatePinABButtons(div);
+
     div.appendChild(labelRow);
 
     const toggleBtn = document.createElement("button");
@@ -670,7 +695,18 @@ function afterABChange() {
   renderABPoints();
   if (typeof syncLoopModeWithAB === "function") syncLoopModeWithAB();
   updateABButtons();
+  updatePinABButtons();
   renderSegments();
+}
+
+// マーカー行のA/Bボタンの点灯(abA/abBが±AB_SNAP_SEC以内のマーカー)。rootを省くとリスト全体
+function updatePinABButtons(root) {
+  (root || document).querySelectorAll(".pin-ab-cell .qn-ab-block").forEach(b => {
+    const v = b.dataset.abKind === "A" ? abA : abB;
+    const on = v !== null && v !== undefined && Math.abs(v - parseFloat(b.dataset.t)) <= AB_SNAP_SEC;
+    b.classList.toggle("active-a", on && b.dataset.abKind === "A");
+    b.classList.toggle("active-b", on && b.dataset.abKind === "B");
+  });
 }
 
 function setABAt(kind, t) {

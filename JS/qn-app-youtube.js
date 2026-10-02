@@ -1799,12 +1799,7 @@
 
       var reposition = function () {
         if (!input.isConnected) { closePop(); return; }
-        var r = input.getBoundingClientRect(), pr = popup.getBoundingClientRect();
-        var top = r.bottom + 6;
-        if (top + pr.height > window.innerHeight - 8) top = Math.max(8, r.top - pr.height - 6);
-        var left = r.left;
-        if (left + pr.width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - pr.width - 8);
-        popup.style.top = top + "px"; popup.style.left = left + "px";
+        qnPlacePresetPopup(input, popup);
       };
       closePop();
       document.body.appendChild(popup);
@@ -1812,6 +1807,7 @@
       reposition();
       window.addEventListener("scroll", reposition, true);
       window.addEventListener("resize", reposition);
+      if (window.visualViewport) { window.visualViewport.addEventListener("resize", reposition); window.visualViewport.addEventListener("scroll", reposition); }
     }
 
     input.addEventListener("keydown", function (e) {
@@ -1932,12 +1928,12 @@
       ab.className = "qn-yt-ab-cell";
       var abtnA = document.createElement("button");
       abtnA.type = "button";
-      abtnA.className = "qn-yt-btn mini ab" + (current.loopA === m.time ? " active-a" : "");
+      abtnA.className = "qn-ab-block" + (current.loopA === m.time ? " active-a" : "");
       abtnA.textContent = "A"; abtnA.title = "このマーカーの位置をA点(ループ開始)に（A/Bはマーカーとは別の点）";
       abtnA.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("A", m.id); });
       var abtnB = document.createElement("button");
       abtnB.type = "button";
-      abtnB.className = "qn-yt-btn mini ab" + (current.loopB === m.time ? " active-b" : "");
+      abtnB.className = "qn-ab-block" + (current.loopB === m.time ? " active-b" : "");
       abtnB.textContent = "B"; abtnB.title = "このマーカーの位置をB点(ループ終了)に（A/Bはマーカーとは別の点）";
       abtnB.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("B", m.id); });
       ab.appendChild(abtnA); ab.appendChild(abtnB);

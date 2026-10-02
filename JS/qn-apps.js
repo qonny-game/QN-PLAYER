@@ -616,7 +616,7 @@
     if (!container || container._qnSwipe) return;
     container._qnSwipe = true;
     container.classList.add("qn-swipe-list");
-    var openRow = null, st = null, swiped = false;
+    var openRow = null, st = null, swiped = 0;
     function setX(row, x, anim) {
       row.style.transition = anim ? "transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)" : "none";
       row.style.transform = x ? "translateX(" + x + "px)" : "";
@@ -675,7 +675,7 @@
       if (openRow && openRow !== row) closeRow(openRow);
       if (e.target.closest("input, textarea, .playlist-drag-handle, .pin-color-mark")) return;
       st = { row: row, x: e.clientX, y: e.clientY, dir: "", base: row.classList.contains("qn-swipe-open") ? -1 : 0, id: e.pointerId, w: 0, t: Date.now() };
-      swiped = false;
+      swiped = 0;
     });
     container.addEventListener("pointermove", function (e) {
       if (!st || e.pointerId !== st.id) return;
@@ -694,12 +694,13 @@
       if (st.dir !== "h") return;
       var x = Math.max(-st.w - 24, Math.min(0, st.base * st.w + dx));
       setX(st.row, x, false);
-      swiped = true;
+      swiped = Date.now();
     });
     function end(e, ok) {
       if (!st || e.pointerId !== st.id) return;
       var s = st; st = null;
       if (s.dir !== "h") return;
+      swiped = Date.now();
       try { s.row.releasePointerCapture(e.pointerId); } catch (err) {}
       var m = /translateX\((-?[\d.]+)px\)/.exec(s.row.style.transform || ""), x = m ? parseFloat(m[1]) : 0;
       var flickOpen = !s.base && (-x) > 24 && (-x) / Math.max(1, Date.now() - s.t) > 0.35;
@@ -713,7 +714,7 @@
     container.addEventListener("pointercancel", function (e) { end(e, false); });
     // スワイプ直後のclickは行の通常動作(再生など)にしない
     container.addEventListener("click", function (e) {
-      if (swiped) { swiped = false; e.stopPropagation(); e.preventDefault(); }
+      if (swiped && Date.now() - swiped < 400 && !e.target.closest(".qn-swipe-tray")) { swiped = 0; e.stopPropagation(); e.preventDefault(); } else swiped = 0;
     }, true);
   }
 
