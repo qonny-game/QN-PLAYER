@@ -122,14 +122,16 @@ async function syncTx(fn) {
   });
 }
 // トランザクション外でまとめて読む(変わった曲のドキュメント取得用)。並列数を絞る
-async function syncGetMany(ids) {
+async function syncGetMany(ids, onProgress) {
   const out = new Array(ids.length).fill(null);
-  let next = 0;
+  let next = 0, done = 0;
   async function worker() {
     while (next < ids.length) {
       const i = next++;
       const snap = await getDoc(syncRef(ids[i]));
       out[i] = snap.exists() ? snap.data() : null;
+      done++;
+      if (onProgress) { try { onProgress(done, ids.length); } catch (e) {} }
     }
   }
   await Promise.all([worker(), worker(), worker(), worker()]);

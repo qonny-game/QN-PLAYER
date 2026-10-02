@@ -234,6 +234,12 @@
   function serializeFolders(m) { return { f: m.live, d: m.tomb, ord: m.ord, ou: m.ou }; }
 
   // ---------- UI状態 ----------
+  var prog = { done: 0, total: 0, at: 0 };
+  function setProg(done, total) {   // 件数表示(画面更新は0.15秒に1回まで)
+    prog.done = done; prog.total = total;
+    var n = Date.now();
+    if (n - prog.at > 150 || done >= total) { prog.at = n; setStatus("syncing"); }
+  }
   var syncUser = false, ready = false, syncing = false, syncAgain = false, syncTimer = 0, lastTry = 0, status = "", againCount = 0;
   function isBusy() {
     var a = document.activeElement;
@@ -242,7 +248,7 @@
   }
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function statusText() {
-    if (status === "syncing") return "☁ 同期中…";
+    if (status === "syncing") return "☁ 同期中…" + (prog.total > 1 ? " " + prog.done + "/" + prog.total : "");
     if (status === "error") return "☁ 同期できませんでした(タップで再試行)";
     if (status === "ok") { var d = new Date(meta.lastSync || Date.now()); return "☁ 同期済み " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + "  ↻"; }
     return "";
@@ -333,7 +339,7 @@
       if (k.g == null) { if (loc || ru > k.u) fetchH.push(h); return; }
       if (!loc || ru > k.u) fetchH.push(h);
     });
-    var docs = fetchH.length ? await A.syncGetMany(fetchH.map(function (h) { return "t_" + h; })) : [];
+    var docs = fetchH.length ? await A.syncGetMany(fetchH.map(function (h) { return "t_" + h; }), setProg) : [];
 
     // 2) 計画(まだ何も変えない)
     var applyList = [], ghostUp = {}, pushList = [], tombs = [], seq = 0;
@@ -390,6 +396,7 @@
 
     // 3) 書き込み(トランザクション。変わるものがある時だけ)
     var wrote = {}, skipped = [], tombDone = {}, fo = foM, od = odM;
+    if (pushList.length > CHUNK) setProg(0, pushList.length);
     var needTx = pushList.length || tombs.length || foM.write || odM.write;
     if (needTx) {
       var chunks = [];
@@ -423,6 +430,7 @@
           return { w: w, sk: sk, td: td, fo: foR, od: odR };
         });
         res.w.forEach(function (h) { wrote[h] = true; });
+        if (pushList.length > CHUNK) setProg(Math.min((ci + 1) * CHUNK, pushList.length), pushList.length);
         res.td.forEach(function (h) { tombDone[h] = true; });
         skipped = skipped.concat(res.sk);
         if (last) { fo = res.fo; od = res.od; }
@@ -485,7 +493,7 @@
     var A = window.QN_AUTH;
     if (!syncUser || !ready || !A || typeof A.syncTx !== "function" || typeof A.syncGetMany !== "function") return;
     if (syncing) { syncAgain = true; return; }
-    syncing = true; lastTry = Date.now();
+    syncing = true; lastTry = Date.now(); prog.done = 0; prog.total = 0;
     setStatus("syncing");
     var res = null;
     try {
