@@ -30,7 +30,7 @@
       label: "Markers",
       panelType: "tab",
       tabName: "markers",
-      icon: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>'
+      icon: '<path d="M3 6h12v2H3V6zm0 4h12v2H3v-2zm0 4h7v2H3v-2zm13 0h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/>'
     },
     {
       id: "text",

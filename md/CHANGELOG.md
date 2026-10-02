@@ -21,3 +21,4 @@
 - 3.28.0 本体Library(曲ごとの情報)の端末間同期を追加(player-sync.js)。曲名/アーティスト/ON-OFF/お気に入り/フォルダ/マーカー/AB/メモ+フォルダ+並び順を同期(MP3は同期しない)。他端末にMP3が無い曲は「未インポート」表示、MP3を入れると設定が自動で付く(ファイル名+サイズで照合)。Library下部に同期ステータス(タップで手動同期)。`QN_AUTH`に`syncTx/syncGetMany`、`loadTrackUserData()`を追加。 同期中は「☁ 同期中… 120/2000」と件数を表示。
 - 3.29.0 MP3の端末間P2P転送を追加(player-p2p.js)。未インポートの曲を選び6文字コードで接続→WebRTCで直接転送(サーバー非経由)。取り込み後は同期で設定が自動で付く。 入口はサイドバー下段のTransfer(Backup/Importの隣)。
 - 3.30.0 MarkersパネルのタイトルとMarkersリストの間に、再生中の曲をライブラリと同じ行デザインで表示(並び替えつまみ無し。`buildPlaylistRow()`をライブラリと共用、`renderNowPlaying()`が`renderPlaylist()`末尾で更新)。
+- 3.30.1 サイドバーのMarkersアイコンを「リスト＋プラス」に変更(PLAYER/YouTube共通)。ADD MARKERボタンのプラスは従来のまま。
