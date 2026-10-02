@@ -63,6 +63,7 @@ function makeEditableText(value, className, placeholder, onCommit) {
   wrapper.appendChild(display);
 
   wrapper.startEdit = () => {
+    if (wrapper.querySelector(".playlist-editable-input")) return;
     const input = document.createElement("input");
     input.type = "text";
     input.className = "playlist-editable-input";
@@ -72,7 +73,9 @@ function makeEditableText(value, className, placeholder, onCommit) {
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
+        const next = wrapper.onEnter;
         input.blur();
+        if (next) next();
       } else if (e.key === "Escape") {
         input.value = value;
         input.blur();
@@ -165,6 +168,15 @@ function buildPlaylistRow(track, i, editMode, nowPlaying) {
     (newVal) => { track.title = newVal; savePlaylistMetadataFor(track); if (nowPlaying) renderPlaylist(); }
   );
   titleRow.appendChild(titleField);
+  // タイトルをEnterで確定したらそのままアーティスト入力へ(行が再描画されていたら新しい行のアーティスト欄を開く)
+  if (!editMode) titleField.onEnter = () => {
+    let f = artistField;
+    if (!f.isConnected) {
+      const row = document.querySelector('.playlistItem[data-index="' + item.dataset.index + '"]' + (nowPlaying ? ".is-nowplaying" : ":not(.is-nowplaying)"));
+      f = row && row.querySelector(".playlist-artist");
+    }
+    if (f && f.startEdit) f.startEdit();
+  };
   if (!editMode) {
     const titleHoverBtn = document.createElement("button");
     titleHoverBtn.className = "playlist-hover-edit-btn";

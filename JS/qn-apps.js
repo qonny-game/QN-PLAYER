@@ -674,15 +674,15 @@
       if (e.target.closest(".qn-swipe-tray")) return;
       if (openRow && openRow !== row) closeRow(openRow);
       if (e.target.closest("input, textarea, .playlist-drag-handle, .pin-color-mark")) return;
-      st = { row: row, x: e.clientX, y: e.clientY, dir: "", base: row.classList.contains("qn-swipe-open") ? -1 : 0, id: e.pointerId, w: 0 };
+      st = { row: row, x: e.clientX, y: e.clientY, dir: "", base: row.classList.contains("qn-swipe-open") ? -1 : 0, id: e.pointerId, w: 0, t: Date.now() };
       swiped = false;
     });
     container.addEventListener("pointermove", function (e) {
       if (!st || e.pointerId !== st.id) return;
       var dx = e.clientX - st.x, dy = e.clientY - st.y;
       if (!st.dir) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        if (Math.abs(dx) > Math.abs(dy) * 0.7) {
           st.dir = "h";
           var tray = buildTray(st.row);
           if (!tray.children.length) { st = null; return; }
@@ -702,7 +702,8 @@
       if (s.dir !== "h") return;
       try { s.row.releasePointerCapture(e.pointerId); } catch (err) {}
       var m = /translateX\((-?[\d.]+)px\)/.exec(s.row.style.transform || ""), x = m ? parseFloat(m[1]) : 0;
-      if (ok && x < -s.w / 2) {
+      var flickOpen = !s.base && (-x) > 24 && (-x) / Math.max(1, Date.now() - s.t) > 0.35;
+      if (ok && (flickOpen || x < (s.base ? -s.w * 0.7 : -s.w * 0.3))) {
         setX(s.row, -s.w, true);
         s.row.classList.add("qn-swipe-open");
         openRow = s.row;
