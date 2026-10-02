@@ -406,7 +406,7 @@
     const waveAddAudioBtn = el(
       '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddAudioBtn" title="Add Audio">' +
         '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-        '<span>ADD AUDIO</span>' +
+        '<span>AUDIO</span>' +
       '</button>'
     );
     waveAddAudioBtn.addEventListener("click", () => {
@@ -417,7 +417,7 @@
     const waveAddMarkerBtn = el(
       '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddMarkerBtn" title="Add Marker">' +
         '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-        '<span>ADD MARKER</span>' +
+        '<span>MARKER</span>' +
       '</button>'
     );
     waveAddMarkerBtn.addEventListener("click", () => {
@@ -755,7 +755,7 @@
       const addFileBtn = el(
         '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2LibraryAddFileBtn" title="Add Audio">' +
           '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-          '<span>ADD AUDIO</span>' +
+          '<span>AUDIO</span>' +
         '</button>'
       );
       addFileBtn.addEventListener("click", () => {
@@ -768,7 +768,7 @@
       const newFolderBtn = el(
         '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2NewFolderBtn" title="New Folder">' +
           '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg>' +
-          '<span>NEW FOLDER</span>' +
+          '<span>FOLDER</span>' +
         '</button>'
       );
       newFolderBtn.addEventListener("click", () => {
@@ -785,7 +785,7 @@
       const addMarkerBtn = el(
         '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2AddMarkerBtn" title="Add Marker">' +
           '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-          '<span>ADD MARKER</span>' +
+          '<span>MARKER</span>' +
         '</button>'
       );
       addMarkerBtn.addEventListener("click", () => {

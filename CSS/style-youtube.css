@@ -1152,3 +1152,16 @@
   color: var(--icon-muted);
 }
 .track-backup-group-label:not(:first-child) { margin-top: 6px; border-top: 1px solid var(--border-subtle); }
+
+/* v3.30.2: ステージ右下のMARKERボタン(PLの#pcV2WaveFabRowと同位置。プレイヤーの外・通常フローで重ねない) */
+.qn-yt-stage-fab {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  margin-top: 12px;
+}
+@media screen and (max-width: 900px) {
+  .qn-yt-stage-fab { margin-top: 12px; }
+  .qn-yt-stage-fab .panel-fab-btn { padding: 10px 16px; font-size: 13px; }
+  .qn-yt:not([data-panel="none"]) .qn-yt-stage-fab { display: none; }
+}

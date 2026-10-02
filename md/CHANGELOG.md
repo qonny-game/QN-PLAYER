@@ -22,3 +22,4 @@
 - 3.29.0 MP3の端末間P2P転送を追加(player-p2p.js)。未インポートの曲を選び6文字コードで接続→WebRTCで直接転送(サーバー非経由)。取り込み後は同期で設定が自動で付く。 入口はサイドバー下段のTransfer(Backup/Importの隣)。
 - 3.30.0 MarkersパネルのタイトルとMarkersリストの間に、再生中の曲をライブラリと同じ行デザインで表示(並び替えつまみ無し。`buildPlaylistRow()`をライブラリと共用、`renderNowPlaying()`が`renderPlaylist()`末尾で更新)。
 - 3.30.1 サイドバーのMarkersアイコンを「リスト＋プラス」に変更(PLAYER/YouTube共通)。ADD MARKERボタンのプラスは従来のまま。
+- 3.30.2 YouTubeステージ右下にMARKERボタン追加(PLの波形エリア右下と同位置・プレイヤー外の通常フロー)。FAB/ウェーブのラベルをADD/NEW付きからAUDIO/MARKER/FOLDERに簡略化。

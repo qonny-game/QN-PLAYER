@@ -319,7 +319,7 @@
         '<div class="qn-yt-fab" data-yt="fab">' +
           '<div class="qn-yt-fab-add">' +
             '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="fabAdd" title="Add Marker">' +
-              '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>ADD MARKER</span>' +
+              '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>MARKER</span>' +
             '</button>' +
           '</div>' +
           '<button type="button" class="panel-fab-btn panel-fab-delete-btn" data-yt="fabDel" disabled>' +
@@ -336,6 +336,12 @@
         '<div class="qn-yt-custom">' +
           '<p class="qn-yt-fetched-title" data-yt="fetchedTitle"></p>' +
           '<div class="qn-yt-seek" data-yt="seekTracks"><div class="qn-yt-marker-layer" data-yt="markerLayer"></div></div>' +
+        '</div>' +
+        // PLの波形エリア右下(#pcV2WaveFabRow)と同位置のMARKERボタン。プレイヤーの外(下)・通常フロー(重ねない)
+        '<div class="qn-yt-stage-fab">' +
+          '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="stageAddMarker" title="Add Marker">' +
+            '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>MARKER</span>' +
+          '</button>' +
         '</div>' +
       '</section>' +
       BAR_HTML +
@@ -688,6 +694,7 @@
       renderMarkers();
     }
     refs.addMarkerBtn.addEventListener("click", addMarkerHere);
+    refs.stageAddMarker.addEventListener("click", addMarkerHere);
     refs.fabAdd.addEventListener("click", function () {
       if (!current || !playerReady) { if (window.QNApps) window.QNApps.toast("先に動画を読み込んでください"); return; }
       addMarkerHere();
