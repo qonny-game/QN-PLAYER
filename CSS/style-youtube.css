@@ -310,7 +310,7 @@
 .qn-yt-player-wrap {
   width: 100%;
   max-width: 1280px;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--qn-yt-ar, 1.7778); /* 動画の縦横比(oEmbedの幅/高さ)。取得前・不明は16:9 */
   min-height: 200px; /* 規約: 最小200px */
   background: #000;
   flex-shrink: 0;
@@ -529,16 +529,21 @@
     position: relative;
   }
 
+  /* SP: プレイヤーは左右・上いっぱい(ヘッダー線の直下)。自前UIだけ左右16px */
   .qn-yt-stage {
     order: 1;
     overflow: visible;
-    padding: 12px 16px 8px;
+    padding: 0 0 8px;
     flex-shrink: 0;
   }
 
   .qn-yt-custom {
     margin-top: 16px;
+    padding: 0 16px;
+    box-sizing: border-box;
   }
+
+  .qn-yt-stage-fab { margin-right: 16px; }
 
 
   /* SP幅: パネル開時もプレイヤーを上部に小さく残す(規約: 覆わない・隠さない・最低200x200px)。パネルはその下の残り領域 */
@@ -563,7 +568,7 @@
   }
 
   .qn-yt:not([data-panel="none"]) .qn-yt-stage {
-    padding: 8px 16px;
+    padding: 0;
     overflow: hidden;
   }
 
@@ -925,8 +930,8 @@
   }
   .qn-yt-player-wrap iframe,
   #qnYtPlayer {
-    width: min(100cqw, calc(100cqh * 16 / 9));
-    height: min(100cqh, calc(100cqw * 9 / 16));
+    width: min(100cqw, calc(100cqh * var(--qn-yt-ar, 1.7778)));
+    height: min(100cqh, calc(100cqw / var(--qn-yt-ar, 1.7778)));
     background: #000;
   }
   .qn-yt-custom { margin-top: 12px; max-width: none; flex-shrink: 0; }

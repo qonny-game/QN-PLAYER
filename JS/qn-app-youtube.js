@@ -118,6 +118,44 @@
     return it.customTitle || getCachedTitle(it.videoId) || "youtu.be/" + it.videoId;
   }
 
+  // 動画の縦横比: oEmbedの幅/高さ(旧4:3動画は200x150)。埋め込み枠をそれに合わせる(切り抜きでなく枠のリサイズ)。端末に永続キャッシュ。16:9付近・縦長・異常値は既定(16:9)扱い
+  var ASPECT_KEY = "qn_yt_aspect_v1", aspectInflight = {};
+  function readAspectCache() {
+    try { var o = JSON.parse(localStorage.getItem(ASPECT_KEY) || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; }
+  }
+  function setCachedAspect(vid, w, h) {
+    if (!(w > 0 && h > 0)) return;
+    var r = Math.round(w / h * 1000) / 1000;
+    if (!(r >= 1.2 && r <= 2.4) || Math.abs(r - 16 / 9) < 0.03) r = 0;
+    var c = readAspectCache();
+    if (c[vid] === r) return;
+    c[vid] = r;
+    var keys = Object.keys(c);
+    if (keys.length > 500) delete c[keys[0]];
+    try { localStorage.setItem(ASPECT_KEY, JSON.stringify(c)); } catch (e) {}
+  }
+  function applyAspect(videoId) {
+    var yt = root && root.querySelector(".qn-yt");
+    if (!yt) return;
+    var r = readAspectCache()[videoId];
+    if (r) yt.style.setProperty("--qn-yt-ar", String(r)); else yt.style.removeProperty("--qn-yt-ar");
+  }
+  function ensureAspect(videoId) {
+    var c = readAspectCache();
+    if (videoId in c) { applyAspect(videoId); return; }
+    applyAspect(videoId);
+    if (aspectInflight[videoId] || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
+    aspectInflight[videoId] = true;
+    fetch("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + videoId))
+      .then(function (res) { if (!res.ok) throw new Error("oembed failed"); return res.json(); })
+      .then(function (d) {
+        setCachedAspect(videoId, d && d.width, d && d.height);
+        if (current && current.videoId === videoId) applyAspect(videoId);
+      })
+      .catch(function () {})
+      .then(function () { delete aspectInflight[videoId]; });
+  }
+
   var titleInflight = {}, titleFailed = {}, listRefreshTimer = 0;
   // oEmbed(APIキー不要)でタイトル取得→キャッシュ。成功時はタイトル、失敗時は""を返すPromise。force=キャッシュを無視して再取得
   function fetchYtTitle(videoId, force) {
@@ -136,6 +174,7 @@
         if (!t) throw new Error("no title");
         delete titleFailed[videoId];
         setCachedTitle(videoId, t);
+        setCachedAspect(videoId, data.width, data.height);
         return t;
       })
       .catch(function () { titleFailed[videoId] = true; return ""; })
@@ -615,6 +654,7 @@
     if (item) refs.titleInput.value = item.customTitle || "";
     showMessage("");
     fetchTitleForDisplay(videoId);
+    ensureAspect(videoId);
     requestApi();
     if (player && playerReady) {
       if (shouldPlay) player.loadVideoById(videoId); else player.cueVideoById(videoId);
