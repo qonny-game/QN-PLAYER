@@ -601,7 +601,7 @@
           row.appendChild(info);
           row.addEventListener("click", function (e) {
             if (e.target.closest("button")) return;
-            toast("この端末にMP3がありません。「" + (g.n || "") + "」を追加すると、設定が自動で付きます");
+            toast("この端末にMP3がありません。「" + (g.n || "") + "」を追加すると設定が適用されます");
           });
           if (editMode) {
             var del = document.createElement("button");
@@ -611,7 +611,7 @@
             del.textContent = "✕";
             del.addEventListener("click", function (e) {
               e.stopPropagation();
-              if (window.confirm("「" + (g.ti || g.n || "") + "」の同期情報を削除します。\n(他の端末のMP3は消えません)")) removeGhost(g.h);
+              if (window.confirm("「" + (g.ti || g.n || "") + "」の同期情報を削除します。\n他の端末のMP3は削除されません。")) removeGhost(g.h);
             });
             row.appendChild(del);
           }
@@ -630,7 +630,8 @@
       var tb = document.createElement("button");
       tb.type = "button";
       tb.className = "playlist-p2p-btn";
-      tb.textContent = "📡 MP3を端末間で転送";
+      tb.textContent = "Transfer";
+      tb.title = "MP3を端末間で転送";
       tb.addEventListener("click", function () { window.QNP2P.open(); });
       bar.appendChild(tb);
       bar.appendChild(foot);
