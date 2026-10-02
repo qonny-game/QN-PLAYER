@@ -33,7 +33,7 @@ body.pc-v2-active #pcV2Root {
 #pcV2Layout {
   display: grid;
   /* パネル幅=SP実機のオーバーレイ幅(iPhone標準375px)に合わせる(意図的) */
-  grid-template-columns: var(--pcv2-bar-w, 76px) 375px 1fr;
+  grid-template-columns: 76px 375px 1fr;
   grid-template-rows: 1fr;
   gap: 0;
   align-items: stretch;
@@ -431,7 +431,7 @@ body.pc-v2-active > .app-container {
 }
 
 
-/* 【v3.15.0】PC幅が狭い時はVolume/Speed/Key/EQ(右グループ)を非表示(操作はControlパネル)。閾値: パネル展開時1340px以下、格納時960px以下(バー必要幅約883px。右カラム幅=画面幅−451px/−76px。1400px以上はサイドバーが136px(--pcv2-bar-w)になるが必要幅に収まる) */
+/* 【v3.15.0】PC幅が狭い時はVolume/Speed/Key/EQ(右グループ)を非表示(操作はControlパネル)。閾値: パネル展開時1340px以下、格納時960px以下(バー必要幅約883px。右カラム幅=画面幅−451px/−76px。) */
 @media screen and (min-width: 901px) and (max-width: 1340px) {
   #pcV2Layout:not(.pcv2-collapsed) #pcV2BottomBarGroupRight,
   #pcV2Layout:not(.pcv2-collapsed) #pcV2BottomBar > .pcv2-ctrl-spacer {
@@ -451,7 +451,7 @@ body.pc-v2-active > .app-container {
     transition: grid-template-columns 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   #pcV2Layout.pcv2-collapsed {
-    grid-template-columns: var(--pcv2-bar-w, 76px) 0 1fr;
+    grid-template-columns: 76px 0 1fr;
   }
   #pcV2Panel {
     overflow: hidden;

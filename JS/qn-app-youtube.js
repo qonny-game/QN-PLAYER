@@ -1125,6 +1125,45 @@
     refs.chapAdd.addEventListener("click", addChapters);
     refs.fabEdit.addEventListener("click", toggleEdit);
     refs.sheetClose.addEventListener("click", function () { setPanel("none"); });
+    // SP: 行の横スワイプで編集/SKIP(HIDE)/削除のボタン(EDIT中は無効)
+    if (window.QNApps && window.QNApps.swipeRows) {
+      window.QNApps.swipeRows(refs.itemList, {
+        rowSel: ".playlistItem[data-id]",
+        disabled: function () { return !!editMode; },
+        actions: function (row) {
+          var it = findItem(row.dataset.id);
+          if (!it) return [];
+          return [
+            { kind: "edit", run: function () { var b = row.querySelector(".playlist-hover-edit-btn"); if (b) b.click(); } },
+            { kind: "skip", on: !!it.skip, run: function () { if (it.skip) delete it.skip; else it.skip = true; saveItems(); renderList(); } },
+            { kind: "del", run: function () {
+              removeCachedTitles([it.videoId]);
+              items = items.filter(function (x) { return x !== it; });
+              if (current && current.itemId === it.id) current.itemId = null;
+              saveItems(); renderList(); renderMarkers();
+            } }
+          ];
+        }
+      });
+      window.QNApps.swipeRows(refs.markerList, {
+        rowSel: ".pinItem[data-id]",
+        disabled: function () { return !!editMode; },
+        actions: function (row) {
+          var m = current ? findMarker(row.dataset.id) : null;
+          if (!m) return [];
+          return [
+            { kind: "edit", run: function () { var b = row.querySelector(".pin-edit-btn"); if (b) b.click(); } },
+            { kind: "hide", on: m.enabled === false, run: function () { if (m.enabled === false) delete m.enabled; else m.enabled = false; persistMarkers(); renderMarkers(); } },
+            { kind: "del", run: function () {
+              current.markers = current.markers.filter(function (x) { return x.id !== m.id; });
+              var it = current.itemId ? findItem(current.itemId) : null;
+              if (it) it.markers = current.markers;
+              persistMarkers(); persistLoop(); renderMarkers();
+            } }
+          ];
+        }
+      });
+    }
     if (window.QNApps && window.QNApps.sheetDrag) window.QNApps.sheetDrag(root.querySelector(".qn-yt-panel"), root.querySelector(".qn-yt-panel-header"), function () { setPanel("none"); });
     refs.fabFolder.addEventListener("click", addFolderInteractive);
     refs.fabMove.addEventListener("click", function () { moveSelectedToFolder(refs.fabMove); });

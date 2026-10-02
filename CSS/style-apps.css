@@ -317,31 +317,67 @@ body.qn-mic-on #qnAppBadge::after {
 }
 
 
-/* v3.32.0 広いPC幅(1400px以上): アプリ名バッジとアプリ一覧を「アイコン＋文字」の1行にする(サイドバー幅を136pxへ拡張。これ未満は幅が足りず下段バーの右グループが隠れるので従来表示) */
-@media screen and (min-width: 1400px) {
-  :root { --pcv2-bar-w: 136px; }
-  #pcV2IconBar #qnAppBadge,
+/* v3.32.0 PC幅: アプリ一覧(フライアウト)だけ「アイコン＋文字」の1行・広め。サイドバー本体/バッジは従来のまま */
+@media screen and (min-width: 901px) {
   #qnAppFlyout .qn-flyout-item {
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
-    gap: 8px;
-    padding: 14px 18px 14px 12px;
+    gap: 10px;
+    padding: 14px 16px 14px 18px;
   }
-  #pcV2IconBar #qnAppBadge svg,
-  #qnAppFlyout .qn-flyout-item svg {
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-  }
-  #pcV2IconBar #qnAppBadge span,
+  #qnAppFlyout .qn-flyout-item svg { width: 24px; height: 24px; flex-shrink: 0; }
   #qnAppFlyout .qn-flyout-item span {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.4px;
     white-space: nowrap;
   }
-  #qnAppBadge .qn-badge-chev { right: 2px; margin-top: -6px; width: 12px; height: 12px; }
-  #qnAppFlyout .qn-flyout-item { padding-right: 12px; }
   #qnAppFlyout { width: 190px; }
 }
+
+/* v3.33.0 SP: リスト行の横スワイプで出る□アイコンボタン(編集/SKIP(HIDE)/削除)。ボタン群は行の右外(left:100%)に置き、行を左へずらして見せる。はみ出しはリスト側でclip */
+@media screen and (max-width: 900px) {
+  .qn-swipe-list { overflow-x: clip; }
+  .qn-swipe-list .qn-swipe-row { position: relative; touch-action: pan-y; will-change: transform; }
+  .qn-swipe-tray {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: stretch;
+  }
+  .qn-swipe-list .qn-swipe-tray .qn-swipe-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 64px !important;
+    min-width: 64px;
+    height: auto;
+    margin: 0;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #2f3a52;
+    color: #fff !important;
+    font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .qn-swipe-list .qn-swipe-tray .qn-swipe-btn svg { width: 22px; height: 22px; fill: currentColor; }
+  .qn-swipe-list .qn-swipe-tray .qn-swipe-btn span { color: #fff; font-size: 10px; }
+  .qn-swipe-list .qn-swipe-tray .qn-swipe-btn.is-edit { background: var(--accent-primary); }
+  .qn-swipe-list .qn-swipe-tray .qn-swipe-btn.is-skip, .qn-swipe-list .qn-swipe-tray .qn-swipe-btn.is-hide { background: #b45309; }
+  .qn-swipe-list .qn-swipe-tray .qn-swipe-btn.is-del { background: var(--danger, #ef4444); }
+  .qn-swipe-list .qn-swipe-tray .qn-swipe-btn.is-del.confirm { background: #991b1b; }
+  .qn-swipe-list .qn-swipe-tray .qn-swipe-btn:active { filter: brightness(0.85); }
+  .qn-swipe-list .playlistItem, .qn-swipe-list .pinItem { touch-action: pan-y; }
+}
+.qn-swipe-tray { display: none; }
+@media screen and (max-width: 900px) { .qn-swipe-tray { display: flex; } }

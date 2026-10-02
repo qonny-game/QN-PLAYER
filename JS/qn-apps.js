@@ -604,7 +604,120 @@
     header.addEventListener("pointercancel", function (e) { end(e, false); });
   }
 
+  // SP幅のリスト行: 横にスワイプすると右に□アイコンボタン(編集/SKIP(HIDE)/削除)が出る。opts={rowSel, disabled():bool, actions(row):[{kind:"edit|skip|hide|del", on:bool(skip/hide: 今の状態=無効か), run(row)}]}。削除は2タップ確認。行が再描画されると自然に閉じる
+  var SW_ICON = {
+    edit: '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>',
+    eyeOn: '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>',
+    eyeOff: '<path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/>',
+    del: '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',
+    ok: '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>'
+  };
+  function swipeRows(container, opts) {
+    if (!container || container._qnSwipe) return;
+    container._qnSwipe = true;
+    container.classList.add("qn-swipe-list");
+    var openRow = null, st = null, swiped = false;
+    function setX(row, x, anim) {
+      row.style.transition = anim ? "transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)" : "none";
+      row.style.transform = x ? "translateX(" + x + "px)" : "";
+    }
+    function closeRow(row) {
+      if (!row) return;
+      setX(row, 0, true);
+      row.classList.remove("qn-swipe-open");
+      if (openRow === row) openRow = null;
+    }
+    function buildTray(row) {
+      var tray = row._qnTray;
+      if (tray && tray.parentNode === row) { return tray; }
+      tray = document.createElement("div");
+      tray.className = "qn-swipe-tray";
+      (opts.actions(row) || []).forEach(function (a) {
+        var b = document.createElement("button");
+        b.type = "button";
+        var kind = a.kind, icon, label;
+        if (kind === "edit") { icon = SW_ICON.edit; label = "EDIT"; }
+        else if (kind === "del") { icon = SW_ICON.del; label = "DELETE"; }
+        else if (kind === "hide") { icon = a.on ? SW_ICON.eyeOn : SW_ICON.eyeOff; label = a.on ? "SHOW" : "HIDE"; }
+        else { icon = a.on ? SW_ICON.eyeOn : SW_ICON.eyeOff; label = a.on ? "PLAY" : "SKIP"; }
+        b.className = "qn-swipe-btn is-" + kind;
+        b.innerHTML = '<svg viewBox="0 0 24 24">' + icon + "</svg><span>" + label + "</span>";
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (kind === "del" && !b.classList.contains("confirm")) {
+            haptic();
+            b.classList.add("confirm");
+            b.querySelector("svg").innerHTML = SW_ICON.ok;
+            b.querySelector("span").textContent = "OK?";
+            clearTimeout(b._t);
+            b._t = setTimeout(function () {
+              b.classList.remove("confirm");
+              b.querySelector("svg").innerHTML = SW_ICON.del;
+              b.querySelector("span").textContent = "DELETE";
+            }, 3000);
+            return;
+          }
+          haptic();
+          closeRow(row);
+          a.run(row);
+        });
+        tray.appendChild(b);
+      });
+      row.appendChild(tray);
+      row._qnTray = tray;
+      return tray;
+    }
+    container.addEventListener("pointerdown", function (e) {
+      if (!isSp() || (opts.disabled && opts.disabled())) return;
+      var row = e.target.closest(opts.rowSel);
+      if (!row || !container.contains(row)) { if (openRow && !e.target.closest(".qn-swipe-tray")) closeRow(openRow); return; }
+      if (e.target.closest(".qn-swipe-tray")) return;
+      if (openRow && openRow !== row) closeRow(openRow);
+      if (e.target.closest("input, textarea, .playlist-drag-handle, .pin-color-mark")) return;
+      st = { row: row, x: e.clientX, y: e.clientY, dir: "", base: row.classList.contains("qn-swipe-open") ? -1 : 0, id: e.pointerId, w: 0 };
+      swiped = false;
+    });
+    container.addEventListener("pointermove", function (e) {
+      if (!st || e.pointerId !== st.id) return;
+      var dx = e.clientX - st.x, dy = e.clientY - st.y;
+      if (!st.dir) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+          st.dir = "h";
+          var tray = buildTray(st.row);
+          if (!tray.children.length) { st = null; return; }
+          st.row.classList.add("qn-swipe-row");
+          st.w = tray.offsetWidth;
+          try { st.row.setPointerCapture(e.pointerId); } catch (err) {}
+        } else { st.dir = "v"; return; }
+      }
+      if (st.dir !== "h") return;
+      var x = Math.max(-st.w - 24, Math.min(0, st.base * st.w + dx));
+      setX(st.row, x, false);
+      swiped = true;
+    });
+    function end(e, ok) {
+      if (!st || e.pointerId !== st.id) return;
+      var s = st; st = null;
+      if (s.dir !== "h") return;
+      try { s.row.releasePointerCapture(e.pointerId); } catch (err) {}
+      var m = /translateX\((-?[\d.]+)px\)/.exec(s.row.style.transform || ""), x = m ? parseFloat(m[1]) : 0;
+      if (ok && x < -s.w / 2) {
+        setX(s.row, -s.w, true);
+        s.row.classList.add("qn-swipe-open");
+        openRow = s.row;
+      } else closeRow(s.row);
+    }
+    container.addEventListener("pointerup", function (e) { end(e, true); });
+    container.addEventListener("pointercancel", function (e) { end(e, false); });
+    // スワイプ直後のclickは行の通常動作(再生など)にしない
+    container.addEventListener("click", function (e) {
+      if (swiped) { swiped = false; e.stopPropagation(); e.preventDefault(); }
+    }, true);
+  }
+
   window.QNApps = {
+    swipeRows: swipeRows,
     sheetDrag: sheetDrag,
     register: register,
     open: open,
