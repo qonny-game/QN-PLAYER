@@ -31,7 +31,7 @@
 <link rel="stylesheet" href="CSS/style-pitch.css">
 <script>
   // アプリバージョン一元管理(QN_APP_VERSION)。<title>はここで即更新、#splashVersion/#appVersionは各要素直後のinline scriptが反映
-  window.QN_APP_VERSION = "3.29.0";
+  window.QN_APP_VERSION = "3.30.0";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -367,6 +367,7 @@
         <h3>Markers</h3>
         <span id="loopInfo">ACTIVE 0/0</span>
       </div>
+      <div id="markersNowPlaying" style="display:none"></div>
       <div id="pinList"></div>
     </div>
 

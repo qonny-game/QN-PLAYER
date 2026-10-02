@@ -96,6 +96,191 @@ function makeEditableText(value, className, placeholder, onCommit) {
   return wrapper;
 }
 
+// 曲1行のDOM。renderPlaylist()(ライブラリ)と、Markersパネルの「再生中の曲」(renderNowPlaying)で共用。nowPlaying=true: 並び替えつまみ無し・クリックで再生し直さない・編集モード無効(デザインはライブラリと同じ)
+function buildPlaylistRow(track, i, editMode, nowPlaying) {
+  if (nowPlaying) editMode = false;
+  const item = document.createElement("div");
+  item.className = "playlistItem" + (nowPlaying ? " is-nowplaying" : "");
+  item.dataset.index = i;
+  item.dataset.folder = trackFolderId(track) || "";
+  if (i === currentPlaylistIndex) item.classList.add("playing");
+  if (!track.enabled) item.classList.add("disabled");
+
+  const isLockedTrack = typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.LIBRARY_MAX_TRACKS;
+  if (isLockedTrack) item.classList.add("sw-locked");
+
+  if (!editMode && !nowPlaying) {
+    item.addEventListener("click", (e) => {
+      if (e.target.closest("button, input, textarea, .playlist-drag-handle, .playlist-info-block")) return;
+      if (isLockedTrack) {
+        if (e.target.closest(".playlist-thumb")) return;
+        swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
+        return;
+      }
+      playTrackAt(parseInt(item.dataset.index, 10));
+    });
+  }
+
+  const dragHandle = document.createElement("span");
+  dragHandle.className = "playlist-drag-handle";
+  dragHandle.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+  if (!nowPlaying) item.appendChild(dragHandle);
+
+  const thumb = document.createElement("div");
+  thumb.className = "playlist-thumb";
+  if (track.thumbnailUrl) {
+    thumb.style.backgroundImage = `url("${track.thumbnailUrl}")`;
+  } else {
+    thumb.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+  }
+  if (isLockedTrack) {
+    const lockIcon = document.createElement("span");
+    lockIcon.className = "sw-lock-icon";
+    lockIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2h1M12 3a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg>';
+    thumb.appendChild(lockIcon);
+    thumb.onclick = () => swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
+  }
+  item.appendChild(thumb);
+
+  const infoBlock = document.createElement("div");
+  infoBlock.className = "playlist-info-block";
+  infoBlock.onclick = (e) => {
+    // 編集中(input化中)のクリックだけスキップ。.playlist-editable-fieldは常在ラッパーなので判定に使うな(通常時も無効化される)
+    if (nowPlaying) return;
+    if (e.target.closest(".playlist-editable-input")) return;
+    if (e.target.closest(".playlist-hover-edit-btn")) return;
+    if (isLockedTrack) {
+      swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
+      return;
+    }
+    playTrackAt(parseInt(item.dataset.index, 10));
+  };
+
+  const titleRow = document.createElement("div");
+  titleRow.className = "playlist-title-row";
+  const titleField = makeEditableText(
+    track.title || track.name,
+    "playlist-title",
+    "",
+    (newVal) => { track.title = newVal; savePlaylistMetadataFor(track); if (nowPlaying) renderPlaylist(); }
+  );
+  titleRow.appendChild(titleField);
+  if (!editMode) {
+    const titleHoverBtn = document.createElement("button");
+    titleHoverBtn.className = "playlist-hover-edit-btn";
+    titleHoverBtn.title = "Edit title";
+    titleHoverBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+    titleHoverBtn.onclick = (e) => { e.stopPropagation(); titleField.startEdit(); };
+    titleRow.appendChild(titleHoverBtn);
+  }
+  infoBlock.appendChild(titleRow);
+
+  const artistRow = document.createElement("div");
+  artistRow.className = "playlist-artist-row";
+  const artistField = makeEditableText(
+    track.artist || "",
+    "playlist-artist",
+    "Artist",
+    (newVal) => { track.artist = newVal; savePlaylistMetadataFor(track); if (nowPlaying) renderPlaylist(); }
+  );
+  artistRow.appendChild(artistField);
+  if (!editMode) {
+    const artistHoverBtn = document.createElement("button");
+    artistHoverBtn.className = "playlist-hover-edit-btn";
+    artistHoverBtn.title = "Edit artist";
+    artistHoverBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+    artistHoverBtn.onclick = (e) => { e.stopPropagation(); artistField.startEdit(); };
+    artistRow.appendChild(artistHoverBtn);
+  }
+  infoBlock.appendChild(artistRow);
+
+  item.appendChild(infoBlock);
+
+  if (editMode) {
+    titleField.startEdit();
+    artistField.startEdit();
+  }
+
+  // 編集モードはdurationを出さない(PLAY/SKIPトグルと削除チェックの場所が要る)
+  if (!editMode) {
+    const durationSpan = document.createElement("span");
+    durationSpan.className = "playlist-duration";
+    durationSpan.textContent = formatTrackDuration(track.duration);
+    item.appendChild(durationSpan);
+
+    const favoriteBtn = document.createElement("button");
+    favoriteBtn.type = "button";
+    favoriteBtn.className = "playlist-favorite-btn";
+    favoriteBtn.classList.toggle("is-favorite", !!track.favorite);
+    favoriteBtn.title = track.favorite ? "お気に入りから外す" : "お気に入りに追加（リスト上段に固定）";
+    favoriteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>';
+    favoriteBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleTrackFavorite(parseInt(item.dataset.index, 10));
+    };
+    item.appendChild(favoriteBtn);
+  }
+
+  if (editMode) {
+    // 編集モード: PLAY/SKIPトグル(自動送りに含めるか)。.del-btn選択が1件でもあれば押せない(renderPlaylist()がDOMを作り直すと選択表示が消えるため。window.playlistHasSelectedItemsはplayer-ui-pc-v2.js公開)
+    const hasSelection = typeof window.playlistHasSelectedItems === "function" && window.playlistHasSelectedItems();
+    const skipToggle = document.createElement("button");
+    skipToggle.className = "playlist-skip-toggle";
+    skipToggle.classList.toggle("skip-off", track.enabled);
+    skipToggle.disabled = hasSelection;
+    const baseTitle = track.enabled ? "Included in auto-advance (click to skip)" : "Skipped during auto-advance (click to include)";
+    skipToggle.dataset.baseTitle = baseTitle;
+    skipToggle.title = hasSelection ? "削除の選択中は切り替えられません" : baseTitle;
+    skipToggle.innerHTML = '<span class="playlist-skip-toggle-label">' + (track.enabled ? "PLAY" : "SKIP") + '</span>';
+    skipToggle.onclick = (e) => {
+      e.stopPropagation();
+      if (hasSelection) return;
+      track.enabled = !track.enabled;
+      renderPlaylist();
+      persistPlaylistOrder();
+    };
+    item.appendChild(skipToggle);
+
+    const delZone = document.createElement("div");
+    delZone.className = "playlist-del-zone";
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "✕";
+    delBtn.className = "del-btn";
+    delBtn.tabIndex = -1;
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (delBtn.classList.contains("confirm")) {
+        hapticWarning();
+        removeTrackAt(parseInt(item.dataset.index, 10));
+      } else {
+        hapticTap();
+        delBtn.classList.add("confirm");
+        delBtn.textContent = "✓";
+        clearTimeout(delBtn._confirmTimer);
+        delBtn._confirmTimer = setTimeout(() => {
+          delBtn.classList.remove("confirm");
+          delBtn.textContent = "✕";
+        }, 3000);
+      }
+    };
+    delZone.appendChild(delBtn);
+    item.appendChild(delZone);
+  }
+
+  return item;
+}
+
+// Markersパネルのタイトル直下に「再生中の曲」をライブラリと同じ行デザインで表示(並び替えつまみ無し)。曲が無ければ非表示
+function renderNowPlaying() {
+  const host = document.getElementById("markersNowPlaying");
+  if (!host) return;
+  host.innerHTML = "";
+  const track = currentPlaylistIndex >= 0 ? playlist[currentPlaylistIndex] : null;
+  host.style.display = track ? "" : "none";
+  if (track) host.appendChild(buildPlaylistRow(track, currentPlaylistIndex, false, true));
+}
+
 function renderPlaylist() {
   const box = document.getElementById("playlistBox");
   const info = document.getElementById("playlistInfo");
@@ -105,177 +290,7 @@ function renderPlaylist() {
   const editMode = typeof isPlaylistEditMode === "function" && isPlaylistEditMode();
 
   box.innerHTML = "";
-  const buildRow = (track, i) => {
-    const item = document.createElement("div");
-    item.className = "playlistItem";
-    item.dataset.index = i;
-    item.dataset.folder = trackFolderId(track) || "";
-    if (i === currentPlaylistIndex) item.classList.add("playing");
-    if (!track.enabled) item.classList.add("disabled");
-
-    const isLockedTrack = typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.LIBRARY_MAX_TRACKS;
-    if (isLockedTrack) item.classList.add("sw-locked");
-
-    if (!editMode) {
-      item.addEventListener("click", (e) => {
-        if (e.target.closest("button, input, textarea, .playlist-drag-handle, .playlist-info-block")) return;
-        if (isLockedTrack) {
-          if (e.target.closest(".playlist-thumb")) return;
-          swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
-          return;
-        }
-        playTrackAt(parseInt(item.dataset.index, 10));
-      });
-    }
-
-    const dragHandle = document.createElement("span");
-    dragHandle.className = "playlist-drag-handle";
-    dragHandle.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
-    item.appendChild(dragHandle);
-
-    const thumb = document.createElement("div");
-    thumb.className = "playlist-thumb";
-    if (track.thumbnailUrl) {
-      thumb.style.backgroundImage = `url("${track.thumbnailUrl}")`;
-    } else {
-      thumb.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
-    }
-    if (isLockedTrack) {
-      const lockIcon = document.createElement("span");
-      lockIcon.className = "sw-lock-icon";
-      lockIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2h1M12 3a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg>';
-      thumb.appendChild(lockIcon);
-      thumb.onclick = () => swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
-    }
-    item.appendChild(thumb);
-
-    const infoBlock = document.createElement("div");
-    infoBlock.className = "playlist-info-block";
-    infoBlock.onclick = (e) => {
-      // 編集中(input化中)のクリックだけスキップ。.playlist-editable-fieldは常在ラッパーなので判定に使うな(通常時も無効化される)
-      if (e.target.closest(".playlist-editable-input")) return;
-      if (e.target.closest(".playlist-hover-edit-btn")) return;
-      if (isLockedTrack) {
-        swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
-        return;
-      }
-      playTrackAt(parseInt(item.dataset.index, 10));
-    };
-
-    const titleRow = document.createElement("div");
-    titleRow.className = "playlist-title-row";
-    const titleField = makeEditableText(
-      track.title || track.name,
-      "playlist-title",
-      "",
-      (newVal) => { track.title = newVal; savePlaylistMetadataFor(track); }
-    );
-    titleRow.appendChild(titleField);
-    if (!editMode) {
-      const titleHoverBtn = document.createElement("button");
-      titleHoverBtn.className = "playlist-hover-edit-btn";
-      titleHoverBtn.title = "Edit title";
-      titleHoverBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
-      titleHoverBtn.onclick = (e) => { e.stopPropagation(); titleField.startEdit(); };
-      titleRow.appendChild(titleHoverBtn);
-    }
-    infoBlock.appendChild(titleRow);
-
-    const artistRow = document.createElement("div");
-    artistRow.className = "playlist-artist-row";
-    const artistField = makeEditableText(
-      track.artist || "",
-      "playlist-artist",
-      "Artist",
-      (newVal) => { track.artist = newVal; savePlaylistMetadataFor(track); }
-    );
-    artistRow.appendChild(artistField);
-    if (!editMode) {
-      const artistHoverBtn = document.createElement("button");
-      artistHoverBtn.className = "playlist-hover-edit-btn";
-      artistHoverBtn.title = "Edit artist";
-      artistHoverBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
-      artistHoverBtn.onclick = (e) => { e.stopPropagation(); artistField.startEdit(); };
-      artistRow.appendChild(artistHoverBtn);
-    }
-    infoBlock.appendChild(artistRow);
-
-    item.appendChild(infoBlock);
-
-    if (editMode) {
-      titleField.startEdit();
-      artistField.startEdit();
-    }
-
-    // 編集モードはdurationを出さない(PLAY/SKIPトグルと削除チェックの場所が要る)
-    if (!editMode) {
-      const durationSpan = document.createElement("span");
-      durationSpan.className = "playlist-duration";
-      durationSpan.textContent = formatTrackDuration(track.duration);
-      item.appendChild(durationSpan);
-
-      const favoriteBtn = document.createElement("button");
-      favoriteBtn.type = "button";
-      favoriteBtn.className = "playlist-favorite-btn";
-      favoriteBtn.classList.toggle("is-favorite", !!track.favorite);
-      favoriteBtn.title = track.favorite ? "お気に入りから外す" : "お気に入りに追加（リスト上段に固定）";
-      favoriteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>';
-      favoriteBtn.onclick = (e) => {
-        e.stopPropagation();
-        toggleTrackFavorite(parseInt(item.dataset.index, 10));
-      };
-      item.appendChild(favoriteBtn);
-    }
-
-    if (editMode) {
-      // 編集モード: PLAY/SKIPトグル(自動送りに含めるか)。.del-btn選択が1件でもあれば押せない(renderPlaylist()がDOMを作り直すと選択表示が消えるため。window.playlistHasSelectedItemsはplayer-ui-pc-v2.js公開)
-      const hasSelection = typeof window.playlistHasSelectedItems === "function" && window.playlistHasSelectedItems();
-      const skipToggle = document.createElement("button");
-      skipToggle.className = "playlist-skip-toggle";
-      skipToggle.classList.toggle("skip-off", track.enabled);
-      skipToggle.disabled = hasSelection;
-      const baseTitle = track.enabled ? "Included in auto-advance (click to skip)" : "Skipped during auto-advance (click to include)";
-      skipToggle.dataset.baseTitle = baseTitle;
-      skipToggle.title = hasSelection ? "削除の選択中は切り替えられません" : baseTitle;
-      skipToggle.innerHTML = '<span class="playlist-skip-toggle-label">' + (track.enabled ? "PLAY" : "SKIP") + '</span>';
-      skipToggle.onclick = (e) => {
-        e.stopPropagation();
-        if (hasSelection) return;
-        track.enabled = !track.enabled;
-        renderPlaylist();
-        persistPlaylistOrder();
-      };
-      item.appendChild(skipToggle);
-
-      const delZone = document.createElement("div");
-      delZone.className = "playlist-del-zone";
-
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "✕";
-      delBtn.className = "del-btn";
-      delBtn.tabIndex = -1;
-      delBtn.onclick = (e) => {
-        e.stopPropagation();
-        if (delBtn.classList.contains("confirm")) {
-          hapticWarning();
-          removeTrackAt(parseInt(item.dataset.index, 10));
-        } else {
-          hapticTap();
-          delBtn.classList.add("confirm");
-          delBtn.textContent = "✓";
-          clearTimeout(delBtn._confirmTimer);
-          delBtn._confirmTimer = setTimeout(() => {
-            delBtn.classList.remove("confirm");
-            delBtn.textContent = "✕";
-          }, 3000);
-        }
-      };
-      delZone.appendChild(delBtn);
-      item.appendChild(delZone);
-    }
-
-    return item;
-  };
+  const buildRow = (track, i) => buildPlaylistRow(track, i, editMode, false);
 
   // フォルダが無ければ従来どおり全曲を並べるだけ。有れば「フォルダ見出し→その曲」をフォルダ順に、未分類は末尾。編集モードは全フォルダを展開(移動/削除の対象を隠さない)
   const frag = document.createDocumentFragment();
@@ -300,6 +315,7 @@ function renderPlaylist() {
   box.appendChild(frag);
   // 本体Library同期(player-sync.js): 「未インポート」セクションと同期ステータス行
   if (window.QNLibSync) window.QNLibSync.decorateLibrary(box, editMode);
+  renderNowPlaying();
 
   syncAutoNextScopeButton();
   setupPlaylistDragReorder(box);

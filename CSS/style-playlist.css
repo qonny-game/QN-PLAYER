@@ -495,3 +495,7 @@ body.dragover #dropOverlay {
 .qn-p2p-bar { height: 6px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, 0.1); overflow: hidden; }
 .qn-p2p-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); transition: width 0.15s linear; }
 .qn-p2p-prog-t { margin-top: 8px; font-family: var(--font-body, 'Instrument Sans'), sans-serif; font-size: var(--fs-small); color: var(--icon-muted); min-height: 1.2em; }
+
+/* ---------- v3.30.0 Markersパネルの「再生中の曲」(renderNowPlaying)。行はライブラリと同じ.playlistItem、並び替えつまみだけ無し ---------- */
+#markersNowPlaying { border-bottom: 1px solid var(--border-subtle); margin-bottom: 8px; }
+#markersNowPlaying .playlistItem.is-nowplaying { grid-template-columns: auto 1fr auto auto; cursor: default; }
