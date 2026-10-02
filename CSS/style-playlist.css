@@ -213,6 +213,17 @@
   color: var(--accent-primary);
 }
 
+/* 同上: .playlistItem buttonのpadding(5px 9px)/color(danger)が鉛筆(.playlist-hover-edit-btn)に勝ち、18px幅のボタンが余白で埋まってアイコン幅0pxになっていた */
+.playlistItem .playlist-hover-edit-btn {
+  padding: 0;
+  color: var(--icon-muted);
+}
+
+.playlistItem .playlist-hover-edit-btn:hover {
+  color: var(--text-bright);
+  background: var(--bg-hover-subtle);
+}
+
 
 #dropOverlay {
   position: fixed;
@@ -387,6 +398,37 @@ body.dragover #dropOverlay {
 .playlist-folder-btn.is-del { color: var(--danger); border-color: var(--danger); }
 .playlist-folder-btn.is-del.confirm { background: var(--danger); color: var(--text-pure-white); }
 
+/* ---------- 【v3.27.0】フォルダのドラッグ並び替え・曲→フォルダへのドロップ ---------- */
+.playlist-folder-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--icon-muted);
+  cursor: grab;
+  touch-action: none;
+}
+.playlist-folder-grip:hover { color: var(--text-bright); }
+.playlist-folder-grip svg { width: 18px; height: 18px; fill: currentColor; }
+.playlistFolderHeader.dragging {
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  cursor: grabbing;
+  transition: none;
+}
+/* フォルダをドラッグしている間、全フォルダの曲行を畳んで見出しだけの一覧にする */
+.folder-drag-hidden { display: none !important; }
+/* 曲をフォルダの上へドラッグ中: 移動先の見出し+曲行をハイライト(アニメ無し) */
+.playlistFolderHeader.drop-target {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+  background: var(--bg-hover-subtle);
+}
+.playlistItem.drop-target-row { background: var(--bg-hover-subtle); }
+
 /* Libraryヘッダー右のAuto Nextスコープ(.mini-reset-btnを流用) */
 .playlist-scope-btn { gap: 6px; }
 .playlist-scope-btn[hidden] { display: none; }
@@ -425,3 +467,16 @@ body.dragover #dropOverlay {
 .playlist-folder-picker-item:hover { background: var(--bg-hover-subtle); }
 .playlist-folder-picker-item.is-loose { color: var(--icon-muted); }
 .playlist-folder-picker-item.is-new { color: var(--accent-primary); font-weight: 600; }
+
+/* ---------- v3.28.0 Library同期(player-sync.js): 未インポート(ghost)セクション/同期ステータス行 ---------- */
+.playlist-ghost-section { margin-top: 10px; border-top: 1px dashed var(--border, rgba(128,128,128,.35)); padding-top: 6px; opacity: .85; }
+.playlist-ghost-head { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 6px 8px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: inherit; opacity: .8; cursor: pointer; }
+.playlist-ghost-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: default; }
+.playlist-ghost-row:hover { background: rgba(128,128,128,.12); }
+.playlist-ghost-info { flex: 1; min-width: 0; }
+.playlist-ghost-title { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .75; }
+.playlist-ghost-sub { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .55; }
+.playlist-ghost-del { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(128,128,128,.2); color: inherit; font-size: 12px; cursor: pointer; }
+.playlist-sync-foot { margin: 8px 0 2px; padding: 4px 8px; font-size: 11px; text-align: right; opacity: .6; user-select: none; }
+.playlist-sync-foot.can { cursor: pointer; }
+.playlist-sync-foot.err { color: #e5534b; opacity: .9; }

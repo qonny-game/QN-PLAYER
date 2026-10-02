@@ -298,9 +298,12 @@ function renderPlaylist() {
     }
   }
   box.appendChild(frag);
+  // 本体Library同期(player-sync.js): 「未インポート」セクションと同期ステータス行
+  if (window.QNLibSync) window.QNLibSync.decorateLibrary(box, editMode);
 
   syncAutoNextScopeButton();
   setupPlaylistDragReorder(box);
+  setupFolderDragReorder(box);
   if (typeof window.playlistReapplySelection === "function") window.playlistReapplySelection();
 }
 
@@ -311,6 +314,15 @@ function buildFolderHeader(folder, count, folderIdx, editMode) {
   if (!folder) head.classList.add("is-loose");
   if (folder && folder.collapsed && !editMode) head.classList.add("is-collapsed");
   head.dataset.folderId = folder ? folder.id : "";
+
+  // フォルダのドラッグ並び替えつまみ(未分類は末尾固定でつまみ無し)。曲のつまみ(.playlist-drag-handle)とはクラスを分ける(曲側のドラッグが拾わないように)
+  if (folder) {
+    const grip = document.createElement("span");
+    grip.className = "playlist-folder-grip";
+    grip.title = "ドラッグでフォルダを並び替え";
+    grip.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+    head.appendChild(grip);
+  }
 
   const chev = document.createElement("span");
   chev.className = "playlist-folder-chev";
@@ -388,7 +400,7 @@ function buildFolderHeader(folder, count, folderIdx, editMode) {
 
   if (folder && !editMode) {
     head.addEventListener("click", (e) => {
-      if (e.target.closest("button, input")) return;
+      if (e.target.closest("button, input, .playlist-folder-grip")) return;
       hapticTap();
       togglePlaylistFolderCollapsed(folder.id);
       renderPlaylist();
@@ -613,6 +625,40 @@ function playNextTrack() {
   if (nextIndex !== -1) playTrackAt(nextIndex);
 }
 
+// ドラッグ用の共通部品。測定はドラッグ開始時に1回だけ(ドラッグ中にgetBoundingClientRect/getComputedStyleを呼ばない)。座標は「スクロール量を足した内容座標」で持つ
+function findPlaylistScroller(box) {
+  for (let el = box.parentElement; el && el !== document.body; el = el.parentElement) {
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight) return el;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+function scrollerViewRect(scroller) {
+  if (scroller === document.scrollingElement || scroller === document.documentElement) return { top: 0, bottom: window.innerHeight };
+  const r = scroller.getBoundingClientRect();
+  return { top: r.top, bottom: r.bottom };
+}
+// フォルダごとのまとまり(見出し+その曲行)の縦範囲。span=次のまとまりの先頭までの高さ(最後は自分の下端まで)
+function measureFolderBlocks(box, scroller) {
+  const sTop = scroller.scrollTop, blocks = [];
+  let cur = null;
+  Array.from(box.children).forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (el.classList.contains("playlistFolderHeader")) {
+      cur = { id: el.dataset.folderId || "", head: el, els: [el], rows: [], top: r.top + sTop, bottom: r.bottom + sTop };
+      blocks.push(cur);
+    } else if (cur && !el.classList.contains("qn-lib-extra")) {
+      cur.els.push(el);
+      if (el.classList.contains("playlistItem")) cur.rows.push(el);
+      cur.bottom = r.bottom + sTop;
+    }
+  });
+  blocks.forEach((b, i) => { b.span = (i + 1 < blocks.length ? blocks[i + 1].top : b.bottom) - b.top; });
+  return blocks;
+}
+const PLAYLIST_AUTOSCROLL_EDGE = 36;   // スクロール領域の端からこのpx以内でドラッグすると自動スクロール
+const PLAYLIST_AUTOSCROLL_STEP = 10;   // 1回(50ms)あたりのpx。ドラッグ中、端にいる間だけ動く間引きタイマー(rAFループは使わない)
+
 function setupPlaylistDragReorder(box) {
   const handles = box.querySelectorAll(".playlist-drag-handle");
 
@@ -623,6 +669,17 @@ function setupPlaylistDragReorder(box) {
     let startIndex = 0;
     let itemHeight = 0;
     let itemCount = 0;
+    // 曲→別フォルダへのドロップ(フォルダがある時だけ)。blocks=開始時に測ったフォルダごとの縦範囲、hoverBlock=今ポインタが乗っている別フォルダ
+    let blocks = null, hoverBlock = null, scroller = null, scrollStart = 0, viewRect = null;
+    let edgeTimer = 0, autoDir = 0, lastClientY = 0;
+
+    function setHoverBlock(b) {
+      if (b === hoverBlock) return;
+      if (hoverBlock) { hoverBlock.head.classList.remove("drop-target"); hoverBlock.rows.forEach(r => r.classList.remove("drop-target-row")); }
+      hoverBlock = b;
+      if (hoverBlock) { hoverBlock.head.classList.add("drop-target"); hoverBlock.rows.forEach(r => r.classList.add("drop-target-row")); }
+    }
+    function stopEdgeTimer() { if (edgeTimer) { clearInterval(edgeTimer); edgeTimer = 0; } autoDir = 0; }
 
     // ドラッグは同じフォルダ内だけ(見出し行を跨ぐと高さ計算が崩れる＆所属変更は移動UIで行う)
     function getItems() {
@@ -633,8 +690,33 @@ function setupPlaylistDragReorder(box) {
     // ドラッグ中アイテム以外を最終位置へ。draggedItemはtransformのみ、DOM順変更はonEndで1回だけ(ドラッグ中のinsertBeforeは基準がズレて複数要素が一気に動く)
     function onMove(clientY) {
       if (!dragging || !draggedItem) return;
-      const dy = clientY - startY;
+      lastClientY = clientY;
+      const scrolled = scroller.scrollTop - scrollStart;   // 自動スクロール分も含めて、つまんだ行がポインタに付いてくるように
+      const dy = clientY - startY + scrolled;
       draggedItem.style.transform = `translateY(${dy}px)`;
+
+      // 端に寄ったら自動スクロール(間引きタイマー。端を離れたら止める)
+      const dir = clientY < viewRect.top + PLAYLIST_AUTOSCROLL_EDGE ? -1 : (clientY > viewRect.bottom - PLAYLIST_AUTOSCROLL_EDGE ? 1 : 0);
+      if (dir !== autoDir) {
+        stopEdgeTimer();
+        autoDir = dir;
+        if (dir !== 0) edgeTimer = setInterval(() => { scroller.scrollTop += autoDir * PLAYLIST_AUTOSCROLL_STEP; onMove(lastClientY); }, 50);
+      }
+
+      // 別フォルダの範囲(見出し〜曲行。折りたたみ中は見出し)に乗っている間は、そのフォルダへ移動する扱い(ハイライト)。同じフォルダの範囲なら従来の並び替え
+      if (blocks) {
+        const y = clientY + scroller.scrollTop;
+        const own = draggedItem.dataset.folder || "";
+        let hit = null;
+        for (let i = 0; i < blocks.length; i++) { if (y >= blocks[i].top && y <= blocks[i].bottom) { hit = blocks[i]; break; } }
+        if (hit && hit.id !== own) {
+          if (!hoverBlock) { getItems().forEach(item => { if (item !== draggedItem) item.style.transform = ""; }); }
+          setHoverBlock(hit);
+          draggedItem.dataset.dragTargetIndex = startIndex;
+          return;
+        }
+        setHoverBlock(null);
+      }
 
       if (itemHeight <= 0) return;
 
@@ -668,12 +750,24 @@ function setupPlaylistDragReorder(box) {
       document.removeEventListener("touchend", onTouchEnd);
 
       const targetIndex = draggedItem ? parseInt(draggedItem.dataset.dragTargetIndex || startIndex, 10) : startIndex;
+      stopEdgeTimer();
+      const dropBlock = hoverBlock;
+      setHoverBlock(null);
 
       if (draggedItem) {
         draggedItem.classList.remove("dragging");
         draggedItem.style.transform = "";
       }
       getItems().forEach(item => { item.style.transform = ""; });
+
+      // 別フォルダ(未分類含む)の上で離した → そのフォルダの末尾へ移動(再生中の曲は参照で追従)
+      if (dropBlock && draggedItem) {
+        hapticTap();
+        clearPlaylistSelectionForRegroup();
+        moveTracksToFolder([parseInt(draggedItem.dataset.index, 10)], dropBlock.id || null);
+        renderPlaylist();
+        return;
+      }
 
       if (targetIndex !== startIndex) {
         const itemsInOrder = getItems()
@@ -711,7 +805,7 @@ function setupPlaylistDragReorder(box) {
     function startDrag(clientY) {
       // 無料版: 並び替え不可。ドラッグ開始させずミニポップアップ
       if (typeof isUnlocked === "function" && !isUnlocked()) {
-        swShowUnlockToast("無料版ではライブラリの並び替えはできません。");
+        swShowUnlockToast("無料版ではライブラリの並び替え・フォルダ移動はできません。");
         return;
       }
 
@@ -725,6 +819,13 @@ function setupPlaylistDragReorder(box) {
 
       // ドラッグ開始時の並びをdatasetに固定記録(onMove位置計算の基準。ドラッグ中DOM順は変えない)
       items.forEach((item, i) => { item.dataset.dragOriginalIndex = i; });
+
+      // スクロール領域・フォルダの縦範囲を1回だけ測る(フォルダが無ければ従来どおり)
+      scroller = findPlaylistScroller(box);
+      scrollStart = scroller.scrollTop;
+      viewRect = scrollerViewRect(scroller);
+      blocks = box.querySelector(".playlistFolderHeader") ? measureFolderBlocks(box, scroller) : null;
+      hoverBlock = null;
 
       const rect = draggedItem.getBoundingClientRect();
       if (items.length > 1) {
@@ -752,6 +853,125 @@ function setupPlaylistDragReorder(box) {
     handle.addEventListener("touchstart", e => {
       if (e.touches.length !== 1) return;
       startDrag(e.touches[0].clientY);
+      document.addEventListener("touchmove", onTouchMove, { passive: false });
+      document.addEventListener("touchend", onTouchEnd);
+    }, { passive: true });
+  });
+}
+
+// フォルダ自体のドラッグ並び替え(見出しのつまみ。未分類は末尾固定でつまみ無し)。ドラッグ中は全フォルダを見出しだけに畳み、つかんだ見出しがポインタに付いてくる。他の見出しは確定位置へtransformだけでずれる(DOM順の変更はonEndで1回だけ)
+function setupFolderDragReorder(box) {
+  box.querySelectorAll(".playlist-folder-grip").forEach(grip => {
+    let dragging = false, head = null, startY = 0;
+    let scroller = null, scrollStart = 0, viewRect = null;
+    let blocks = null, dragBlock = null, others = null, targetIdx = 0;
+    let edgeTimer = 0, autoDir = 0, lastClientY = 0;
+
+    function stopEdgeTimer() { if (edgeTimer) { clearInterval(edgeTimer); edgeTimer = 0; } autoDir = 0; }
+
+    // 並びが変わった時だけ、他のまとまりを確定位置へずらす(transformのみ)
+    function layoutOthers(newIdx) {
+      const order = others.slice();
+      order.splice(newIdx, 0, dragBlock);
+      let cum = blocks[0].top;
+      order.forEach(b => {
+        if (b !== dragBlock) {
+          const shift = cum - b.top;
+          const t = shift ? `translateY(${shift}px)` : "";
+          b.els.forEach(el => { el.style.transform = t; });
+        }
+        cum += b.span;
+      });
+    }
+
+    function onMove(clientY) {
+      if (!dragging) return;
+      lastClientY = clientY;
+      const dy = clientY - startY + (scroller.scrollTop - scrollStart);
+      head.style.transform = `translateY(${dy}px)`;
+
+      const dir = clientY < viewRect.top + PLAYLIST_AUTOSCROLL_EDGE ? -1 : (clientY > viewRect.bottom - PLAYLIST_AUTOSCROLL_EDGE ? 1 : 0);
+      if (dir !== autoDir) {
+        stopEdgeTimer();
+        autoDir = dir;
+        if (dir !== 0) edgeTimer = setInterval(() => { scroller.scrollTop += autoDir * PLAYLIST_AUTOSCROLL_STEP; onMove(lastClientY); }, 50);
+      }
+
+      // つかんだ見出しの中心が、他のまとまりの中心を超えた数=新しい位置
+      const center = dragBlock.top + dragBlock.span / 2 + dy;
+      let newIdx = 0;
+      others.forEach(b => { if (b.top + b.span / 2 < center) newIdx++; });
+      if (newIdx !== targetIdx) { targetIdx = newIdx; layoutOthers(newIdx); }
+    }
+
+    function onEnd() {
+      if (!dragging) return;
+      dragging = false;
+      stopEdgeTimer();
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+
+      const ids = others.map(b => b.id);
+      ids.splice(targetIdx, 0, dragBlock.id);
+      head.classList.remove("dragging");
+      head.style.transform = "";
+      blocks.forEach(b => b.els.forEach(el => { el.style.transform = ""; }));
+
+      clearPlaylistSelectionForRegroup();
+      if (setPlaylistFolderOrder(ids)) persistPlaylistOrder();
+      renderPlaylist();
+    }
+
+    function onMouseMove(e) { onMove(e.clientY); }
+    function onMouseUp() { onEnd(); }
+    function onTouchMove(e) {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      onMove(e.touches[0].clientY);
+    }
+    function onTouchEnd() { onEnd(); }
+
+    function startDrag(clientY) {
+      if (typeof isUnlocked === "function" && !isUnlocked()) {
+        swShowUnlockToast("無料版ではフォルダの並び替えはできません。");
+        return false;
+      }
+      head = grip.closest(".playlistFolderHeader");
+      if (!head) return false;
+
+      scroller = findPlaylistScroller(box);
+      // 全フォルダの曲行を一時的に畳んで「見出しだけの一覧」にしてから並び替える(展開中の大きいフォルダを跨ぐのに長くドラッグしなくて済む)。畳んでもつかんだ見出しが指の下から動かないよう、スクロールを補正してから測る。確定時のrenderPlaylist()で元に戻る
+      const oldTop = head.getBoundingClientRect().top;
+      box.querySelectorAll(".playlistItem").forEach(el => el.classList.add("folder-drag-hidden"));
+      scroller.scrollTop += head.getBoundingClientRect().top - oldTop;
+      scrollStart = scroller.scrollTop;
+      viewRect = scrollerViewRect(scroller);
+      const all = measureFolderBlocks(box, scroller);
+      blocks = all.filter(b => b.id !== "");   // 未分類は動かさない(末尾固定)
+      dragBlock = blocks.find(b => b.head === head);
+      if (!dragBlock) { box.querySelectorAll(".folder-drag-hidden").forEach(el => el.classList.remove("folder-drag-hidden")); return false; }
+      others = blocks.filter(b => b !== dragBlock);
+      targetIdx = blocks.indexOf(dragBlock);
+
+      dragging = true;
+      startY = clientY;
+      head.classList.add("dragging");
+      hapticTap();
+      return true;
+    }
+
+    grip.addEventListener("mousedown", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!startDrag(e.clientY)) return;
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    });
+    grip.addEventListener("touchstart", e => {
+      if (e.touches.length !== 1) return;
+      if (!startDrag(e.touches[0].clientY)) return;
       document.addEventListener("touchmove", onTouchMove, { passive: false });
       document.addEventListener("touchend", onTouchEnd);
     }, { passive: true });

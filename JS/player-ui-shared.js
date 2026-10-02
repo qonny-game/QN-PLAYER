@@ -171,6 +171,28 @@ document.getElementById("fileInput").onchange = e => addFilesToPlaylist(Array.fr
 // 直前のobjectURL。曲切替時にrevokeObjectURL()で必ず解放(忘れると曲数×サイズ分メモリが積み上がりモバイルでクラッシュ)
 let currentObjectUrl = null;
 
+// 曲のマーカー/ABループ/テキストメモをlocalStorageから読み込んで画面へ。曲切替(loadFile)と、同期で他端末の内容を取り込んだ時(player-sync.js)の両方から呼ぶ
+function loadTrackUserData(fileName) {
+  const savedPins = localStorage.getItem("mp3_pins_" + fileName);
+  if (savedPins) {
+    try {
+      const raw = JSON.parse(savedPins);
+      pins = raw.map(p => typeof p === 'number' ? { t: p, enabled: true, memo: "", color: null } : { t: p.t, enabled: p.enabled !== false, memo: p.memo || "", color: p.color || null });
+    } catch (e) { pins = []; }
+  } else {
+    pins = [];
+  }
+  loadABFor(fileName);
+  if (typeof renderPinList === "function") renderPinList();
+
+  // noteTextAreaEl(player-text.js)に依存せず都度DOM取得(読み込み順非依存)。フルスクリーン表示中ならそちらも更新
+  const noteTextForLoad = localStorage.getItem("mp3_text_" + fileName) || "";
+  const noteTextAreaElForLoad = document.getElementById("noteTextArea");
+  if (noteTextAreaElForLoad) noteTextAreaElForLoad.value = noteTextForLoad;
+  const noteTextAreaFsForLoad = document.getElementById("noteTextAreaFullscreen");
+  if (noteTextAreaFsForLoad) noteTextAreaFsForLoad.value = noteTextForLoad;
+}
+
 function loadFile(file) {
   if (!file) return;
   
@@ -197,24 +219,7 @@ function loadFile(file) {
   decodeWaveform(file, waveformDecodeToken);
 
   // 【v2.13.6】マーカー/テキストメモ読込は曲切替の瞬間に同期で行う(loadedmetadata待ちだと失敗時に曲名だけ新しく本文が前の曲のままになり、編集すると新しい曲名キーで保存される。GOTCHAS.md)
-  const savedPins = localStorage.getItem("mp3_pins_" + file.name);
-  if (savedPins) {
-    try {
-      const raw = JSON.parse(savedPins);
-      pins = raw.map(p => typeof p === 'number' ? { t: p, enabled: true, memo: "", color: null } : { t: p.t, enabled: p.enabled !== false, memo: p.memo || "", color: p.color || null });
-    } catch (e) { pins = []; }
-  } else {
-    pins = [];
-  }
-  loadABFor(file.name);
-  if (typeof renderPinList === "function") renderPinList();
-
-  // noteTextAreaEl(player-text.js)に依存せず都度DOM取得(読み込み順非依存)。フルスクリーン表示中ならそちらも更新
-  const noteTextForLoad = localStorage.getItem("mp3_text_" + file.name) || "";
-  const noteTextAreaElForLoad = document.getElementById("noteTextArea");
-  if (noteTextAreaElForLoad) noteTextAreaElForLoad.value = noteTextForLoad;
-  const noteTextAreaFsForLoad = document.getElementById("noteTextAreaFullscreen");
-  if (noteTextAreaFsForLoad) noteTextAreaFsForLoad.value = noteTextForLoad;
+  loadTrackUserData(file.name);
 
   audio.onloadedmetadata = () => {
     prevTime = audio.currentTime;
@@ -825,7 +830,8 @@ function hideSplashOverlay() {
 // 起動時にIndexedDBの全曲を復元。自動再生しない(ユーザー操作なしplay()はブロックされ、意図せず鳴るのも避ける)。IndexedDBへ書き戻さない
 async function restorePlaylistFromStorage() {
   const savedTracks = await loadAllPlaylistTracks();
-  if (savedTracks.length === 0) return;
+  // 復元が終わったら同期(player-sync.js)へ知らせる(曲が0件でも。復元前に同期すると「ローカルに曲が無い」と誤認するため)
+  if (savedTracks.length === 0) { if (typeof window.qnLibSyncReady === "function") window.qnLibSyncReady(); return; }
 
   savedTracks.forEach(({ file, enabled, title, artist, favorite, folder }) => {
     playlist.push({ file, name: file.name, enabled, title: title || null, artist: artist || null, duration: null, favorite: !!favorite, folder: folder || null });
@@ -846,6 +852,7 @@ async function restorePlaylistFromStorage() {
 
   // 1曲目を選曲済みにする(autoplay:false)
   playTrackAt(0, false);
+  if (typeof window.qnLibSyncReady === "function") window.qnLibSyncReady();
 }
 
 // ハプティクス(非対応は無視): tap=押下/タブ切替/ポップアップ開閉/スウォッチ選択、tick=スライダー目盛り跨ぎ(呼び出し側で間引く)、success=マーカー追加/Export完了、warning=削除確認/エラー/上限下限到達

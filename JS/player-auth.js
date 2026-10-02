@@ -102,13 +102,49 @@ async function syncTransact(docId, mergeFn) {
   });
 }
 
+// 複数ドキュメントのトランザクション(本体Libraryの同期用)。fn(api)内でapi.get(id)で全て読んでからapi.set/del(競合時にfnが再実行されるので、fn内で外部状態を変えない)。戻り値はfnの戻り値
+function syncRef(id) {
+  const user = auth.currentUser;
+  if (!user || SYNC_UIDS.indexOf(user.uid) === -1) throw new Error("sync not allowed");
+  return doc(db, "users", user.uid, "sync", id);
+}
+async function syncTx(fn) {
+  return runTransaction(db, async (tx) => {
+    const api = {
+      get: async (id) => { const snap = await tx.get(syncRef(id)); return snap.exists() ? snap.data() : null; },
+      set: (id, data) => {
+        if (JSON.stringify(data).length > SYNC_DOC_MAX_CHARS) throw new Error("sync doc too large: " + id);
+        tx.set(syncRef(id), Object.assign({}, data, { updatedAt: serverTimestamp() }));
+      },
+      del: (id) => { tx.delete(syncRef(id)); }
+    };
+    return fn(api);
+  });
+}
+// トランザクション外でまとめて読む(変わった曲のドキュメント取得用)。並列数を絞る
+async function syncGetMany(ids) {
+  const out = new Array(ids.length).fill(null);
+  let next = 0;
+  async function worker() {
+    while (next < ids.length) {
+      const i = next++;
+      const snap = await getDoc(syncRef(ids[i]));
+      out[i] = snap.exists() ? snap.data() : null;
+    }
+  }
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  return out;
+}
+
 window.QN_AUTH = {
   auth,
   currentUser: null,
   fetchUnlockUntilFromFirestore,
   saveUnlockUntilToFirestore,
   isSyncUser,
-  syncTransact
+  syncTransact,
+  syncTx,
+  syncGetMany
 }; // ---------- DOM要素 ----------
 const btnLoginGoogle = document.getElementById("btnLoginGoogle");
 const btnLogout = document.getElementById("btnLogout");

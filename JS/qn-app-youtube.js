@@ -441,7 +441,7 @@
       }).observe(refs.seekTracks);
     }
     bindEvents();
-    refs.syncStatus.addEventListener("click", function () { if (syncState === "error") syncNow(); });
+    refs.syncStatus.addEventListener("click", function () { if (syncUser && syncState !== "syncing") syncNow(); });
     setSyncStatus(syncState);
     updateDisplay(0);
     renderList();
@@ -2330,10 +2330,12 @@
     if (!refs.syncStatus) return;
     var el = refs.syncStatus, t = "";
     el.classList.remove("err");
+    el.classList.toggle("can", state === "ok" || state === "error");
+    el.title = (state === "ok" || state === "error") ? "タップで今すぐ同期" : "";
     if (state === "syncing") t = "☁ 同期中…";
     else if (state === "ok") {
       var d = new Date(syncMeta.lastSync || Date.now());
-      t = "☁ 同期済み " + (d.getHours() < 10 ? "0" : "") + d.getHours() + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+      t = "☁ 同期済み " + (d.getHours() < 10 ? "0" : "") + d.getHours() + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes() + "  ↻";
     } else if (state === "error") { t = "☁ 同期できませんでした(タップで再試行)"; el.classList.add("err"); }
     el.textContent = t;
   }

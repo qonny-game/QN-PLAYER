@@ -191,7 +191,9 @@
   cursor: default;
 }
 .qn-yt-sync:empty { display: none; }
-.qn-yt-sync.err { color: var(--danger, #ef4444); cursor: pointer; }
+.qn-yt-sync.can { cursor: pointer; }
+.qn-yt-sync.can:hover { color: var(--text-bright); }
+.qn-yt-sync.err { color: var(--danger, #ef4444); }
 
 .qn-yt-empty {
   margin: 4px 0 12px;

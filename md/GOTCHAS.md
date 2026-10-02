@@ -51,6 +51,8 @@
 - ドラッグ並び替えは同じフォルダ内だけ（そのグループの配列スロットへ書き戻す）。お気に入りの上段固定もフォルダ内。
 - Auto Nextの範囲は`findEnabledTrackIndex()`の1箇所（前/次・メディアキー・曲終了が全部通る）。フォルダ定義は`qn_folders_v1`、曲の所属はメタの`folder`（localStorageのみ。IndexedDBの音声は書かない）。
 - Backupのmarkers.jsonにはフォルダ**名**で入れる（idは端末ごと）。キーが無い旧バックアップはフォルダを触らない。
+- **ドラッグ（v3.27.0）**：曲のつまみ=`.playlist-drag-handle`、フォルダのつまみ=`.playlist-folder-grip`（クラスを分けてある。曲側のドラッグが拾わない）。どちらも測定（`findPlaylistScroller`/`measureFolderBlocks`）はドラッグ開始時に1回だけ、ドラッグ中はtransformのみ・DOM順の変更と保存はonEndで1回。座標は「スクロール量を足した内容座標」。端では50ms間引きのタイマーで自動スクロール（rAFループは使わない）。
+- 曲を別フォルダの範囲（見出し〜曲行。折りたたみ中は見出し）へ運んで離すと`moveTracksToFolder`（移動先の末尾）。同じフォルダの範囲なら従来の並び替え。フォルダのドラッグは全フォルダを見出しだけに畳んで行い（`.folder-drag-hidden`）、確定は`setPlaylistFolderOrder(ids)`→`persistPlaylistOrder()`→`renderPlaylist()`。無料版は両方`isUnlocked()`でブロック。
 
 ## 6. 制限（無料版）・アプリ
 - **制限チェックは「みんなが通る一番奥の関数」に置く**（例：`playTrackAt()`）。入口ごとに書くと、新しい入口（前/次ボタン・メディアキー・自動送り）で素通りする。
@@ -64,3 +66,10 @@
 - 症状はユーザーのスクリーンショットが最重要の手がかり。確認できていないことは正直に書く。
 - 実ブラウザは使えない。確認はローカルHTTPサーバー＋Playwright（ヘッドレスChromium）まで。YouTubeのIFrame APIは実ネットワークに出られないと読み込めない（`iframe_api`をモックに差し替える）。`file://`では動かない。
 - 動的に組み立てるクラス名・idがある（`"is-" + kind`、`"pcv2-panel-" + panelId`、`eqBand0〜9`等）。**未使用判定は単純な文字列検索だけで決めない。**
+
+## 8. Library同期(player-sync.js)
+- Firestoreは**配列の入れ子不可**。マーカー/ABは`[{t,e,m,c}]`/`{a,b}`のオブジェクトで持つ。
+- 同期が`localStorage.setItem`を横取りして変更検知している。同期の反映中は`applying`で無視しないと「反映→検知→再同期」で無限ループする。反映側の書き込みは`origSetItem`か`applying`中に行う。
+- 曲の削除は`deletePlaylistTrack`の明示呼び出しだけを削除として扱う。「ローカルに無い=削除」と判断すると、IndexedDB読み込み失敗時に全曲がクラウドから消える。
+- ghost(未インポート)は`playlist[]`に入れない(行のdata-index=配列indexの前提・選択/ドラッグを壊すため)。描画は`.qn-lib-extra`クラスで曲行と区別し、`measureFolderBlocks`は`.qn-lib-extra`を最後のフォルダの範囲に含めない。
+- 並びの主導権(`ou`)は「両端末にある曲の相対順が変わった時」だけ更新。曲の追加・取り込みで更新すると、取り込み順で相手の並びを上書きする。
