@@ -1257,6 +1257,7 @@
     gap: 2px;
   }
   .qn-yt:not(.qn-yt-more-open) .qn-yt-bar { display: none; }
+  .qn-yt:not(.qn-yt-more-open) .qn-yt-stage-fab { display: none; } /* URL欄+設定帯もMoreの中(閉じるとシークバーが広く使える) */
   .qn-yt:not([data-panel="none"]) .qn-yt-dock { display: none; }
   .qn-yt-dock .pcv2-dock-btn { position: relative; }
   .qn-yt-dock [data-dock]::after {

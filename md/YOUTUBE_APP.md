@@ -240,3 +240,4 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 - SPのFAB帯: Follow(PL/VIDEO)とSeek barスイッチ(VIDEO)は`spHide:true`で非表示(Settingsには残る)。
 
 SP幅(≤900px)ではFAB行(`.qn-yt-stage-fab`)をJS(matchMedia)で`.qn-yt-controls`の先頭へ移し、下段バー/ドックと一緒にstickyで下端固定する。PC幅は元のステージ内に戻す。パネルを開いている間は非表示。
+SPではFAB行はMore(`.qn-yt-more-open`)が開いている間だけ表示する。

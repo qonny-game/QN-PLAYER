@@ -711,6 +711,7 @@
         root.querySelector(".qn-yt").classList.toggle("qn-yt-more-open", open);
         refs.dockMore.classList.toggle("is-open", open);
         try { localStorage.setItem(MORE_KEY, open ? "1" : "0"); } catch (e) {}
+        if (window.requestAnimationFrame) requestAnimationFrame(function () { if (typeof recalcAuto === "function") recalcAuto(); });
       }
       refs.dockMore.addEventListener("click", function () { setMore(!root.querySelector(".qn-yt").classList.contains("qn-yt-more-open")); });
       var saved = false; try { saved = localStorage.getItem(MORE_KEY) === "1"; } catch (e) {}

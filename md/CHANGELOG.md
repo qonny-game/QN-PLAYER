@@ -85,3 +85,4 @@
 - 4.8.0 VIDEO: Textパネルを追加(動画=URLごとのメモ。自動保存・Fullで全画面・文字サイズはPLAYERと共通、Backupのexport/importに含む)。シークバーの各行の左に開始時刻(押すと行頭へシーク)。Bar lengthは5/10/15/20/25/30/45/60秒(PLAYERも同じ。VIDEOのFitは廃止、既定30s)。スマホ幅のFAB帯からFollow(PL/VIDEO)とSeek barスイッチ(VIDEO)を撤去(Settingsには残る)
 - 4.8.1 SPのVIDEOでパネルを開いた時、パネルが動画の下辺まで上がらず下がっていた不具合を修正(4.7.2で入れたステージの高さ拡張をパネルを閉じている時だけに限定)
 - 4.8.2 SPのVIDEOで、URL欄+Save+設定帯(Bar length/Rows)を下段コントロール(バー/ドック)の直上に移して同じstickyで固定(シークバー側のスクロールに埋もれない)。PC幅は従来位置。Rowsの自動計算もこれに合わせて調整
+- 4.8.3 SPのVIDEOで、URL欄+Saveと設定帯(Bar length/Rows)をMoreの開閉に合わせて表示(閉じている間は隠してシークバー領域を拡大。開閉状態は保存。Rows=Autoは開閉で再計算)。PC幅は変更なし
