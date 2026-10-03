@@ -362,6 +362,21 @@
       '</div>' +
     '</div>';
 
+  // SP専用メインドック(PLAYERの#pcV2SpDockと同仕様): Prev/Loop/再生/+Marker/Next + More(下段バーの開閉)。押す先は下段バーの既存ボタン。PC幅はCSSで非表示
+  function dbtn(ref, cls, icon, label, title) {
+    return '<button type="button" data-yt="' + ref + '" data-dock="' + ref + '" class="pcv2-dock-btn' + (cls ? " " + cls : "") + '" title="' + title + '">' +
+      '<svg viewBox="0 0 24 24">' + icon + '</svg>' + (label ? '<span>' + label + '</span>' : '') + '</button>';
+  }
+  var DOCK_HTML =
+    '<div class="qn-yt-dock">' +
+      dbtn("dockPrev", "", BI.prevTrack, "Prev", "前のマーカーへ") +
+      dbtn("dockLoop", "pcv2-dock-loop", BI.loop, "Loop", "LOOP：OFF → A-B → 区間 → OFF") +
+      dbtn("dockPlay", "pcv2-dock-play", BI.play, "", "再生 / 一時停止") +
+      dbtn("dockAdd", "pcv2-dock-add", BI.add, "Marker", "マーカーを追加") +
+      dbtn("dockNext", "", BI.nextTrack, "Next", "次のマーカーへ") +
+      dbtn("dockMore", "pcv2-dock-more", '<path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>', "More", "他の操作") +
+    '</div>';
+
   // ---------- 画面の骨組み ----------
   var TEMPLATE =
     '<div class="qn-yt">' +
@@ -489,7 +504,7 @@
           '</button>' +
         '</div>' +
       '</section>' +
-      BAR_HTML +
+      BAR_HTML + DOCK_HTML +
     '</div>';
 
   // ---------- サイドバー(Library/Markers)とパネル。PC=パネル常時表示(アイコンで中身切替)、SP=全面オーバーレイ(同アイコン再タップで閉じる) ----------
@@ -597,6 +612,36 @@
 
     window.addEventListener("resize", applyCollapse);
     buildTracks();
+    (function () {
+      var MORE_KEY = "qn_yt_more";
+      function relay(dock, bar) { refs[dock].addEventListener("click", function () { refs[bar].click(); }); }
+      relay("dockPrev", "prevMarkerBtn"); relay("dockLoop", "loopToggleBtn"); relay("dockPlay", "playBtn");
+      relay("dockAdd", "addMarkerBtn"); relay("dockNext", "nextMarkerBtn");
+      function mirror(src, dst, fn) {
+        if (typeof MutationObserver !== "function") return;
+        var run = function () { fn(src, dst); };
+        new MutationObserver(run).observe(src, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true, characterData: true });
+        run();
+      }
+      mirror(refs.playBtn, refs.dockPlay, function (a, d) {
+        var playing = a.classList.contains("is-playing");
+        d.innerHTML = '<svg viewBox="0 0 24 24">' + (playing ? BI.pause : BI.play) + '</svg>';
+        d.classList.toggle("is-playing", playing);
+      });
+      mirror(refs.loopToggleBtn, refs.dockLoop, function (a, d) {
+        d.classList.toggle("is-active", a.classList.contains("is-active"));
+        var l = a.querySelector("span"), t = d.querySelector("span");
+        if (l && t) t.textContent = l.textContent;
+      });
+      function setMore(open) {
+        root.querySelector(".qn-yt").classList.toggle("qn-yt-more-open", open);
+        refs.dockMore.classList.toggle("is-open", open);
+        try { localStorage.setItem(MORE_KEY, open ? "1" : "0"); } catch (e) {}
+      }
+      refs.dockMore.addEventListener("click", function () { setMore(!root.querySelector(".qn-yt").classList.contains("qn-yt-more-open")); });
+      var saved = false; try { saved = localStorage.getItem(MORE_KEY) === "1"; } catch (e) {}
+      setMore(saved);
+    })();
     root.classList.toggle("qn-yt-noseek", SEGS_SETTING === 0);
     if (window.ResizeObserver) {
       var roRaf = 0;
@@ -3139,7 +3184,9 @@
     if (!Q || !Q.add) return;
     function ready() { return !!(current && playerReady); }
     function afterLoop() { persistLoop(); updateLoopUI(); renderMarkers(); }
-    function at(name) { return '.qn-yt-bbtn[data-yt="' + name + '"]'; }
+    // 下段バー(.qn-yt-bbtn)とSPドック(.qn-yt-dock)の両方を対象にする
+    var DOCK_OF = { playBtn: "dockPlay", prevMarkerBtn: "dockPrev", nextMarkerBtn: "dockNext", addMarkerBtn: "dockAdd", loopToggleBtn: "dockLoop" };
+    function at(name) { return '.qn-yt-bbtn[data-yt="' + name + '"]' + (DOCK_OF[name] ? ',.qn-yt-dock [data-dock="' + DOCK_OF[name] + '"]' : ""); }
     function round1(v) { return Math.round(v * 10) / 10; }
     function sec(v) { return v + "s"; }
 

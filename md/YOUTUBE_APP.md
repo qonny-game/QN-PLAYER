@@ -74,6 +74,9 @@ Settings > Seek bar > Rows（Off/1〜6、既定3、`qn_yt_segs`）。`setSegs`�
 ### マーカー区間のSKIP（v4.2.0〜）
 `marker.skip=true`のマーカーから次の有効マーカーまでを再生中に飛ばす（PLAYER 3.46.0と同仕様）。行のSKIPボタン/SPスワイプの`mskip`で切替。`poll`が「開始点を自然に跨いだ時（前回位置との差が2秒未満）」だけ`seekTo(終端)`。ループ中・手動シーク（差が大きい）では飛ばさない。シークバーには斜線(`.segmentSkip`)。`skip`はBackup/Import/同期にも含む。
 
+### SPメインドック（v4.3.0〜）
+SP幅だけ`.qn-yt-dock`（Prev/Loop/再生/Marker/Next/More。PLAYERの`#pcV2SpDock`と同寸法、ボタンは共通の`.pcv2-dock-btn`）。押す先は下段バーの既存ボタン（`data-yt`のref経由で中継）で、再生アイコンとLoopの状態は`MutationObserver`で下段バーから写す。Moreで下段バー(`.qn-yt-bar`)を開閉（既定は閉、`qn_yt_more`。クラス`.qn-yt-more-open`）。パネルを開いている間はドックも隠す。PC幅は非表示。長押しクイック設定の対象はドック側の`data-dock`も含む。
+
 ### スピード
 プレイヤーの**外**の自前UI。倍率は`getAvailablePlaybackRates()`、変更は`setPlaybackRate()`のみ。`qn_yt_rate`に保存。
 
