@@ -14,14 +14,14 @@
   // YouTube由来タイトルの端末ローカル短期キャッシュ {videoId:{title,fetchedAt}}。28日で削除(規約30日に余裕を持たせる)。Backup/同期に含めない
   var TITLE_CACHE_KEY = "qn_yt_title_cache";
   var TITLE_TTL_MS = 28 * 24 * 60 * 60 * 1000;
-  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [0, 1, 2, 3, 4, 5, 6];
-  // SEGS_SETTING=0はシークバー非表示(内部の行数SEGSは1のまま。計算の0除算を避ける)
+  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, -1];
+  // SEGS_SETTING=0はシークバー非表示(内部の行数SEGSは1のまま。計算の0除算を避ける)。-1=Auto(画面の余りの高さに合わせて行数を決める。autoRows)
   var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
   var SEGS = Math.max(1, SEGS_SETTING);
   // 表示する行数=SEGS(1〜6)。1行の秒数ROWSEC: 0=Fit(全長をSEGS等分=従来。スクロールなし) / 秒数指定=全長/秒数の行を作り、SEGS行ぶんの窓でスクロール(PLのBar length/Rowsと同じ考え方)
   var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_OPTIONS = [0, 5, 10, 15, 30, 60, 120, 300];
   var ROWSEC = (function () { try { var v = parseInt(localStorage.getItem(ROWSEC_KEY), 10); return ROWSEC_OPTIONS.indexOf(v) >= 0 ? v : 0; } catch (e) { return 0; } })();
-  var SEGS_LAST_KEY = "qn_yt_segs_last", SEGS_LAST = (function () { try { var v = parseInt(localStorage.getItem(SEGS_LAST_KEY), 10); return v >= 1 && v <= 6 ? v : (SEGS_SETTING || 3); } catch (e) { return 3; } })();
+  var SEGS_LAST_KEY = "qn_yt_segs_last", SEGS_LAST = (function () { try { var v = parseInt(localStorage.getItem(SEGS_LAST_KEY), 10); return (v >= 1 && v <= 8) || v === -1 ? v : (SEGS_SETTING || 3); } catch (e) { return 3; } })();
   var FOLLOW_KEY = "qn_yt_follow", FPAUSE_KEY = "qn_yt_follow_pause", FPAUSE_MIN = 1, FPAUSE_MAX = 30;
   var followOn = (function () { try { return localStorage.getItem(FOLLOW_KEY) !== "0"; } catch (e) { return true; } })();
   var followPause = (function () { try { var v = parseInt(localStorage.getItem(FPAUSE_KEY), 10); return v >= FPAUSE_MIN && v <= FPAUSE_MAX ? v : 6; } catch (e) { return 6; } })();
@@ -619,6 +619,8 @@
     window.addEventListener("resize", applyCollapse);
     buildTracks();
     refs.seekTracks.addEventListener("scroll", onSeekScroll, { passive: true });
+    window.addEventListener("resize", function () { recalcAuto(); });
+    setTimeout(recalcAuto, 0); setTimeout(recalcAuto, 400); // レイアウト確定後(動画サイズ・タイトル行)に再計算
     (function () {
       var MORE_KEY = "qn_yt_more";
       function relay(dock, bar) { refs[dock].addEventListener("click", function () { refs[bar].click(); }); }
@@ -652,9 +654,9 @@
     // ステージのFAB行にシークバーの常用設定(PLAYERの波形FABと同じ部品。ここだけスライダー): Seekbar ON/OFF・Bar length・Rows・Follow
     if (window.QNSettingsUI && QNSettingsUI.inline) {
       segStrip = QNSettingsUI.inline([
-        { label: "Seek bar", type: "switch", get: function () { return SEGS_SETTING > 0; }, set: function (on) { setSegs(on ? SEGS_LAST : 0); } },
+        { label: "Seek bar", type: "switch", get: function () { return SEGS_SETTING !== 0; }, set: function (on) { setSegs(on ? SEGS_LAST : 0); } },
         { label: "Bar length", type: "slider", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
-        { label: "Rows", type: "slider", values: function () { return [1, 2, 3, 4, 5, 6]; }, get: function () { return SEGS_SETTING > 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING > 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
+        { label: "Rows", type: "slider", values: function () { return [1, 2, 3, 4, 5, 6, 7, 8, -1]; }, fmt: function (v) { return v === -1 ? "Auto" : String(v); }, get: function () { return SEGS_SETTING !== 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING !== 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
         { label: "Follow", type: "switch", get: function () { return followOn; }, set: setFollow }
       ]);
       refs.stageUrl.parentNode.parentNode.insertBefore(segStrip.el, refs.stageUrl.parentNode);
@@ -664,8 +666,10 @@
       var roRaf = 0;
       new ResizeObserver(function () {
         cancelAnimationFrame(roRaf);
-        roRaf = requestAnimationFrame(function () { layoutSeek(); if (current) renderMarkers(); });
+        roRaf = requestAnimationFrame(function () { recalcAuto(); layoutSeek(); if (current) renderMarkers(); });
       }).observe(refs.seekTracks);
+      var pw = root.querySelector(".qn-yt-player-wrap"); // 動画の縦横比で下の余白が変わる時もAutoを再計算
+      if (pw) new ResizeObserver(function () { cancelAnimationFrame(roRaf); roRaf = requestAnimationFrame(function () { recalcAuto(); layoutSeek(); }); }).observe(pw);
     }
     bindEvents();
     refs.syncStatus.addEventListener("click", function () { if (syncUser && syncState !== "syncing") syncNow(); });
@@ -687,13 +691,32 @@
     if (SEGS_OPTIONS.indexOf(n) < 0 || n === SEGS_SETTING) return;
     SEGS_SETTING = n;
     try { localStorage.setItem(SEGS_KEY, String(n)); } catch (e) {}
-    if (n > 0) { SEGS_LAST = n; try { localStorage.setItem(SEGS_LAST_KEY, String(n)); } catch (e) {} }
+    if (n !== 0) { SEGS_LAST = n; try { localStorage.setItem(SEGS_LAST_KEY, String(n)); } catch (e) {} }
     if (segStrip) segStrip.sync();
     if (root) root.classList.toggle("qn-yt-noseek", n === 0);
-    var next = Math.max(1, n);
+    var next = n > 0 ? n : (n === -1 ? autoRows() : 1);
     if (next === SEGS) return;
     SEGS = next;
     ensureRows(true);
+  }
+  // Auto: シークバーの上端から、(設定帯+下段バー)の手前までの高さに入る行数(2〜12)。PLのRows=Autoと同じ発想
+  function autoRows() {
+    if (!root || !refs.seekTracks) return 3;
+    var sk = refs.seekTracks, ctl = root.querySelector(".qn-yt-controls"), fab = root.querySelector(".qn-yt-stage-fab");
+    var top = sk.getBoundingClientRect().top;
+    var bottom = ctl ? ctl.getBoundingClientRect().top : window.innerHeight;
+    if (sk.classList.contains("is-scroll")) top -= sk.scrollTop * 0; // 窓の上端は動かない
+    var fabH = fab && fab.offsetParent !== null ? fab.offsetHeight + 12 : 0;
+    var pitch = 44;
+    if (tracks.length > 1) pitch = tracks[1].offsetTop - tracks[0].offsetTop || pitch;
+    var gap = 24, padTop = 24;
+    var avail = bottom - top - padTop - fabH - 16;
+    return Math.max(2, Math.min(12, Math.floor((avail + gap) / pitch)));
+  }
+  function recalcAuto() {
+    if (SEGS_SETTING !== -1) return;
+    var n = autoRows();
+    if (n !== SEGS) { SEGS = n; ensureRows(true); }
   }
   function setRowSec(v) {
     if (ROWSEC_OPTIONS.indexOf(v) < 0 || v === ROWSEC) return;
@@ -2287,7 +2310,7 @@
       { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." }
     ];
     return [{ title: "Seek bar", rows: [
-      { label: "Rows", hint: "Off hides the seek bar", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : String(v); } },
+      { label: "Rows", hint: "Auto fills the free height; Off hides the bar", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : v === -1 ? "Auto" : String(v); } },
       { label: "Bar length", hint: "Fit shows the whole video; seconds scroll", type: "stepper", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
       { label: "Follow playhead", hint: "Auto-scroll while playing", type: "switch", get: function () { return followOn; }, set: setFollow },
       { label: "Pause after scrolling", hint: "Seconds before follow resumes", type: "stepper",

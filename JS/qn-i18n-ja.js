@@ -181,7 +181,7 @@
     "General": "一般",
     "Tips": "ヒント",
     "Seek bar: tap to play from that position and choose A, B or Marker. Drag a marker or flag to move it.": "シークバー：タップでその位置から再生し、A・B・マーカーを選べます。マーカーや旗はドラッグで動かせます。",
-    "Off hides the seek bar": "Offでシークバーを隠す",
+    "Auto fills the free height; Off hides the bar": "Offでシークバーを隠す",
     "Paste YouTube URL": "YouTubeのURLを貼り付け",
     "Save to Library": "Libraryに保存",
     "Jump to video": "動画へ移動",
