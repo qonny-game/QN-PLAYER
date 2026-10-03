@@ -2450,26 +2450,34 @@
 
   // ---------- 自前シークバー(3行それぞれで操作可能・ドラッグで行をまたげる) ----------
   function attachTrackSeek(track) {
-    var downX = 0, downY = 0, dragged = false;
+    var downX = 0, downY = 0, dragged = false, scrub = false;
+    // スクロールする窓(.is-scroll)では、押した瞬間にはシークしない: 横に動かしたらシーク(スクラブ)、ほぼ動かさず離したらタップ、縦に動いたらスクロール(ブラウザがpointercancelを送る)
     track.addEventListener("pointerdown", function (e) {
       if (!duration) return;
       track.setPointerCapture(e.pointerId);
-      seeking = true;
       dragged = false; downX = e.clientX; downY = e.clientY;
-      updateDisplay(timeFromPoint(e));
+      scrub = !refs.seekTracks.classList.contains("is-scroll");
+      seeking = scrub;
+      if (scrub) updateDisplay(timeFromPoint(e));
     });
     track.addEventListener("pointermove", function (e) {
-      if (!seeking || !track.hasPointerCapture(e.pointerId)) return;
-      if (Math.abs(e.clientX - downX) > 4 || Math.abs(e.clientY - downY) > 4) dragged = true;
+      if (!track.hasPointerCapture(e.pointerId)) return;
+      var dx = Math.abs(e.clientX - downX), dy = Math.abs(e.clientY - downY);
+      if (!scrub) {
+        if (dx > 6 && dx > dy) { scrub = true; seeking = true; dragged = true; } else return;
+      }
+      if (dx > 4 || dy > 4) dragged = true;
       updateDisplay(timeFromPoint(e));
     });
     // 縦スクロール(touch-action:pan-y)に取られた時はシーク扱いにしない
-    track.addEventListener("pointercancel", function () { seeking = false; });
+    track.addEventListener("pointercancel", function () { seeking = false; scrub = false; });
     track.addEventListener("pointerup", function (e) {
       if (!track.hasPointerCapture(e.pointerId)) return;
       track.releasePointerCapture(e.pointerId);
+      var moved = Math.abs(e.clientX - downX) > 6 || Math.abs(e.clientY - downY) > 6;
+      if (!scrub && moved) { seeking = false; return; }
       var t = timeFromPoint(e);
-      seeking = false;
+      seeking = false; scrub = false;
       userSeek(t);
       if (!dragged) showSeekPop(t, track.getBoundingClientRect(), e.clientX);
     });

@@ -116,6 +116,7 @@ window.QNSettingsUI = (function () {
     rows.forEach(function (r) {
       var item = make('<div class="qn-set-inline-item"><span class="qn-set-inline-label"></span></div>');
       item.querySelector("span").textContent = r.label;
+      if (r.type === "slider") item.classList.add("is-slider");
       var ctl = newControl(r);
       if (ctl) item.appendChild(ctl);
       infos.push({ def: r, row: item, ctl: ctl });

@@ -93,11 +93,12 @@
 .qn-yt-input {
   flex: 1;
   min-width: 0;
-  height: 36px;
+  box-sizing: border-box;
+  height: 38px;
   padding: 0 12px;
   border-radius: var(--radius-field);
-  border: 1px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  background: #1c1c24; /* 入力欄はPLAYERのexport-filename-input等と同じ(角丸=--radius-field, 背景#1c1c24) */
   color: var(--text-bright);
   font-family: inherit;
   font-size: var(--fs-body);
@@ -111,7 +112,7 @@
 
 .qn-yt-input:focus {
   border-color: var(--accent-primary);
-  background: rgba(255, 255, 255, 0.06);
+  background: #22222c;
 }
 
 .qn-yt-btn {
@@ -343,7 +344,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 24px;
   padding-top: 24px;
   margin: 4px 0 16px;
 }
@@ -351,7 +352,7 @@
 .qn-yt-track.vbar {
   position: relative;
   flex: none;
-  height: 40px;
+  height: 20px;
   background: #111;
   border: none;
   border-radius: 0;
@@ -362,6 +363,8 @@
 
 .qn-yt-track.vbar:hover { border-color: transparent; }
 
+/* バーが細くなった分、押せる範囲を上下に少し広げる(見た目は変えない。行の間隔24pxの内側) */
+.qn-yt-track.vbar::after { content: ""; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
 .qn-yt-fill.vfill {
   position: absolute;
   left: 0;
@@ -630,7 +633,7 @@
   }
 
   .qn-yt-track.vbar {
-    height: 36px;
+    height: 18px;
   }
 }
 
@@ -1131,17 +1134,21 @@
   flex-shrink: 0;
   margin-top: 12px;
 }
-/* URL欄とSaveは1つに連結(隙間なし・アイコンなし) */
-.qn-yt-urlgrp { display: flex; align-items: stretch; flex: 1 1 260px; min-width: 200px; max-width: 480px; margin-right: auto; }
-.qn-yt-stage-url { flex: 1 1 auto; min-width: 0; width: auto; border-radius: 999px 0 0 999px; }
-.qn-yt-stage-save { border-radius: 0 999px 999px 0; margin: 0; }
+/* ステージ帯の1行: [設定帯] [URL欄+Save] [Marker]。入力欄は他と同じ角丸(--radius-field)、ボタンは同じ高さ(40px)・ピル型 */
+.qn-yt-urlgrp { display: flex; align-items: center; gap: 8px; flex: 1 1 280px; min-width: 220px; max-width: 520px; margin-right: auto; }
+.qn-yt-stage-url { flex: 1 1 auto; min-width: 0; width: auto; height: 40px; }
+.qn-yt-stage-fab .panel-fab-btn { height: 40px; padding: 0 18px; }
+.qn-yt-row > .qn-yt-btn, .qn-yt-urlgrp > .qn-yt-btn { height: 38px; }
 /* シークバーの行数が窓(Rows)より多い時: 窓の高さはJS(layoutSeek)。縦スクロール・行頭にスナップ。タッチは縦スクロールを許可(横なぞりはシーク) */
 .qn-yt-seek.is-scroll { box-sizing: border-box; margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; /* 端のマーカー番号が欠けないよう左右に余白 */ overflow-y: auto; overflow-x: hidden; scroll-snap-type: y proximity; overscroll-behavior: contain; scrollbar-width: thin; }
+.qn-yt-seek.is-scroll .qn-yt-marker-layer { left: 14px; right: 14px; } /* paddingぶん内側=バーと同じ幅(マーカー位置は幅の%) */
 .qn-yt-seek.is-scroll .qn-yt-track.vbar { scroll-snap-align: start; scroll-margin-top: 28px; touch-action: pan-y; }
+/* スマホ: 右側に縦スクロール専用の余白(バーより外。ここをなぞると必ずスクロール) */
+@media screen and (max-width: 900px) { .qn-yt-seek.is-scroll { padding-right: 34px; margin-right: -20px; } .qn-yt-seek.is-scroll .qn-yt-marker-layer { right: 34px; } }
 .qn-yt-noseek .qn-yt-seek { display: none; }
 @media screen and (max-width: 900px) {
   .qn-yt-stage-fab { margin-top: 12px; margin-left: 16px; }
-  .qn-yt-stage-fab .panel-fab-btn { padding: 10px 16px; font-size: 13px; }
+  .qn-yt-stage-fab .panel-fab-btn { padding: 0 16px; font-size: 13px; }
   .qn-yt:not([data-panel="none"]) .qn-yt-stage-fab { display: none; }
 }
 
@@ -1242,9 +1249,10 @@
   /* ステージFAB: URL欄は1行使い、段数/Save/Markerを次の行へ */
   .qn-yt-urlgrp { flex: 1 1 100%; max-width: none; margin-right: 0; }
   .qn-yt-stage-fab { gap: 6px; }
-  .qn-yt-stage-fab .qn-set-inline { padding: 4px 8px; gap: 6px; width: 100%; box-sizing: border-box; justify-content: space-between; }
-  .qn-yt-stage-fab .qn-set-inline-item { flex: 1 1 45%; justify-content: space-between; }
-  .qn-yt-stage-fab .panel-fab-btn { padding: 10px 12px; }
+  .qn-yt-stage-fab .qn-set-inline { width: 100%; box-sizing: border-box; gap: 8px 0; }
+  .qn-yt-stage-fab .qn-set-inline-item { flex: 1 1 50%; box-sizing: border-box; }
+  .qn-yt-stage-fab .qn-set-inline-item:nth-child(odd) { border-left: 0; }
+  .qn-yt-stage-fab .panel-fab-btn { padding: 0 14px; }
   .qn-yt-stage-fab .qn-set-inline .qn-stepper-btn { width: 26px; }
   .qn-yt-stage-fab .qn-set-inline .qn-stepper-val { min-width: 28px; }
   .qn-yt-stage-fab .qn-set-inline-label { font-size: 11px; }
