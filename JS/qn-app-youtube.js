@@ -14,8 +14,10 @@
   // YouTube由来タイトルの端末ローカル短期キャッシュ {videoId:{title,fetchedAt}}。28日で削除(規約30日に余裕を持たせる)。Backup/同期に含めない
   var TITLE_CACHE_KEY = "qn_yt_title_cache";
   var TITLE_TTL_MS = 28 * 24 * 60 * 60 * 1000;
-  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [1, 2, 3, 4, 5, 6];
-  var SEGS = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
+  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [0, 1, 2, 3, 4, 5, 6];
+  // SEGS_SETTING=0はシークバー非表示(内部の行数SEGSは1のまま。計算の0除算を避ける)
+  var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
+  var SEGS = Math.max(1, SEGS_SETTING);
 
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
   var FOLDERS_KEY = "qn_yt_folders", FOLDER_COLLAPSED_KEY = "qn_yt_folder_collapsed";
@@ -478,6 +480,10 @@
         '</div>' +
         // PLの波形エリア右下(#pcV2WaveFabRow)と同位置のMARKERボタン。プレイヤーの外(下)・通常フロー(重ねない)
         '<div class="qn-yt-stage-fab">' +
+          '<input data-yt="stageUrl" class="qn-yt-input qn-yt-stage-url" type="text" placeholder="Paste YouTube URL" autocomplete="off" spellcheck="false" aria-label="YouTube URL">' +
+          '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="stageSave" title="Save to Library">' +
+            '<svg viewBox="0 0 24 24"><path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10v4z"/></svg><span>Save</span>' +
+          '</button>' +
           '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="stageAddMarker" title="Add Marker">' +
             '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Marker</span>' +
           '</button>' +
@@ -591,6 +597,7 @@
 
     window.addEventListener("resize", applyCollapse);
     buildTracks();
+    root.classList.toggle("qn-yt-noseek", SEGS_SETTING === 0);
     if (window.ResizeObserver) {
       var roRaf = 0;
       new ResizeObserver(function () {
@@ -608,9 +615,13 @@
 
   // ---------- 分割シークバー(既定3行): 全長をSEGS等分、各行が1/SEGS担当 ----------
   function setSegs(n) {
-    if (SEGS_OPTIONS.indexOf(n) < 0 || n === SEGS) return;
-    SEGS = n;
+    if (SEGS_OPTIONS.indexOf(n) < 0 || n === SEGS_SETTING) return;
+    SEGS_SETTING = n;
     try { localStorage.setItem(SEGS_KEY, String(n)); } catch (e) {}
+    if (root) root.classList.toggle("qn-yt-noseek", n === 0);
+    var next = Math.max(1, n);
+    if (next === SEGS) return;
+    SEGS = next;
     if (!root || !refs.seekTracks) return;
     tracks.forEach(function (tr) { tr.remove(); });
     tracks = []; fills = []; heads = []; loopRanges = []; loopPres = [];
@@ -1069,6 +1080,20 @@
       closePanelOnSp();
     }
     refs.saveBtn.addEventListener("click", saveFromInputs);
+    // ステージのURL欄: Libraryを開かずに保存。既存動画は手入力タイトルを保つ
+    function saveFromStage() {
+      var url = refs.stageUrl.value.trim(), id = parseVideoId(url);
+      if (!url) { ytToast("YouTubeのURLを入力してください"); refs.stageUrl.focus(); return; }
+      if (!id) { ytToast("YouTubeのURLとして認識できません"); return; }
+      var ex = findItemByVideoId(id);
+      refs.urlInput.value = url;
+      refs.titleInput.value = ex && ex.customTitle ? ex.customTitle : "";
+      saveFromInputs();
+      refs.stageUrl.value = "";
+      ytToast(ex ? "既にLibraryにあります" : "Libraryに追加しました");
+    }
+    refs.stageSave.addEventListener("click", saveFromStage);
+    refs.stageUrl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); saveFromStage(); } });
     // Playlists
     try { refs.plUrl.value = localStorage.getItem(PL_LAST_KEY) || ""; } catch (e) {}
     refs.plKeyBox.hidden = true;
@@ -1164,6 +1189,7 @@
           if (!m) return [];
           return [
             { kind: "edit", run: function () { var b = row.querySelector(".pin-edit-btn"); if (b) b.click(); } },
+            { kind: "mskip", on: !!m.skip, run: function () { toggleMarkerSkip(m); } },
             { kind: "hide", on: m.enabled === false, run: function () { if (m.enabled === false) delete m.enabled; else m.enabled = false; persistMarkers(); renderMarkers(); } },
             { kind: "del", run: function () {
               current.markers = current.markers.filter(function (x) { return x.id !== m.id; });
@@ -1839,7 +1865,7 @@
   var SVG_EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
 
   function paintMarkerRanges(ms) {
-    var old = refs.seekTracks.querySelectorAll(".qn-yt-range");
+    var old = refs.seekTracks.querySelectorAll(".qn-yt-range, .qn-yt-skipband");
     setTimeout(function () { paintPlayed(lastT); }, 0);
     for (var k = 0; k < old.length; k++) old[k].parentNode.removeChild(old[k]);
     if (!duration) return;
@@ -1861,6 +1887,36 @@
         var on = document.createElement("div"); on.className = "qn-yt-range-on"; on.style.background = hex;
         band.appendChild(bg); band.appendChild(on);
         band._a = a; band._z = z;
+        tracks[i].insertBefore(band, loopRanges[i]);
+      }
+    });
+  }
+
+  // マーカー区間のSKIP: 有効マーカーのskipから次の有効マーカーまで(次が無ければ対象外)。再生が開始点を自然に跨いだ時に終端へseekTo(ループ中は無効)
+  function skipRanges() {
+    var act = enabledMarkers(), out = [];
+    for (var i = 0; i < act.length - 1; i++) if (act[i].skip) out.push({ start: act[i].time, end: act[i + 1].time });
+    return out;
+  }
+  function enabledMarkers() {
+    return (current ? current.markers : []).filter(function (x) { return x.enabled !== false; })
+      .sort(function (p, q) { return p.time - q.time; });
+  }
+  function toggleMarkerSkip(m) {
+    if (m.skip) delete m.skip; else m.skip = true;
+    persistMarkers(); renderMarkers();
+  }
+  function paintSkipBands() {
+    if (!duration) return;
+    var len = duration / SEGS;
+    skipRanges().forEach(function (r) {
+      for (var i = segIndex(r.start); i < SEGS; i++) {
+        var a = Math.max(r.start, i * len), z = Math.min(r.end, (i + 1) * len);
+        if (z <= a) { if (i * len >= r.end) break; continue; }
+        var band = document.createElement("div");
+        band.className = "segmentSkip qn-yt-skipband";
+        band.style.left = ((a - i * len) / len * 100) + "%";
+        band.style.width = ((z - a) / len * 100) + "%";
         tracks[i].insertBefore(band, loopRanges[i]);
       }
     });
@@ -1889,12 +1945,13 @@
     var edit = editMode === "markers";
     var box = refs.markerList;
     paintMarkerRanges(ms);
+    paintSkipBands();
 
     ms.forEach(function (m, i) {
       var hex = markerColorHex(m);
       var el = document.createElement("div");
       if (m.enabled !== false) {
-        el.className = "qn-yt-marker";
+        el.className = "qn-yt-marker" + (m.skip ? " is-skip" : "");
         el.dataset.mid = m.id;
         el.title = fmt(m.time) + " " + (m.label || "");
         if (hex) el.style.setProperty("--marker-color", hex);
@@ -1951,7 +2008,13 @@
       abtnB.className = "qn-ab-block" + (current.loopB === m.time ? " active-b" : "");
       abtnB.textContent = "B"; abtnB.title = "このマーカーの位置をB点(ループ終了)に（A/Bはマーカーとは別の点）";
       abtnB.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("B", m.id); });
-      ab.appendChild(abtnA); ab.appendChild(abtnB);
+      var sk = document.createElement("button");
+      sk.type = "button";
+      sk.className = "qn-ab-block qn-skip-block" + (m.skip ? " is-on" : "");
+      sk.title = m.skip ? "Skip ON: 次のマーカーまで飛ばして再生" : "Skip OFF: 押すとこの区間(次のマーカーまで)を飛ばして再生";
+      sk.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>';
+      sk.addEventListener("click", function (e) { e.stopPropagation(); toggleMarkerSkip(m); });
+      ab.appendChild(abtnA); ab.appendChild(abtnB); ab.appendChild(sk);
       row.appendChild(ab);
 
       var tg = document.createElement("button");
@@ -2099,7 +2162,7 @@
       { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." }
     ];
     return [{ title: "Seek bar", rows: [
-      { label: "Rows", hint: "Number of seek bar rows", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS; }, set: setSegs, fmt: String }
+      { label: "Rows", hint: "Off hides the seek bar", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : String(v); } }
     ] }, { title: "Playback", rows: [
       { label: "Skip buttons", hint: "Seconds for back / forward", type: "stepper", values: function () { return SKIP_OPTIONS; }, get: function () { return skipSec; }, set: setSkipSec, fmt: function (v) { return v + "s"; } },
       { label: "Loop pre/post-roll", hint: "Seconds added around loop", type: "stepper", values: function () { var a = []; for (var i = 0; i <= PREROLL_MAX; i += PREROLL_STEP) a.push(i); return a; }, get: function () { return preRoll; }, set: setPreRoll, fmt: function (v) { return v + "s"; } }
@@ -2471,6 +2534,7 @@
   }
 
   // 位置ポーリング(ドラッグ中は更新しない)。ABループ中はB点到達でA点へseekTo()。画面表示中のみ
+  var skipPrevT = 0;
   function poll() {
     if (!player || !playerReady || seeking) return;
     if (!duration) refreshDuration();
@@ -2493,6 +2557,15 @@
       var endAt = Math.min(duration - 0.3, range.end + preRoll);
       if (range && t >= endAt) { loopJumpAt = Date.now(); seekTo(Math.max(0, range.start - preRoll)); return; }
     }
+    if (!(current && current.looping) && !seeking) {
+      var rs = skipRanges(), dt = t - skipPrevT;
+      if (dt > 0 && dt < 2) {
+        for (var q = 0; q < rs.length; q++) {
+          if (skipPrevT < rs[q].start && t >= rs[q].start && t < rs[q].end) { seekTo(rs[q].end); t = rs[q].end; break; }
+        }
+      }
+    }
+    skipPrevT = t;
     updateDisplay(t);
   }
 
@@ -2529,6 +2602,7 @@
           var mo = { id: id, time: Math.round(m.time * 10) / 10, label: cleanStr(m.label, 200) };
           if (typeof m.color === "string" && typeof MARKER_COLOR_PALETTE !== "undefined" && MARKER_COLOR_PALETTE[m.color]) mo.color = m.color;
           if (m.enabled === false) mo.enabled = false;
+          if (m.skip === true) mo.skip = true;
           ms.push(mo);
         });
         ms.sort(function (a, b) { return a.time - b.time; });
@@ -2552,7 +2626,7 @@
         var o = { videoId: it.videoId, url: it.url };
         if (includeSettings) {
           if (it.customTitle) o.customTitle = it.customTitle;
-          o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; return o2; });
+          o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; if (m.skip) o2.skip = true; return o2; });
           o.loopA = abTimeOf(it.loopA, it.markers);
           o.loopB = abTimeOf(it.loopB, it.markers);
         }
@@ -2800,6 +2874,7 @@
       var o = { id: m.id, time: m.time, label: m.label || "" };
       if (m.color) o.color = m.color;
       if (m.enabled === false) o.enabled = false;
+      if (m.skip) o.skip = true;
       return o;
     });
     p.loopA = abTimeOf(src.loopA, ms);

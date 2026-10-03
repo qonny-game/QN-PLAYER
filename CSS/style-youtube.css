@@ -1158,11 +1158,15 @@
 .qn-yt-stage-fab {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
   margin-top: 12px;
 }
+.qn-yt-stage-url { flex: 1 1 auto; min-width: 0; max-width: 420px; margin-right: auto; }
+.qn-yt-noseek .qn-yt-seek { display: none; }
 @media screen and (max-width: 900px) {
-  .qn-yt-stage-fab { margin-top: 12px; }
+  .qn-yt-stage-fab { margin-top: 12px; margin-left: 16px; }
   .qn-yt-stage-fab .panel-fab-btn { padding: 10px 16px; font-size: 13px; }
   .qn-yt:not([data-panel="none"]) .qn-yt-stage-fab { display: none; }
 }
@@ -1224,3 +1228,9 @@
 @media (prefers-reduced-motion: reduce) {
   .qn-yt-sec-library.is-empty .qn-yt-input[data-yt="urlInput"], .qn-yt-sec-library.is-empty .qn-yt-btn.primary[data-yt="saveBtn"] { animation: none !important; }
 }
+
+/* マーカー区間のSKIP(v4.1.0): 行のSKIPボタン(ON=橙)とマーカー線の破線 */
+.qn-yt-pinbox .pinItem button.qn-skip-block { display: inline-flex; align-items: center; justify-content: center; }
+.qn-skip-block svg { width: 14px; height: 14px; fill: currentColor; }
+.qn-yt-pinbox .pinItem button.qn-skip-block.is-on { background: #b45309; color: #fff; }
+.qn-yt-marker.is-skip { opacity: 0.75; }

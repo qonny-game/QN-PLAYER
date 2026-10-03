@@ -73,3 +73,4 @@
 - 4.0.3 設定パネルの操作ガイドを説明文(Tips)に変更。TransferをモーダルからBackup/Importと同じ設定の下層パネルに作り直し(曲選択・全選択・サイズ表示も共通部品)。PLAYERでTransferが出ないことがあった不具合を修正(設定を開くたびに表示を判定)。
 - 4.0.4 シークバーのA/B旗が段(行)をまたぐと動かなくなる不具合を修正(ドラッグをdocumentで受ける方式に変更)。
 - 4.1.0 VIDEOにPLAYERの機能を移植: 下段バーの長押しクイック設定(◢。Play=Speed/前後マーカー=一覧ジャンプ/A・B=±0.1s微調整/+Marker=プリセット追加/前後Track=動画一覧/Loop=プリロール/±10s=スキップ秒。`QNQuickPop.add`で対象登録)、Settingsに「Seek bar > Rows」(1〜6段、`qn_yt_segs`)とTips。
+- 4.2.0 VIDEO: ステージ下のFABにURL入力+Saveを増設(Libraryを開かず保存。既存動画は手入力タイトルを保持)、Settings>Seek bar>RowsにOff(シークバー非表示。プレイヤーが広がる)、マーカー区間のSKIP(行のボタン/SPスワイプ。次のマーカーまで飛ばす。保存・Backup・同期にmarker.skipを追加)。
