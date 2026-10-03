@@ -265,7 +265,13 @@
     ["#pcV2SkipBackBtn, #pcV2SkipFwdBtn", "skip"],
     ["#allRepeatToggleBtn", "repeat"]
   ];
+  // 他アプリ(VIDEO等)の対象: add(selector, defFn(el))。defFnは{title, rows|build}を返す
+  var EXTRA = [];
   function findTarget(el) {
+    for (var j = 0; j < EXTRA.length; j++) {
+      var h = el.closest ? el.closest(EXTRA[j][0]) : null;
+      if (h) return { el: h, kind: "extra", fn: EXTRA[j][1] };
+    }
     for (var i = 0; i < TARGETS.length; i++) {
       var hit = el.closest ? el.closest(TARGETS[i][0]) : null;
       if (hit) return { el: hit, kind: TARGETS[i][1] };
@@ -289,7 +295,8 @@
     startX = e.clientX; startY = e.clientY;
     timer = setTimeout(function () {
       timer = null;
-      var d = DEFS[t.kind](t.el);
+      var d = t.kind === "extra" ? t.fn(t.el) : DEFS[t.kind](t.el);
+      if (!d) return;
       swallow = t.el;
       setTimeout(function () { if (swallow === t.el) swallow = null; }, 1200);
       show(t.el, d);
@@ -306,5 +313,5 @@
   // 長押しで出るOS標準メニュー/選択を抑止
   document.addEventListener("contextmenu", function (e) { var t = findTarget(e.target); if (t) e.preventDefault(); }, true);
 
-  window.QNQuickPop = { show: show, close: close };
+  window.QNQuickPop = { show: show, close: close, add: function (sel, fn) { EXTRA.push([sel, fn]); }, adjustRow: adjustRow, listBody: listBody, el: el, hap: hap };
 })();

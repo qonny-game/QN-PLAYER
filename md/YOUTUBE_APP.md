@@ -62,6 +62,12 @@ YouTube Data API v3(`playlists`/`playlistItems`、最大500件)で公開/限定�
 PLAYERの`#pcV2BottomBar`と同じ「アイコン＋ラベル」のフラットなデザイン。並び：再生系（Track / −10s / Play / +10s / Track / Auto Next）│マーカー系（Marker / ＋Marker / Marker / Set A / Set B / Loop / Clear AB）│スピード（− 1x Speed ＋。アイコンを押すと1xに戻る）。
 PC幅はステージの下端に吸着、SP幅はアイコンバー直上に固定して横スクロール。パネルを開いている間はSP幅では隠す。再生ボタンは`updatePlayBtn`がPlay/Pause表示を差し替える。
 
+### 長押しクイック設定（v4.1.0〜）
+下段バーの◢付きボタンを長押しすると設定ポップアップ（PLAYERと共通の`QNQuickPop`。VIDEO側は`qn-app-youtube.js`末尾で`QNQuickPop.add(selector, fn)`により登録）。Play=Speed（値タップで1x）／前・次Marker=マーカー一覧ジャンプ／A・B=±0.1秒微調整＋±1s＋Clear（動画読み込み後のみ）／＋Marker=プリセットを選んで追加／前・次Track=Library一覧ジャンプ／Loop=プリロール秒／−10s・+10s=スキップ秒。対象を増やす時は`style-quickpop.css`の◢セレクタも揃える。
+
+### シークバーの行数（v4.1.0〜）
+Settings > Seek bar > Rows（1〜6、既定3、`qn_yt_segs`）。`setSegs`が行を作り直して再描画する。
+
 ### スピード
 プレイヤーの**外**の自前UI。倍率は`getAvailablePlaybackRates()`、変更は`setPlaybackRate()`のみ。`qn_yt_rate`に保存。
 

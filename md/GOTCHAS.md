@@ -134,6 +134,7 @@
 - 送り秒数は`window.QNSkip`(player-ui-pc-v2.jsのクロージャ内skipSecの公開口)。QNBarsはグローバルのconst(`window.QNBars`ではない)。
 - 再生中の見た目は停止中と同じ色(ドック/FAB/#playToggleとも緑のグラデ禁止)。
 
+- **A/B旗(`attachABDrag`)のドラッグは`setPointerCapture`を使わない。** 段をまたぐと旗を`appendChild`で付け替える=掴んだ要素が一度DOMから外れてキャプチャが切れ、以降の動きが止まる。ドラッグ中だけ`document`のpointermove/up/cancelで受ける(マーカーの`startDragPin`と同じ)。段をまたぐドラッグを持つ要素を足す時も同様。
 - **`#vbarRows .vbar`は`width:auto`必須**（style-core.cssの`.vbar{width:100%}`が`left/right`の指定を打ち消し、行が右へ約56px(ラベル幅+右余白)はみ出して右端のマーカー・波形が見切れた。JS側のバー幅`g.barW`は`clientWidth-labelW-padRight`で計算しているので、CSSの幅とずれると描画も歪む）。
 - 波形右下の帯(`QNSettingsUI.inline`、`#pcV2WaveFabRow`内)は設定パネルのSeek bar項目と同じ値。変更は`settingsSections.onChange`/`window.qnBarStripSync`/`syncSettingsBody`で相互に同期する。項目を足す時は両方に足す。
 - **設定パネルの「Tips」**（`player-ui-pc-v2.js`の`rowsTips`。説明文だけで設定項目に見せない=`type:"note"`。日本語は`qn-i18n-ja.js`）は、長押し対象(`TARGETS`)・波形ジェスチャー・行スワイプを足す/変える時に**必ず文言も更新する**。アプリの売りなので、操作を追加したらここに書く。

@@ -14,7 +14,8 @@
   // YouTube由来タイトルの端末ローカル短期キャッシュ {videoId:{title,fetchedAt}}。28日で削除(規約30日に余裕を持たせる)。Backup/同期に含めない
   var TITLE_CACHE_KEY = "qn_yt_title_cache";
   var TITLE_TTL_MS = 28 * 24 * 60 * 60 * 1000;
-  var SEGS = 3;
+  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [1, 2, 3, 4, 5, 6];
+  var SEGS = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
 
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
   var FOLDERS_KEY = "qn_yt_folders", FOLDER_COLLAPSED_KEY = "qn_yt_folder_collapsed";
@@ -605,7 +606,17 @@
     renderMarkers();
   }
 
-  // ---------- 3分割シークバー: 全長をSEGS等分、各行が1/SEGS担当 ----------
+  // ---------- 分割シークバー(既定3行): 全長をSEGS等分、各行が1/SEGS担当 ----------
+  function setSegs(n) {
+    if (SEGS_OPTIONS.indexOf(n) < 0 || n === SEGS) return;
+    SEGS = n;
+    try { localStorage.setItem(SEGS_KEY, String(n)); } catch (e) {}
+    if (!root || !refs.seekTracks) return;
+    tracks.forEach(function (tr) { tr.remove(); });
+    tracks = []; fills = []; heads = []; loopRanges = []; loopPres = [];
+    buildTracks();
+    renderMarkers(); updateLoopUI(); updateDisplay(currentPos());
+  }
   function buildTracks() {
     for (var i = 0; i < SEGS; i++) {
       var track = document.createElement("div");
@@ -2082,10 +2093,17 @@
 
   // ---------- Settings(アプリ共通のSettingsパネルに出る行。部品はQNSettingsUI) ----------
   function settingsSections() {
-    return [{ title: "Playback", rows: [
+    var tips = [
+      { type: "note", label: "Press and hold a button marked ◢ to open the settings that fit it." },
+      { type: "note", label: "Seek bar: tap to play from that position and choose A, B or Marker. Drag a marker or flag to move it." },
+      { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." }
+    ];
+    return [{ title: "Seek bar", rows: [
+      { label: "Rows", hint: "Number of seek bar rows", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS; }, set: setSegs, fmt: String }
+    ] }, { title: "Playback", rows: [
       { label: "Skip buttons", hint: "Seconds for back / forward", type: "stepper", values: function () { return SKIP_OPTIONS; }, get: function () { return skipSec; }, set: setSkipSec, fmt: function (v) { return v + "s"; } },
       { label: "Loop pre/post-roll", hint: "Seconds added around loop", type: "stepper", values: function () { var a = []; for (var i = 0; i <= PREROLL_MAX; i += PREROLL_STEP) a.push(i); return a; }, get: function () { return preRoll; }, set: setPreRoll, fmt: function (v) { return v + "s"; } }
-    ] }];
+    ] }, { title: "Tips", rows: tips }];
   }
 
   function setBtnLabel(btn, text) {
@@ -3039,6 +3057,106 @@
 
   // 起動時: 期限切れ(28日)のYouTube由来タイトルのキャッシュを必ず削除
   purgeTitleCache();
+
+  // ---------- 長押しクイック設定(PLAYERと共通のQNQuickPopに対象を登録。◢はCSS/style-quickpop.css) ----------
+  (function () {
+    var Q = window.QNQuickPop;
+    if (!Q || !Q.add) return;
+    function ready() { return !!(current && playerReady); }
+    function afterLoop() { persistLoop(); updateLoopUI(); renderMarkers(); }
+    function at(name) { return '.qn-yt-bbtn[data-yt="' + name + '"]'; }
+    function round1(v) { return Math.round(v * 10) / 10; }
+    function sec(v) { return v + "s"; }
+
+    Q.add(at("playBtn"), function () {
+      return { title: "Speed", build: function () {
+        var host = Q.el("div");
+        host.appendChild(Q.adjustRow("Speed", "Tap value to reset",
+          function () { return desiredRate + "x"; },
+          function () { stepRate(-1, true); }, function () { stepRate(1, true); },
+          function () { resetRate(); }));
+        return host;
+      } };
+    });
+    Q.add(at("prevMarkerBtn") + "," + at("nextMarkerBtn"), function () {
+      return { title: "Jump to marker", build: function (ctx) {
+        var ms = current ? current.markers.slice().sort(function (a, b) { return a.time - b.time; }) : [];
+        var cur = ready() ? currentPos() : -1, nearest = -1;
+        ms.forEach(function (m, i) { if (m.time <= cur + 0.05) nearest = i; });
+        var items = ms.map(function (m, i) {
+          return { label: (i + 1) + " - " + (m.label || fmt(m.time)), sub: m.label ? fmt(m.time) : "", dim: m.enabled === false, on: i === nearest,
+            color: markerColorHex(m), run: function () { if (ready()) userSeek(m.time); } };
+        });
+        return Q.listBody(items, ctx, "No markers yet");
+      } };
+    });
+    Q.add(at("setABtn") + "," + at("setBBtn"), function (el) {
+      var kind = el.getAttribute("data-yt") === "setBBtn" ? "B" : "A", key = kind === "A" ? "loopA" : "loopB";
+      if (!ready()) return null;
+      function put(v) { current[key] = v; if ((current.loopA === null || current.loopB === null) && current.loopMode === "ab") setLoopMode("off"); afterLoop(); }
+      return { title: kind + " point", build: function (ctx) {
+        var host = Q.el("div");
+        function nudge(d) { var c = current[key]; if (c === null) c = currentPos(); put(Math.max(0, Math.min(duration || 0, round1(c + d)))); }
+        var row = Q.adjustRow("Position", "Tap value to set here",
+          function () { return current[key] === null ? "Not set" : round1(current[key]).toFixed(1) + "s"; },
+          function () { nudge(-0.1); }, function () { nudge(0.1); },
+          function () { put(round1(currentPos())); });
+        host.appendChild(row);
+        var chips = Q.el("div", "qn-qp-chips");
+        [["−1s", -1], ["+1s", 1]].forEach(function (c) {
+          var b = Q.el("button", "pin-memo-preset-chip qn-qp-act", c[0]); b.type = "button";
+          b.onclick = function () { Q.hap(); nudge(c[1]); row.sync(); }; chips.appendChild(b);
+        });
+        var clr = Q.el("button", "pin-memo-preset-chip qn-qp-act", "Clear"); clr.type = "button";
+        clr.onclick = function () { Q.hap(); put(null); ctx.close(); };
+        chips.appendChild(clr);
+        host.appendChild(chips);
+        return host;
+      } };
+    });
+    Q.add(at("addMarkerBtn"), function () {
+      if (typeof getAllMarkerPresetLabels !== "function" || typeof getMarkerPresetColors !== "function") return null;
+      return { title: "Add marker as", build: function (ctx) {
+        var colors = getMarkerPresetColors(), chips = Q.el("div", "qn-qp-chips");
+        getAllMarkerPresetLabels().forEach(function (label) {
+          var b = Q.el("button", "pin-memo-preset-chip"); b.type = "button";
+          var cn = colors[label];
+          if (cn && MARKER_COLOR_PALETTE[cn]) { var d = Q.el("span", "pin-memo-preset-dot"); d.style.background = MARKER_COLOR_PALETTE[cn]; b.appendChild(d); }
+          b.appendChild(document.createTextNode(label));
+          b.onclick = function () {
+            if (!ready()) { showMessage("先に動画を読み込んでください"); ctx.close(); return; }
+            var m = { id: uid("m"), time: round1(clampTime(currentPos())), label: label };
+            if (cn && MARKER_COLOR_PALETTE[cn]) m.color = cn;
+            current.markers.push(m); sortMarkers(); persistMarkers(); renderMarkers();
+            ctx.close();
+          };
+          chips.appendChild(b);
+        });
+        return chips;
+      } };
+    });
+    Q.add(at("prevVideoBtn") + "," + at("nextVideoBtn"), function () {
+      return { title: "Jump to video", build: function (ctx) {
+        var list = items.map(function (it) {
+          return { label: displayTitle(it), on: !!(current && current.id === it.id), dim: !!it.skip, run: function () { playItem(it); } };
+        });
+        return Q.listBody(list, ctx, "Library is empty");
+      } };
+    });
+    Q.add(at("loopToggleBtn"), function () {
+      var vals = []; for (var i = 0; i <= PREROLL_MAX; i += PREROLL_STEP) vals.push(i);
+      return { title: "Loop pre-roll", rows: [
+        { label: "Pre/post-roll", hint: "Seconds added around loop", type: "stepper", values: function () { return vals; },
+          get: function () { return preRoll; }, set: setPreRoll, fmt: sec }
+      ] };
+    });
+    Q.add(at("skipBackBtn") + "," + at("skipFwdBtn"), function () {
+      return { title: "Skip buttons", rows: [
+        { label: "Skip time", hint: "Seconds for back / forward", type: "stepper", values: function () { return SKIP_OPTIONS; },
+          get: function () { return skipSec; }, set: setSkipSec, fmt: sec }
+      ] };
+    });
+  })();
 
   // ---------- アプリ登録 ----------
   if (window.QNApps) {

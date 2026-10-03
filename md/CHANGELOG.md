@@ -71,3 +71,5 @@
 - 4.0.1 お掃除ルールを`md/CLEANUP.md`に集約(以後お掃除のたびに更新)。QUICK_STARTとPROJECT_CONTEXTから参照を追加。
 - 4.0.2 お掃除(未使用JS関数・死んだCSS/idの削除、見た目差分0確認)。設定パネルに操作ガイド(◢長押し・シークバーのタップ/長押し/スワイプ/ダブルタップ・行スワイプ)を追加(en/ja)。波形右下の+Audio/+Marker/再生の行にBar length・Rows・Followの帯を常時表示し、時間表示/時刻ラベルの長押し(◢)は撤去。シークバー右端のマーカーが見切れる不具合を修正(`#vbarRows .vbar`に`width:auto`)。
 - 4.0.3 設定パネルの操作ガイドを説明文(Tips)に変更。TransferをモーダルからBackup/Importと同じ設定の下層パネルに作り直し(曲選択・全選択・サイズ表示も共通部品)。PLAYERでTransferが出ないことがあった不具合を修正(設定を開くたびに表示を判定)。
+- 4.0.4 シークバーのA/B旗が段(行)をまたぐと動かなくなる不具合を修正(ドラッグをdocumentで受ける方式に変更)。
+- 4.1.0 VIDEOにPLAYERの機能を移植: 下段バーの長押しクイック設定(◢。Play=Speed/前後マーカー=一覧ジャンプ/A・B=±0.1s微調整/+Marker=プリセット追加/前後Track=動画一覧/Loop=プリロール/±10s=スキップ秒。`QNQuickPop.add`で対象登録)、Settingsに「Seek bar > Rows」(1〜6段、`qn_yt_segs`)とTips。
