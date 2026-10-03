@@ -1267,7 +1267,7 @@
   .qn-yt-dock .pcv2-dock-play::after, .qn-yt-dock .pcv2-dock-more::after { display: none; }
   .qn-yt[data-panel="none"] .qn-yt-stage { flex: 1 0 auto; } /* 余った高さはステージに回し、帯(margin-top:auto)を下段バーの直上へ。パネルを開いている間は対象外(パネルが動画の下辺まで上がる) */
   /* ステージ帯(SP): 設定帯 / URL欄+Save / Marker を同じ左右端で縦に並べる(右寄せの単独ボタンを作らない) */
-  .qn-yt-stage-fab { display: grid; grid-template-columns: 1fr; gap: 8px; margin: auto 16px 10px; } /* margin-top:auto = 余白は帯の上(シークバー側)に回し、帯は下段バーの直上に固定 */
+  .qn-yt-stage-fab { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0; padding: 8px 16px 8px; background: var(--bg-base, #0a0a0c); order: -1; } /* controls(sticky)の先頭=下段バー/ドックの直上に固定 */ /* margin-top:auto = 余白は帯の上(シークバー側)に回し、帯は下段バーの直上に固定 */
   .qn-yt-urlgrp { max-width: none; min-width: 0; margin-right: 0; }
   .qn-yt-stage-fab .panel-fab-btn { padding: 0 16px; font-size: 13px; }
   .qn-yt-stage-fab > [data-yt="stageAddMarker"] { display: none; } /* SPはドックにMarkerがあるので重複させない */

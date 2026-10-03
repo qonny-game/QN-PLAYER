@@ -726,6 +726,21 @@
       ]);
       refs.stageUrl.parentNode.parentNode.insertBefore(segStrip.el, refs.stageUrl.parentNode);
     }
+    // SP: URL+設定帯(.qn-yt-stage-fab)を下段コントロールの直上(同じsticky内)へ移す。PCは元の位置
+    (function () {
+      var fab = root.querySelector(".qn-yt-stage-fab"), ctl = root.querySelector(".qn-yt-controls");
+      if (!fab || !ctl || !window.matchMedia) return;
+      var home = document.createComment("qn-yt-fab-home");
+      fab.parentNode.insertBefore(home, fab);
+      var mq = window.matchMedia("(max-width: 900px)");
+      function place() {
+        if (mq.matches) { if (fab.parentNode !== ctl) ctl.insertBefore(fab, ctl.firstChild); }
+        else if (fab.parentNode === ctl && home.parentNode) home.parentNode.insertBefore(fab, home.nextSibling);
+        if (SEGS_SETTING === -1 && typeof recalcAuto === "function") recalcAuto();
+      }
+      if (mq.addEventListener) mq.addEventListener("change", place); else if (mq.addListener) mq.addListener(place);
+      place();
+    })();
     root.classList.toggle("qn-yt-noseek", SEGS_SETTING === 0);
     if (window.ResizeObserver) {
       var roRaf = 0;
@@ -771,7 +786,7 @@
     var top = sk.getBoundingClientRect().top;
     var bottom = ctl ? ctl.getBoundingClientRect().top : window.innerHeight;
     if (sk.classList.contains("is-scroll")) top -= sk.scrollTop * 0; // 窓の上端は動かない
-    var fabH = fab && fab.offsetParent !== null ? fab.offsetHeight + 12 : 0;
+    var fabH = fab && fab.offsetParent !== null && fab.parentNode !== ctl ? fab.offsetHeight + 12 : 0; // SPはcontrols内(bottomがその上端)なので加算しない
     var pitch = 44;
     if (tracks.length > 1) pitch = tracks[1].offsetTop - tracks[0].offsetTop || pitch;
     var gap = 24, padTop = 24;
