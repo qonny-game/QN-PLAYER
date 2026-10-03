@@ -486,15 +486,11 @@ body.dragover #dropOverlay {
 .playlist-sync-foot.can { cursor: pointer; }
 .playlist-sync-foot.err { color: #e5534b; opacity: .9; }
 
-/* ---------- v3.29.0 MP3のP2P転送(player-p2p.js)。モーダルは既存の.export-modal*部品を流用、ここは固有部分のみ ---------- */
-.qn-p2p-overlay { z-index: 450; }
+/* ---------- v3.29.0 MP3のP2P転送(player-p2p.js)。設定の下層パネル(Backup/Importと同じ.export-*/.track-backup-*部品を流用)、ここは固有部分のみ ---------- */
+.qn-p2p-host { display: contents; }
 .qn-p2p-text { font-family: var(--font-body, 'Instrument Sans'), sans-serif; font-size: var(--fs-small); line-height: 1.7; color: var(--icon-muted); }
-.qn-p2p-modal .export-run-btn:disabled { opacity: 0.4; }
-.qn-p2p-modal .export-section .export-run-btn, .qn-p2p-modal .export-section .export-cancel-btn { align-self: flex-start; }
-.qn-p2p-modal .qn-p2p-small { padding: 6px 14px; font-size: var(--fs-btn); }
-.qn-p2p-modal .track-backup-checklist { max-height: 44vh; overflow-y: auto; }
-.qn-p2p-row-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-body); color: var(--text-bright); }
-.qn-p2p-row-s { flex: none; font-size: var(--fs-micro); color: var(--icon-muted); }
+.qn-p2p-host .export-run-btn:disabled { opacity: 0.4; }
+:is(#pcV2PanelBody, .qn-pt-sec-backup) .qn-p2p-host .export-section > .export-run-btn { width: 100%; margin-top: 12px; }
 .qn-p2p-code { text-align: center; padding: 14px 0; font-family: var(--font-display, 'Instrument Sans'), sans-serif; font-size: 40px; font-weight: 700; letter-spacing: 0.14em; color: var(--text-pure-white); font-variant-numeric: tabular-nums; background: #1c1c24; border: 1px solid var(--border-subtle); border-radius: var(--radius-field); }
 .qn-p2p-input { text-align: center; font-size: 26px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 12px; }
 .qn-p2p-bar { height: 6px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, 0.1); overflow: hidden; }

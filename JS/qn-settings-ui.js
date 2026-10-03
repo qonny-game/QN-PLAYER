@@ -1,5 +1,5 @@
 // qn-settings-ui.js — 設定パネルの共通部品(PLAYER本体=player-ui-pc-v2.js / アプリ=qn-apps.jsの「Settings」が共用)。見た目はCSS/style-settings.css。
-// 使い方: const ui = QNSettingsUI.build([{ title, rows:[ {label,hint,type:"stepper",values(),get(),set(v),fmt(v)} | {label,hint,type:"switch",get(),set(on)} | {label,hint,type:"node",node} ] }]); host.appendChild(ui.el); 値が変わりうる時 ui.sync()。
+// 使い方: const ui = QNSettingsUI.build([{ title, rows:[ {label,hint,type:"stepper",values(),get(),set(v),fmt(v)} | {label,hint,type:"switch",get(),set(on)} | {label,hint,type:"node",node} | {label,type:"note"}(説明文だけ。操作部なし) ] }]); host.appendChild(ui.el); 値が変わりうる時 ui.sync()。
 // 行には disabledWhen():boolean を付けられる(trueの間は薄く操作不可)。階層に入る一覧は QNSettingsUI.list([{id,label,icon}], onPick)。
 // ルール(GOTCHAS.md): 複数選択肢は必ず「‹ 値 ›」(stepper)、ON/OFFだけswitch。独自のボタン列やデザインを新設しない。依存なし(hapticTapがあれば使う)。
 window.QNSettingsUI = (function () {
@@ -74,6 +74,7 @@ window.QNSettingsUI = (function () {
       var secEl = make('<div class="qn-set-sec"><div class="qn-set-sec-title"></div></div>');
       secEl.querySelector(".qn-set-sec-title").textContent = sec.title;
       sec.rows.forEach(function (r) {
+        if (r.type === "note") { var note = make('<div class="qn-set-note"></div>'); note.textContent = r.label; secEl.appendChild(note); return; }
         var rowEl = make('<div class="qn-set-row"><div class="qn-set-label"><span></span><small></small></div><div class="qn-set-ctl"></div></div>');
         rowEl.querySelector(".qn-set-label span").textContent = r.label;
         var sm = rowEl.querySelector("small");

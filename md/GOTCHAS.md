@@ -136,7 +136,9 @@
 
 - **`#vbarRows .vbar`は`width:auto`必須**（style-core.cssの`.vbar{width:100%}`が`left/right`の指定を打ち消し、行が右へ約56px(ラベル幅+右余白)はみ出して右端のマーカー・波形が見切れた。JS側のバー幅`g.barW`は`clientWidth-labelW-padRight`で計算しているので、CSSの幅とずれると描画も歪む）。
 - 波形右下の帯(`QNSettingsUI.inline`、`#pcV2WaveFabRow`内)は設定パネルのSeek bar項目と同じ値。変更は`settingsSections.onChange`/`window.qnBarStripSync`/`syncSettingsBody`で相互に同期する。項目を足す時は両方に足す。
-- **設定パネルの「操作ガイド」**（`player-ui-pc-v2.js`の`rowsHold`/`rowsGesture`/`rowsSwipe`、日本語は`qn-i18n-ja.js`）は、長押し対象(`TARGETS`)・波形ジェスチャー・行スワイプを足す/変える時に**必ず文言も更新する**。アプリの売りなので、操作を追加したらここに書く。
+- **設定パネルの「Tips」**（`player-ui-pc-v2.js`の`rowsTips`。説明文だけで設定項目に見せない=`type:"note"`。日本語は`qn-i18n-ja.js`）は、長押し対象(`TARGETS`)・波形ジェスチャー・行スワイプを足す/変える時に**必ず文言も更新する**。アプリの売りなので、操作を追加したらここに書く。
+
+- **Transferはモーダルにしない。** Backup/Importと同じ下層パネル(`QNP2P.mount`)。見た目はstyle-pcv2-panels.cssのBackup用`:is()`リスト(`#pcV2PanelBody.pcv2-panel-transfer`/`.qn-pt-sec-backup`)を共用。入れ物`.qn-p2p-host`は`display:contents`で、パネルを離れるとDOMから外れる(進行中のセッションは続き、戻ると`S.screen()`で復元)。Transferの表示可否は`syncSettingsBody()`が開くたびに判定する(ログイン完了が設定の構築より後になることがあるため、構築時に決めない)。
 
 ## v3.55.0
 - 長押し対象には右下◢(style-quickpop.cssの::after)。`player-quickpop.js`のTARGETSとCSSセレクタを必ず揃える。(v4.0.2で時刻ラベル/時間表示の長押しは撤去。Bar length/Rows/Followは波形右下の帯`#pcV2WaveFabRow`に常時表示)

@@ -34,6 +34,10 @@
     // バックアップ/インポート
     "曲を選択": "Select tracks",
     "全選択": "Select all",
+    "送信": "Send",
+    "受信": "Receive",
+    "コード": "Code",
+    "進行状況": "Progress",
     "全解除": "Clear all",
     "含める項目": "Include",
     "音声データ": "Audio data",

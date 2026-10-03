@@ -135,7 +135,6 @@
         '</button>'
       );
       btn.addEventListener("click", () => handleIconClick(item));
-      if (item.panelType === "transfer" && !(window.QNLibSync && window.QNLibSync.isActive())) btn.style.display = "none";
       bottomGroup.appendChild(btn);
     });
     [
@@ -702,11 +701,6 @@
       return;
     }
 
-    if (item.panelType === "transfer") {
-      if (window.QNP2P) window.QNP2P.open();
-      return;
-    }
-
     openPanelOverlay(item.id);
   }
 
@@ -757,7 +751,6 @@
     openPanelOverlay("settings");
   }
   function openSettingsSub(id) {
-    if (id === "transfer") { if (window.QNP2P) window.QNP2P.open(); return; }
     const pb = document.getElementById("pcV2PanelBody");
     if (pb) settingsScroll = pb.scrollTop; // 戻った時に同じ位置を見せる
     settingsSub = true;
@@ -930,37 +923,20 @@
         get: () => (window.QNI18N ? QNI18N.getPref() : "auto"), set: v => { if (window.QNI18N) QNI18N.setPref(v); },
         fmt: v => v === "auto" ? "Auto" : v === "ja" ? "日本語" : "English" }
     ];
-    // 操作ガイド(説明だけの行=typeなし)。長押し対象(player-quickpop.jsのTARGETS)・波形ジェスチャー(player-ui-shared.js)・行スワイプ(qn-apps.jsのswipeRows)を変えたら文言も合わせる
-    const rowsHold = [
-      { label: "Hold a button marked ◢", hint: "Opens its quick settings in place" },
-      { label: "Play", hint: "Speed and key" },
-      { label: "Previous / next marker", hint: "Jump to any marker" },
-      { label: "A / B", hint: "Fine tune in 0.1 s steps" },
-      { label: "Add marker", hint: "Add a marker with a preset label" },
-      { label: "Previous / next track", hint: "Jump to a folder or track" },
-      { label: "Loop", hint: "Pre/post-roll seconds" },
-      { label: "Skip back / forward", hint: "Skip seconds" },
-      { label: "Repeat", hint: "Library repeat range" },
-      { label: "Library row", hint: "Favorite, skip, move, rename, delete" }
+    // 操作ガイド(説明文だけ。設定項目に見えないよう行ではなく文にする)。長押し対象(player-quickpop.jsのTARGETS)・波形ジェスチャー(player-ui-shared.js)・行スワイプ(qn-apps.jsのswipeRows)を変えたら文言も合わせる
+    const rowsTips = [
+      { type: "note", label: "Press and hold a button marked ◢ to open the settings that fit it." },
+      { type: "note", label: "Seek bar: tap to play from that position, hold to add a marker, swipe sideways to scrub, double tap while playing to stop." },
+      { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." }
     ];
-    const rowsGesture = [
-      { label: "Tap", hint: "Seek and play from that position" },
-      { label: "Hold", hint: "Add a marker at that position" },
-      { label: "Swipe sideways", hint: "Scrub the playback position" },
-      { label: "Double tap while playing", hint: "Stop at that position" }
-    ];
-    const rowsSwipe = [
-      { label: "Swipe a Library or Markers row", hint: "Show edit and delete buttons (mobile)" }
-    ];
-    const settingsSections = [{ title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "General", rows: rowsLang },
-      { title: "Hold for quick settings", rows: rowsHold }, { title: "Seek bar gestures", rows: rowsGesture }, { title: "List gestures", rows: rowsSwipe }];
+    const settingsSections = [{ title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "General", rows: rowsLang }, { title: "Tips", rows: rowsTips }];
     settingsSections.onChange = () => { if (window.qnBarStripSync) window.qnBarStripSync(); };
     settingsUI = QNSettingsUI.build(settingsSections);
     const body = settingsUI.el;
     body.id = "pcV2SettingsBody";
     const more = QNSettingsUI.list(["backup", "import", "color", "keyboard", "transfer"], openSettingsSub);
     const tr = more.querySelector('[data-panel-id="transfer"]');
-    if (tr && !(window.QNLibSync && window.QNLibSync.isActive())) tr.style.display = "none";
+    if (tr) tr.style.display = "none"; // 表示はsyncSettingsBody()が判定する
     body.appendChild(more);
     body.appendChild(QNSettingsUI.versionLine());
     settingsBody = body;
@@ -969,6 +945,9 @@
 
   function syncSettingsBody() {
     if (settingsUI) settingsUI.sync();
+    // Transferは同期対象アカウントのログイン中だけ。ログイン完了は設定の構築より後になることがあるので、開くたびに判定し直す
+    const tr = settingsBody ? settingsBody.querySelector('[data-panel-id="transfer"]') : null;
+    if (tr) tr.style.display = (window.QNLibSync && window.QNLibSync.isActive()) ? "" : "none";
   }
 
   function switchPanel(panelId, opts) {
@@ -1074,11 +1053,15 @@
       syncSettingsBody();
       panelBody.scrollTop = settingsScroll; // 下層から戻った時は元の位置(通常の表示は0)
       settingsScroll = 0;
+    } else if (item.panelType === "transfer") {
+      // 設定の下層パネル(Backup/Importと同じ部品。中身はplayer-p2p.js)。戻り先は設定の一覧
+      panelBody.classList.add("pcv2-panel-aux");
+      if (window.QNP2P) window.QNP2P.mount(panelBody, () => switchPanel("settings"));
     } else if (item.panelType === "backup" || item.panelType === "import") {
       panelBody.classList.add("pcv2-panel-aux");
       if (typeof window.qnBackupMount === "function") window.qnBackupMount(item.panelType, panelBody);
     }
-    if (item.panelType !== "backup" && item.panelType !== "import") {
+    if (item.panelType !== "backup" && item.panelType !== "import" && item.panelType !== "transfer") {
       panelBody.classList.remove("pcv2-panel-aux");
     }
 

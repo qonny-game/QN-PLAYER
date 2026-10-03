@@ -460,7 +460,6 @@
         return true;
       });
       host.appendChild(QNSettingsUI.list(ids, function (id) {
-        if (id === "transfer") { if (window.QNP2P) window.QNP2P.open(); return; }
         showSetView(id);
       }));
       host.appendChild(QNSettingsUI.versionLine());
@@ -475,6 +474,11 @@
       var box = document.createElement("div");
       body.appendChild(box);
       renderShortcuts(box, current ? current.id : null);
+    } else if (name === "transfer") {
+      var trEl = document.createElement("div");
+      trEl.className = "qn-pt-sec-backup"; // Backup/Importと同じ見た目(style-pcv2-panels.cssの共用ルール)
+      body.appendChild(trEl);
+      if (window.QNP2P) window.QNP2P.mount(trEl, function () { showSetView("root", true); });
     } else if (name === "backup" || name === "import") {
       var hostEl = document.createElement("div");
       hostEl.className = name === "backup" ? "qn-pt-sec-backup" : "qn-pt-sec-import";

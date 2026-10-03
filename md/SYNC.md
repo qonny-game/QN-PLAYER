@@ -93,7 +93,7 @@ service cloud.firestore {
 ---
 
 # MP3のP2P転送（v3.29.0〜）
-実装: `JS/player-p2p.js`（WebRTC DataChannel）。サイドバー下段の「Transfer」(Backup/Importの隣。同期対象アカウントのログイン中だけ表示)から(画面は既存のExportモーダル部品を流用、文言は簡潔な丁寧語)。
+実装: `JS/player-p2p.js`（WebRTC DataChannel）。設定 → More の「Transfer」(同期対象アカウントのログイン中だけ表示。設定を開くたびに判定)から。画面はBackup/Importと同じ下層パネル(`QNP2P.mount(hostEl, onDismiss)`。PLAYERは`switchPanel("transfer")`、アプリは`qn-apps.js`のSettings下層)で、部品は`.export-*`/`.track-backup-*`を共用(モーダルは使わない)。文言は簡潔な丁寧語。
 
 ## 流れ（送る側が先）
 1. **送る側**: Transfer → Send。6文字コード(紛らわしいI/O/0/1除く)を発行して待機。

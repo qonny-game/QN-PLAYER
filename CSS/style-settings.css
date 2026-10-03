@@ -66,6 +66,7 @@
 .qn-set-inline .qn-set-switch { width: 42px; height: 26px; }
 .qn-set-inline .qn-set-switch span { width: 18px; height: 18px; }
 .qn-set-inline .qn-set-switch.is-on span { transform: translateX(16px); }
+.qn-set-note { padding: 4px 0 10px; font-size: var(--fs-small); line-height: 1.7; color: var(--icon-muted); }
 .qn-set-list { display: flex; flex-direction: column; padding: 2px 0 8px; }
 .qn-set-list-item {
   display: flex;
