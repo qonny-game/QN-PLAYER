@@ -503,6 +503,13 @@
     ["play", "pause", "ended", "emptied", "loadedmetadata"].forEach(n => audio.addEventListener(n, syncFabPlay));
     waveFabBtns.appendChild(waveFabPlayBtn);
     waveArea.appendChild(waveFabRow);
+    // FAB帯の高さに合わせて波形エリア下の空きを決める(固定値だと帯が高い時にシークバーへ重なる)
+    if (window.ResizeObserver) {
+      new ResizeObserver(() => {
+        const h = waveFabRow.offsetHeight;
+        if (h) waveArea.style.setProperty("--pcv2-wave-fab-space", (h + (window.innerWidth <= 900 ? 14 : 20) + 10) + "px");
+      }).observe(waveFabRow);
+    }
 
     const basicPanelBox = document.querySelector(".basic-panel-box");
     if (basicPanelBox) basicPanelBox.style.display = "none";
