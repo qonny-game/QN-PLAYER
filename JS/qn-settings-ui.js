@@ -36,6 +36,12 @@ window.QNSettingsUI = (function () {
       i.ctl.querySelector(".qn-stepper-val").textContent = d.fmt ? d.fmt(cur) : String(cur);
       i.ctl.querySelector('[data-d="-1"]').disabled = vals.length < 2; // 端でループするので無効にしない(v3.61.0)
       i.ctl.querySelector('[data-d="1"]').disabled = vals.length < 2;
+    } else if (d.type === "slider") {
+      var sv = d.values(), sc = Math.max(0, sv.indexOf(d.get())), inp = i.ctl.querySelector("input");
+      inp.min = "0"; inp.max = String(Math.max(0, sv.length - 1)); inp.step = "1";
+      if (document.activeElement !== inp || +inp.value !== sc) inp.value = String(sc);
+      i.ctl.querySelector(".qn-set-slider-val").textContent = d.fmt ? d.fmt(sv[sc]) : String(sv[sc]);
+      inp.style.setProperty("--p", sv.length > 1 ? (sc / (sv.length - 1) * 100) + "%" : "0%");
     } else if (d.type === "switch") {
       var on = !!d.get();
       i.ctl.classList.toggle("is-on", on);
@@ -63,6 +69,7 @@ window.QNSettingsUI = (function () {
 
   function newControl(r) {
     if (r.type === "stepper") return stepper();
+    if (r.type === "slider") return make('<div class="qn-set-slider"><input type="range" class="qn-set-range" aria-label=""><span class="qn-set-slider-val"></span></div>');
     if (r.type === "switch") return make('<button type="button" class="qn-set-switch" role="switch" aria-checked="false"><span></span></button>');
     return null;
   }
@@ -118,6 +125,20 @@ window.QNSettingsUI = (function () {
     root.addEventListener("click", function (e) {
       var btn = e.target.closest ? e.target.closest("button") : null;
       if (!btn || !applyClick(infos, btn)) return;
+      sync();
+      if (onChange) onChange();
+    });
+    // スライダー(FAB帯専用。設定パネルの行は従来どおり「‹ 値 ›」): つまみの位置=values()の添字。1段ごとに触覚フィードバック
+    root.addEventListener("input", function (e) {
+      var inp = e.target;
+      if (!inp || !inp.classList || !inp.classList.contains("qn-set-range")) return;
+      for (var k = 0; k < infos.length; k++) {
+        var i = infos[k];
+        if (!i.ctl || !i.ctl.contains(inp) || i.def.type !== "slider") continue;
+        var vals = i.def.values(), v = vals[parseInt(inp.value, 10)];
+        if (v !== undefined && v !== i.def.get()) { haptic(); i.def.set(v); }
+        break;
+      }
       sync();
       if (onChange) onChange();
     });

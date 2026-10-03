@@ -534,6 +534,9 @@ let eqFilters = [];
 
 let soundTouchNode = null;
 let pitchShiftAvailable = false;
+// 自動ノーマライズ(player-normalize.js)用: EQの後ろに Gain → リミッタ を置く
+let normGainNode = null;
+let normLimiterNode = null;
 
 async function setupAudioGraph() {
   if (audioGraphSetupDone) return;
@@ -588,7 +591,12 @@ async function setupAudioGraph() {
     node.connect(filter);
     node = filter;
   });
-  node.connect(ctx.destination);
+  normGainNode = ctx.createGain();
+  normLimiterNode = ctx.createDynamicsCompressor();
+  node.connect(normGainNode);
+  normGainNode.connect(normLimiterNode);
+  normLimiterNode.connect(ctx.destination);
+  if (window.QNNorm) QNNorm.apply();
 
   if (typeof setEqEffectEnabled === "function" && typeof eqEffectEnabled !== "undefined") {
     setEqEffectEnabled(eqEffectEnabled);

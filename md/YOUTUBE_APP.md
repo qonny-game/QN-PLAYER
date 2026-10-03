@@ -213,6 +213,14 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 **機能**
 - [ ] URL読み込み／不正URLのエラー／Saveで保存（入力欄が空に戻る）／リロード後も残る／タイトル空欄Saveで自動取得（手入力済みでも空欄Saveで自動に戻る）
 - [ ] Library：並べ替え、EDIT→PLAY/SKIP・選択削除、Auto Next
-- [ ] Markers：追加、色、メモ＋プリセット、表示/非表示、選択削除、チャプター貼り付け、A/B・Loop 3モード・Clear AB
+- [ ] Markers：追加、色、メモ＋プリセット、表示/非表示、選択削除、チャプター貼り付け、A/B・Loop 3モード
 - [ ] シークバー：クリック/ドラッグ、マーカーのドラッグ、前/次マーカー、ポップアップ
 - [ ] Backup→Importで元に戻る／SP幅でパネル開閉してもプレイヤーが隠れない
+
+## シークバーの行数・秒数・スクロール(v4.6.0)
+- Rows=窓に出す行数(1〜6、Settingsでは0=Off)。Bar length=1行の秒数(Fit / 5s〜5m)。Fit=全長をRows等分(従来動作、スクロールなし)。秒数指定=全長÷秒数の行を作り、Rows行ぶんの高さの窓で縦スクロール(`.qn-yt-seek.is-scroll`、高さはJSのlayoutSeek)。
+- 行数が変わる時(Rows/Bar length変更・動画の長さ確定・動画切替)だけ`ensureRows`で作り直す。updateDisplayは前回行〜今回行だけ更新(行が多くても軽くする)。
+- Follow: 再生位置の行が窓から出たらスクロール(`followTo`)。ユーザーがスクロールしたら「Pause after scrolling」秒だけ追従停止。自分のスクロール/作り直し由来のscrollイベントは`progUntil`で無視。
+- タッチ: スクロール時の行は`touch-action:pan-y`(縦=スクロール、横=シーク。縦に取られたらpointercancelでシーク解除)。
+- ステージFAB: [Seek bar(ON/OFF) / Bar length / Rows / Follow] の帯(スライダー+スイッチ)、URL欄+Saveは連結、Markerは右端。Clear ABは撤去(A/Bのクリアはマーカー操作側)。
+- 制約: 1行の秒数は最大2000行まで(それ以上は行が増えないので末尾に届かない場合は秒数を大きくする)。

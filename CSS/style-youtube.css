@@ -1131,7 +1131,13 @@
   flex-shrink: 0;
   margin-top: 12px;
 }
-.qn-yt-stage-url { flex: 1 1 200px; min-width: 160px; max-width: 420px; margin-right: auto; }
+/* URL欄とSaveは1つに連結(隙間なし・アイコンなし) */
+.qn-yt-urlgrp { display: flex; align-items: stretch; flex: 1 1 260px; min-width: 200px; max-width: 480px; margin-right: auto; }
+.qn-yt-stage-url { flex: 1 1 auto; min-width: 0; width: auto; border-radius: 999px 0 0 999px; }
+.qn-yt-stage-save { border-radius: 0 999px 999px 0; margin: 0; }
+/* シークバーの行数が窓(Rows)より多い時: 窓の高さはJS(layoutSeek)。縦スクロール・行頭にスナップ。タッチは縦スクロールを許可(横なぞりはシーク) */
+.qn-yt-seek.is-scroll { box-sizing: border-box; margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; /* 端のマーカー番号が欠けないよう左右に余白 */ overflow-y: auto; overflow-x: hidden; scroll-snap-type: y proximity; overscroll-behavior: contain; scrollbar-width: thin; }
+.qn-yt-seek.is-scroll .qn-yt-track.vbar { scroll-snap-align: start; scroll-margin-top: 28px; touch-action: pan-y; }
 .qn-yt-noseek .qn-yt-seek { display: none; }
 @media screen and (max-width: 900px) {
   .qn-yt-stage-fab { margin-top: 12px; margin-left: 16px; }
@@ -1234,9 +1240,10 @@
   }
   .qn-yt-dock .pcv2-dock-play::after, .qn-yt-dock .pcv2-dock-more::after { display: none; }
   /* ステージFAB: URL欄は1行使い、段数/Save/Markerを次の行へ */
-  .qn-yt-stage-url { flex: 1 1 100%; max-width: none; }
+  .qn-yt-urlgrp { flex: 1 1 100%; max-width: none; margin-right: 0; }
   .qn-yt-stage-fab { gap: 6px; }
-  .qn-yt-stage-fab .qn-set-inline { padding: 4px 8px; gap: 6px; }
+  .qn-yt-stage-fab .qn-set-inline { padding: 4px 8px; gap: 6px; width: 100%; box-sizing: border-box; justify-content: space-between; }
+  .qn-yt-stage-fab .qn-set-inline-item { flex: 1 1 45%; justify-content: space-between; }
   .qn-yt-stage-fab .panel-fab-btn { padding: 10px 12px; }
   .qn-yt-stage-fab .qn-set-inline .qn-stepper-btn { width: 26px; }
   .qn-yt-stage-fab .qn-set-inline .qn-stepper-val { min-width: 28px; }

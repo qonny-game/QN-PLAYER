@@ -66,6 +66,18 @@
 .qn-set-inline .qn-set-switch { width: 42px; height: 26px; }
 .qn-set-inline .qn-set-switch span { width: 18px; height: 18px; }
 .qn-set-inline .qn-set-switch.is-on span { transform: translateX(16px); }
+/* FAB帯のスライダー(inline専用)。つまみ=段階(values()の添字)。値は右に数値表示 */
+.qn-set-slider { display: flex; align-items: center; gap: 8px; height: 34px; }
+.qn-set-range {
+  -webkit-appearance: none; appearance: none; width: 96px; height: 20px; margin: 0; background: transparent; cursor: pointer; touch-action: pan-y;
+  --p: 0%;
+}
+.qn-set-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--accent-primary) var(--p), #2a2a34 var(--p)); }
+.qn-set-range::-moz-range-track { height: 4px; border-radius: 2px; background: #2a2a34; }
+.qn-set-range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent-primary); }
+.qn-set-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: var(--text-bright, #fff); border: none; }
+.qn-set-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--text-bright, #fff); border: none; }
+.qn-set-slider-val { min-width: 34px; text-align: right; font-size: var(--fs-small); font-weight: 600; color: var(--text-bright); font-variant-numeric: tabular-nums; }
 .qn-set-note { padding: 4px 0 10px; font-size: var(--fs-small); line-height: 1.7; color: var(--icon-muted); }
 .qn-set-list { display: flex; flex-direction: column; padding: 2px 0 8px; }
 .qn-set-list-item {
@@ -165,4 +177,9 @@
 .qn-set-version { padding: 16px 0 8px; font-size: var(--fs-micro); color: var(--icon-muted); letter-spacing: 0.4px; }
 @media screen and (max-width: 900px) {
   body.pc-v2-active #appHeader #appVersion { display: none; }
+}
+@media screen and (max-width: 900px) {
+  .qn-set-inline .qn-set-range { width: 60px; }
+  .qn-set-inline .qn-set-slider { gap: 6px; }
+  .qn-set-inline .qn-set-slider-val { min-width: 28px; }
 }

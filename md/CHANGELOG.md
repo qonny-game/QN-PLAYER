@@ -77,3 +77,5 @@
 - 4.3.0 VIDEOのSP幅にメインドックを追加(Prev/Loop/再生/Marker/Next/More。Moreで下段バーを開閉、既定は閉。`qn_yt_more`)。ドックのボタンも長押しクイック設定に対応。
 - 4.4.0 VIDEOをPLAYERの部品に寄せ直し: Library/Markersの行ボタン(SKIP/HIDE/編集タイル)・選択タイル・Cancel/OK→Deleteを共通化(CSSは:is()で両側に適用。VIDEO専用の行CSSを撤去、行のA/Bボタンを廃止)、ステージFABに段数(Rows)ストリップ、PC幅の下段バーをPLAYER寸法に拡大、SPのバー+ドックを1つのstickyに修正。
 - 4.4.1 PLAYERのSKIP区間の斜線が、バー秒数の変更・行のスクロールで別の区間に残る/ずれる不具合を修正(回収する行から.segmentSkipを外していなかった。player-bars.jsのstripRow)。
+- 4.5.0 PLAYERに自動ノーマライズを追加(Settings>Playback>Auto normalize/Normalize level。既定OFF)。波形デコード時にゲート付きRMS音量とピークを測り(player-normalize.js、結果はファイル名キーでlocalStorage保存)、目標との差をEQ後段のGainNode+リミッタ(DynamicsCompressor)で補正。ONにするとWeb Audio常時接続になる。VIDEOは対象外(音声に触れない規約)。エクスポートには未適用
+- 4.6.0 FAB帯にスライダー部品(QNSettingsUI.inline の type:"slider")を追加し、PLの波形FAB(Bar length/Rows)をスライダー化。VIDEO: ステージFABをURL欄+Saveの連結(アイコンなし)に変更し、Seek barのON/OFF・Bar length・Rows・Followを追加。シークバーは1行の秒数(Fit/5s〜5m)を指定でき、行数が窓(Rows)より多い時は縦スクロール+再生位置追従(Settings>Seek bar: Bar length/Follow playhead/Pause after scrolling)。VIDEOのClear ABボタンを撤去

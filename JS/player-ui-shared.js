@@ -33,6 +33,9 @@ async function decodeWaveform(file, token) {
 
     if (token !== waveformDecodeToken) return;
 
+    // 自動ノーマライズ用の音量計測(player-normalize.js)。波形と同じデコード結果を使うので追加のデコードはない
+    if (window.QNNorm) QNNorm.measure(file.name, audioBuffer, () => token !== waveformDecodeToken);
+
     const channelCount = audioBuffer.numberOfChannels;
     const rawLength = audioBuffer.length;
     // 【v3.58.0】5秒1本でも滑らかに見えるよう毎秒160ピーク(下限4000・上限480000=約50分)。QNBarsが1本あたりの区間で最大値を取って間引く
@@ -181,6 +184,7 @@ function loadFile(file) {
   waveformPeaks = null;
   waveformDecodeToken++;
   decodeWaveform(file, waveformDecodeToken);
+  if (window.QNNorm) QNNorm.onLoad(file.name);
 
   // 【v2.13.6】マーカー/テキストメモ読込は曲切替の瞬間に同期で行う(loadedmetadata待ちだと失敗時に曲名だけ新しく本文が前の曲のままになり、編集すると新しい曲名キーで保存される。GOTCHAS.md)
   loadTrackUserData(file.name);

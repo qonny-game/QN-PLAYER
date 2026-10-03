@@ -18,6 +18,13 @@
   // SEGS_SETTING=0はシークバー非表示(内部の行数SEGSは1のまま。計算の0除算を避ける)
   var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
   var SEGS = Math.max(1, SEGS_SETTING);
+  // 表示する行数=SEGS(1〜6)。1行の秒数ROWSEC: 0=Fit(全長をSEGS等分=従来。スクロールなし) / 秒数指定=全長/秒数の行を作り、SEGS行ぶんの窓でスクロール(PLのBar length/Rowsと同じ考え方)
+  var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_OPTIONS = [0, 5, 10, 15, 30, 60, 120, 300];
+  var ROWSEC = (function () { try { var v = parseInt(localStorage.getItem(ROWSEC_KEY), 10); return ROWSEC_OPTIONS.indexOf(v) >= 0 ? v : 0; } catch (e) { return 0; } })();
+  var SEGS_LAST_KEY = "qn_yt_segs_last", SEGS_LAST = (function () { try { var v = parseInt(localStorage.getItem(SEGS_LAST_KEY), 10); return v >= 1 && v <= 6 ? v : (SEGS_SETTING || 3); } catch (e) { return 3; } })();
+  var FOLLOW_KEY = "qn_yt_follow", FPAUSE_KEY = "qn_yt_follow_pause", FPAUSE_MIN = 1, FPAUSE_MAX = 30;
+  var followOn = (function () { try { return localStorage.getItem(FOLLOW_KEY) !== "0"; } catch (e) { return true; } })();
+  var followPause = (function () { try { var v = parseInt(localStorage.getItem(FPAUSE_KEY), 10); return v >= FPAUSE_MIN && v <= FPAUSE_MAX ? v : 6; } catch (e) { return 6; } })();
 
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
   var FOLDERS_KEY = "qn_yt_folders", FOLDER_COLLAPSED_KEY = "qn_yt_folder_collapsed";
@@ -350,7 +357,6 @@
         bbtn("setABtn", "", BI.setA, "A --", "現在地をA点に設定") +
         bbtn("setBBtn", "", BI.setB, "B --", "現在地をB点に設定") +
         bbtn("loopToggleBtn", "", BI.loop, "Loop", "LOOP：OFF → A-B → 区間 → OFF") +
-        bbtn("loopClearBtn", "", BI.clear, "Clear AB", "AB点をクリア") +
       '</div>' +
       '<div class="qn-yt-bspacer"></div>' +
       '<div class="qn-yt-bgroup">' +
@@ -495,10 +501,10 @@
         '</div>' +
         // PLの波形エリア右下(#pcV2WaveFabRow)と同位置のMARKERボタン。プレイヤーの外(下)・通常フロー(重ねない)
         '<div class="qn-yt-stage-fab">' +
-          '<input data-yt="stageUrl" class="qn-yt-input qn-yt-stage-url" type="text" placeholder="Paste YouTube URL" autocomplete="off" spellcheck="false" aria-label="YouTube URL">' +
-          '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="stageSave" title="Save to Library">' +
-            '<svg viewBox="0 0 24 24"><path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10v4z"/></svg><span>Save</span>' +
-          '</button>' +
+          '<div class="qn-yt-urlgrp">' +
+            '<input data-yt="stageUrl" class="qn-yt-input qn-yt-stage-url" type="text" placeholder="Paste YouTube URL" autocomplete="off" spellcheck="false" aria-label="YouTube URL">' +
+            '<button type="button" class="panel-fab-btn panel-addfile-btn qn-yt-stage-save" data-yt="stageSave" title="Save to Library"><span>Save</span></button>' +
+          '</div>' +
           '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="stageAddMarker" title="Add Marker">' +
             '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Marker</span>' +
           '</button>' +
@@ -612,6 +618,7 @@
 
     window.addEventListener("resize", applyCollapse);
     buildTracks();
+    refs.seekTracks.addEventListener("scroll", onSeekScroll, { passive: true });
     (function () {
       var MORE_KEY = "qn_yt_more";
       function relay(dock, bar) { refs[dock].addEventListener("click", function () { refs[bar].click(); }); }
@@ -642,19 +649,22 @@
       var saved = false; try { saved = localStorage.getItem(MORE_KEY) === "1"; } catch (e) {}
       setMore(saved);
     })();
-    // ステージのFAB行にシークバーの段数(PLAYERのバー設定ストリップと同じ部品)
+    // ステージのFAB行にシークバーの常用設定(PLAYERの波形FABと同じ部品。ここだけスライダー): Seekbar ON/OFF・Bar length・Rows・Follow
     if (window.QNSettingsUI && QNSettingsUI.inline) {
       segStrip = QNSettingsUI.inline([
-        { label: "Rows", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : String(v); } }
+        { label: "Seek bar", type: "switch", get: function () { return SEGS_SETTING > 0; }, set: function (on) { setSegs(on ? SEGS_LAST : 0); } },
+        { label: "Bar length", type: "slider", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
+        { label: "Rows", type: "slider", values: function () { return [1, 2, 3, 4, 5, 6]; }, get: function () { return SEGS_SETTING > 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING > 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
+        { label: "Follow", type: "switch", get: function () { return followOn; }, set: setFollow }
       ]);
-      refs.stageSave.parentNode.insertBefore(segStrip.el, refs.stageSave);
+      refs.stageUrl.parentNode.parentNode.insertBefore(segStrip.el, refs.stageUrl.parentNode);
     }
     root.classList.toggle("qn-yt-noseek", SEGS_SETTING === 0);
     if (window.ResizeObserver) {
       var roRaf = 0;
       new ResizeObserver(function () {
         cancelAnimationFrame(roRaf);
-        roRaf = requestAnimationFrame(function () { if (current) renderMarkers(); });
+        roRaf = requestAnimationFrame(function () { layoutSeek(); if (current) renderMarkers(); });
       }).observe(refs.seekTracks);
     }
     bindEvents();
@@ -665,25 +675,95 @@
     renderMarkers();
   }
 
-  // ---------- 分割シークバー(既定3行): 全長をSEGS等分、各行が1/SEGS担当 ----------
+  // ---------- 分割シークバー: 行の長さrowLen()秒。Fit=全長/SEGS、秒数指定=全長/秒数行(SEGS行ぶんの窓でスクロール) ----------
   var segStrip = null;
+  function rowSecFmt(v) { return v === 0 ? "Fit" : v >= 60 ? (v / 60) + "m" : v + "s"; }
+  function rowLen() { return ROWSEC > 0 ? ROWSEC : (duration ? duration / SEGS : 1); }
+  function rowTotal() {
+    if (ROWSEC <= 0 || !duration) return SEGS;
+    return Math.max(1, Math.min(2000, Math.ceil(duration / ROWSEC - 1e-6)));
+  }
   function setSegs(n) {
     if (SEGS_OPTIONS.indexOf(n) < 0 || n === SEGS_SETTING) return;
     SEGS_SETTING = n;
     try { localStorage.setItem(SEGS_KEY, String(n)); } catch (e) {}
+    if (n > 0) { SEGS_LAST = n; try { localStorage.setItem(SEGS_LAST_KEY, String(n)); } catch (e) {} }
     if (segStrip) segStrip.sync();
     if (root) root.classList.toggle("qn-yt-noseek", n === 0);
     var next = Math.max(1, n);
     if (next === SEGS) return;
     SEGS = next;
+    ensureRows(true);
+  }
+  function setRowSec(v) {
+    if (ROWSEC_OPTIONS.indexOf(v) < 0 || v === ROWSEC) return;
+    ROWSEC = v;
+    try { localStorage.setItem(ROWSEC_KEY, String(v)); } catch (e) {}
+    if (segStrip) segStrip.sync();
+    ensureRows(true);
+  }
+  function setFollow(on) {
+    followOn = !!on;
+    try { localStorage.setItem(FOLLOW_KEY, followOn ? "1" : "0"); } catch (e) {}
+    if (segStrip) segStrip.sync();
+    if (followOn) { suspendUntil = 0; followTo(lastActive, true); }
+  }
+  function setFollowPause(n) {
+    followPause = Math.max(FPAUSE_MIN, Math.min(FPAUSE_MAX, Math.round(n)));
+    try { localStorage.setItem(FPAUSE_KEY, String(followPause)); } catch (e) {}
+  }
+  // 行数が変わる時(段数/秒数/動画の長さ確定)だけ作り直す。force=見た目の寸法も再計算
+  function ensureRows(force) {
     if (!root || !refs.seekTracks) return;
-    tracks.forEach(function (tr) { tr.remove(); });
-    tracks = []; fills = []; heads = []; loopRanges = []; loopPres = [];
-    buildTracks();
-    renderMarkers(); updateLoopUI(); updateDisplay(currentPos());
+    var want = rowTotal();
+    if (want !== tracks.length || force) {
+      tracks.forEach(function (tr) { tr.remove(); });
+      tracks = []; fills = []; heads = []; loopRanges = []; loopPres = [];
+      lastActive = -1; suspendUntil = 0; progUntil = Date.now() + 300; // 作り直しで起きるscrollイベントをユーザー操作と誤認しない
+      buildTracks();
+      renderMarkers(); updateLoopUI(); updateDisplay(currentPos());
+    }
+    layoutSeek();
+  }
+  // 窓の高さ=SEGS行ぶん。総行数がそれより多い時だけスクロール(.is-scroll)
+  function layoutSeek() {
+    var sk = refs.seekTracks;
+    if (!sk || !tracks.length) return;
+    var scroll = tracks.length > SEGS;
+    sk.classList.toggle("is-scroll", scroll);
+    var h = "";
+    if (scroll) { var t = tracks[SEGS - 1]; h = (t.offsetTop + t.offsetHeight + 6) + "px"; }
+    if (sk.style.height !== h) sk.style.height = h;
+    // 最終行は残りの長さぶんだけ(行の目盛りは他の行と同じ)
+    if (duration) {
+      var len = rowLen(), last = tracks.length - 1;
+      for (var i = 0; i < tracks.length; i++) tracks[i].style.width = "";
+      var frac = (duration - last * len) / len;
+      if (ROWSEC > 0 && frac > 0 && frac < 0.999) tracks[last].style.width = (frac * 100) + "%";
+    }
+  }
+  var lastActive = -1, suspendUntil = 0, progUntil = 0, followTimer = 0;
+  // 再生位置の行を窓に入れる。ユーザーがスクロールしたら followPause 秒は追従しない(PLと同じ)
+  function followTo(row, force) {
+    var sk = refs.seekTracks;
+    if (!followOn || !sk || !sk.classList.contains("is-scroll") || row < 0 || !tracks[row]) return;
+    var now = Date.now();
+    if (!force && (now < suspendUntil || now < progUntil)) return;
+    var tr = tracks[row], top = tr.offsetTop, bot = top + tr.offsetHeight, vt = sk.scrollTop, vh = sk.clientHeight;
+    if (top - 28 >= vt && bot <= vt + vh) return;
+    var dest = Math.max(0, top - 28), near = Math.abs(dest - vt) < (tr.offsetHeight + 26) * 3;
+    progUntil = now + (near && !force ? 700 : 150); // 自分のスクロールをユーザー操作と誤認しない
+    sk.scrollTo({ top: dest, behavior: near && !force ? "smooth" : "auto" });
+  }
+  function onSeekScroll() {
+    if (Date.now() < progUntil) return;
+    suspendUntil = Date.now() + followPause * 1000;
+    clearTimeout(followTimer);
+    followTimer = setTimeout(function () { followTo(lastActive); }, followPause * 1000 + 50);
   }
   function buildTracks() {
-    for (var i = 0; i < SEGS; i++) {
+    var n = rowTotal();
+    for (var i = 0; i < n; i++) {
       var track = document.createElement("div");
       track.className = "qn-yt-track vbar";
       var fill = document.createElement("div"); fill.className = "qn-yt-fill vfill";
@@ -702,24 +782,26 @@
 
   function segIndex(t) {
     if (!duration) return 0;
-    var i = Math.floor(t / (duration / SEGS));
-    return Math.max(0, Math.min(SEGS - 1, i));
+    var i = Math.floor(t / rowLen());
+    return Math.max(0, Math.min(tracks.length - 1, i));
   }
   function segPct(i, t) {
     if (!duration) return 0;
-    var len = duration / SEGS;
+    var len = rowLen();
     return Math.min(100, Math.max(0, ((t - i * len) / len) * 100));
   }
   function timeFromPoint(e) {
     var best = 0, bestD = Infinity, i, r, d;
-    for (i = 0; i < SEGS; i++) {
+    for (i = 0; i < tracks.length; i++) {
       r = tracks[i].getBoundingClientRect();
       d = e.clientY < r.top ? r.top - e.clientY : (e.clientY > r.bottom ? e.clientY - r.bottom : 0);
-      if (d < bestD) { bestD = d; best = i; }
+      if (d < bestD) { bestD = d; best = i; if (d === 0) break; }
     }
-    r = tracks[best].getBoundingClientRect();
-    var ratio = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-    return (best + ratio) * (duration / SEGS);
+    var tr = tracks[best];
+    r = tr.parentNode.getBoundingClientRect();
+    var rw = tracks[0].getBoundingClientRect().width || r.width, rl = tracks[0].getBoundingClientRect().left;
+    var ratio = Math.min(1, Math.max(0, (e.clientX - rl) / rw));
+    return Math.min(duration, (best + ratio) * rowLen());
   }
   function positionMarker(el, t) {
     var i = segIndex(t);
@@ -816,6 +898,7 @@
     if (d && d !== duration) {
       duration = d;
       if (refs.durTime) refs.durTime.textContent = fmt(d);
+      ensureRows(false);
       renderMarkers();
       updateDisplay(currentPos());
     }
@@ -838,6 +921,7 @@
     };
     duration = 0;
     if (refs.durTime) refs.durTime.textContent = "00:00";
+    ensureRows(false);
     updateDisplay(0);
     if (item) refs.titleInput.value = item.customTitle || "";
     showMessage("");
@@ -1310,12 +1394,6 @@
     refs.speedUp.addEventListener("click", function () { stepRate(1, true); });
     renderSpeed();
 
-    refs.loopClearBtn.addEventListener("click", function () {
-      if (!current) return;
-      current.loopA = null; current.loopB = null; if (current.loopMode === "ab") setLoopMode("off");
-      persistLoop();
-      renderMarkers();
-    });
   }
 
   // ---------- 前/次のマーカーへ移動（現在地を基準） ----------
@@ -1934,13 +2012,13 @@
     for (var k = 0; k < old.length; k++) old[k].parentNode.removeChild(old[k]);
     if (!duration) return;
     var vis = ms.filter(function (m) { return m.enabled !== false; });
-    var len = duration / SEGS;
+    var len = rowLen();
     vis.forEach(function (m, idx) {
       var hex = markerColorHex(m);
       if (!hex) return;
       var start = m.time, end = idx + 1 < vis.length ? vis[idx + 1].time : duration;
       if (!(end > start)) return;
-      for (var i = segIndex(start); i < SEGS; i++) {
+      for (var i = segIndex(start); i < tracks.length; i++) {
         var a = Math.max(start, i * len), z = Math.min(end, (i + 1) * len);
         if (z <= a) { if (i * len >= end) break; continue; }
         var band = document.createElement("div");
@@ -1972,9 +2050,9 @@
   }
   function paintSkipBands() {
     if (!duration) return;
-    var len = duration / SEGS;
+    var len = rowLen();
     skipRanges().forEach(function (r) {
-      for (var i = segIndex(r.start); i < SEGS; i++) {
+      for (var i = segIndex(r.start); i < tracks.length; i++) {
         var a = Math.max(r.start, i * len), z = Math.min(r.end, (i + 1) * len);
         if (z <= a) { if (i * len >= r.end) break; continue; }
         var band = document.createElement("div");
@@ -2209,7 +2287,12 @@
       { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." }
     ];
     return [{ title: "Seek bar", rows: [
-      { label: "Rows", hint: "Off hides the seek bar", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : String(v); } }
+      { label: "Rows", hint: "Off hides the seek bar", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : String(v); } },
+      { label: "Bar length", hint: "Fit shows the whole video; seconds scroll", type: "stepper", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
+      { label: "Follow playhead", hint: "Auto-scroll while playing", type: "switch", get: function () { return followOn; }, set: setFollow },
+      { label: "Pause after scrolling", hint: "Seconds before follow resumes", type: "stepper",
+        values: function () { var a = []; for (var i = FPAUSE_MIN; i <= FPAUSE_MAX; i++) a.push(i); return a; },
+        get: function () { return followPause; }, set: setFollowPause, fmt: function (v) { return v + "s"; }, disabledWhen: function () { return !followOn; } }
     ] }, { title: "Playback", rows: [
       { label: "Skip buttons", hint: "Seconds for back / forward", type: "stepper", values: function () { return SKIP_OPTIONS; }, get: function () { return skipSec; }, set: setSkipSec, fmt: function (v) { return v + "s"; } },
       { label: "Loop pre/post-roll", hint: "Seconds added around loop", type: "stepper", values: function () { var a = []; for (var i = 0; i <= PREROLL_MAX; i += PREROLL_STEP) a.push(i); return a; }, get: function () { return preRoll; }, set: setPreRoll, fmt: function (v) { return v + "s"; } }
@@ -2265,8 +2348,8 @@
     var lbl = refs.loopToggleBtn.querySelector("span");
     if (lbl) lbl.textContent = lm === "ab" ? "A-B Loop" : lm === "sec" ? "Section" : "Loop";
 
-    var len = duration ? duration / SEGS : 0;
-    for (var i = 0; i < SEGS; i++) {
+    var len = duration ? rowLen() : 0;
+    for (var i = 0; i < tracks.length; i++) {
       var shown = false;
       if (range && duration) {
         var a = Math.max(range.start, i * len), b = Math.min(range.end, (i + 1) * len);
@@ -2380,6 +2463,8 @@
       if (Math.abs(e.clientX - downX) > 4 || Math.abs(e.clientY - downY) > 4) dragged = true;
       updateDisplay(timeFromPoint(e));
     });
+    // 縦スクロール(touch-action:pan-y)に取られた時はシーク扱いにしない
+    track.addEventListener("pointercancel", function () { seeking = false; });
     track.addEventListener("pointerup", function (e) {
       if (!track.hasPointerCapture(e.pointerId)) return;
       track.releasePointerCapture(e.pointerId);
@@ -2570,13 +2655,16 @@
   function updateDisplay(t) {
     if (!root) return;
     if (refs.curTime) refs.curTime.textContent = fmt(t);
-    var active = segIndex(t);
-    for (var i = 0; i < SEGS; i++) {
+    var active = segIndex(t), n = tracks.length, from = 0, to = n - 1;
+    // 行が多い時の負荷対策: 前回の行〜今回の行だけ書き換える(初回/作り直し後は全行)
+    if (lastActive >= 0 && lastActive < n) { from = Math.min(lastActive, active); to = Math.max(lastActive, active); }
+    for (var i = from; i <= to; i++) {
       var p = segPct(i, t) + "%";
       fills[i].style.width = p;
       heads[i].style.display = (i === active) ? "" : "none";
       heads[i].style.left = p;
     }
+    if (active !== lastActive) { lastActive = active; followTo(active); }
     paintPlayed(t);
   }
 

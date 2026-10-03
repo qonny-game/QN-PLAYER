@@ -166,3 +166,12 @@
 - 【v3.61.0】Backup: YouTubeは曲単位で選ばず「YouTube各種データ」(`#trackBackupIncludeYoutube`)で全件出力。ラベルは「PLAYER音声データ」「ユーザー設定データ」。
 - VIDEOのLibrary/Markersの行・選択タイル・FAB(Cancel/OK→Delete)はPLAYERの部品を共用。`style-markers.css`/`style-pcv2-panels.css`の`#pcV2PanelBody …`ルールは`:is(PLAYER側, .qn-yt側)`で両方に効く形。PLAYER側だけ直したつもりで消さない・VIDEO専用の行CSSを新設しない。
 - 波形の行(.vbar)に動的に付ける要素(線・A/B旗・区間ハイライト・スキップ斜線)を増やしたら、player-bars.jsのstripRow(行を回収する時の掃除)にもクラスを足す。足し忘れると、行が使い回された時に古い要素が別の時刻の行に残る(SKIP斜線で実際に発生)。
+
+## 自動ノーマライズ(player-normalize.js)
+- 補正はEQの後段 `normGainNode → normLimiterNode → destination`(player-core.jsのsetupAudioGraph)。ブーストにはWeb Audioが必須なので、ONの間は曲読込後の最初のplayでグラフを作る(通常再生でWeb Audio非接続の方針の例外。既定OFFで、iOS Safariの長時間再生は実機未確認)。
+- 音量計測は波形用デコード(8kHz)の結果を流用(追加デコードなし)。高域は見ない近似。補正後ピークは+6dBFSまでに制限しリミッタで受ける。
+- OFF/補正なしの時はリミッタを素通し(threshold=0, ratio=1)にする。ctxがrunning以外だと時間が進まずsetTargetAtTimeが効かないので直接代入する。
+- 書き出し(player-export.js)とVIDEOには適用しない。
+
+## FAB帯のスライダー(v4.6.0)
+- `QNSettingsUI.inline`の`type:"slider"`はFAB帯専用(つまみ=values()の添字)。設定パネルの行は従来どおり「‹ 値 ›」(stepper)のまま。スライダーを設定行に使わない。

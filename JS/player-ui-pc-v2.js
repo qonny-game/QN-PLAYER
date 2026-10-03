@@ -478,8 +478,8 @@
     const waveFabRow = el('<div id="pcV2WaveFabRow"></div>');
     // Audio/Marker/再生の左に、シークバーの常用設定を常時表示(設定パネルのSeek bar項目と同じ値。変更は相互に同期)。狭い幅では折り返して上の段になる
     const waveBarStrip = QNSettingsUI.inline([
-      { label: "Bar length", type: "stepper", values: () => QNBars.OPTIONS, get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: v => v + "s" },
-      { label: "Rows", type: "stepper", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
+      { label: "Bar length", type: "slider", values: () => QNBars.OPTIONS, get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: v => v + "s" },
+      { label: "Rows", type: "slider", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
       { label: "Follow", type: "switch", get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) }
     ], () => syncSettingsBody());
     window.qnBarStripSync = waveBarStrip.sync;
@@ -914,6 +914,9 @@
       { label: "Skip buttons", hint: "Seconds for back / forward", type: "stepper", values: () => SKIP_OPTIONS, get: () => skipSec, set: v => setSkipSec(v), fmt: v => v + "s" },
       { label: "Library repeat range", hint: "Auto Next / Repeat scope", type: "stepper", values: () => ["folder", "all"],
         get: () => (typeof getAutoNextScope === "function" ? getAutoNextScope() : "folder"), set: v => { if (typeof setAutoNextScope === "function") setAutoNextScope(v); }, fmt: v => v === "folder" ? "Folder" : "All" },
+      { label: "Auto normalize", hint: "Match volume across tracks", type: "switch", get: () => !!(window.QNNorm && QNNorm.isOn()), set: on => { if (window.QNNorm) QNNorm.setOn(on); } },
+      { label: "Normalize level", hint: "Target loudness (higher = louder)", type: "stepper", values: () => (window.QNNorm ? QNNorm.TARGETS : [-18]),
+        get: () => (window.QNNorm ? QNNorm.getTarget() : -18), set: v => { if (window.QNNorm) QNNorm.setTarget(v); }, fmt: v => v + " dB", disabledWhen: () => !(window.QNNorm && QNNorm.isOn()) },
       { label: "Speed step", hint: "For the speed − / ＋ buttons", type: "stepper", values: () => (typeof SPEED_STEP_OPTIONS !== "undefined" ? SPEED_STEP_OPTIONS : [1, 2, 5, 10]),
         get: () => (typeof getSpeedStepPct === "function" ? getSpeedStepPct() : 5), set: v => { if (typeof setSpeedStepPct === "function") setSpeedStepPct(v); }, fmt: v => v + "%" }
     ];
