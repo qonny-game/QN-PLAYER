@@ -649,39 +649,6 @@
 .qn-yt-libbox .playlistItem.drop-before { box-shadow: inset 0 2px 0 var(--accent-primary); }
 .qn-yt-libbox .playlistItem.drop-after { box-shadow: inset 0 -2px 0 var(--accent-primary); }
 
-.qn-yt-libbox .playlist-del-zone,
-.qn-yt-pinbox .pin-del-zone { display: none; }
-.qn-yt[data-edit="library"] .qn-yt-libbox .playlist-del-zone,
-.qn-yt[data-edit="markers"] .qn-yt-pinbox .pin-del-zone { display: flex; }
-
-.qn-yt[data-edit="library"] .qn-yt-libbox .playlist-del-zone {
-  align-items: center; justify-content: center; flex-shrink: 0;
-  margin: -9px -12px -9px 0; padding: 9px 16px 9px 8px; cursor: pointer;
-}
-.qn-yt[data-edit="markers"] .qn-yt-pinbox .pin-del-zone {
-  align-items: center; justify-content: center; align-self: stretch; flex-shrink: 0;
-  margin: -10px -12px -10px 0; padding: 10px 16px 10px 8px; cursor: pointer;
-}
-.qn-yt[data-edit] .del-btn {
-  display: flex; width: 20px; height: 20px; align-items: center; justify-content: center;
-  border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, 0.24);
-  background: none; color: transparent; font-size: 0; padding: 0; flex-shrink: 0;
-  pointer-events: none;
-}
-.qn-yt[data-edit] .del-btn.pcv2-selected { background: var(--danger); border-color: var(--danger); }
-.qn-yt[data-edit] .del-btn.pcv2-selected::after {
-  content: ""; display: block; width: 5px; height: 9px;
-  border-right: 2px solid var(--text-pure-white); border-bottom: 2px solid var(--text-pure-white);
-  transform: rotate(45deg) translate(-1px, -1px);
-}
-.qn-yt[data-edit="markers"] .qn-yt-pinbox .toggle-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.qn-yt-pinbox .pinItem { grid-template-columns: auto 1fr auto auto auto; }
-.qn-yt[data-edit="markers"] .qn-yt-ab-cell { display: none; }
-.qn-yt[data-edit="markers"] .qn-yt-pinbox .pinItem { grid-template-columns: auto 1fr auto auto; }
-@media (hover: none), (pointer: coarse) {
-  .qn-yt[data-edit="markers"] .qn-yt-pinbox .pin-edit-btn { display: flex; }
-}
 .qn-yt-libbox .playlistItem.playing .playlist-title { color: var(--accent-primary); }
 
 .qn-yt-fab {
@@ -693,7 +660,7 @@
 .qn-yt[data-panel="markers"] .qn-yt-fab { display: flex; }
 .qn-yt-fab-add { display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
 .qn-yt[data-panel="markers"]:not([data-edit]) .qn-yt-fab-add { display: flex; }
-.qn-yt[data-edit] .panel-fab-delete-btn { display: flex; }
+.qn-yt[data-edit] .panel-fab-cancel-btn { display: flex; }
 /* FOLDER: Libraryパネルの通常時のみ。MOVE: Library EDIT時のみ(選択した動画をフォルダへ) */
 .qn-yt-fab-folder { display: none; }
 .qn-yt[data-panel="library"]:not([data-edit]) .qn-yt-fab-folder { display: flex; }
@@ -1157,13 +1124,14 @@
 /* v3.30.2: ステージ右下のMARKERボタン(PLの#pcV2WaveFabRowと同位置。プレイヤーの外・通常フローで重ねない) */
 .qn-yt-stage-fab {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
   margin-top: 12px;
 }
-.qn-yt-stage-url { flex: 1 1 auto; min-width: 0; max-width: 420px; margin-right: auto; }
+.qn-yt-stage-url { flex: 1 1 200px; min-width: 160px; max-width: 420px; margin-right: auto; }
 .qn-yt-noseek .qn-yt-seek { display: none; }
 @media screen and (max-width: 900px) {
   .qn-yt-stage-fab { margin-top: 12px; margin-left: 16px; }
@@ -1229,24 +1197,28 @@
   .qn-yt-sec-library.is-empty .qn-yt-input[data-yt="urlInput"], .qn-yt-sec-library.is-empty .qn-yt-btn.primary[data-yt="saveBtn"] { animation: none !important; }
 }
 
-/* マーカー区間のSKIP(v4.1.0): 行のSKIPボタン(ON=橙)とマーカー線の破線 */
-.qn-yt-pinbox .pinItem button.qn-skip-block { display: inline-flex; align-items: center; justify-content: center; }
-.qn-skip-block svg { width: 14px; height: 14px; fill: currentColor; }
-.qn-yt-pinbox .pinItem button.qn-skip-block.is-on { background: #b45309; color: #fff; }
 .qn-yt-marker.is-skip { opacity: 0.75; }
 
-/* ---------- SPメインドック(v4.3.0): PLAYERの#pcV2SpDockと同寸法。ボタンは共通の.pcv2-dock-btn。PC幅は非表示。Moreで下段バーを開閉(.qn-yt-more-open) ---------- */
+/* ---------- SPメインドック(v4.3.0): PLAYERの#pcV2SpDockと同寸法。ボタンは共通の.pcv2-dock-btn。PC幅は非表示。Moreで下段バーを開閉(.qn-yt-more-open)。バーとドックは.qn-yt-controlsに入れて1つのstickyにする(PC幅はdisplay:contentsでgridにそのまま参加) ---------- */
+.qn-yt-controls { display: contents; }
 .qn-yt-dock { display: none; }
 @media screen and (max-width: 900px) {
+  .qn-yt-controls {
+    display: flex;
+    flex-direction: column;
+    order: 4;
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+  .qn-yt-controls .qn-yt-bar { position: static; margin-top: 0; order: 0; }
+  .qn-yt-controls .qn-yt-dock { order: 1; }
   .qn-yt-dock {
     display: grid;
     grid-template-columns: 1fr 1.2fr 1.7fr 1.2fr 1fr 0.9fr;
     align-items: center;
-    order: 5;
-    flex-shrink: 0;
-    position: sticky;
-    bottom: 0;
-    z-index: 3;
     background: #0a0a0c;
     border-top: 1px solid var(--border-subtle);
     padding: 6px 6px 4px;
@@ -1261,4 +1233,35 @@
     opacity: 0.7; pointer-events: none;
   }
   .qn-yt-dock .pcv2-dock-play::after, .qn-yt-dock .pcv2-dock-more::after { display: none; }
+  /* ステージFAB: URL欄は1行使い、段数/Save/Markerを次の行へ */
+  .qn-yt-stage-url { flex: 1 1 100%; max-width: none; }
+  .qn-yt-stage-fab { gap: 6px; }
+  .qn-yt-stage-fab .qn-set-inline { padding: 4px 8px; gap: 6px; }
+  .qn-yt-stage-fab .panel-fab-btn { padding: 10px 12px; }
+  .qn-yt-stage-fab .qn-set-inline .qn-stepper-btn { width: 26px; }
+  .qn-yt-stage-fab .qn-set-inline .qn-stepper-val { min-width: 28px; }
+  .qn-yt-stage-fab .qn-set-inline-label { font-size: 11px; }
+}
+
+/* ---------- PC幅: 下段バーをPLAYER(v3.59.0 #pcV2BottomBar)に寄せてゆったり(クリック領域を拡大、中央寄せ、グループ間を広げる)。寸法はウィンドウ幅に応じて縮み、広い窓でPLAYERと同じ(ボタン最小幅68/左右16/区切り余白28)になる ---------- */
+@media screen and (min-width: 901px) {
+  .qn-yt .qn-yt-bar { padding: 12px 24px; }
+  /* auto marginなら、幅が足りない時は左端から横スクロール(左が切れない) */
+  .qn-yt .qn-yt-bar > :first-child { margin-left: auto; }
+  .qn-yt .qn-yt-bar > :last-child { margin-right: auto; }
+  .qn-yt .qn-yt-bbtn { padding: 10px clamp(3px, 0.4vw, 16px); min-width: clamp(40px, 3.2vw, 68px); min-height: 64px; border-radius: 10px; }
+  .qn-yt .qn-yt-bbtn.center { min-width: clamp(50px, 4vw, 76px); }
+  .qn-yt .qn-yt-bbtn:not(.center) svg { width: 22px; height: 22px; }
+  .qn-yt .qn-yt-bbtn:hover { background: rgba(255, 255, 255, 0.05); }
+  .qn-yt .qn-yt-bdiv { margin: 0 clamp(8px, 1.2vw, 28px); height: 32px; }
+  .qn-yt .qn-yt-bspacer { flex: 0 0 1px; height: 32px; margin: 0 clamp(8px, 1.2vw, 28px); background: var(--border-subtle); min-width: 0; }
+  .qn-yt .qn-yt-bstep-btn { width: clamp(30px, 2.6vw, 40px); height: 56px; font-size: 22px; border-radius: 10px; }
+  .qn-yt .qn-yt-bstep-mid { padding: 10px 6px; }
+}
+/* 広い窓(1500px〜)はPLAYERと同じ寸法 */
+@media screen and (min-width: 1500px) {
+  .qn-yt .qn-yt-bbtn { padding: 10px 16px; min-width: 68px; }
+  .qn-yt .qn-yt-bbtn.center { min-width: 76px; }
+  .qn-yt .qn-yt-bdiv, .qn-yt .qn-yt-bspacer { margin: 0 28px; }
+  .qn-yt .qn-yt-bstep-btn { width: 40px; }
 }

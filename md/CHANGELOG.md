@@ -75,3 +75,5 @@
 - 4.1.0 VIDEOにPLAYERの機能を移植: 下段バーの長押しクイック設定(◢。Play=Speed/前後マーカー=一覧ジャンプ/A・B=±0.1s微調整/+Marker=プリセット追加/前後Track=動画一覧/Loop=プリロール/±10s=スキップ秒。`QNQuickPop.add`で対象登録)、Settingsに「Seek bar > Rows」(1〜6段、`qn_yt_segs`)とTips。
 - 4.2.0 VIDEO: ステージ下のFABにURL入力+Saveを増設(Libraryを開かず保存。既存動画は手入力タイトルを保持)、Settings>Seek bar>RowsにOff(シークバー非表示。プレイヤーが広がる)、マーカー区間のSKIP(行のボタン/SPスワイプ。次のマーカーまで飛ばす。保存・Backup・同期にmarker.skipを追加)。
 - 4.3.0 VIDEOのSP幅にメインドックを追加(Prev/Loop/再生/Marker/Next/More。Moreで下段バーを開閉、既定は閉。`qn_yt_more`)。ドックのボタンも長押しクイック設定に対応。
+- 4.4.0 VIDEOをPLAYERの部品に寄せ直し: Library/Markersの行ボタン(SKIP/HIDE/編集タイル)・選択タイル・Cancel/OK→Deleteを共通化(CSSは:is()で両側に適用。VIDEO専用の行CSSを撤去、行のA/Bボタンを廃止)、ステージFABに段数(Rows)ストリップ、PC幅の下段バーをPLAYER寸法に拡大、SPのバー+ドックを1つのstickyに修正。
+- 4.4.1 PLAYERのSKIP区間の斜線が、バー秒数の変更・行のスクロールで別の区間に残る/ずれる不具合を修正(回収する行から.segmentSkipを外していなかった。player-bars.jsのstripRow)。

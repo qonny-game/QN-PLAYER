@@ -123,20 +123,20 @@
 
 
 /* Markers/Playlist操作ボタン: 編集モード時以外はクリックしても反応しない(薄く表示)。無効化はplayer-ui-pc-v2.jsがキャプチャフェーズで止める(player-markers/playlist側は無改造)。削除チェックは編集モードのみ表示。markers=.del-btn自体がgridセル、playlist=.playlist-del-zone(.del-btnを包む広い判定)がgridセル */
-#pcV2PanelBody #pinList .pin-del-zone,
-#pcV2PanelBody #playlistBox .playlist-del-zone {
+:is(#pcV2PanelBody #pinList, .qn-yt .qn-yt-pinbox) .pin-del-zone,
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-del-zone {
   display: none;
 }
 
 
-#pcV2PanelBody.markers-edit-mode #pinList .pin-del-zone,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .playlist-del-zone {
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .pin-del-zone,
+:is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .playlist-del-zone {
   display: flex;
 }
 
 
 /* 【v2.15.0】Markers版の広い削除タップゾーン: .pinItemのpadding(10px 12px)を負margin+paddingで打ち消し行いっぱいに広げ、●の位置は保つ */
-#pcV2PanelBody.markers-edit-mode #pinList .pin-del-zone {
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .pin-del-zone {
   align-items: center;
   justify-content: center;
   align-self: stretch;
@@ -147,31 +147,31 @@
 }
 
 
-#pcV2PanelBody.markers-edit-mode #pinList .toggle-btn:disabled {
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .toggle-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
 
-#pcV2PanelBody #pinList .toggle-btn,
-#pcV2PanelBody #pinList .pin-edit-btn,
-#pcV2PanelBody #playlistBox .toggle-btn,
-#pcV2PanelBody #playlistBox .pin-edit-btn {
+:is(#pcV2PanelBody #pinList, .qn-yt .qn-yt-pinbox) .toggle-btn,
+:is(#pcV2PanelBody #pinList, .qn-yt .qn-yt-pinbox) .pin-edit-btn,
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .toggle-btn,
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .pin-edit-btn {
   cursor: default;
 }
 
 
-#pcV2PanelBody.markers-edit-mode #pinList .toggle-btn,
-#pcV2PanelBody.markers-edit-mode #pinList .pin-edit-btn,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .toggle-btn,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .pin-edit-btn {
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .toggle-btn,
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .pin-edit-btn,
+:is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .toggle-btn,
+:is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .pin-edit-btn {
   opacity: 1;
   cursor: pointer;
 }
 
 
 /* .playlist-del-zone: .del-btn(20x20)より広い判定。負margin+paddingで行の上下・右端いっぱい(.playlistItemのpadding 9px 12px相殺)。左(PLAY/SKIP側)へは広げない */
-#pcV2PanelBody.playlist-edit-mode #playlistBox .playlist-del-zone {
+:is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .playlist-del-zone {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
@@ -181,8 +181,8 @@
 }
 
 
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn {
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .del-btn,
+:is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .del-btn {
   display: flex;
   width: 20px;
   height: 20px;
@@ -199,21 +199,21 @@
 
 
 /* ●自体はpointer-events:none、タップは外側ゾーン(.pin-del-zone/.playlist-del-zone)が受ける。ゾーン無しで透過するとe.target.closest(".del-btn")が失敗し削除選択不能になる */
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn,
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn {
+:is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .del-btn,
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .del-btn {
   pointer-events: none;
 }
 
 
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn.pcv2-selected,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn.pcv2-selected {
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .del-btn.pcv2-selected,
+:is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .del-btn.pcv2-selected {
   background: var(--danger);
   border-color: var(--danger);
 }
 
 
-#pcV2PanelBody.markers-edit-mode #pinList .del-btn.pcv2-selected::after,
-#pcV2PanelBody.playlist-edit-mode #playlistBox .del-btn.pcv2-selected::after {
+:is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .del-btn.pcv2-selected::after,
+:is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .del-btn.pcv2-selected::after {
   content: "";
   display: block;
   width: 5px;

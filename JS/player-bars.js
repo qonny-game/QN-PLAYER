@@ -187,7 +187,7 @@ const QNBars = (function () {
   }
 
   function stripRow(el) {
-    el.querySelectorAll(".vbar-line, .vbar-ab-pt, .segmentHighlight, .segmentHighlight-preroll").forEach(n => n.remove());
+    el.querySelectorAll(".vbar-line, .vbar-ab-pt, .segmentHighlight, .segmentHighlight-preroll, .segmentSkip").forEach(n => n.remove());
   }
 
   function releaseRow(r) {

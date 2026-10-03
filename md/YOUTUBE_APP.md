@@ -31,7 +31,7 @@
 
 ### Library（本体のLibraryと同じ行・操作）
 - 行：つかみ（ドラッグ並べ替え）／サムネイル（`i.ytimg.com/vi/<id>/mqdefault.jpg`を`<img>`で**表示のみ**・保存しない・加工しない）／タイトル（鉛筆で編集）。行クリックで再生。
-- 右下FAB **EDIT→OK**：タイトルが入力欄になり、PLAY/SKIPトグル（SKIPはAuto Nextで飛ばす）と削除用の丸チェックが出る。選択して**Delete**。
+- 行右はPLAYERと同じ□タイル（`.playlist-act-cell > .playlist-act-btn`のSKIP。SKIPはAuto Nextで飛ばす。`QN_ROW_ACT`のアイコン/ラベル）。右下FAB **Edit**：タイトルが入力欄になり、行に選択タイル（Select）が出る。FABは Move / **Cancel**（編集を抜ける）/ OK。選択が1件以上あるとOKが**Delete**に変わり一括削除（PLAYERと同じ）。
 - **Auto Next**：動画が終わったらLibraryの次（SKIP除く）を読み込む。初期OFF・利用者がONにした時だけ（§2-2）。
 
 ### Libraryのフォルダ（v3.31.0〜）
@@ -41,7 +41,7 @@ PLのLibraryと同じ操作。FOLDERで作成→名前入力、見出しクリ�
 YouTube Data API v3(`playlists`/`playlistItems`、最大500件)で公開/限定公開の再生リストを取得して一覧表示。APIキーは`window.QN_YT_API_KEY`(index.html)か、パネルの「API Key」から入れた端末のlocalStorage(`qn_yt_api_key`)。結果は**メモリのみ**(保存しない)。行クリックで再生(Libraryに無くても可)、チェック→Add to Libraryで追加(フォルダがあれば移動先ピッカー)。追加した動画はvideoIdと、28日キャッシュ経由のタイトルだけ保存。URL+APIキー方式では非公開リスト・Mix(RD)・高評価/後で見るは取れない。**My Playlists**(v3.31.1〜)はログイン中アカウントに`youtube.readonly`の確認ポップアップ(`QN_AUTH.getYtToken`=`reauthenticateWithPopup`)を出し、アクセストークン(メモリのみ・約1時間)で自分の再生リスト一覧(`playlists?mine=true`)と高評価(`LL`)を取得。APIキー不要。要件: Google CloudでYouTube Data API v3の有効化、OAuth同意画面でテストユーザー登録(未審査の間)。
 
 ### Markers（本体のMarkersと同じ行・操作）
-- 行：色の丸／「番号 - メモ」／鉛筆（メモ編集＋プリセットチップ。プリセットを選ぶと色も自動。カスタムプリセットも並ぶ）／目（表示/非表示）。FAB：ADD MARKER・EDIT（編集中はDelete・OK）。
+- 行：色の丸／「番号 - メモ」／□タイル（`.pin-act-cell > .pin-act-btn`：SKIP・HIDE、EDITモードのみ編集と削除選択タイル）。編集はメモ入力＋プリセットチップ（プリセットを選ぶと色も自動。カスタムプリセットも並ぶ）。A/Bは行から外した（PLAYERと同じ。シークバーのポップアップ/下段バー/長押しで設定）。FAB：ADD MARKER・Edit（編集中はCancel・OK→選択ありでDelete）。
 - 非表示マーカーはシークバーにも出さず、前/次マーカー移動でも飛ばす。
 - **チャプター貼り付け**（Markersパネル上部）：利用者が説明欄からコピーした`時間 タイトル`を貼ると1行ずつ解析してマーカー化（`0:00 タイトル`／`1:02:03 - タイトル`／`[2:45] タイトル`／`- 0:45 Aメロ`、全角可。同時刻の重複と動画長超えはスキップ。プリセット名と一致するメモは色を自動付与）。YouTubeからは何も取得しない。
 
@@ -73,6 +73,12 @@ Settings > Seek bar > Rows（Off/1〜6、既定3、`qn_yt_segs`）。`setSegs`�
 
 ### マーカー区間のSKIP（v4.2.0〜）
 `marker.skip=true`のマーカーから次の有効マーカーまでを再生中に飛ばす（PLAYER 3.46.0と同仕様）。行のSKIPボタン/SPスワイプの`mskip`で切替。`poll`が「開始点を自然に跨いだ時（前回位置との差が2秒未満）」だけ`seekTo(終端)`。ループ中・手動シーク（差が大きい）では飛ばさない。シークバーには斜線(`.segmentSkip`)。`skip`はBackup/Import/同期にも含む。
+
+### 行・FABのPLAYER部品流用（v4.4.0〜）
+Library/Markersの行ボタン・選択タイル・Cancel/OK→Deleteは**PLAYERの部品とCSSをそのまま使う**。CSSは`style-markers.css`/`style-pcv2-panels.css`の`#pcV2PanelBody …`限定ルールを`:is(PLAYER側, .qn-yt側)`に拡張してある（VIDEO側は`.qn-yt[data-edit="library"] .qn-yt-libbox`/`.qn-yt[data-edit="markers"] .qn-yt-pinbox`）。**PLAYERの行デザインを変える時はこの`:is()`の両側に効く**。VIDEO専用の行CSSは増やさない。
+
+### ステージFAB・下段バー（v4.4.0〜）
+ステージFAB行は URL入力／Rows(`QNSettingsUI.inline`。段数はSettingsと連動)／Save／Marker。PC幅の下段バーはPLAYERの`#pcV2BottomBar`(v3.59.0)に寄せた寸法（ボタン最小幅・左右余白・区切り余白はウィンドウ幅に応じて縮み、広い窓でPLAYERと同じ）。バーとSPドックは`.qn-yt-controls`で1つのstickyにまとめる（PC幅は`display:contents`）。
 
 ### SPメインドック（v4.3.0〜）
 SP幅だけ`.qn-yt-dock`（Prev/Loop/再生/Marker/Next/More。PLAYERの`#pcV2SpDock`と同寸法、ボタンは共通の`.pcv2-dock-btn`）。押す先は下段バーの既存ボタン（`data-yt`のref経由で中継）で、再生アイコンとLoopの状態は`MutationObserver`で下段バーから写す。Moreで下段バー(`.qn-yt-bar`)を開閉（既定は閉、`qn_yt_more`。クラス`.qn-yt-more-open`）。パネルを開いている間はドックも隠す。PC幅は非表示。長押しクイック設定の対象はドック側の`data-dock`も含む。

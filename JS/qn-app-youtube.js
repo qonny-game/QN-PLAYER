@@ -478,8 +478,8 @@
           '<button type="button" class="panel-fab-btn panel-fab-move-btn" data-yt="fabMove" disabled>' +
             '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 11l-4-4h3V9h2v4h3l-4 4z"/></svg><span>Move</span>' +
           '</button>' +
-          '<button type="button" class="panel-fab-btn panel-fab-delete-btn" data-yt="fabDel" disabled>' +
-            '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg><span>Delete</span>' +
+          '<button type="button" class="panel-fab-btn panel-fab-cancel-btn" data-yt="fabCancel">' +
+            '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg><span>Cancel</span>' +
           '</button>' +
           '<button type="button" class="panel-fab-btn panel-edit-btn" data-yt="fabEdit" title="Edit">' +
             '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg><span data-yt="fabEditLabel">Edit</span>' +
@@ -504,7 +504,7 @@
           '</button>' +
         '</div>' +
       '</section>' +
-      BAR_HTML + DOCK_HTML +
+      '<div class="qn-yt-controls">' + BAR_HTML + DOCK_HTML + '</div>' +
     '</div>';
 
   // ---------- サイドバー(Library/Markers)とパネル。PC=パネル常時表示(アイコンで中身切替)、SP=全面オーバーレイ(同アイコン再タップで閉じる) ----------
@@ -642,6 +642,13 @@
       var saved = false; try { saved = localStorage.getItem(MORE_KEY) === "1"; } catch (e) {}
       setMore(saved);
     })();
+    // ステージのFAB行にシークバーの段数(PLAYERのバー設定ストリップと同じ部品)
+    if (window.QNSettingsUI && QNSettingsUI.inline) {
+      segStrip = QNSettingsUI.inline([
+        { label: "Rows", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : String(v); } }
+      ]);
+      refs.stageSave.parentNode.insertBefore(segStrip.el, refs.stageSave);
+    }
     root.classList.toggle("qn-yt-noseek", SEGS_SETTING === 0);
     if (window.ResizeObserver) {
       var roRaf = 0;
@@ -659,10 +666,12 @@
   }
 
   // ---------- 分割シークバー(既定3行): 全長をSEGS等分、各行が1/SEGS担当 ----------
+  var segStrip = null;
   function setSegs(n) {
     if (SEGS_OPTIONS.indexOf(n) < 0 || n === SEGS_SETTING) return;
     SEGS_SETTING = n;
     try { localStorage.setItem(SEGS_KEY, String(n)); } catch (e) {}
+    if (segStrip) segStrip.sync();
     if (root) root.classList.toggle("qn-yt-noseek", n === 0);
     var next = Math.max(1, n);
     if (next === SEGS) return;
@@ -1204,7 +1213,7 @@
     });
     refs.chapClose.addEventListener("click", function () { refs.chapBox.hidden = true; });
     refs.chapAdd.addEventListener("click", addChapters);
-    refs.fabEdit.addEventListener("click", toggleEdit);
+    refs.fabEdit.addEventListener("click", function () { if (editMode && selectedCount() > 0) deleteSelected(); else toggleEdit(); });
     refs.sheetClose.addEventListener("click", function () { setPanel("none"); });
     // SP: 行の横スワイプで編集/SKIP(HIDE)/削除のボタン(EDIT中は無効)
     if (window.QNApps && window.QNApps.swipeRows) {
@@ -1249,7 +1258,7 @@
     if (window.QNApps && window.QNApps.sheetDrag) window.QNApps.sheetDrag(root.querySelector(".qn-yt-panel"), root.querySelector(".qn-yt-panel-header"), function () { setPanel("none"); });
     refs.fabFolder.addEventListener("click", addFolderInteractive);
     refs.fabMove.addEventListener("click", function () { moveSelectedToFolder(refs.fabMove); });
-    refs.fabDel.addEventListener("click", deleteSelected);
+    refs.fabCancel.addEventListener("click", function () { if (editMode) setEditMode(null); });
 
     refs.skipBackBtn.addEventListener("click", function () {
       if (!current || !playerReady) return;
@@ -1468,8 +1477,11 @@
     var yt = root.querySelector(".qn-yt");
     if (editMode) yt.setAttribute("data-edit", editMode); else yt.removeAttribute("data-edit");
     refs.fabEdit.classList.toggle("active", !!editMode);
-    refs.fabEditLabel.textContent = editMode ? "OK" : "Edit";
-    refs.fabDel.disabled = selectedCount() === 0;
+    // 選択が1件以上ある間はOKがDeleteに変わり一括削除する(PLAYERと同じ)
+    var del = !!editMode && selectedCount() > 0;
+    refs.fabEdit.classList.toggle("is-delete", del);
+    refs.fabEditLabel.textContent = editMode ? (del ? "Delete" : "OK") : "Edit";
+    refs.fabEdit.querySelector("svg").innerHTML = del ? '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>' : '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>';
     refs.fabMove.disabled = selectedCount() === 0;
   }
   function setEditMode(mode) {
@@ -1494,7 +1506,6 @@
   function deleteSelected() {
     var mode = editMode;
     if (!mode || !selectedCount()) return;
-    refs.fabDel.disabled = true;
     var box = mode === "library" ? refs.itemList : refs.markerList;
     var rows = box.children, delay = 0;
     for (var i = 0; i < rows.length; i++) {
@@ -1527,6 +1538,7 @@
     closePanelOnSp();
   }
 
+  var SVG_SELECT_TILE = '<svg class="sel-off" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg><svg class="sel-on" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg><span>Select</span>';
   var SVG_PLAY_ICON = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
   var SVG_PENCIL = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
 
@@ -1616,32 +1628,39 @@
       info.appendChild(titleRow);
       row.appendChild(info);
 
-      if (edit) {
-        var hasSel = selectedCount() > 0;
-        var skip = document.createElement("button");
-        skip.type = "button";
-        skip.className = "playlist-skip-toggle" + (it.skip ? "" : " skip-off");
-        skip.disabled = hasSel;
-        skip.title = it.skip ? "Skipped during Auto Next (click to include)" : "Included in Auto Next (click to skip)";
-        skip.innerHTML = '<span class="playlist-skip-toggle-label">' + (it.skip ? "Skip" : "Play") + '</span>';
-        skip.addEventListener("click", function (e) {
-          e.stopPropagation();
-          if (selectedCount() > 0) return;
-          it.skip = !it.skip;
-          if (!it.skip) delete it.skip;
-          saveItems(); renderList();
-        });
-        row.appendChild(skip);
+      // PLAYERのLibrary行と同じ部品: SKIPタイル(.playlist-act-btn。通常/EDIT両方で表示)、EDIT中は選択タイル(.playlist-del-zone > .del-btn + .playlist-del-tile)
+      var hasSel = selectedCount() > 0;
+      var actCell = document.createElement("div");
+      actCell.className = "playlist-act-cell";
+      var skipBtn = document.createElement("button");
+      skipBtn.type = "button";
+      skipBtn.className = "playlist-act-btn is-mskip" + (it.skip ? " is-on" : "");
+      skipBtn.innerHTML = window.QN_ROW_ACT.html("mskip", !!it.skip);
+      skipBtn.disabled = hasSel;
+      skipBtn.title = hasSel ? "削除の選択中は切り替えられません" : (it.skip ? "Skipped during Auto Next (click to include)" : "Included in Auto Next (click to skip)");
+      skipBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (selectedCount() > 0) return;
+        if (it.skip) delete it.skip; else it.skip = true;
+        saveItems(); renderList();
+      });
+      actCell.appendChild(skipBtn);
+      row.appendChild(actCell);
 
+      if (edit) {
         var zone = document.createElement("div");
         zone.className = "playlist-del-zone";
         var del = document.createElement("button");
         del.type = "button"; del.className = "del-btn"; del.tabIndex = -1; del.textContent = "✕";
         if (selected[it.id]) del.classList.add("pcv2-selected");
         zone.appendChild(del);
+        var tile = document.createElement("span");
+        tile.className = "playlist-del-tile";
+        tile.innerHTML = SVG_SELECT_TILE;
+        zone.appendChild(tile);
         zone.addEventListener("click", function (e) {
           e.stopPropagation();
-          toggleSelect(it.id, del, box, ".playlist-skip-toggle");
+          toggleSelect(it.id, del, box, ".playlist-act-btn");
         });
         row.appendChild(zone);
       }
@@ -2034,46 +2053,36 @@
       if (m.label) infoSpan.title = m.label;
       infoSpan.addEventListener("click", function () { userSeek(m.time); });
       labelRow.appendChild(infoSpan);
-      var pen = document.createElement("button");
-      pen.type = "button"; pen.className = "pin-edit-btn"; pen.title = "Edit memo";
-      pen.innerHTML = SVG_PENCIL;
-      pen.addEventListener("click", function (e) { e.stopPropagation(); startMemoEdit(m, infoSpan, i); });
-      labelRow.appendChild(pen);
       row.appendChild(labelRow);
 
-      var ab = document.createElement("div");
-      ab.className = "qn-yt-ab-cell";
-      var abtnA = document.createElement("button");
-      abtnA.type = "button";
-      abtnA.className = "qn-ab-block" + (current.loopA === m.time ? " active-a" : "");
-      abtnA.textContent = "A"; abtnA.title = "このマーカーの位置をA点(ループ開始)に（A/Bはマーカーとは別の点）";
-      abtnA.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("A", m.id); });
-      var abtnB = document.createElement("button");
-      abtnB.type = "button";
-      abtnB.className = "qn-ab-block" + (current.loopB === m.time ? " active-b" : "");
-      abtnB.textContent = "B"; abtnB.title = "このマーカーの位置をB点(ループ終了)に（A/Bはマーカーとは別の点）";
-      abtnB.addEventListener("click", function (e) { e.stopPropagation(); toggleLoopPoint("B", m.id); });
-      var sk = document.createElement("button");
-      sk.type = "button";
-      sk.className = "qn-ab-block qn-skip-block" + (m.skip ? " is-on" : "");
-      sk.title = m.skip ? "Skip ON: 次のマーカーまで飛ばして再生" : "Skip OFF: 押すとこの区間(次のマーカーまで)を飛ばして再生";
-      sk.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>';
-      sk.addEventListener("click", function (e) { e.stopPropagation(); toggleMarkerSkip(m); });
-      ab.appendChild(abtnA); ab.appendChild(abtnB); ab.appendChild(sk);
-      row.appendChild(ab);
-
-      var tg = document.createElement("button");
-      tg.type = "button"; tg.className = "toggle-btn";
-      tg.title = m.enabled === false ? "Marker disabled (click to enable)" : "Marker enabled (click to disable)";
-      tg.innerHTML = m.enabled === false ? SVG_EYE_OFF : SVG_EYE_ON;
-      tg.disabled = edit && selectedCount() > 0;
-      tg.addEventListener("click", function (e) {
+      // PLAYERのMarkers行と同じ部品: SKIP/HIDE/編集(編集はEDITモードのみ表示)のタイル(.pin-act-btn)、EDIT中は削除選択タイル
+      var hasSel = selectedCount() > 0;
+      var actCell = document.createElement("div");
+      actCell.className = "pin-act-cell";
+      function actBtn(kind, on, cls, title) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "pin-act-btn is-" + kind + (on ? " is-on" : "") + " " + cls;
+        b.title = title;
+        b.innerHTML = window.QN_ROW_ACT.html(kind, on);
+        b.disabled = hasSel;
+        return b;
+      }
+      var skipB = actBtn("mskip", !!m.skip, "pin-skip-btn", m.skip ? "Skip ON: 次のマーカーまで飛ばして再生" : "Skip OFF: 押すとこの区間(次のマーカーまで)を飛ばして再生");
+      skipB.addEventListener("click", function (e) { e.stopPropagation(); if (selectedCount() > 0) return; toggleMarkerSkip(m); });
+      actCell.appendChild(skipB);
+      var hideB = actBtn("hide", m.enabled === false, "toggle-btn", m.enabled === false ? "Marker disabled (click to enable)" : "Marker enabled (click to disable)");
+      hideB.addEventListener("click", function (e) {
         e.stopPropagation();
         if (selectedCount() > 0) return;
         if (m.enabled === false) delete m.enabled; else m.enabled = false;
         persistMarkers(); renderMarkers();
       });
-      row.appendChild(tg);
+      actCell.appendChild(hideB);
+      var editB = actBtn("edit", false, "pin-edit-btn", "Edit memo");
+      editB.addEventListener("click", function (e) { e.stopPropagation(); startMemoEdit(m, infoSpan, i); });
+      actCell.appendChild(editB);
+      row.appendChild(actCell);
 
       if (edit) {
         var zone = document.createElement("div");
@@ -2082,9 +2091,13 @@
         del.type = "button"; del.className = "del-btn"; del.tabIndex = -1; del.textContent = "✕";
         if (selected[m.id]) del.classList.add("pcv2-selected");
         zone.appendChild(del);
+        var dtile = document.createElement("span");
+        dtile.className = "pin-del-tile";
+        dtile.innerHTML = window.QN_ROW_ACT.html("del");
+        zone.appendChild(dtile);
         zone.addEventListener("click", function (e) {
           e.stopPropagation();
-          toggleSelect(m.id, del, box, ".toggle-btn");
+          toggleSelect(m.id, del, box, ".pin-act-btn");
         });
         row.appendChild(zone);
       }
@@ -2157,18 +2170,7 @@
     if (added > 0) refs.chapText.value = "";
   }
 
-  // ---------- ABループ: B点到達でA点へseekTo()。MarkersのA/Bボタン=そのマーカー位置をA/B点に(点はマーカーと別、再押下で解除) ----------
-  function toggleLoopPoint(which, markerId) {
-    if (!current) return;
-    var m = findMarker(markerId);
-    if (!m) return;
-    var key = which === "A" ? "loopA" : "loopB";
-    current[key] = (current[key] === m.time) ? null : m.time;
-    if (current.loopA === null || current.loopB === null) { if (current.loopMode === "ab") setLoopMode("off"); }
-    persistLoop();
-    renderMarkers();
-  }
-
+  // ---------- ABループ: B点到達でA点へseekTo()。A/B点はシークバーのポップアップ/下段バー/長押しで設定(点はマーカーと別、同位置で再押下=解除) ----------
   // ---------- プリロール/ポストロール(PLAYERと同じ前後共通秒数): 折り返しで開始の何秒前へ戻る/終了の何秒後まで再生 ----------
   var PREROLL_KEY = "qn_yt_preroll", PREROLL_MAX = 5, PREROLL_STEP = 1;
   var preRoll = (function () {
