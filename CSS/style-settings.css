@@ -188,6 +188,7 @@
 @media screen and (max-width: 900px) {
   .qn-set-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 0; width: 100%; box-sizing: border-box; overflow: hidden; }
   .qn-set-inline-item { padding: 10px 16px; border-left: 0; min-width: 0; box-sizing: border-box; }
+  .qn-set-inline .qn-set-inline-item.qn-sp-hide { display: none !important; }
   .qn-set-inline-item.is-slider { order: 1; min-width: 0; }
   .qn-set-inline-item:not(.is-slider) { order: 2; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-subtle); }
   .qn-set-inline-item:not(.is-slider):last-child:nth-child(odd) { grid-column: 1 / -1; }

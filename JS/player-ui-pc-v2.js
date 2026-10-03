@@ -480,7 +480,7 @@
     const waveBarStrip = QNSettingsUI.inline([
       { label: "Bar length", type: "slider", values: () => QNBars.OPTIONS, get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: v => v + "s" },
       { label: "Rows", type: "slider", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
-      { label: "Follow", type: "switch", get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) }
+      { label: "Follow", type: "switch", spHide: true, get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) }
     ], () => syncSettingsBody());
     window.qnBarStripSync = waveBarStrip.sync;
     waveFabRow.appendChild(waveBarStrip.el);

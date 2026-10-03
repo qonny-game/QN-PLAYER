@@ -4,7 +4,7 @@
 // 行が作られたら decorateBarRow(el,row)(player-markers.js)が線/A-B/区間ハイライトを付ける。
 
 const QNBars = (function () {
-  const OPTIONS = [5, 10, 15, 30, 60];
+  const OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60];
   const STORE_KEY = "qn_bar_sec";
   const ROWS_KEY = "qn_bar_rows";
   const ROWS_OPTIONS = [0, 3, 4, 5, 6, 8];   // 0=自動(CSSの既定寸法)。1画面に並べる本数

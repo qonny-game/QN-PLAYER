@@ -117,6 +117,7 @@ window.QNSettingsUI = (function () {
       var item = make('<div class="qn-set-inline-item"><span class="qn-set-inline-label"></span></div>');
       item.querySelector("span").textContent = r.label;
       if (r.type === "slider") item.classList.add("is-slider");
+      if (r.spHide) item.classList.add("qn-sp-hide"); // スマホ幅では出さない項目(Settingsパネルには残る)
       var ctl = newControl(r);
       if (ctl) item.appendChild(ctl);
       infos.push({ def: r, row: item, ctl: ctl });

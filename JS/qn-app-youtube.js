@@ -18,9 +18,9 @@
   // SEGS_SETTING=0はシークバー非表示(内部の行数SEGSは1のまま。計算の0除算を避ける)。-1=Auto(画面の余りの高さに合わせて行数を決める。autoRows)
   var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
   var SEGS = Math.max(1, SEGS_SETTING);
-  // 表示する行数=SEGS(1〜6)。1行の秒数ROWSEC: 0=Fit(全長をSEGS等分=従来。スクロールなし) / 秒数指定=全長/秒数の行を作り、SEGS行ぶんの窓でスクロール(PLのBar length/Rowsと同じ考え方)
-  var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_OPTIONS = [0, 5, 10, 15, 30, 60, 120, 300];
-  var ROWSEC = (function () { try { var v = parseInt(localStorage.getItem(ROWSEC_KEY), 10); return ROWSEC_OPTIONS.indexOf(v) >= 0 ? v : 0; } catch (e) { return 0; } })();
+  // 表示する行数=SEGS(1〜8/Auto)。1行の秒数ROWSEC(5〜60秒): 全長/秒数の行を作り、SEGS行ぶんの窓でスクロール(PLのBar length/Rowsと同じ考え方)
+  var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60];
+  var ROWSEC = (function () { try { var v = parseInt(localStorage.getItem(ROWSEC_KEY), 10); return ROWSEC_OPTIONS.indexOf(v) >= 0 ? v : 30; } catch (e) { return 30; } })();
   var SEGS_LAST_KEY = "qn_yt_segs_last", SEGS_LAST = (function () { try { var v = parseInt(localStorage.getItem(SEGS_LAST_KEY), 10); return (v >= 1 && v <= 8) || v === -1 ? v : (SEGS_SETTING || 3); } catch (e) { return 3; } })();
   var FOLLOW_KEY = "qn_yt_follow", FPAUSE_KEY = "qn_yt_follow_pause", FPAUSE_MIN = 1, FPAUSE_MAX = 30;
   var followOn = (function () { try { return localStorage.getItem(FOLLOW_KEY) !== "0"; } catch (e) { return true; } })();
@@ -454,6 +454,11 @@
             '</div>' +
             '<div class="qn-yt-libbox qn-yt-pllist" data-yt="plList"></div>' +
           '</section>' +
+          // ---------- Text: 動画ごと(URL=動画ID単位)のメモ。PLAYERのTextタブと同じ見た目/操作(自動保存・Fullで全画面・文字サイズ) ----------
+          '<section class="qn-yt-sec qn-yt-sec-text">' +
+            '<p class="qn-yt-text-for" data-yt="textFor"></p>' +
+            '<textarea class="note-textarea" data-yt="textArea" placeholder="Lyrics, memo, anything…" disabled></textarea>' +
+          '</section>' +
           // ---------- Backup / Import: 本体共通画面を借りる(実体player-track-backup.js。setPanel()がqnBackupMountInto()で差し込む) ----------
           '<section class="qn-yt-sec qn-yt-sec-backup"><div data-yt="bkHost"></div></section>' +
           '<section class="qn-yt-sec qn-yt-sec-import"><div data-yt="imHost"></div></section>' +
@@ -471,6 +476,11 @@
           '</footer>' +
         '</div>' +
         '<div class="qn-yt-fab" data-yt="fab">' +
+          '<div class="qn-yt-fab-text">' +
+            '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="fabFull" title="Fullscreen">' +
+              '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg><span>Full</span>' +
+            '</button>' +
+          '</div>' +
           '<div class="qn-yt-fab-add">' +
             '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="fabAdd" title="Add Marker">' +
               '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Marker</span>' +
@@ -518,8 +528,9 @@
     { id: "library", label: "Library", icon: '<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>' },
     { id: "markers", label: "Markers", icon: '<path d="M3 6h12v2H3V6zm0 4h12v2H3v-2zm0 4h7v2H3v-2zm13 0h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/>' },
     { id: "playlists", label: "Playlists", icon: '<path d="M4 6h12v2H4zm0 4h12v2H4zm0 4h8v2H4zm10 0v6l5-3z"/>' },
+    { id: "text", label: "Text", icon: '<path d="M5 4v3h5.5v12h3V7H19V4z"/>' },
   ];
-  var PANEL_TITLES = { library: "Library", markers: "Markers", playlists: "Playlists", backup: "Backup", import: "Import", keyboard: "Keyboard" };
+  var PANEL_TITLES = { library: "Library", markers: "Markers", playlists: "Playlists", text: "Text", backup: "Backup", import: "Import", keyboard: "Keyboard" };
   var panelState = null;
 
   function isSp() { return window.matchMedia("(max-width: 900px)").matches; }
@@ -560,6 +571,7 @@
       window.qnBackupReleaseExternal();
     }
     if (id === "keyboard") renderShortcuts();
+    if (id === "text") syncTextPanel();
     updatePanelTitle();
     if (window.QNApps) window.QNApps.setSideActive((id === "none" || isCollapsed()) ? null : id);
   }
@@ -570,6 +582,59 @@
     if (panelState === "markers") t += " " + (current ? current.markers.length : 0);
     else if (panelState === "library") t += " " + items.length;
     refs.panelTitle.textContent = t;
+  }
+
+  // ---------- Text(動画ごとのメモ): localStorage `qn_yt_texts` = {videoId: 本文}。Libraryに保存していない動画でも書ける。入力のたびに自動保存。Backupのexport/importにも含める ----------
+  var TEXTS_KEY = "qn_yt_texts", TEXT_MAX = 20000, TEXT_FS_KEY = "mp3player_text_fullscreen_fontsize";
+  var texts = (function () {
+    try { var o = JSON.parse(localStorage.getItem(TEXTS_KEY)); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; }
+  })();
+  function saveTexts() { try { localStorage.setItem(TEXTS_KEY, JSON.stringify(texts)); } catch (e) {} }
+  function setText(vid, str) {
+    str = String(str || "").slice(0, TEXT_MAX);
+    if (str) texts[vid] = str; else delete texts[vid];
+    saveTexts();
+  }
+  function syncTextPanel() {
+    if (!root || !refs.textArea) return;
+    var vid = current ? current.videoId : null;
+    refs.textArea.disabled = !vid;
+    refs.textArea.value = vid ? (texts[vid] || "") : "";
+    refs.textArea.placeholder = vid ? "Lyrics, memo, anything…" : "Load a video to write a note";
+    var it = vid ? findItemByVideoId(vid) : null;
+    refs.textFor.textContent = vid ? (it ? displayTitle(it) : (refs.fetchedTitle && refs.fetchedTitle.textContent) || ("youtu.be/" + vid)) : "";
+  }
+  function openTextFullscreen() {
+    if (!current) return;
+    var ov = document.getElementById("qnYtTextFs");
+    if (!ov) {
+      ov = document.createElement("div"); ov.id = "qnYtTextFs"; ov.className = "text-fullscreen-overlay";
+      ov.innerHTML = '<div class="text-fullscreen-header"><div class="text-fullscreen-font-controls">' +
+        '<button type="button" class="tab-icon-btn" data-d="-2" title="Decrease text size">−</button>' +
+        '<button type="button" class="tab-icon-btn" data-d="2" title="Increase text size">＋</button></div>' +
+        '<button type="button" class="tab-icon-btn" data-close title="Close">✕</button></div>' +
+        '<textarea class="note-textarea note-textarea-fullscreen" placeholder="Lyrics, memo, anything…"></textarea>';
+      document.body.appendChild(ov);
+      var ta = ov.querySelector("textarea");
+      var size = parseInt(localStorage.getItem(TEXT_FS_KEY), 10); if (!isFinite(size)) size = 20;
+      ta.style.fontSize = size + "px";
+      ov.addEventListener("click", function (e) {
+        var b = e.target.closest && e.target.closest("button"); if (!b) return;
+        if (b.hasAttribute("data-close")) { ov.classList.remove("open"); return; }
+        size = Math.max(14, Math.min(40, size + parseInt(b.dataset.d, 10)));
+        ta.style.fontSize = size + "px"; try { localStorage.setItem(TEXT_FS_KEY, String(size)); } catch (err) {}
+      });
+      ta.addEventListener("input", function () {
+        if (!ov._vid) return;
+        setText(ov._vid, ta.value);
+        if (current && current.videoId === ov._vid && refs.textArea) refs.textArea.value = ta.value;
+      });
+    }
+    ov._vid = current.videoId;
+    var area = ov.querySelector("textarea");
+    area.value = texts[current.videoId] || "";
+    ov.classList.add("open");
+    area.setSelectionRange(0, 0); area.scrollTop = 0;
   }
 
   function onSidebar(id) {
@@ -654,10 +719,10 @@
     // ステージのFAB行にシークバーの常用設定(PLAYERの波形FABと同じ部品。ここだけスライダー): Seekbar ON/OFF・Bar length・Rows・Follow
     if (window.QNSettingsUI && QNSettingsUI.inline) {
       segStrip = QNSettingsUI.inline([
-        { label: "Seek bar", type: "switch", get: function () { return SEGS_SETTING !== 0; }, set: function (on) { setSegs(on ? SEGS_LAST : 0); } },
+        { label: "Seek bar", type: "switch", spHide: true, get: function () { return SEGS_SETTING !== 0; }, set: function (on) { setSegs(on ? SEGS_LAST : 0); } },
         { label: "Bar length", type: "slider", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
         { label: "Rows", type: "slider", values: function () { return [1, 2, 3, 4, 5, 6, 7, 8, -1]; }, fmt: function (v) { return v === -1 ? "Auto" : String(v); }, get: function () { return SEGS_SETTING !== 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING !== 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
-        { label: "Follow", type: "switch", get: function () { return followOn; }, set: setFollow }
+        { label: "Follow", type: "switch", spHide: true, get: function () { return followOn; }, set: setFollow }
       ]);
       refs.stageUrl.parentNode.parentNode.insertBefore(segStrip.el, refs.stageUrl.parentNode);
     }
@@ -681,10 +746,10 @@
 
   // ---------- 分割シークバー: 行の長さrowLen()秒。Fit=全長/SEGS、秒数指定=全長/秒数行(SEGS行ぶんの窓でスクロール) ----------
   var segStrip = null;
-  function rowSecFmt(v) { return v === 0 ? "Fit" : v >= 60 ? (v / 60) + "m" : v + "s"; }
-  function rowLen() { return ROWSEC > 0 ? ROWSEC : (duration ? duration / SEGS : 1); }
+  function rowSecFmt(v) { return v + "s"; }
+  function rowLen() { return ROWSEC; }
   function rowTotal() {
-    if (ROWSEC <= 0 || !duration) return SEGS;
+    if (!duration) return SEGS;
     return Math.max(1, Math.min(2000, Math.ceil(duration / ROWSEC - 1e-6)));
   }
   function setSegs(n) {
@@ -794,7 +859,13 @@
       var head = document.createElement("div"); head.className = "qn-yt-head"; head.style.display = "none";
       var preA = document.createElement("div"); preA.className = "qn-yt-loop-pre"; preA.hidden = true;
       var preB = document.createElement("div"); preB.className = "qn-yt-loop-pre"; preB.hidden = true;
-      track.appendChild(fill); track.appendChild(preA); track.appendChild(preB); track.appendChild(loop); track.appendChild(head);
+      // 行の左に開始時刻(PLの.vbar-timeと同じ見た目)。押すとその行頭へシーク
+      var tm = document.createElement("span"); tm.className = "qn-yt-track-time"; tm.textContent = fmt(i * rowLen());
+      (function (t0) {
+        tm.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+        tm.addEventListener("click", function (e) { e.stopPropagation(); if (duration) userSeek(Math.min(t0, duration)); });
+      })(i * rowLen());
+      track.appendChild(fill); track.appendChild(preA); track.appendChild(preB); track.appendChild(loop); track.appendChild(head); track.appendChild(tm);
       loopPres.push([preA, preB]);
       refs.seekTracks.insertBefore(track, refs.markerLayer);
       tracks.push(track); fills.push(fill); loopRanges.push(loop); heads.push(head);
@@ -944,6 +1015,7 @@
     };
     duration = 0;
     if (refs.durTime) refs.durTime.textContent = "00:00";
+    syncTextPanel();
     ensureRows(false);
     updateDisplay(0);
     if (item) refs.titleInput.value = item.customTitle || "";
@@ -1320,6 +1392,8 @@
     });
     refs.chapClose.addEventListener("click", function () { refs.chapBox.hidden = true; });
     refs.chapAdd.addEventListener("click", addChapters);
+    refs.textArea.addEventListener("input", function () { if (current) setText(current.videoId, refs.textArea.value); });
+    refs.fabFull.addEventListener("click", openTextFullscreen);
     refs.fabEdit.addEventListener("click", function () { if (editMode && selectedCount() > 0) deleteSelected(); else toggleEdit(); });
     refs.sheetClose.addEventListener("click", function () { setPanel("none"); });
     // SP: 行の横スワイプで編集/SKIP(HIDE)/削除のボタン(EDIT中は無効)
@@ -2311,7 +2385,7 @@
     ];
     return [{ title: "Seek bar", rows: [
       { label: "Rows", hint: "Auto fills the free height; Off hides the bar", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : v === -1 ? "Auto" : String(v); } },
-      { label: "Bar length", hint: "Fit shows the whole video; seconds scroll", type: "stepper", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
+      { label: "Bar length", hint: "Seconds per row", type: "stepper", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
       { label: "Follow playhead", hint: "Auto-scroll while playing", type: "switch", get: function () { return followOn; }, set: setFollow },
       { label: "Pause after scrolling", hint: "Seconds before follow resumes", type: "stepper",
         values: function () { var a = []; for (var i = FPAUSE_MIN; i <= FPAUSE_MAX; i++) a.push(i); return a; },
@@ -2694,6 +2768,7 @@
       fills[i].style.width = p;
       heads[i].style.display = (i === active) ? "" : "none";
       heads[i].style.left = p;
+      tracks[i].classList.toggle("is-current", i === active);
     }
     if (active !== lastActive) { lastActive = active; followTo(active); }
     paintPlayed(t);
@@ -2776,6 +2851,7 @@
         o.loopA = abTimeOf(typeof r.loopA === "string" ? cleanStr(r.loopA, 40) : r.loopA, ms);
         o.loopB = abTimeOf(typeof r.loopB === "string" ? cleanStr(r.loopB, 40) : r.loopB, ms);
       }
+      if (typeof r.text === "string" && r.text) o.text = r.text.slice(0, TEXT_MAX);
       out.push(o);
     });
     return out;
@@ -2795,6 +2871,7 @@
           o.markers = it.markers.map(function (m) { var o2 = { id: m.id, time: m.time, label: m.label || "" }; if (m.color) o2.color = m.color; if (m.enabled === false) o2.enabled = false; if (m.skip) o2.skip = true; return o2; });
           o.loopA = abTimeOf(it.loopA, it.markers);
           o.loopB = abTimeOf(it.loopB, it.markers);
+          if (texts[it.videoId]) o.text = texts[it.videoId];
         }
         return o;
       })
@@ -2807,6 +2884,7 @@
       var ex = findItemByVideoId(x.videoId);
       if (ex) {
         if (choices && choices[x.videoId] === "skip") { skipped++; return; }
+        if (x.text) setText(x.videoId, x.text);
         if (x.customTitle) ex.customTitle = x.customTitle;
         ex.url = x.url;
         if (x.markers) {
@@ -2823,6 +2901,7 @@
           loopA: (typeof x.loopA === "number") ? x.loopA : null, loopB: (typeof x.loopB === "number") ? x.loopB : null, createdAt: Date.now()
         };
         if (x.customTitle) ni.customTitle = x.customTitle;
+        if (x.text) setText(x.videoId, x.text);
         items.push(ni);
         added++;
       }

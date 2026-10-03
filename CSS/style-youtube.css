@@ -55,6 +55,7 @@
 .qn-yt[data-panel="playlists"] .qn-yt-sec-playlists,
 .qn-yt[data-panel="backup"] .qn-yt-sec-backup,
 .qn-yt[data-panel="import"] .qn-yt-sec-import,
+.qn-yt[data-panel="text"] .qn-yt-sec-text,
 .qn-yt[data-panel="keyboard"] .qn-yt-sec-keyboard {
   display: block;
 }
@@ -346,6 +347,7 @@
   flex-direction: column;
   gap: 24px;
   padding-top: 24px;
+  padding-left: var(--qn-yt-tpad, 46px); /* 行左の開始時刻の置き場 */
   margin: 4px 0 16px;
 }
 
@@ -425,9 +427,18 @@
   display: none;
 }
 
+/* 行の開始時刻(PLの#vbarRows .vbar-timeと同じ) */
+.qn-yt-track-time {
+  position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%);
+  font-size: var(--fs-micro, 10px); font-weight: 600; color: var(--icon-muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap; cursor: pointer; user-select: none; -webkit-touch-callout: none;
+}
+.qn-yt-track.is-current .qn-yt-track-time { color: var(--text-bright); }
+
 .qn-yt-marker-layer {
   position: absolute;
   inset: 0;
+  left: var(--qn-yt-tpad, 46px);
   pointer-events: none;
 }
 
@@ -660,7 +671,17 @@
   pointer-events: none;
 }
 .qn-yt[data-panel="library"] .qn-yt-fab,
-.qn-yt[data-panel="markers"] .qn-yt-fab { display: flex; }
+.qn-yt[data-panel="markers"] .qn-yt-fab,
+.qn-yt[data-panel="text"] .qn-yt-fab { display: flex; }
+/* Text: FABはFullだけ(PLAYERのTextタブと同じ) */
+.qn-yt-fab-text { display: none; }
+.qn-yt[data-panel="text"] .qn-yt-fab-text { display: flex; }
+.qn-yt[data-panel="text"] .qn-yt-fab > .panel-edit-btn { display: none; }
+.qn-yt-sec-text { padding-bottom: 84px; }
+.qn-yt-text-for { margin: 0 0 8px; font-size: var(--fs-small); color: var(--icon-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qn-yt-text-for:empty { display: none; }
+.qn-yt-sec-text .note-textarea { min-height: 320px; }
+.qn-yt-sec-text .note-textarea:disabled { opacity: 0.5; }
 .qn-yt-fab-add { display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
 .qn-yt[data-panel="markers"]:not([data-edit]) .qn-yt-fab-add { display: flex; }
 .qn-yt[data-edit] .panel-fab-cancel-btn { display: flex; }
@@ -1140,8 +1161,8 @@
 .qn-yt-stage-fab .panel-fab-btn { height: 40px; padding: 0 18px; }
 .qn-yt-row > .qn-yt-btn, .qn-yt-urlgrp > .qn-yt-btn { height: 38px; }
 /* シークバーの行数が窓(Rows)より多い時: 窓の高さはJS(layoutSeek)。縦スクロール・行頭にスナップ。タッチは縦スクロールを許可(横なぞりはシーク) */
-.qn-yt-seek.is-scroll { box-sizing: border-box; margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; /* 端のマーカー番号が欠けないよう左右に余白 */ overflow-y: auto; overflow-x: hidden; scroll-snap-type: y proximity; overscroll-behavior: contain; scrollbar-width: thin; }
-.qn-yt-seek.is-scroll .qn-yt-marker-layer { left: 14px; right: 14px; } /* paddingぶん内側=バーと同じ幅(マーカー位置は幅の%) */
+.qn-yt-seek.is-scroll { box-sizing: border-box; margin-left: -14px; margin-right: -14px; padding-left: calc(var(--qn-yt-tpad, 46px) + 14px); padding-right: 14px; /* 端のマーカー番号が欠けないよう左右に余白 */ overflow-y: auto; overflow-x: hidden; scroll-snap-type: y proximity; overscroll-behavior: contain; scrollbar-width: thin; }
+.qn-yt-seek.is-scroll .qn-yt-marker-layer { left: calc(var(--qn-yt-tpad, 46px) + 14px); right: 14px; } /* paddingぶん内側=バーと同じ幅(マーカー位置は幅の%) */
 .qn-yt-seek.is-scroll .qn-yt-track.vbar { scroll-snap-align: start; scroll-margin-top: 28px; touch-action: pan-y; }
 /* スマホ: 右側に縦スクロール専用の余白(バーより外。ここをなぞると必ずスクロール) */
 @media screen and (max-width: 900px) { .qn-yt-seek.is-scroll { padding-right: 34px; margin-right: -20px; } .qn-yt-seek.is-scroll .qn-yt-marker-layer { right: 34px; } }
@@ -1244,7 +1265,7 @@
     opacity: 0.7; pointer-events: none;
   }
   .qn-yt-dock .pcv2-dock-play::after, .qn-yt-dock .pcv2-dock-more::after { display: none; }
-  .qn-yt-stage { flex: 1 0 auto; } /* 余った高さはステージに回し、帯(margin-top:auto)を下段バーの直上へ */
+  .qn-yt[data-panel="none"] .qn-yt-stage { flex: 1 0 auto; } /* 余った高さはステージに回し、帯(margin-top:auto)を下段バーの直上へ。パネルを開いている間は対象外(パネルが動画の下辺まで上がる) */
   /* ステージ帯(SP): 設定帯 / URL欄+Save / Marker を同じ左右端で縦に並べる(右寄せの単独ボタンを作らない) */
   .qn-yt-stage-fab { display: grid; grid-template-columns: 1fr; gap: 8px; margin: auto 16px 10px; } /* margin-top:auto = 余白は帯の上(シークバー側)に回し、帯は下段バーの直上に固定 */
   .qn-yt-urlgrp { max-width: none; min-width: 0; margin-right: 0; }
