@@ -347,11 +347,6 @@
         bbtn("setABtn", "", BI.setA, "A --", "現在地をA点に設定") +
         bbtn("setBBtn", "", BI.setB, "B --", "現在地をB点に設定") +
         bbtn("loopToggleBtn", "", BI.loop, "Loop", "LOOP：OFF → A-B → 区間 → OFF") +
-        '<div class="qn-yt-preroll" title="ループのプリロール/ポストロール秒数（区間の何秒前から・何秒後まで）">' +
-          '<button type="button" data-yt="preDown" class="qn-yt-preroll-btn" title="Decrease">−</button>' +
-          '<span class="qn-yt-preroll-value"><b data-yt="preVal">0</b><span class="qn-yt-preroll-unit">s</span></span>' +
-          '<button type="button" data-yt="preUp" class="qn-yt-preroll-btn" title="Increase">＋</button>' +
-        '</div>' +
         bbtn("loopClearBtn", "", BI.clear, "Clear AB", "AB点をクリア") +
       '</div>' +
       '<div class="qn-yt-bspacer"></div>' +
@@ -374,6 +369,10 @@
           '<section class="qn-yt-sec qn-yt-sec-library">' +
             '<div class="qn-yt-sec-head"><h3>Library</h3><span class="qn-yt-count" data-yt="listCount">0</span></div>' +
             '<div class="qn-yt-input-block">' +
+              '<ol class="qn-yt-hint" data-yt="emptyHint">' +
+                '<li class="qn-yt-hint-1"><b>1</b><span>YouTubeのURLを下の欄に貼り付け</span></li>' +
+                '<li class="qn-yt-hint-2"><b>2</b><span>Saveを押すとLibraryに保存されます</span></li>' +
+              '</ol>' +
               '<div class="qn-yt-row">' +
                 '<input data-yt="urlInput" class="qn-yt-input" type="text" placeholder="YouTube URL" autocomplete="off" spellcheck="false">' +
               '</div>' +
@@ -385,7 +384,7 @@
               '<div class="qn-yt-sync" data-yt="syncStatus"></div>' +
             '</div>' +
             '<div class="qn-yt-libbox" data-yt="itemList"></div>' +
-            '<p class="qn-yt-empty" data-yt="emptyList">まだ保存されていません</p>' +
+            '<p class="qn-yt-empty" data-yt="emptyList">保存した動画がここに並びます</p>' +
           '</section>' +
           '<section class="qn-yt-sec qn-yt-sec-markers">' +
             '<div class="qn-yt-sec-head"><h3>Markers</h3><span class="qn-yt-count" data-yt="markerCount">0</span></div>' +
@@ -450,12 +449,12 @@
         '<div class="qn-yt-fab" data-yt="fab">' +
           '<div class="qn-yt-fab-add">' +
             '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="fabAdd" title="Add Marker">' +
-              '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>MARKER</span>' +
+              '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Marker</span>' +
             '</button>' +
           '</div>' +
           '<div class="qn-yt-fab-folder">' +
             '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="fabFolder" title="Add Folder">' +
-              '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg><span>FOLDER</span>' +
+              '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg><span>Folder</span>' +
             '</button>' +
           '</div>' +
           '<button type="button" class="panel-fab-btn panel-fab-move-btn" data-yt="fabMove" disabled>' +
@@ -465,7 +464,7 @@
             '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg><span>Delete</span>' +
           '</button>' +
           '<button type="button" class="panel-fab-btn panel-edit-btn" data-yt="fabEdit" title="Edit">' +
-            '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg><span data-yt="fabEditLabel">EDIT</span>' +
+            '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg><span data-yt="fabEditLabel">Edit</span>' +
           '</button>' +
         '</div>' +
       '</aside>' +
@@ -479,7 +478,7 @@
         // PLの波形エリア右下(#pcV2WaveFabRow)と同位置のMARKERボタン。プレイヤーの外(下)・通常フロー(重ねない)
         '<div class="qn-yt-stage-fab">' +
           '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="stageAddMarker" title="Add Marker">' +
-            '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>MARKER</span>' +
+            '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Marker</span>' +
           '</button>' +
         '</div>' +
       '</section>' +
@@ -491,9 +490,6 @@
     { id: "library", label: "Library", icon: '<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>' },
     { id: "markers", label: "Markers", icon: '<path d="M3 6h12v2H3V6zm0 4h12v2H3v-2zm0 4h7v2H3v-2zm13 0h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/>' },
     { id: "playlists", label: "Playlists", icon: '<path d="M4 6h12v2H4zm0 4h12v2H4zm0 4h8v2H4zm10 0v6l5-3z"/>' },
-    { id: "backup", bottom: true, label: "Backup", icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>' },
-    { id: "import", bottom: true, label: "Import", icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' },
-    { id: "keyboard", bottom: true, label: "Keyboard", icon: '<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM11 8h2v2h-2V8zM11 11h2v2h-2v-2zM8 8h2v2H8V8zM8 11h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm10 6H9v-2h6v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>' }
   ];
   var PANEL_TITLES = { library: "Library", markers: "Markers", playlists: "Playlists", backup: "Backup", import: "Import", keyboard: "Keyboard" };
   var panelState = null;
@@ -1095,7 +1091,11 @@
       });
     });
     // URL欄をユーザーが編集したらタイトル欄を空にする(別動画のタイトルが残らないように)。プログラムからのvalue代入ではinputは発火しない
-    refs.urlInput.addEventListener("input", function () { refs.titleInput.value = ""; });
+    refs.urlInput.addEventListener("input", function () {
+      refs.titleInput.value = "";
+      var libSec = refs.emptyHint.closest(".qn-yt-sec-library");
+      if (libSec) libSec.classList.toggle("has-url", !!refs.urlInput.value.trim());
+    });
     refs.urlInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); refs.titleInput.focus(); }
     });
@@ -1171,12 +1171,13 @@
 
     refs.skipBackBtn.addEventListener("click", function () {
       if (!current || !playerReady) return;
-      seekTo(currentPos() - 10);
+      seekTo(currentPos() - skipSec);
     });
     refs.skipFwdBtn.addEventListener("click", function () {
       if (!current || !playerReady) return;
-      seekTo(currentPos() + 10);
+      seekTo(currentPos() + skipSec);
     });
+    applySkipLabels();
 
     function setFromBar(kind) {
       if (!current || !playerReady) { showMessage("先に動画を読み込んでください"); return; }
@@ -1184,9 +1185,6 @@
     }
     refs.setABtn.addEventListener("click", function () { setFromBar("A"); });
     refs.setBBtn.addEventListener("click", function () { setFromBar("B"); });
-    refs.preDown.addEventListener("click", function () { setPreRoll(preRoll - PREROLL_STEP); });
-    refs.preUp.addEventListener("click", function () { setPreRoll(preRoll + PREROLL_STEP); });
-    renderPreRoll();
 
     refs.loopToggleBtn.addEventListener("click", function () {
       if (!current || !duration) return;
@@ -1388,7 +1386,7 @@
     var yt = root.querySelector(".qn-yt");
     if (editMode) yt.setAttribute("data-edit", editMode); else yt.removeAttribute("data-edit");
     refs.fabEdit.classList.toggle("active", !!editMode);
-    refs.fabEditLabel.textContent = editMode ? "OK" : "EDIT";
+    refs.fabEditLabel.textContent = editMode ? "OK" : "Edit";
     refs.fabDel.disabled = selectedCount() === 0;
     refs.fabMove.disabled = selectedCount() === 0;
   }
@@ -1454,6 +1452,12 @@
     if (!root) return;
     refs.itemList.textContent = "";
     refs.emptyList.style.display = items.length ? "none" : "";
+    // 0件の間はURL入力→Saveの手順を目立たせる(.is-empty)。URL入力済みなら手順2を強調(.has-url)
+    var libSec = refs.emptyHint.closest(".qn-yt-sec-library");
+    if (libSec) {
+      libSec.classList.toggle("is-empty", !items.length);
+      libSec.classList.toggle("has-url", !!refs.urlInput.value.trim());
+    }
     refs.listCount.textContent = String(items.length);
     updatePanelTitle();
     var edit = editMode === "library";
@@ -1537,7 +1541,7 @@
         skip.className = "playlist-skip-toggle" + (it.skip ? "" : " skip-off");
         skip.disabled = hasSel;
         skip.title = it.skip ? "Skipped during Auto Next (click to include)" : "Included in Auto Next (click to skip)";
-        skip.innerHTML = '<span class="playlist-skip-toggle-label">' + (it.skip ? "SKIP" : "PLAY") + '</span>';
+        skip.innerHTML = '<span class="playlist-skip-toggle-label">' + (it.skip ? "Skip" : "Play") + '</span>';
         skip.addEventListener("click", function (e) {
           e.stopPropagation();
           if (selectedCount() > 0) return;
@@ -2054,11 +2058,34 @@
   function setPreRoll(v) {
     preRoll = Math.max(0, Math.min(PREROLL_MAX, v));
     try { localStorage.setItem(PREROLL_KEY, String(preRoll)); } catch (e) {}
-    renderPreRoll();
     updateLoopUI();
   }
-  function renderPreRoll() {
-    if (refs.preVal) refs.preVal.textContent = String(preRoll);
+
+  // ---------- 送り戻しボタンの秒数(PLAYERと同じ5/10/15/30/60。設定から変更) ----------
+  var SKIP_KEY = "qn_yt_skip_sec", SKIP_OPTIONS = [5, 10, 15, 30, 60];
+  var skipSec = (function () {
+    try { var v = parseInt(localStorage.getItem(SKIP_KEY), 10); return SKIP_OPTIONS.indexOf(v) >= 0 ? v : 10; } catch (e) { return 10; }
+  })();
+  function setSkipSec(v) {
+    if (SKIP_OPTIONS.indexOf(v) < 0) return;
+    skipSec = v;
+    try { localStorage.setItem(SKIP_KEY, String(v)); } catch (e) {}
+    applySkipLabels();
+  }
+  function applySkipLabels() {
+    if (!refs.skipBackBtn || !refs.skipFwdBtn) return;
+    setBtnLabel(refs.skipBackBtn, "-" + skipSec + "s");
+    setBtnLabel(refs.skipFwdBtn, "+" + skipSec + "s");
+    refs.skipBackBtn.title = skipSec + "秒戻る (J)";
+    refs.skipFwdBtn.title = skipSec + "秒進む (L)";
+  }
+
+  // ---------- Settings(アプリ共通のSettingsパネルに出る行。部品はQNSettingsUI) ----------
+  function settingsSections() {
+    return [{ title: "Playback", rows: [
+      { label: "Skip buttons", hint: "Seconds for back / forward", type: "stepper", values: function () { return SKIP_OPTIONS; }, get: function () { return skipSec; }, set: setSkipSec, fmt: function (v) { return v + "s"; } },
+      { label: "Loop pre/post-roll", hint: "Seconds added around loop", type: "stepper", values: function () { var a = []; for (var i = 0; i <= PREROLL_MAX; i += PREROLL_STEP) a.push(i); return a; }, get: function () { return preRoll; }, set: setPreRoll, fmt: function (v) { return v + "s"; } }
+    ] }];
   }
 
   function setBtnLabel(btn, text) {
@@ -2597,7 +2624,7 @@
   // YouTube本家と同じキーボードショートカット(v3.1.0〜)。公式メソッド(playVideo/pauseVideo/seekTo/setVolume/mute/setPlaybackRate)を利用者のキー操作起点で呼ぶだけ(規約OK)。アプリ表示中のみ。文字入力中・Ctrl/Cmd/Alt併用・再生系のキーリピートは無視。iframeにフォーカス中はYouTube側が処理
   var SHORTCUTS = [
     { key: "Space / K", action: "Play / Pause" },
-    { key: "J / L", action: "Back / Forward 10s" },
+    { key: "J / L", action: "Back / Forward (Skip buttons)" },
     { key: "← / →", action: "Back / Forward 5s" },
     { key: "↑ / ↓", action: "Volume +5% / -5%" },
     { key: "M", action: "Mute / Unmute" },
@@ -2678,8 +2705,8 @@
       return;
     }
     if (lk === "k") { if (!e.repeat) togglePlay(); }
-    else if (lk === "j") seekTo(currentPos() - 10);
-    else if (lk === "l") seekTo(currentPos() + 10);
+    else if (lk === "j") seekTo(currentPos() - skipSec);
+    else if (lk === "l") seekTo(currentPos() + skipSec);
     else if (k === "ArrowLeft") seekTo(currentPos() - 5);
     else if (k === "ArrowRight") seekTo(currentPos() + 5);
     else if (k === "ArrowUp") changeVolume(5);
@@ -2718,7 +2745,7 @@
     bindSpace(true);
     ensureTitles();
     syncIfStale();
-    var want = panelState || (isSp() ? "none" : "library");
+    var want = panelState || "library";   // v3.39.0: 初回はSPでもLibraryパネルを開く(閉じた後はその状態を保つ)
     setPanel(want);
     applyCollapse();
     renderMarkers();
@@ -3022,6 +3049,7 @@
       order: 10,
       ready: true,
       sidebar: SIDEBAR,
+      settings: settingsSections,
       shortcuts: SHORTCUTS,
       shortcutsNote: "YouTube本家と同じキーです。文字入力中は動きません。",
       onSidebar: onSidebar,

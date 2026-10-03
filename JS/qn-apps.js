@@ -1,6 +1,6 @@
-// qn-apps.js — アプリ名バッジ(#qnAppBadge)・アプリ一覧フライアウト(#qnAppFlyout)・アプリ表示領域(#qnAppHost)。
-// PC幅=バッジhover/クリックでフライアウト、SP/タッチ=タップでアイコンバー上に一覧(再タップ・外側タップ・Escで閉じる)。アプリ選択で#qnAppHostがそのアプリ画面に。PLAYER選択で本体へ戻る。
-// 【アプリ追加】JS/qn-app-xxx.jsでQNApps.register({id, label, icon(24x24 svg path), order(小さいほど上), ready(falseで準備中トースト), sidebar:[{id,label,icon}], onSidebar(itemId)(選択表示はQNApps.setSideActive(itemId|null)), shortcuts:[{key,action}]("Space / K"形式で複数キー可), shortcutsNote, mount(viewEl)(初回のみ), onShow(), onHide()})。Keyboardパネルの中身はQNApps.renderShortcuts(hostEl,"<id>")。index.htmlにqn-apps.jsより後で<script>追加。同idのregisterは置き換え。準備中アプリ(PITCH)は末尾のregister。
+// qn-apps.js — ヘッダーのロゴ兼アプリ切替(#qnAppLogoBtn)・アプリ一覧ドロップダウン(#qnAppFlyout)・アプリ表示領域(#qnAppHost)。
+// PC/SP共通: ロゴ(QN＋アプリ名＋V)を押すと直下にアプリ一覧(再押下・外側タップ・Escで閉じる)。アプリ名はBRAND(QNだけ色付き)。アプリ選択で#qnAppHostがそのアプリ画面に。PLAYER選択で本体へ戻る。
+// 【アプリ追加】JS/qn-app-xxx.jsでQNApps.register({id, label, icon(24x24 svg path), order(小さいほど上), ready(falseで準備中トースト), sidebar:[{id,label,icon}], onSidebar(itemId)(選択表示はQNApps.setSideActive(itemId|null)), settings:[{title,rows:[...]}](Settingsパネルの先頭に出る行。書式はJS/qn-settings-ui.jsのbuild。配列か、それを返す関数), shortcuts:[{key,action}]("Space / K"形式で複数キー可), shortcutsNote, mount(viewEl)(初回のみ), onShow(), onHide()})。Keyboardパネルの中身はQNApps.renderShortcuts(hostEl,"<id>")。index.htmlにqn-apps.jsより後で<script>追加。同idのregisterは置き換え。準備中アプリ(PITCH)は末尾のregister。
 // 【接点】#pcV2IconBar/#pcV2IconBarBottom/#pcV2IconBarSpacer/#pcV2Layout(player-ui-pc-v2.js build()が作る。出来上がるのを待つ)。アプリ表示中はbody.qn-app-open(player-ui-shared.jsのショートカット無効化に使う)。アプリを開く時QNPLAYERのaudioは一時停止
 (function () {
   "use strict";
@@ -11,9 +11,14 @@
 
   var SP_QUERY = "(max-width: 900px)";
 
+  // 表示名(ヘッダーのロゴ・一覧)。先頭の「QN」は常に色付き。YouTubeアプリは規約上グレーになりうるため名前に「YouTube」を入れない(変えるならここだけ)
+  var BRAND = { player: "PLAYER", youtube: "VIDEO", tuner: "TUNER", pitch: "PITCH" };
+  function brandName(app) { return (app && BRAND[app.id]) || (app ? app.label.toUpperCase() : "PLAYER"); }
+  function brandHtml(app) { return '<span class="qn-brand-qn">QN</span>' + brandName(app); }
+
   var apps = [];
   var current = null;
-  var iconBar = null, host = null, badgeBtn = null, flyout = null, scrim = null, flyoutOpen = false, flyoutHideTimer = null, flyoutTimer = null, toastEl = null, toastTimer = null;
+  var iconBar = null, host = null, logoBtn = null, flyout = null, scrim = null, flyoutOpen = false, flyoutHideTimer = null, flyoutTimer = null, toastEl = null, toastTimer = null;
   var views = {};
   var mounted = {};
   var resizeObs = null;
@@ -47,8 +52,6 @@
     flyout.hidden = true;
     flyout.setAttribute("role", "menu");
     document.body.appendChild(flyout);
-    flyout.addEventListener("mouseenter", cancelFlyoutClose);
-    flyout.addEventListener("mouseleave", scheduleFlyoutClose);
     return flyout;
   }
 
@@ -62,6 +65,7 @@
         app.ready ? app.label : app.label + " (coming soon)"
       );
       btn.setAttribute("role", "menuitem");
+      btn.querySelector("span").innerHTML = brandHtml(app);
       btn.addEventListener("click", function () {
         haptic();
         closeFlyout();
@@ -83,24 +87,45 @@
   }
 
   function isSp() { return window.matchMedia(SP_QUERY).matches; }
-  function canHover() { return window.matchMedia("(hover: hover) and (pointer: fine)").matches; }
 
+  // ロゴ(#qnAppLogoBtn)の真下に左揃えで出す(PC/SP共通)
   function positionFlyout() {
-    if (!flyout || !iconBar || !badgeBtn) return;
-    var br = iconBar.getBoundingClientRect();
-    var sp = isSp();
-    flyout.classList.toggle("qn-flyout-sp", sp);
-    if (scrim) scrim.classList.toggle("qn-scrim-sp", sp);
-    if (sp) {
-      flyout.style.left = "0px";
-      flyout.style.right = "0px";
-      flyout.style.top = "auto";
-      flyout.style.bottom = Math.max(0, window.innerHeight - br.top) + "px";
-    } else {
-      flyout.style.left = br.right + "px";
-      flyout.style.right = "auto";
-      flyout.style.top = br.top + "px";
-      flyout.style.bottom = Math.max(0, window.innerHeight - br.bottom) + "px";
+    if (!flyout || !logoBtn) return;
+    var lb = logoBtn.getBoundingClientRect();
+    var w = flyout.offsetWidth || 220;
+    flyout.style.left = Math.max(0, Math.min(lb.left, window.innerWidth - w - 4)) + "px";
+    flyout.style.right = "auto";
+    flyout.style.top = lb.bottom + "px";
+    flyout.style.bottom = "auto";
+  }
+
+  // 【v3.48.0】PC/SP共通: アプリ一覧の表示中はアプリ表示領域(#qnAppHost)をメニューの高さ分だけ下へずらし、YouTubeプレイヤーを覆わない(規約)。サイズは変えずtransformだけ、はみ出す下側はclip-pathで切る(アイコンバーに被らせない。プレイヤーは上側なので切れない)
+  var shiftCover = null, shiftCoverTimer = null;
+  function shiftHostForFlyout(on) {
+    if (!host) return;
+    var h = 0;
+    if (on && current && flyout) {
+      // アニメ途中のtransformに左右されないよう、style値とoffsetHeightで計算
+      h = Math.max(0, Math.ceil((parseFloat(flyout.style.top) || 0) + flyout.offsetHeight - (parseFloat(host.style.top) || 0)));
+    }
+    host.style.transition = "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)";
+    host.style.transform = h ? "translateY(" + h + "px)" : "";
+    host.style.clipPath = h ? "inset(0 0 " + h + "px 0)" : "";
+    // ずらして空いた隙間は背景色で塞ぐ(裏のPLAYERが映り込まないように)。ホストより奥(z149)なので、戻る時はホストが上から重なる
+    if (!shiftCover) {
+      shiftCover = document.createElement("div");
+      shiftCover.id = "qnAppShiftCover";
+      shiftCover.hidden = true;
+      document.body.appendChild(shiftCover);
+    }
+    if (shiftCoverTimer) { clearTimeout(shiftCoverTimer); shiftCoverTimer = null; }
+    if (h) {
+      shiftCover.style.top = (parseFloat(host.style.top) || 0) + "px";
+      shiftCover.style.left = (parseFloat(host.style.left) || 0) + "px";
+      shiftCover.style.height = h + "px";
+      shiftCover.hidden = false;
+    } else if (!shiftCover.hidden) {
+      shiftCoverTimer = setTimeout(function () { shiftCoverTimer = null; if (shiftCover) shiftCover.hidden = true; }, 240);
     }
   }
 
@@ -126,10 +151,8 @@
     void flyout.offsetWidth;
     flyout.classList.add("qn-flyout-in");
     scrim.classList.add("qn-scrim-in");
-    if (badgeBtn) {
-      badgeBtn.classList.add("qn-badge-open");
-      badgeBtn.setAttribute("aria-expanded", "true");
-    }
+    if (logoBtn) { logoBtn.classList.add("qn-badge-open"); logoBtn.setAttribute("aria-expanded", "true"); }
+    shiftHostForFlyout(true);
   }
 
   function closeFlyout() {
@@ -138,10 +161,8 @@
     flyoutOpen = false;
     flyout.classList.remove("qn-flyout-in");
     if (scrim) scrim.classList.remove("qn-scrim-in");
-    if (badgeBtn) {
-      badgeBtn.classList.remove("qn-badge-open");
-      badgeBtn.setAttribute("aria-expanded", "false");
-    }
+    if (logoBtn) { logoBtn.classList.remove("qn-badge-open"); logoBtn.setAttribute("aria-expanded", "false"); }
+    shiftHostForFlyout(false);
     if (flyoutHideTimer) clearTimeout(flyoutHideTimer);
     flyoutHideTimer = setTimeout(function () {
       flyoutHideTimer = null;
@@ -151,11 +172,6 @@
     }, 280);
   }
 
-  function scheduleFlyoutClose() {
-    if (!canHover() || isSp()) return;
-    cancelFlyoutClose();
-    flyoutTimer = setTimeout(closeFlyout, 160);
-  }
   function cancelFlyoutClose() {
     if (flyoutTimer) { clearTimeout(flyoutTimer); flyoutTimer = null; }
   }
@@ -167,7 +183,7 @@
     if (!current || !current.sidebar) return;
     var spacer = $("pcV2IconBarSpacer");
     var bottomBox = $("pcV2IconBarBottom");
-    var colorBtn = bottomBox ? bottomBox.querySelector('[data-panel-id="color"]') : null;
+    var colorBtn = bottomBox ? bottomBox.querySelector('[data-panel-id="settings"]') : null;
     current.sidebar.forEach(function (it) {
       var btn = makeItemButton({ cls: "qn-appside-item" }, it.icon, it.label, it.label);
       btn.setAttribute("data-side-id", it.id);
@@ -191,42 +207,24 @@
     }
   }
 
-  // ---------- アプリ名バッジ(サイドバー先頭。「＞」=サブメニューあり)。PC=hover/クリック、SP/タッチ=タップ開閉 ----------
+  // ---------- ヘッダーのロゴ兼アプリ切替(#qnAppLogoBtn。index.htmlにある)。押すと直下にアプリ一覧 ----------
   function buildBadge() {
-    if (!iconBar || $("qnAppBadge")) return;
-    badgeBtn = makeItemButton({ cls: "qn-app-badge" }, PLAYER_ICON, "Player", "Apps");
-    badgeBtn.id = "qnAppBadge";
-    badgeBtn.setAttribute("aria-haspopup", "menu");
-    badgeBtn.setAttribute("aria-expanded", "false");
-    var chev = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    chev.setAttribute("viewBox", "0 0 24 24");
-    chev.setAttribute("class", "qn-badge-chev");
-    chev.setAttribute("aria-hidden", "true");
-    chev.innerHTML = CHEVRON_ICON;
-    badgeBtn.appendChild(chev);
-
-    badgeBtn.addEventListener("mouseenter", function () {
-      if (canHover() && !isSp()) openFlyout();
-    });
-    badgeBtn.addEventListener("mouseleave", scheduleFlyoutClose);
-    badgeBtn.addEventListener("click", function () {
+    logoBtn = $("qnAppLogoBtn");
+    if (!logoBtn || logoBtn.__qnBound) return;
+    logoBtn.__qnBound = true;
+    logoBtn.addEventListener("click", function () {
       haptic();
-      if (flyoutOpen) {
-        if (!(canHover() && !isSp())) closeFlyout();
-      } else {
-        openFlyout();
-      }
+      if (flyoutOpen) closeFlyout(); else openFlyout();
     });
-    iconBar.insertBefore(badgeBtn, iconBar.firstChild);
   }
 
   function updateBadge() {
-    if (!badgeBtn) return;
+    if (!logoBtn) return;
     var app = current || findApp("player");
     if (!app) return;
-    badgeBtn.querySelector("svg").innerHTML = app.icon;
-    badgeBtn.querySelector("span").textContent = app.label.toUpperCase();
-    badgeBtn.title = app.label + " — switch app";
+    var nm = $("appLogoName");
+    if (nm && nm.textContent !== brandName(app)) nm.textContent = brandName(app);
+    logoBtn.title = "QN" + brandName(app) + " — switch app";
   }
 
   function refreshSidebar() {
@@ -370,8 +368,9 @@
     window.dispatchEvent(new Event("resize"));
   }
 
-  var colorPop = null, colorSec = null, colorHome = null, colorNext = null;
-
+  // 【v3.42.0】アプリ表示中の「Settings」パネル(旧Color用ポップを拡張)。一覧(Backup/Import/Color/Keyboard/Transfer)→下層ビュー(戻るボタンで一覧へ)。
+  // Backup/Importは本体共通画面(qnBackupMountInto)、Keyboardはrender Shortcuts、Colorは本体のテーマセクションを借りる。閉じる/切替時は借りたものを元へ戻す。関数名のcolorPopは互換のため据え置き
+  var colorPop = null, colorSec = null, colorHome = null, colorNext = null, setView = "root", setUI = null;
   function findColorSection() {
     return document.querySelector('.qn-menu-section[data-qn-section="theme"]');
   }
@@ -402,30 +401,98 @@
     }
   }
 
-  function closeColorPop() {
-    if (!colorPop || colorPop.hidden) return;
-    colorPop.hidden = true;
+  // 借りている要素を元の場所へ戻す(Color)/退避する(Backup/Importの共通画面)
+  function releaseSetView() {
     if (colorSec && colorHome && colorHome.isConnected) {
       if (colorNext && colorNext.parentNode === colorHome) colorHome.insertBefore(colorSec, colorNext);
       else colorHome.appendChild(colorSec);
     }
-    var b = document.querySelector('#pcV2IconBarBottom [data-panel-id="color"]');
-    if (b) b.classList.remove("qn-app-active");
     colorSec = colorHome = colorNext = null;
+    if (typeof window.qnBackupReleaseExternal === "function") window.qnBackupReleaseExternal();
+    if (typeof window.qnBackupParts === "function" && colorPop) {
+      var parts = window.qnBackupParts();
+      var stash = $("pcV2PanelStash");
+      if (!stash) { stash = document.createElement("div"); stash.id = "pcV2PanelStash"; stash.style.display = "none"; stash.setAttribute("aria-hidden", "true"); document.body.appendChild(stash); }
+      for (var k in parts) if (parts[k] && colorPop.contains(parts[k])) stash.appendChild(parts[k]);
+    }
+  }
+
+  function setActiveBtn(on) {
+    var b = document.querySelector('#pcV2IconBarBottom [data-panel-id="settings"]');
+    if (b) b.classList.toggle("qn-app-active", !!on);
+  }
+
+  function closeColorPop() {
+    if (!colorPop || colorPop.hidden) return;
+    releaseSetView();
+    colorPop.hidden = true;
+    setView = "root";
+    setActiveBtn(false);
+  }
+
+  var rootScroll = 0; // 一覧から下層へ入る時のスクロール位置(戻ったら復元。一覧を開き直す時は0)
+  function showSetView(name, restore) {
+    if (!colorPop) return;
+    if (name !== "root" && setView === "root") rootScroll = colorPop.querySelector(".qn-colorpanel-body").scrollTop;
+    releaseSetView();
+    setView = name;
+    var head = colorPop.querySelector(".qn-colorpanel-head");
+    var body = colorPop.querySelector(".qn-colorpanel-body");
+    head.textContent = "";
+    body.textContent = "";
+    if (name !== "root") {
+      var back = QNSettingsUI.backButton(function () { showSetView("root", true); });
+      head.appendChild(back);
+    }
+    var title = document.createElement("span");
+    title.className = "pcv2-panel-header-title";
+    title.textContent = name === "root" ? "Settings" : QNSettingsUI.LABELS[name];
+    head.appendChild(title);
+    if (name === "root") {
+      // アプリ固有の設定行(register({settings}) = セクション配列 or それを返す関数)を上に、共通の一覧(More)を下に。部品はQNSettingsUI(PLAYER本体と共用)
+      var secs = current && current.settings;
+      if (typeof secs === "function") secs = secs();
+      setUI = QNSettingsUI.build(secs || []);
+      var host = setUI.el;
+      var ids = ["backup", "import", "color", "keyboard", "transfer"].filter(function (id) {
+        if (id === "transfer") return !!(window.QNLibSync && window.QNLibSync.isActive());
+        if (id === "color") return !!findColorSection();
+        return true;
+      });
+      host.appendChild(QNSettingsUI.list(ids, function (id) {
+        if (id === "transfer") { if (window.QNP2P) window.QNP2P.open(); return; }
+        showSetView(id);
+      }));
+      host.appendChild(QNSettingsUI.versionLine());
+      body.appendChild(host);
+    } else if (name === "color") {
+      var sec = findColorSection();
+      if (sec) {
+        colorSec = sec; colorHome = sec.parentNode; colorNext = sec.nextSibling;
+        body.appendChild(sec);
+      }
+    } else if (name === "keyboard") {
+      var box = document.createElement("div");
+      body.appendChild(box);
+      renderShortcuts(box, current ? current.id : null);
+    } else if (name === "backup" || name === "import") {
+      var hostEl = document.createElement("div");
+      hostEl.className = name === "backup" ? "qn-pt-sec-backup" : "qn-pt-sec-import";
+      body.appendChild(hostEl);
+      if (typeof window.qnBackupMountInto === "function") window.qnBackupMountInto(name, hostEl, function () { showSetView("root", true); });
+    }
+    body.scrollTop = (name === "root" && restore) ? rootScroll : 0;
   }
 
   function openColorPop() {
-    var sec = findColorSection();
-    if (!sec) return;
     if (!colorPop) {
       colorPop = document.createElement("div");
       colorPop.id = "qnColorPop";
       colorPop.hidden = true;
-      colorPop.innerHTML = '<div class="qn-colorpanel-head"><span class="pcv2-panel-header-title">Color</span></div>' +
-        '<div class="qn-colorpanel-body"></div>';
+      colorPop.innerHTML = '<div class="qn-colorpanel-head"></div><div class="qn-colorpanel-body"></div>';
       document.body.appendChild(colorPop);
       iconBar.addEventListener("click", function (e) {
-        if (e.target.closest && e.target.closest('[data-panel-id="color"]')) return;
+        if (e.target.closest && e.target.closest('[data-panel-id="settings"]')) return;
         closeColorPop();
       });
       document.addEventListener("keydown", function (e) {
@@ -433,12 +500,10 @@
       });
       window.addEventListener("resize", positionColorPop);
     }
-    colorSec = sec; colorHome = sec.parentNode; colorNext = sec.nextSibling;
-    colorPop.querySelector(".qn-colorpanel-body").appendChild(sec);
+    showSetView("root");
     colorPop.hidden = false;
     positionColorPop();
-    var b = document.querySelector('#pcV2IconBarBottom [data-panel-id="color"]');
-    if (b) b.classList.add("qn-app-active");
+    setActiveBtn(true);
   }
 
   function initColorKeeper() {
@@ -446,7 +511,7 @@
     if (!bottom || bottom.__qnColor) return;
     bottom.__qnColor = true;
     bottom.addEventListener("click", function (e) {
-      var b = e.target.closest && e.target.closest('[data-panel-id="color"]');
+      var b = e.target.closest && e.target.closest('[data-panel-id="settings"]');
       if (!b || !current) return;
       closeFlyout();
       e.stopImmediatePropagation();
@@ -464,18 +529,15 @@
     document.addEventListener("pointerdown", function (e) {
       if (!flyout || !flyoutOpen) return;
       var t = e.target;
-      if (t && t.closest && (t.closest("#qnAppFlyout") || t.closest("#qnAppBadge"))) return;
+      if (t && t.closest && (t.closest("#qnAppFlyout") || t.closest("#qnAppLogoBtn"))) return;
       closeFlyout();
     }, true);
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeFlyout();
     });
-    window.addEventListener("resize", function () { if (flyoutOpen) positionFlyout(); });
+    window.addEventListener("resize", function () { if (flyoutOpen) { positionFlyout(); shiftHostForFlyout(true); } });
     window.addEventListener("orientationchange", closeFlyout);
-    iconBar.addEventListener("click", function (e) {
-      if (e.target.closest && e.target.closest("#qnAppBadge")) return;
-      closeFlyout();
-    });
+    iconBar.addEventListener("click", closeFlyout);
     iconBar.addEventListener("scroll", closeFlyout, { passive: true });
   }
 
@@ -519,7 +581,8 @@
       ready: def.ready !== false,
       sidebar: def.sidebar || null, onSidebar: def.onSidebar,
       shortcuts: def.shortcuts || null, shortcutsNote: def.shortcutsNote || "",
-      mount: def.mount, onShow: def.onShow, onHide: def.onHide
+      mount: def.mount, onShow: def.onShow, onHide: def.onHide,
+      settings: def.settings || null
     };
     if (idx >= 0) apps[idx] = app; else apps.push(app);
     apps.sort(function (a, b) { return a.order - b.order; });
@@ -605,13 +668,8 @@
   }
 
   // SP幅のリスト行: 横にスワイプすると右に□アイコンボタン(編集/SKIP(HIDE)/削除)が出る。opts={rowSel, disabled():bool, actions(row):[{kind:"edit|skip|hide|del", on:bool(skip/hide: 今の状態=無効か), run(row)}]}。削除は2タップ確認。行が再描画されると自然に閉じる
-  var SW_ICON = {
-    edit: '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>',
-    eyeOn: '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>',
-    eyeOff: '<path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/>',
-    del: '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',
-    ok: '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>'
-  };
+  // アイコン・ラベルはplayer-markers.jsのwindow.QN_ROW_ACT(PLAYERのマーカー行のボタンと共通)
+  var SW_ICON = window.QN_ROW_ACT.icons;
   function swipeRows(container, opts) {
     if (!container || container._qnSwipe) return;
     container._qnSwipe = true;
@@ -635,13 +693,9 @@
       (opts.actions(row) || []).forEach(function (a) {
         var b = document.createElement("button");
         b.type = "button";
-        var kind = a.kind, icon, label;
-        if (kind === "edit") { icon = SW_ICON.edit; label = "EDIT"; }
-        else if (kind === "del") { icon = SW_ICON.del; label = "DELETE"; }
-        else if (kind === "hide") { icon = a.on ? SW_ICON.eyeOn : SW_ICON.eyeOff; label = a.on ? "SHOW" : "HIDE"; }
-        else { icon = a.on ? SW_ICON.eyeOn : SW_ICON.eyeOff; label = a.on ? "PLAY" : "SKIP"; }
+        var kind = a.kind;
         b.className = "qn-swipe-btn is-" + kind;
-        b.innerHTML = '<svg viewBox="0 0 24 24">' + icon + "</svg><span>" + label + "</span>";
+        b.innerHTML = window.QN_ROW_ACT.html(kind, a.on);
         b.addEventListener("click", function (e) {
           e.stopPropagation();
           if (kind === "del" && !b.classList.contains("confirm")) {
@@ -653,7 +707,7 @@
             b._t = setTimeout(function () {
               b.classList.remove("confirm");
               b.querySelector("svg").innerHTML = SW_ICON.del;
-              b.querySelector("span").textContent = "DELETE";
+              b.querySelector("span").textContent = "Delete";
             }, 3000);
             return;
           }

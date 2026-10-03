@@ -8,7 +8,7 @@
   font-size: var(--fs-title);
   font-weight: 600;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--icon-muted);
   flex-shrink: 0;
   display: flex;
@@ -407,11 +407,6 @@
 }
 
 
-#trackBackupSizeAudio {
-  color: var(--accent-primary);
-}
-
-
 :is(#pcV2PanelBody.pcv2-panel-backup, .qn-yt-sec-backup, .qn-pt-sec-backup) #trackBackupCancelBtn,
 :is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import, .qn-pt-sec-import) #trackImportCancelBtn[data-mode="cancel"] {
   display: none;
@@ -606,7 +601,7 @@
   font-size: var(--fs-heading);
   font-weight: 600;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--icon-muted);
   margin: 0;
 }
@@ -705,4 +700,18 @@
 #pcV2PanelBody.pcv2-panel-text .note-textarea:read-write {
   background: #1c1c24;
   border-color: var(--border-subtle);
+}
+
+
+/* 【v3.52.0】Markers編集中のCancel(削除ボタンの位置)と、選択ありの時にDeleteへ変わる下のボタン */
+.panel-fab-cancel-btn {
+  display: none;
+  background: #2f3a52;
+}
+.panel-fab-cancel-btn:hover { background: #3b4866; }
+.panel-fab-btn.panel-edit-btn.is-delete,
+.panel-fab-btn.panel-edit-btn.is-delete:hover,
+.panel-fab-btn.panel-edit-btn.is-delete.active {
+  background: var(--danger, #ef4444);
+  color: #fff;
 }

@@ -1,5 +1,28 @@
-// player-markers.js — マーカー追加/前後ジャンプ/波形上のピン描画/ドラッグ(startDragPin。PC/SP共通)/カラーピッカー/メモ編集/ループ区間(segmentHighlight)。
-// 依存: player-core.js(pins,savePins,getSegments,hexToRgba,MARKER_COLOR_PALETTE), player-ui-shared.js(haptic*,isMobileLayout)。トップレベルでDOM取得するのでDOM構築後に読み込む
+// player-markers.js — マーカー追加/前後ジャンプ/波形上のピン描画/ドラッグ(startDragPin。PC/SP共通)/カラーピッカー/メモ編集/ループ区間(segmentHighlight)。行(.vbar)はQNBars(player-bars.js)が仮想スクロールで作る: 装飾はdecorateBarRowで付け、行DOMは直接探さずQNBars.rowEl/eachRow経由。
+// 依存: player-core.js(pins,savePins,hexToRgba,MARKER_COLOR_PALETTE), player-bars.js(QNBars), player-ui-shared.js(haptic*,isMobileLayout)。トップレベルでDOM取得するのでDOM構築後に読み込む
+
+// 行/スワイプトレイ共通のアクションボタン(□アイコン+ラベル)。PLAYERのマーカー行(.pin-act-btn)と、qn-apps.jsのスワイプトレイ(.qn-swipe-btn)が同じ見た目になるよう、ここだけでアイコン・ラベルを決める(qn-apps.jsはwindow.QN_ROW_ACTを読む)。
+// kind: edit=編集 / skip=曲のSKIP(playlist。on=スキップ中→PLAY) / mskip=マーカー区間のSKIP(on=飛ばし中→PLAY) / hide=表示切替(on=非表示中→SHOW) / del=削除
+window.QN_ROW_ACT = (function () {
+  const icons = {
+    edit: '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>',
+    eyeOn: '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>',
+    eyeOff: '<path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/>',
+    del: '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',
+    ok: '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>',
+    skipNext: '<path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>',
+    play: '<path d="M8 5v14l11-7z"/>'
+  };
+  function info(kind, on) {
+    if (kind === "edit") return { icon: icons.edit, label: "Edit" };
+    if (kind === "del") return { icon: icons.del, label: "Delete" };
+    if (kind === "hide") return { icon: on ? icons.eyeOn : icons.eyeOff, label: on ? "Show" : "Hide" };
+    if (kind === "mskip") return { icon: on ? icons.play : icons.skipNext, label: on ? "Play" : "Skip" };
+    return { icon: on ? icons.eyeOn : icons.eyeOff, label: on ? "Play" : "Skip" };
+  }
+  function html(kind, on) { const i = info(kind, on); return '<svg viewBox="0 0 24 24">' + i.icon + "</svg><span>" + i.label + "</span>"; }
+  return { icons: icons, info: info, html: html };
+})();
 
 function addCurrentPin() {
   if (!audio.duration) return;
@@ -11,6 +34,22 @@ function addCurrentPin() {
   renderSegments();
   renderPinList();
   savePins();
+}
+
+// 【v3.45.0】指定位置にマーカー追加(波形の長押し用)。±0.3秒以内に既存マーカーがあれば何もしない(falseを返す)
+function addPinAt(t) {
+  if (!audio.duration) return false;
+  t = Math.max(0, Math.min(audio.duration, Math.round(t * 10) / 10));
+  if (pins.some(p => Math.abs(p.t - t) <= 0.3)) return false;
+  hapticSuccess();
+  pins.push({ t: t, enabled: true, memo: "", color: null });
+  pins.sort((a, b) => a.t - b.t);
+  loopActiveMarkerIndex = null;
+  renderPins();
+  renderSegments();
+  renderPinList();
+  savePins();
+  return true;
 }
 
 document.getElementById("addPinBtn").onclick = addCurrentPin;
@@ -27,7 +66,7 @@ function getMarkerNavReferenceTime() {
 function jumpToNextMarker() {
   const activePins = pins
     .map((p, i) => ({ p, i }))
-    .filter(({ p, i }) => p.enabled && !(typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE))
+    .filter(({ p, i }) => p.enabled && !p.skip && !(typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE))
     .map(({ p }) => p);
   if (activePins.length === 0) return;
   hapticTap();
@@ -48,7 +87,7 @@ function jumpToNextMarker() {
 function jumpToPrevMarker() {
   const activePins = pins
     .map((p, i) => ({ p, i }))
-    .filter(({ p, i }) => p.enabled && !(typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE))
+    .filter(({ p, i }) => p.enabled && !p.skip && !(typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE))
     .map(({ p }) => p);
   if (activePins.length === 0) return;
   hapticTap();
@@ -73,86 +112,91 @@ if (prevMarkerBtn) prevMarkerBtn.onclick = jumpToPrevMarker;
 const nextMarkerBtn = document.getElementById("nextMarkerBtn");
 if (nextMarkerBtn) nextMarkerBtn.onclick = jumpToNextMarker;
 
-function renderPins() {
-  const dur = audio.duration;
+// ドラッグ中のマーカー/A-B旗。行が(スクロールで)後から作られる時の装飾(decorateBarRow)から除き、二重表示を防ぐ
+let draggingPinIndex = -1;
+let draggingABKind = null;
 
-  document.querySelectorAll(".vbar").forEach(bar => {
-    bar.querySelectorAll(".vbar-line").forEach(p => p.remove());
+function createPinLine(pinObj, i) {
+  const t = pinObj.t;
+  const x = QNBars.pctInRow(t);
+
+  const line = document.createElement("div");
+  line.className = "vbar-line";
+  if (!pinObj.enabled) {
+    line.classList.add("disabled");
+  }
+  if (pinObj.skip) line.classList.add("is-skip");
+  const isLockedMarker = typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE;
+  if (isLockedMarker) {
+    line.classList.add("sw-locked");
+  }
+  line.style.left = `${x}%`;
+  line.dataset.pinIndex = String(i);
+  // 色あり→線のbackgroundに反映。disabled中はCSS優先(インライン上書き禁止)。.vbar-labelは常にCSS黒背景(インライン禁止)。--marker-colorはPC v2の::before用。line.style.backgroundはSP/旧PC用。両方set
+  const applyMarkerColor = pinObj.color && MARKER_COLOR_PALETTE[pinObj.color] && pinObj.enabled;
+  if (applyMarkerColor) {
+    line.style.background = MARKER_COLOR_PALETTE[pinObj.color];
+    line.style.setProperty("--marker-color", MARKER_COLOR_PALETTE[pinObj.color]);
+  }
+
+  const label = document.createElement("span");
+  label.className = "vbar-label";
+  // 右端付近はメモがはみ出すので左表示(.pcv2-label-flip、PC v2限定CSS)
+  if (x >= 80) {
+    label.classList.add("pcv2-label-flip");
+  }
+  const numSpan = document.createElement("span");
+  numSpan.className = "vbar-label-num";
+  numSpan.textContent = `${i + 1}`;
+  label.appendChild(numSpan);
+  if (pinObj.memo) {
+    const memoSpan = document.createElement("span");
+    memoSpan.className = "vbar-label-memo";
+    memoSpan.textContent = pinObj.memo;
+    label.appendChild(memoSpan);
+  }
+
+  function handleMarkerTapOrDrag(e) {
+    e.stopPropagation();
+    if (isLockedMarker) {
+      swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
+      return;
+    }
+    beginSeek();
+    audio.currentTime = pinObj.t;
+    prevTime = pinObj.t;
+    audio.play();
+    updatePlayButtonState();
+    renderSegments(getActiveSegment(pinObj.t));
+    setTimeout(() => { isSeeking = false; }, 150);
+    if (Date.now() - lastPinDragAt > 400 && Date.now() - lastPinTapAt > 400) showPinPopup(pinObj.t, line.parentNode, e.clientX, pinObj);
+  }
+
+  label.onclick = handleMarkerTapOrDrag;
+  line.onclick = handleMarkerTapOrDrag;
+
+  // ドラッグ移動はstartDragPin(mouse/touch共通)。無料版ロック中マーカーはドラッグ不可
+  if (!isLockedMarker) {
+    label.onmousedown = startDragPin(i);
+    line.onmousedown = startDragPin(i);
+    label.ontouchstart = startDragPin(i);
+    line.ontouchstart = startDragPin(i);
+  }
+
+  line.appendChild(label);
+  return line;
+}
+
+function renderPins() {
+  QNBars.sync();
+
+  QNBars.eachRow(rowEl => {
+    rowEl.querySelectorAll(".vbar-line").forEach(p => p.remove());
   });
 
   pins.forEach((pinObj, i) => {
-    const t = pinObj.t;
-    const row = getPinRow(t, dur);
-    const x = timeToPercentInRow(t, dur);
-
-    const line = document.createElement("div");
-    line.className = "vbar-line";
-    if (!pinObj.enabled) {
-      line.classList.add("disabled");
-    }
-    const isLockedMarker = typeof isUnlocked === "function" && !isUnlocked() && i >= SW_LIMITS.MARKER_MAX_ACTIVE;
-    if (isLockedMarker) {
-      line.classList.add("sw-locked");
-    }
-    line.style.left = `${x}%`;
-    line.dataset.pinIndex = String(i);
-    // 色あり→線のbackgroundに反映。disabled中はCSS優先(インライン上書き禁止)。.vbar-labelは常にCSS黒背景(インライン禁止)。--marker-colorはPC v2の::before用。line.style.backgroundはSP/旧PC用。両方set
-    const applyMarkerColor = pinObj.color && MARKER_COLOR_PALETTE[pinObj.color] && pinObj.enabled;
-    if (applyMarkerColor) {
-      line.style.background = MARKER_COLOR_PALETTE[pinObj.color];
-      line.style.setProperty("--marker-color", MARKER_COLOR_PALETTE[pinObj.color]);
-    }
-
-    const label = document.createElement("span");
-    label.className = "vbar-label";
-    // 右端付近はメモがはみ出すので左表示(.pcv2-label-flip、PC v2限定CSS)
-    if (x >= 80) {
-      label.classList.add("pcv2-label-flip");
-    }
-    const numSpan = document.createElement("span");
-    numSpan.className = "vbar-label-num";
-    numSpan.textContent = `${i + 1}`;
-    label.appendChild(numSpan);
-    if (pinObj.memo) {
-      const memoSpan = document.createElement("span");
-      memoSpan.className = "vbar-label-memo";
-      memoSpan.textContent = pinObj.memo;
-      label.appendChild(memoSpan);
-    }
-
-    function handleMarkerTapOrDrag(e) {
-      e.stopPropagation();
-      if (isLockedMarker) {
-        swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
-        return;
-      }
-      beginSeek();
-      audio.currentTime = pinObj.t;
-      prevTime = pinObj.t;
-      audio.play();
-      updatePlayButtonState();
-      renderSegments(getActiveSegment(pinObj.t));
-      setTimeout(() => { isSeeking = false; }, 150);
-      if (Date.now() - lastPinDragAt > 400 && Date.now() - lastPinTapAt > 400) showPinPopup(pinObj.t, line.parentNode, e.clientX, pinObj);
-    }
-
-    label.onclick = handleMarkerTapOrDrag;
-    line.onclick = handleMarkerTapOrDrag;
-
-    // ドラッグ移動はstartDragPin(mouse/touch共通)。無料版ロック中マーカーはドラッグ不可
-    if (!isLockedMarker) {
-      label.onmousedown = startDragPin(i);
-      line.onmousedown = startDragPin(i);
-      label.ontouchstart = startDragPin(i);
-      line.ontouchstart = startDragPin(i);
-    }
-
-    line.appendChild(label);
-
-    const targetBar = document.getElementById(`bar${row}`);
-    if (targetBar) {
-      targetBar.appendChild(line);
-    }
+    const rowEl = QNBars.rowEl(QNBars.rowOf(pinObj.t));
+    if (rowEl) rowEl.appendChild(createPinLine(pinObj, i));
   });
 
   renderABPoints();
@@ -162,27 +206,45 @@ function renderPins() {
   const activeCount = pins.filter(p => p.enabled).length;
   const loopInfo = document.getElementById("loopInfo");
   if (loopInfo) {
-    loopInfo.textContent = `ACTIVE ${activeCount}/${pins.length}`;
+    loopInfo.textContent = `Active ${activeCount}/${pins.length}`;
   }
 }
 
-// segmentHighlight(プリロール版も)を6分割バーごとに分割描画。onClickSeek省略=クリック不可
-function paintSegmentAcrossBars(barsInfo, rangeStart, rangeEnd, className, colorHex, onClickSeek, colorKey) {
-  barsInfo.forEach(b => {
-    const overlapStart = Math.max(rangeStart, b.start);
-    const overlapEnd = Math.min(rangeEnd, b.end);
+// 行がスクロールで作られた時にQNBarsが呼ぶ: その行に属する線・A/B旗・区間ハイライトを付ける
+function decorateBarRow(rowEl, row) {
+  pins.forEach((pinObj, i) => {
+    if (i === draggingPinIndex) return;
+    if (QNBars.rowOf(pinObj.t) === row) rowEl.appendChild(createPinLine(pinObj, i));
+  });
+  [["A", abA], ["B", abB]].forEach(([kind, v]) => {
+    if (v === null || kind === draggingABKind) return;
+    if (QNBars.rowOf(v) === row) rowEl.appendChild(createABPoint(kind, v));
+  });
+  paintSegmentsOnRow(rowEl, row);
+}
+
+// 区間ハイライト(segmentHighlight / プリロールの破線)。現在の区間をsegSpecに持ち、描画中の全行と、後から作られる行(decorateBarRow)に塗る。onClickSeek省略=クリック不可
+let segSpec = null;
+
+function paintSegmentsOnRow(rowEl, row) {
+  if (!segSpec) return;
+  const sec = QNBars.getSec();
+  const rowStart = QNBars.rowStart(row);
+  segSpec.forEach(s => {
+    const overlapStart = Math.max(s.start, rowStart);
+    const overlapEnd = Math.min(s.end, rowStart + sec);
     if (overlapStart >= overlapEnd) return;
 
-    const leftPct = ((overlapStart - b.start) / (b.end - b.start)) * 100;
-    const rightPct = ((overlapEnd - b.start) / (b.end - b.start)) * 100;
-    const widthPct = rightPct - leftPct;
+    const leftPct = ((overlapStart - rowStart) / sec) * 100;
+    const widthPct = ((overlapEnd - overlapStart) / sec) * 100;
+    const colorHex = s.colorHex;
 
     const seg = document.createElement("div");
-    seg.className = className;
+    seg.className = s.className;
     seg.style.left = leftPct + "%";
     seg.style.width = widthPct + "%";
     if (colorHex) {
-      if (className === "segmentHighlight") {
+      if (s.className === "segmentHighlight") {
         seg.style.background = hexToRgba(colorHex, 0.35);
         seg.style.borderTop = `2px solid ${colorHex}`;
         seg.style.borderBottom = `2px solid ${colorHex}`;
@@ -193,61 +255,76 @@ function paintSegmentAcrossBars(barsInfo, rangeStart, rangeEnd, className, color
       }
     }
 
-    if (onClickSeek !== undefined) {
+    if (s.onClickSeek !== undefined) {
       seg.onclick = () => {
         beginSeek();
-        audio.currentTime = onClickSeek;
-        prevTime = onClickSeek;
+        audio.currentTime = s.onClickSeek;
+        prevTime = s.onClickSeek;
         audio.play();
         updatePlayButtonState();
-        renderSegments({ start: rangeStart, end: rangeEnd, color: colorKey || null });
+        renderSegments({ start: s.start, end: s.end, color: s.colorKey || null });
         setTimeout(() => { isSeeking = false; }, 150);
       };
     }
 
-    b.el.appendChild(seg);
+    rowEl.appendChild(seg);
   });
+}
+
+// 【v3.46.0】スキップ区間: 有効なマーカーのうち skip=true のものから、次の有効マーカーまで(次が無ければ対象外)。再生は自然にその開始点を跨いだ時に次のマーカーへ飛ぶ(updateBars)
+function getSkipRanges() {
+  const act = pins.filter(p => p.enabled);
+  const out = [];
+  for (let i = 0; i < act.length - 1; i++) if (act[i].skip) out.push({ start: act[i].t, end: act[i + 1].t });
+  return out;
+}
+
+function toggleSkipPin(pinObj) {
+  if (!pinObj) return;
+  pinObj.skip = !pinObj.skip;
+  if (!pinObj.skip) delete pinObj.skip;
+  loopActiveMarkerIndex = null;
+  renderPins();
+  renderSegments();
+  renderPinList();
+  savePins();
 }
 
 function renderSegments(overrideSegment) {
   const dur = audio.duration;
   if (!dur) return;
 
-  document.querySelectorAll(".vbar").forEach(bar => {
-    bar.querySelectorAll(".segmentHighlight, .segmentHighlight-preroll").forEach(s => s.remove());
+  QNBars.eachRow(rowEl => {
+    rowEl.querySelectorAll(".segmentHighlight, .segmentHighlight-preroll, .segmentSkip").forEach(s => s.remove());
   });
+  segSpec = null;
 
-  if (!loopEnabled) return;
+  // スキップ区間(マーカーの skip=true → 次のマーカーまで)。ループ状態に関係なく常に斜線で表示(クリック不可)
+  const skipSpec = typeof getSkipRanges === "function" ? getSkipRanges().map(r => ({ start: r.start, end: r.end, className: "segmentSkip" })) : [];
 
-  const active = overrideSegment || getActiveSegment();
-  if (!active) return;
+  const spec = skipSpec.slice();
+  const active = loopEnabled ? (overrideSegment || getActiveSegment()) : null;
+  if (active) {
+    const colorHex = active.color && MARKER_COLOR_PALETTE[active.color] ? MARKER_COLOR_PALETTE[active.color] : null;
+    spec.push({ start: active.start, end: active.end, className: "segmentHighlight", colorHex: colorHex, onClickSeek: active.start, colorKey: active.color });
 
-  const { s1, s2, s3, s4, s5 } = getSegments(dur);
-  const barsInfo = [
-    { el: document.getElementById("bar1"), start: 0, end: s1 },
-    { el: document.getElementById("bar2"), start: s1, end: s2 },
-    { el: document.getElementById("bar3"), start: s2, end: s3 },
-    { el: document.getElementById("bar4"), start: s3, end: s4 },
-    { el: document.getElementById("bar5"), start: s4, end: s5 },
-    { el: document.getElementById("bar6"), start: s5, end: dur }
-  ];
-
-  const colorHex = active.color && MARKER_COLOR_PALETTE[active.color] ? MARKER_COLOR_PALETTE[active.color] : null;
-
-  paintSegmentAcrossBars(barsInfo, active.start, active.end, "segmentHighlight", colorHex, active.start, active.color);
-
-  // プリロール/ポストロール(薄い破線)。ステッパー0なら描画しない
-  const preroll = typeof loopPreRollSeconds === "number" ? loopPreRollSeconds : 0;
-  if (preroll > 0) {
-    const prerollStart = Math.max(0, active.start - preroll);
-    const postrollEnd = Math.min(dur, active.end + preroll);
-    if (prerollStart < active.start) {
-      paintSegmentAcrossBars(barsInfo, prerollStart, active.start, "segmentHighlight-preroll", colorHex);
-    }
-    if (active.end < postrollEnd) {
-      paintSegmentAcrossBars(barsInfo, active.end, postrollEnd, "segmentHighlight-preroll", colorHex);
+    // プリロール/ポストロール(薄い破線)。ステッパー0なら描画しない
+    const preroll = typeof loopPreRollSeconds === "number" ? loopPreRollSeconds : 0;
+    if (preroll > 0) {
+      const prerollStart = Math.max(0, active.start - preroll);
+      const postrollEnd = Math.min(dur, active.end + preroll);
+      if (prerollStart < active.start) {
+        spec.push({ start: prerollStart, end: active.start, className: "segmentHighlight-preroll", colorHex: colorHex });
+      }
+      if (active.end < postrollEnd) {
+        spec.push({ start: active.end, end: postrollEnd, className: "segmentHighlight-preroll", colorHex: colorHex });
+      }
     }
   }
+  if (!spec.length) return;
+
+  segSpec = spec;
+  QNBars.eachRow((rowEl, row) => paintSegmentsOnRow(rowEl, row));
 }
 
 function startDragPin(index) {
@@ -257,64 +334,34 @@ function startDragPin(index) {
     if (isTouch) e.preventDefault();
     beginSeek();
     const dur = audio.duration;
-    const { s1, s2, s3, s4, s5 } = getSegments(dur);
-    const bounds = [0, s1, s2, s3, s4, s5, dur];
 
-    // 【v2.16.2】ドラッグ中はmarker線を作り直さない(left/barだけ更新、renderPinList等は離すまで保留)。iOS Safariは掴んだ要素がDOMから消えるとtouchmove/touchendがdocumentへ届かず1回で止まる(GOTCHAS.md)。touchイベントは開始要素自身に付ける
+    // 【v2.16.2】ドラッグ中はmarker線を作り直さない(left/行だけ更新、renderPinList等は離すまで保留)。iOS Safariは掴んだ要素がDOMから消えるとtouchmove/touchendがdocumentへ届かず1回で止まる(GOTCHAS.md)。touchイベントは開始要素自身に付ける
     const dragTarget = e.currentTarget;
     const lineEl = dragTarget && dragTarget.closest ? dragTarget.closest(".vbar-line") : null;
     const labelEl = lineEl ? lineEl.querySelector(".vbar-label") : null;
+    draggingPinIndex = index;
+    if (lineEl) lineEl.classList.add("is-dragging");
 
     const DRAG_THRESHOLD_PX = 6;
     const startClientX = isTouch ? e.touches[0].clientX : e.clientX;
     const startClientY = isTouch ? e.touches[0].clientY : e.clientY;
+    const lastPt = { x: startClientX, y: startClientY };
     let hasDragged = false;
     let finished = false;
-
-    const bars = [
-      document.getElementById("bar1"),
-      document.getElementById("bar2"),
-      document.getElementById("bar3"),
-      document.getElementById("bar4"),
-      document.getElementById("bar5"),
-      document.getElementById("bar6")
-    ];
+    let stopEdge = null;
 
     function placeLineAt(t) {
       if (!lineEl) return;
-      const row = getPinRow(t, dur);
-      const x = timeToPercentInRow(t, dur);
-      const targetBar = document.getElementById(`bar${row}`);
+      const x = QNBars.pctInRow(t);
+      const targetBar = QNBars.rowEl(QNBars.rowOf(t));
       if (targetBar && lineEl.parentNode !== targetBar) targetBar.appendChild(lineEl);
       lineEl.style.left = `${x}%`;
       if (labelEl) labelEl.classList.toggle("pcv2-label-flip", x >= 80);
     }
 
     function moveAt(clientX, clientY) {
-      let targetBarIndex = 0;
-      let rects = bars.map(b => b.getBoundingClientRect());
-
-      if (clientY <= rects[0].bottom) {
-        targetBarIndex = 0;
-      } else if (clientY >= rects[rects.length - 1].top) {
-        targetBarIndex = rects.length - 1;
-      } else {
-        for (let i = 0; i < rects.length - 1; i++) {
-          const mid = (rects[i].bottom + rects[i+1].top) / 2;
-          if (clientY <= mid) {
-            targetBarIndex = i;
-            break;
-          }
-          targetBarIndex = i + 1;
-        }
-      }
-
-      const rect = rects[targetBarIndex];
-      const rowStart = bounds[targetBarIndex];
-      const rowEnd = bounds[targetBarIndex + 1];
-
-      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const t = rowStart + ratio * (rowEnd - rowStart);
+      const t = QNBars.timeFromPoint(clientX, clientY);
+      if (t === null) return;
 
       pins[index].t = Math.max(0, Math.min(dur, t));
 
@@ -326,11 +373,19 @@ function startDragPin(index) {
       renderSegments();
     }
 
+    // 画面端でスクロール(行は仮想スクロール)。掴んだ線の行は回収されない(QNBars.ensureRows)
+    function dragged(x, y) {
+      lastPt.x = x;
+      lastPt.y = y;
+      moveAt(x, y);
+      if (!stopEdge) stopEdge = QNBars.startEdgeScroll(() => lastPt, () => moveAt(lastPt.x, lastPt.y));
+    }
+
     function move(ev) {
       if (Math.abs(ev.clientX - startClientX) > DRAG_THRESHOLD_PX || Math.abs(ev.clientY - startClientY) > DRAG_THRESHOLD_PX) {
         hasDragged = true;
       }
-      if (hasDragged) moveAt(ev.clientX, ev.clientY);
+      if (hasDragged) dragged(ev.clientX, ev.clientY);
     }
 
     function moveTouch(ev) {
@@ -340,15 +395,18 @@ function startDragPin(index) {
       if (Math.abs(t.clientX - startClientX) > DRAG_THRESHOLD_PX || Math.abs(t.clientY - startClientY) > DRAG_THRESHOLD_PX) {
         hasDragged = true;
       }
-      if (hasDragged) moveAt(t.clientX, t.clientY);
+      if (hasDragged) dragged(t.clientX, t.clientY);
     }
 
     function stop() {
       if (finished) return;
       finished = true;
+      if (stopEdge) { stopEdge(); stopEdge = null; }
       if (hasDragged) lastPinDragAt = Date.now();
       pins.sort((a, b) => a.t - b.t);
       loopActiveMarkerIndex = null;
+      draggingPinIndex = -1;
+      if (lineEl) lineEl.classList.remove("is-dragging");
 
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseup", stop);
@@ -380,6 +438,7 @@ function startDragPin(index) {
       renderSegments();
       renderPinList();
       savePins();
+      QNBars.ensureRows(true);
     }
 
     if (isTouch) {
@@ -394,6 +453,7 @@ function startDragPin(index) {
 }
 
 function renderPinList() {
+  if (window.qnPinMemoEditing && document.querySelector(".pin-memo-input")) return; // メモ編集中は再描画しない(終了時にcommit/cancelが描画する)
   if (typeof closePinMemoPresetPopup === "function") closePinMemoPresetPopup();
   const list = document.getElementById("pinList");
   if (list) list.innerHTML = "";
@@ -401,6 +461,7 @@ function renderPinList() {
   pins.forEach((pinObj, i) => {
     const div = document.createElement("div");
     div.className = "pinItem";
+    div.dataset.pinIndex = String(i);
     if (!pinObj.enabled) {
       div.classList.add("disabled");
     }
@@ -411,17 +472,11 @@ function renderPinList() {
 
     const colorMark = document.createElement("button");
     colorMark.className = "pin-color-mark";
-    colorMark.title = "Set marker color";
+    colorMark.title = "Edit marker";
     colorMark.style.background = (pinObj.color && MARKER_COLOR_PALETTE[pinObj.color]) ? MARKER_COLOR_PALETTE[pinObj.color] : "#3a3a48";
-    colorMark.onclick = (e) => {
-      e.stopPropagation();
-      if (typeof isUnlocked === "function" && !isUnlocked()) {
-        swShowUnlockToast("無料版ではマーカーの色変更はできません。");
-        return;
-      }
-      openMarkerColorPicker(colorMark, pinObj, i);
-    };
-    // 【v2.16.8】.pinItemはgrid4列固定(先頭セル/ラベル/目/削除)。子要素は必ず4個。鍵は.pin-leading-cellにcolorMarkと一緒に入れる(別要素で5個になると列がズレる。GOTCHAS.md)
+    // 色丸のタップは編集(メモ+プリセット)と同じ表示を開く(下のeditActionを共有)
+    colorMark.onclick = (e) => { e.stopPropagation(); if (div._qnEdit) div._qnEdit(); };
+    // 【v2.16.8】.pinItemはgrid4列固定(先頭セル/ラベル/操作ボタン群/選択)。子要素は必ず4個。鍵は.pin-leading-cellにcolorMarkと一緒に入れる(別要素で5個になると列がズレる。GOTCHAS.md)
     const leadingCell = document.createElement("div");
     leadingCell.className = "pin-leading-cell";
     if (isLockedMarker) {
@@ -458,56 +513,47 @@ function renderPinList() {
       setTimeout(() => { isSeeking = false; }, 150);
     };
     labelRow.appendChild(infoSpan);
+    div.appendChild(labelRow);
 
-    const editBtn = document.createElement("button");
-    editBtn.className = "pin-edit-btn";
-    editBtn.title = "Edit memo";
-    editBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
-    editBtn.onclick = (e) => {
-      e.stopPropagation();
+    // 操作ボタン群(.pin-act-cell): 編集(EDITモードのみ)/SKIP/HIDE。見た目はスワイプトレイと共通(QN_ROW_ACT)。選択(〇)は後ろの.pin-del-zone
+    const markersHasSelection = typeof window.markersHasSelectedItems === "function" && window.markersHasSelectedItems();
+    const actCell = document.createElement("div");
+    actCell.className = "pin-act-cell";
+    function makeActBtn(kind, on, cls, title) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pin-act-btn is-" + kind + (on ? " is-on" : "") + " " + cls;
+      b.title = title;
+      b.innerHTML = window.QN_ROW_ACT.html(kind, on);
+      b.disabled = markersHasSelection;
+      return b;
+    }
+
+    const editAction = () => {
       if (typeof isUnlocked === "function" && !isUnlocked()) {
         swShowUnlockToast("無料版ではマーカーメモを利用できません。");
         return;
       }
       startPinMemoEdit(div, infoSpan, pinObj, i);
     };
-    labelRow.appendChild(editBtn);
+    div._qnEdit = editAction;
+    const editBtn = makeActBtn("edit", false, "pin-edit-btn", "Edit memo");
+    editBtn.onclick = (e) => { e.stopPropagation(); editAction(); };
 
-    // A/Bボタン(ブロック型)。この位置をA点/B点に設定(同位置をもう一度で解除)。labelRow内に置く(.pinItemは4列固定)
-    const abCell = document.createElement("div");
-    abCell.className = "pin-ab-cell";
-    ["A", "B"].forEach(kind => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "qn-ab-block";
-      b.dataset.abKind = kind;
-      b.dataset.t = String(pinObj.t);
-      b.textContent = kind;
-      b.title = kind === "A" ? "このマーカーの位置をA点(ループ開始)に" : "このマーカーの位置をB点(ループ終了)に";
-      b.onclick = (e) => {
-        e.stopPropagation();
-        if (isLockedMarker) {
-          swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
-          return;
-        }
-        hapticTap();
-        setABAt(kind, pinObj.t);
-      };
-      abCell.appendChild(b);
-    });
-    labelRow.appendChild(abCell);
-    updatePinABButtons(div);
+    // Skip: この区間(次のマーカーまで)を再生中に飛ばす。トグル
+    const skipBtn = makeActBtn("mskip", !!pinObj.skip, "pin-skip-btn" + (pinObj.skip ? " is-on" : ""), pinObj.skip ? "Skip ON: 次のマーカーまで飛ばして再生" : "Skip OFF: 押すとこの区間(次のマーカーまで)を飛ばして再生");
+    skipBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (isLockedMarker) {
+        swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
+        return;
+      }
+      hapticTap();
+      toggleSkipPin(pinObj);
+    };
+    actCell.appendChild(skipBtn);
 
-    div.appendChild(labelRow);
-
-    const toggleBtn = document.createElement("button");
-    toggleBtn.className = "toggle-btn";
-    toggleBtn.title = pinObj.enabled ? "Marker enabled (click to disable)" : "Marker disabled (click to enable)";
-    toggleBtn.innerHTML = pinObj.enabled
-      ? '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>'
-      : '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
-    const markersHasSelection = typeof window.markersHasSelectedItems === "function" && window.markersHasSelectedItems();
-    toggleBtn.disabled = markersHasSelection;
+    const toggleBtn = makeActBtn("hide", !pinObj.enabled, "toggle-btn", pinObj.enabled ? "Marker enabled (click to disable)" : "Marker disabled (click to enable)");
     toggleBtn.onclick = (e) => {
       e.stopPropagation();
       if (typeof window.markersHasSelectedItems === "function" && window.markersHasSelectedItems()) return;
@@ -518,7 +564,9 @@ function renderPinList() {
       renderPinList();
       savePins();
     };
-    div.appendChild(toggleBtn);
+    actCell.appendChild(toggleBtn);
+    actCell.appendChild(editBtn); // 【v3.52.0】並びはSKIP/HIDE/編集(編集はEDITモードのみ表示)。その右が削除選択タイル(.pin-del-zone)
+    div.appendChild(actCell);
 
     const delBtn = document.createElement("button");
     delBtn.textContent = "✕";
@@ -548,6 +596,11 @@ function renderPinList() {
     const delZone = document.createElement("div");
     delZone.className = "pin-del-zone";
     delZone.appendChild(delBtn);
+    // 【v3.52.0】EDITモードの削除選択タイル(ゴミ箱+DELETE)。選択状態は直前の.del-btn.pcv2-selectedに連動(CSS兄弟結合子)。通常時は非表示
+    const delTile = document.createElement("span");
+    delTile.className = "pin-del-tile";
+    delTile.innerHTML = window.QN_ROW_ACT.html("del");
+    delZone.appendChild(delTile);
     div.appendChild(delZone);
 
     if (list) {
@@ -582,14 +635,16 @@ function ensurePinPopup() {
   pinPopEl.hidden = true;
   pinPopEl.setAttribute("role", "menu");
   pinPopEl.innerHTML =
-    '<div class="qn-yt-seekpop-time" data-pop="time">00:00.0</div>' +
+    '<div class="qn-pp-timerow"><button type="button" class="qn-pp-nudge" data-pop="NL" title="0.1s earlier" aria-label="0.1s earlier">&#9666;</button><div class="qn-yt-seekpop-time" data-pop="time">00:00.0</div><button type="button" class="qn-pp-nudge" data-pop="NR" title="0.1s later" aria-label="0.1s later">&#9656;</button></div>' +
     '<div class="qn-yt-seekpop-row">' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="A" title="この位置をA点(ループ開始)に（もう一度押すと解除）"><b>A</b><span>Start</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="B" title="この位置をB点(ループ終了)に（もう一度押すと解除）"><b>B</b><span>End</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="M" title="この位置にマーカーを追加"><b>＋</b><span>Marker</span></button>' +
+      '<button type="button" class="qn-yt-seekpop-btn" data-pop="L" title="この位置の区間(マーカーからマーカーまで)をループ"><b><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg></b><span>Loop</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="X" title="このA/B点を削除" hidden><b>－</b><span>Point</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn qn-yt-seekpop-del" data-pop="D" title="このマーカーを削除" hidden><b>－</b><span>Marker</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="C" title="マーカーの色を変える" hidden><b><i class="qn-yt-seekpop-dot"></i></b><span>Color</span></button>' +
+      '<button type="button" class="qn-yt-seekpop-btn" data-pop="K" title="このマーカーから次のマーカーまでを再生中に飛ばす" hidden><b><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></b><span>Skip</span></button>' +
       '<button type="button" class="qn-yt-seekpop-btn" data-pop="H" title="マーカーのON/OFF" hidden><b></b><span>Hide</span></button>' +
     '</div>';
   document.body.appendChild(pinPopEl);
@@ -602,9 +657,13 @@ function ensurePinPopup() {
     if (k === "X") pinPopClearPoint();
     else if (k === "A" || k === "B") pinPopAB(k);
     else if (k === "M") pinPopAdd();
+    else if (k === "L") pinPopLoop();
     else if (k === "D") pinPopDelete();
     else if (k === "C") pinPopColor();
     else if (k === "H") pinPopToggle();
+    else if (k === "K") pinPopSkip();
+    else if (k === "NL") pinPopNudge(-0.1);
+    else if (k === "NR") pinPopNudge(0.1);
   });
   document.addEventListener("pointerdown", e => {
     if (pinPopEl.hidden) return;
@@ -614,6 +673,24 @@ function ensurePinPopup() {
   window.addEventListener("keydown", e => { if (e.key === "Escape") hidePinPopup(); }, true);
   window.addEventListener("resize", hidePinPopup);
   return pinPopEl;
+}
+
+// 微調整: マーカー/A点/B点の位置を±0.1sずらす
+function pinPopNudge(d) {
+  if (!audio.duration) return;
+  const nt = Math.round(Math.max(0, Math.min(audio.duration, pinPopTime + d)) * 10) / 10;
+  if (pinPopPin) {
+    pinPopPin.t = nt;
+    if (Array.isArray(pins)) pins.sort((a, b) => a.t - b.t);
+    refreshAfterPinChange();
+  } else if (pinPopAbKind) {
+    if (pinPopAbKind === "A") abA = nt; else abB = nt;
+    if (typeof afterABChange === "function") afterABChange();
+  } else return;
+  pinPopTime = nt;
+  pinPopEl.querySelector('[data-pop="time"]').textContent = formatTime(nt);
+  if (typeof hapticTap === "function") hapticTap();
+  resetPinPopTimer();
 }
 
 function resetPinPopTimer() {
@@ -645,11 +722,16 @@ function showPinPopup(t, barEl, clientX, pinObj, abKind) {
   pinPopTime = Math.max(0, Math.min(audio.duration, t));
   armPinPopDel(false);
   pop.querySelector('[data-pop="time"]').textContent = formatTime(pinPopTime);
+  pop.querySelector(".qn-pp-timerow").classList.toggle("is-static", !pinObj && !abKind);
   pop.querySelector('[data-pop="X"]').hidden = !abKind;
   pop.querySelector('[data-pop="A"]').hidden = !!abKind;
   pop.querySelector('[data-pop="B"]').hidden = !!abKind;
   pop.querySelector('[data-pop="M"]').hidden = !!pinObj || !!abKind;
-  ["D", "C", "H"].forEach(k => { pop.querySelector(`[data-pop="${k}"]`).hidden = !pinObj; });
+  pop.querySelector('[data-pop="L"]').hidden = !!abKind;
+  const loopOn = loopEnabled && loopMode === "sec";
+  pop.querySelector('[data-pop="L"]').classList.toggle("is-set", loopOn);
+  pop.querySelector('[data-pop="L"] span').textContent = loopOn ? "Loop ON" : "Loop";
+  ["D", "C", "H", "K"].forEach(k => { pop.querySelector(`[data-pop="${k}"]`).hidden = !pinObj; });
   pop.querySelector('[data-pop="A"]').classList.toggle("is-set", abA !== null && Math.abs(abA - pinPopTime) <= AB_SNAP_SEC);
   pop.querySelector('[data-pop="B"]').classList.toggle("is-set", abB !== null && Math.abs(abB - pinPopTime) <= AB_SNAP_SEC);
   if (pinObj) {
@@ -658,6 +740,9 @@ function showPinPopup(t, barEl, clientX, pinObj, abKind) {
     const hb = pop.querySelector('[data-pop="H"]');
     hb.querySelector("b").innerHTML = pinObj.enabled ? PINPOP_EYE_ON : PINPOP_EYE_OFF;
     hb.querySelector("span").textContent = pinObj.enabled ? "Hide" : "Show";
+    const kb = pop.querySelector('[data-pop="K"]');
+    kb.classList.toggle("is-set", !!pinObj.skip);
+    kb.querySelector("span").textContent = pinObj.skip ? "Skip ON" : "Skip";
   }
   pop.hidden = false;
   const rect = barEl.getBoundingClientRect();
@@ -670,6 +755,35 @@ function showPinPopup(t, barEl, clientX, pinObj, abKind) {
   pop.style.left = left + "px";
   pop.style.top = top + "px";
   resetPinPopTimer();
+}
+
+// 【v3.45.0】ポップアップのLoop: その位置を含む区間をSectionループにして再生(1タップでループ開始)
+function pinPopLoop() {
+  const t = pinPopTime;
+  hidePinPopup();
+  // Sectionループ中に押したらOFF(位置はそのまま再生を続ける)
+  if (loopEnabled && loopMode === "sec") {
+    hapticTap();
+    if (typeof setLoopModeState === "function") setLoopModeState("off", true);
+    return;
+  }
+  hapticSuccess();
+  if (typeof setLoopModeState === "function") setLoopModeState("sec", true);
+  beginSeek();
+  audio.currentTime = t;
+  prevTime = t;
+  audio.play();
+  updatePlayButtonState();
+  renderSegments(getActiveSegment(t));
+  setTimeout(() => { isSeeking = false; }, 150);
+}
+
+function pinPopSkip() {
+  const pin = pinPopPin;
+  hidePinPopup();
+  if (!pin) return;
+  hapticTap();
+  toggleSkipPin(pin);
 }
 
 function pinPopAB(kind) {
@@ -728,12 +842,6 @@ function fmtABTime(t) {
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
-function clearAB() {
-  hapticTap();
-  abA = null; abB = null;
-  afterABChange();
-}
-
 function updateABButtons() {
   [["A", abA], ["B", abB]].forEach(([kind, v]) => {
     const btn = document.getElementById(kind === "A" ? "setABtn" : "setBBtn");
@@ -744,74 +852,78 @@ function updateABButtons() {
   });
 }
 
-function timeFromBarsPoint(clientX, clientY) {
-  const dur = audio.duration;
-  const { s1, s2, s3, s4, s5 } = getSegments(dur);
-  const bounds = [0, s1, s2, s3, s4, s5, dur];
-  const bars = [1, 2, 3, 4, 5, 6].map(n => document.getElementById("bar" + n));
-  const rects = bars.map(b => b.getBoundingClientRect());
-  let idx = 0;
-  if (clientY <= rects[0].bottom) idx = 0;
-  else if (clientY >= rects[rects.length - 1].top) idx = rects.length - 1;
-  else {
-    for (let i = 0; i < rects.length - 1; i++) {
-      const mid = (rects[i].bottom + rects[i + 1].top) / 2;
-      if (clientY <= mid) { idx = i; break; }
-      idx = i + 1;
-    }
-  }
-  const ratio = Math.max(0, Math.min(1, (clientX - rects[idx].left) / rects[idx].width));
-  return bounds[idx] + ratio * (bounds[idx + 1] - bounds[idx]);
+function createABPoint(kind, v) {
+  const el = document.createElement("div");
+  el.className = "vbar-ab-pt is-" + kind.toLowerCase();
+  el.title = kind + " " + fmtABTime(v);
+  const flag = document.createElement("span");
+  flag.className = "vbar-ab-flag";
+  flag.textContent = kind;
+  el.appendChild(flag);
+  el.style.left = QNBars.pctInRow(v) + "%";
+  attachABDrag(el, kind);
+  return el;
 }
 
 function renderABPoints() {
-  document.querySelectorAll(".vbar .vbar-ab-pt").forEach(e => e.remove());
+  QNBars.eachRow(rowEl => {
+    rowEl.querySelectorAll(".vbar-ab-pt").forEach(e => e.remove());
+  });
   const dur = audio.duration;
   if (!dur) return;
   [["A", abA], ["B", abB]].forEach(([kind, v]) => {
     if (v === null) return;
-    const el = document.createElement("div");
-    el.className = "vbar-ab-pt is-" + kind.toLowerCase();
-    el.title = kind + " " + fmtABTime(v);
-    const flag = document.createElement("span");
-    flag.className = "vbar-ab-flag";
-    flag.textContent = kind;
-    el.appendChild(flag);
-    el.style.left = timeToPercentInRow(v, dur) + "%";
-    attachABDrag(el, kind);
-    const bar = document.getElementById("bar" + getPinRow(v, dur));
-    if (bar) bar.appendChild(el);
+    const rowEl = QNBars.rowEl(QNBars.rowOf(v));
+    if (rowEl) rowEl.appendChild(createABPoint(kind, v));
   });
 }
 
 function attachABDrag(el, kind) {
   let moved = false, startX = 0, startY = 0;
+  let stopEdge = null;
+  const lastPt = { x: 0, y: 0 };
+
+  function applyMove(clientX, clientY) {
+    const raw = QNBars.timeFromPoint(clientX, clientY);
+    if (raw === null) return;
+    const t = Math.round(raw * 10) / 10;
+    if (kind === "A") abA = t; else abB = t;
+    const bar = QNBars.rowEl(QNBars.rowOf(t));
+    if (bar && el.parentNode !== bar) bar.appendChild(el);
+    el.style.left = QNBars.pctInRow(t) + "%";
+    el.title = kind + " " + fmtABTime(t);
+    renderSegments();
+  }
+
+  function endDrag() {
+    if (stopEdge) { stopEdge(); stopEdge = null; }
+    draggingABKind = null;
+    el.classList.remove("dragging");
+  }
+
   el.addEventListener("pointerdown", e => {
     if (!audio.duration) return;
     e.stopPropagation();
     e.preventDefault();
     el.setPointerCapture(e.pointerId);
     moved = false; startX = e.clientX; startY = e.clientY;
+    lastPt.x = e.clientX; lastPt.y = e.clientY;
     el.classList.add("dragging");
+    draggingABKind = kind;
     beginSeek();
   });
   el.addEventListener("pointermove", e => {
     if (!el.hasPointerCapture(e.pointerId)) return;
     if (Math.abs(e.clientX - startX) > 4 || Math.abs(e.clientY - startY) > 4) moved = true;
     if (!moved) return;
-    const t = Math.round(timeFromBarsPoint(e.clientX, e.clientY) * 10) / 10;
-    if (kind === "A") abA = t; else abB = t;
-    const dur = audio.duration;
-    const bar = document.getElementById("bar" + getPinRow(t, dur));
-    if (bar && el.parentNode !== bar) bar.appendChild(el);
-    el.style.left = timeToPercentInRow(t, dur) + "%";
-    el.title = kind + " " + fmtABTime(t);
-    renderSegments();
+    lastPt.x = e.clientX; lastPt.y = e.clientY;
+    applyMove(e.clientX, e.clientY);
+    if (!stopEdge) stopEdge = QNBars.startEdgeScroll(() => lastPt, () => applyMove(lastPt.x, lastPt.y));
   });
   el.addEventListener("pointerup", e => {
     if (!el.hasPointerCapture(e.pointerId)) return;
     el.releasePointerCapture(e.pointerId);
-    el.classList.remove("dragging");
+    endDrag();
     const v = kind === "A" ? abA : abB;
     if (moved) {
       lastPinTapAt = Date.now();
@@ -827,6 +939,13 @@ function attachABDrag(el, kind) {
       showPinPopup(v, el.parentNode, e.clientX, null, kind);
     }
     setTimeout(() => { isSeeking = false; }, 150);
+    QNBars.ensureRows(true);
+  });
+  el.addEventListener("pointercancel", () => {
+    endDrag();
+    afterABChange();
+    setTimeout(() => { isSeeking = false; }, 150);
+    QNBars.ensureRows(true);
   });
 }
 
@@ -947,16 +1066,6 @@ function openColorChoicePopup(anchorBtn, currentColorName, onPick) {
     document.addEventListener("click", closeMarkerColorPicker);
   }, 0);
   popup.onclick = e => e.stopPropagation();
-}
-
-function openMarkerColorPicker(anchorBtn, pinObj, index) {
-  openColorChoicePopup(anchorBtn, pinObj.color || null, (colorName) => {
-    pinObj.color = colorName;
-    savePins();
-    renderPins();
-    renderSegments();
-    renderPinList();
-  });
 }
 
 // Colorポップアップ用の編集パネル(ラベル+プリセット+色。PLAYER/YouTube共通)。opts={label,color,placeholder}。変更毎にonChange({label,color})(パネルは開いたまま)

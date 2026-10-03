@@ -8,16 +8,9 @@
   const PANEL_COLLAPSED_KEY = "qn_panel_collapsed";
   let panelCollapsed = false;
   try { panelCollapsed = localStorage.getItem(PANEL_COLLAPSED_KEY) === "1"; } catch (e) {}
-  const bottomBarEffectButtons = {};
 
-  // アイコンバー項目。panelType: tab=既存.mobile-tab-panel表示 / eq=EQモーダル中身 / export=Exportモーダル中身 / action=即実行(現在該当なし、ロジックのみ残す) / close=開いていれば閉じる(SP幅専用)。並び(v3.1.0〜): Library→Markers→Text→Control→Backup→Import(SeekbarはSP専用先頭、Exportは非表示)
+  // アイコンバー項目。panelType: tab=既存.mobile-tab-panel表示 / eq=EQモーダル中身 / export=Exportモーダル中身 / action=即実行(現在該当なし、ロジックのみ残す) / close=開いていれば閉じる(現在該当なし)。並び: Library→Markers→Text→Control→Backup→Import(Exportは非表示。v3.48.0でSP専用のSeekbarタブは撤去)
   const ICON_ITEMS = [
-    {
-      id: "seekbar",
-      label: "Seekbar",
-      panelType: "close",
-      icon: '<path d="M4 5h2v14H4zm4 3h2v8H8zm4-6h2v20h-2zm4 4h2v12h-2zm4 3h2v6h-2z"/>'
-    },
     {
       id: "playlist",
       label: "Library",
@@ -57,6 +50,7 @@
       id: "backup",
       label: "Backup",
       bottom: true,
+      hidden: true,
       panelType: "backup",
       icon: '<path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/>'
     },
@@ -64,6 +58,7 @@
       id: "import",
       label: "Import",
       bottom: true,
+      hidden: true,
       panelType: "import",
       icon: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>'
     },
@@ -72,8 +67,17 @@
       id: "transfer",
       label: "Transfer",
       bottom: true,
+      hidden: true,
       panelType: "transfer",
       icon: '<path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>'
+    },
+    {
+      // 【v3.41.0】設定パネル。波形ヘッダーの歯車とアイコンバー最下段(Colorの下)の両方から開く。Backup/Import/Color/Keyboardはここの下層ビュー(戻るボタンで戻る)。アイコンバーのボタンはbottomGroup構築の末尾で明示的に作る
+      id: "settings",
+      label: "Settings",
+      hidden: true,
+      panelType: "settings",
+      icon: '<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>'
     }
   ];
 
@@ -147,6 +151,16 @@
       btn.addEventListener("click", () => openPanelOverlay(entry.id));
       bottomGroup.appendChild(btn);
     });
+    // 【v3.41.0】Settings(Colorの下=最下段)。PLAYER表示中はKeyboard/Colorボタンを隠す(CSS)ので実質ここだけが下段に残る。アプリ表示中はColorだけ残る(qn-apps.jsが使用)ので、Keyboard/ColorのDOMは消さない
+    const settingsItem = ICON_ITEMS.find(i => i.id === "settings");
+    const settingsIconBtn = el(
+      '<button type="button" class="pcv2-icon-item" data-panel-id="settings" title="Settings">' +
+        '<svg viewBox="0 0 24 24">' + settingsItem.icon + '</svg>' +
+        '<span>Settings</span>' +
+      '</button>'
+    );
+    settingsIconBtn.addEventListener("click", () => { if (typeof hapticTap === "function") hapticTap(); openSettingsPanel(); });
+    bottomGroup.appendChild(settingsIconBtn);
     iconBar.appendChild(spacer);
     iconBar.appendChild(bottomGroup);
 
@@ -171,7 +185,6 @@
       const allRepeatToggleBtn = topControls.querySelector("#allRepeatToggleBtn");
       const markerNavBtn = topControls.querySelector("#markerNavBtn");
       const loopToggleBtn = topControls.querySelector("#loopToggleBtn");
-      const loopPreRollControl = topControls.querySelector("#loopPreRollControl");
 
       // 【v3.16.0】Startボタン撤去。並び: Track(前)/-10s/Play/+10s/Track(次)/Repeat。Trackアイコンはindex.html元のSVG。頭出しはEnterキー(seekToTrackStart)
       const skipSvg = {
@@ -185,11 +198,11 @@
             '<span class="top-controls-btn-label">' + label + '</span>' +
           '</button>'
         );
-        btn.addEventListener("click", () => pcv2SkipBy(sec));
+        btn.addEventListener("click", () => pcv2SkipBy(sec * skipSec));
         return btn;
       }
-      const skipBackBtn = makeSkipBtn("pcV2SkipBackBtn", "back", "-10s", "10秒戻る", -10);
-      const skipFwdBtn = makeSkipBtn("pcV2SkipFwdBtn", "fwd", "+10s", "10秒進む", 10);
+      const skipBackBtn = makeSkipBtn("pcV2SkipBackBtn", "back", "-10s", "10秒戻る", -1);
+      const skipFwdBtn = makeSkipBtn("pcV2SkipFwdBtn", "fwd", "+10s", "10秒進む", 1);
       const playToggleEl = playbackTripleBtn ? playbackTripleBtn.querySelector("#playToggle") : null;
       if (playbackTripleBtn && playToggleEl) {
         playbackTripleBtn.insertBefore(skipBackBtn, playToggleEl.previousElementSibling || playToggleEl);
@@ -213,14 +226,8 @@
       if (markerNavBtn && loopToggleBtn) {
         markerNavBtn.appendChild(loopToggleBtn);
       }
-      // loopPreRollControlもmarkerNavBtnの子にする(理由は上と同じ)
-      if (markerNavBtn && loopPreRollControl) {
-        markerNavBtn.appendChild(loopPreRollControl);
-      }
-      // v3.10.1〜: Clear AB(プリロールの右。A/B両方クリア)
-      const clearABBtn = el('<button type="button" id="clearABBtn" class="loopbtn ab-set-btn" title="A/B点をクリア"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg><span class="top-controls-btn-label">Clear AB</span></button>');
-      clearABBtn.addEventListener("click", () => { if (typeof clearAB === "function") clearAB(); });
-      if (markerNavBtn) markerNavBtn.appendChild(clearABBtn);
+      // 【v3.37.0】loopPreRollControlは下部バーに置かない(設定パネルへ移設。要素は#topControlsに残し、設定パネルを作る時に移す)
+      // 【v3.38.0】Clear ABボタンは撤去(A/Bのクリアはマーカー操作側)
 
       function appendShortcutToTitle(btn, actionLabel) {
         if (!btn || typeof window.QN_SHORTCUTS === "undefined") return;
@@ -229,7 +236,7 @@
       }
       appendShortcutToTitle(document.getElementById("playToggle"), "Play / Pause");
       appendShortcutToTitle(document.getElementById("addPinBtn"), "Add Marker");
-      appendShortcutToTitle(loopToggleBtn, "Loop ON/OFF");
+      appendShortcutToTitle(loopToggleBtn, "Loop on/off");
       appendShortcutToTitle(allRepeatToggleBtn, "Repeat");
       appendShortcutToTitle(document.getElementById("nextMarkerBtn"), "Next Marker");
       appendShortcutToTitle(document.getElementById("prevMarkerBtn"), "Prev Marker");
@@ -254,87 +261,69 @@
       topControls.appendChild(divider);
       topControls.appendChild(group2);
 
+      // 【v3.59.0】PC幅のみ: コントロール右に Volume / Speed / Key(スライダー+±)。操作は既存の applyVolumeChange / handleSpeedRangeInput / setKeySemitones に委譲、表示はpcv2WaveLoopから同期。SP幅はCSSで非表示
+      const mixer = el('<div class="pcv2-ctrl-group pcv2-mixer" id="pcV2BarMixer">' +
+        '<div class="pcv2-mix-item" data-mix="vol"><div class="pcv2-mix-head"><span class="pcv2-mix-label">Volume</span><span class="pcv2-mix-val" data-mixval="vol">80%</span></div><div class="pcv2-mix-volrow"><button type="button" class="pcv2-mix-mute" id="pcV2BarMute" aria-label="Mute" title="Mute"><svg viewBox="0 0 24 24" class="pcv2-mix-ico-on"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg><svg viewBox="0 0 24 24" class="pcv2-mix-ico-off"><path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg></button><input type="range" class="pcv2-mix-range" id="pcV2BarVol" min="0" max="1" step="0.01" aria-label="Volume"></div></div>' +
+        '<div class="pcv2-mix-item" data-mix="speed"><div class="pcv2-mix-head"><span class="pcv2-mix-label" title="Click to reset to 1.00x">Speed</span><span class="pcv2-mix-val" data-mixval="speed">1.00x</span></div><input type="range" class="pcv2-mix-range" id="pcV2BarSpeed" min="0.5" max="1.5" step="0.01" aria-label="Speed"></div>' +
+        '<div class="pcv2-mix-item pcv2-mix-key" data-mix="key"><div class="pcv2-mix-head"><span class="pcv2-mix-label" title="Click to reset to 0">Key</span></div><div class="pcv2-mix-keyrow"><button type="button" class="pcv2-mix-btn" id="pcV2BarKeyDown" aria-label="Key down" title="Key −1">−</button><span class="pcv2-mix-val pcv2-mix-keyval" data-mixval="key" title="Click to reset to 0">0</span><button type="button" class="pcv2-mix-btn" id="pcV2BarKeyUp" aria-label="Key up" title="Key +1">＋</button></div></div>' +
+        '</div>');
+      topControls.appendChild(el('<div class="pcv2-ctrl-divider pcv2-mixer-divider"></div>'));
+      topControls.appendChild(mixer);
+      const barVol = mixer.querySelector("#pcV2BarVol"), barSpeed = mixer.querySelector("#pcV2BarSpeed");
+      const barMute = mixer.querySelector("#pcV2BarMute");
+      barMute.addEventListener("click", () => { audio.muted = !audio.muted; if (typeof hapticTap === "function") hapticTap(); window.pcv2SyncBarMixer(true); });
+      barVol.addEventListener("input", () => {
+        if (audio.muted) { audio.muted = false; window.pcv2SyncBarMixer(true); }
+        const v = parseFloat(barVol.value);
+        [document.getElementById("volume"), document.getElementById("controlVolume")].forEach(i => { if (i) i.value = v; });
+        applyVolumeChange(v);
+      });
+      barSpeed.addEventListener("input", () => {
+        const sp = document.getElementById("controlSpeedRange");
+        if (!sp) return;
+        sp.value = barSpeed.value;
+        handleSpeedRangeInput({ target: sp });
+        barSpeed.value = sp.value;
+      });
+      mixer.querySelector('[data-mix="speed"] .pcv2-mix-label').addEventListener("click", () => setSpeed(1));
+      mixer.querySelector('[data-mixval="speed"]').addEventListener("click", () => setSpeed(1));
+      mixer.querySelector("#pcV2BarKeyDown").addEventListener("click", () => setKeySemitones(currentKeySemitones - 1));
+      mixer.querySelector("#pcV2BarKeyUp").addEventListener("click", () => setKeySemitones(currentKeySemitones + 1));
+      mixer.querySelector('[data-mix="key"] .pcv2-mix-label').addEventListener("click", () => setKeySemitones(0));
+      mixer.querySelector('[data-mixval="key"]').addEventListener("click", () => setKeySemitones(0));
+      let mixLast = "";
+      window.pcv2SyncBarMixer = function (force) {
+        const sig = audio.volume + "|" + currentSpeed + "|" + currentKeySemitones + "|" + audio.muted;
+        if (sig === mixLast && !force) return;
+        mixLast = sig;
+        if (document.activeElement !== barVol) barVol.value = audio.volume;
+        if (document.activeElement !== barSpeed) barSpeed.value = currentSpeed;
+        mixer.querySelector('[data-mixval="vol"]').textContent = audio.muted ? "Mute" : Math.round(audio.volume * 100) + "%";
+        barMute.classList.toggle("is-muted", audio.muted);
+        barMute.title = audio.muted ? "Unmute" : "Mute";
+        mixer.querySelector('[data-mixval="speed"]').textContent = currentSpeed.toFixed(2) + "x";
+        mixer.querySelector('[data-mixval="key"]').textContent = (currentKeySemitones > 0 ? "+" : "") + currentKeySemitones;
+      };
+      window.pcv2SyncBarMixer();
+
+      // 【v3.55.0】SP: 再生系/マーカー系の2ページ。左右端の矢印でスライド、スクロール位置でis-page-1を切替(PC幅はCSSで矢印非表示・通常配置)
+      const chevR = '<svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>';
+      const chevL = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
+      const pageNext = el('<button type="button" class="pcv2-bar-page is-next" title="Marker controls" aria-label="Marker controls">' + chevR + '</button>');
+      const pagePrev = el('<button type="button" class="pcv2-bar-page is-prev" title="Playback controls" aria-label="Playback controls">' + chevL + '</button>');
+      topControls.appendChild(pagePrev);
+      topControls.appendChild(pageNext);
+      bottomBar.classList.add("is-page-1");
+      pageNext.addEventListener("click", () => { if (typeof hapticTap === "function") hapticTap(); bottomBar.scrollTo({ left: bottomBar.clientWidth, behavior: "smooth" }); });
+      pagePrev.addEventListener("click", () => { if (typeof hapticTap === "function") hapticTap(); bottomBar.scrollTo({ left: 0, behavior: "smooth" }); });
+      bottomBar.addEventListener("scroll", () => { bottomBar.classList.toggle("is-page-1", bottomBar.scrollLeft < bottomBar.clientWidth / 2); }, { passive: true });
+
       bottomBar.appendChild(topControls);
     }
 
     const timeRow = el('<div id="pcV2TimeRow"></div>');
 
-    const rightGroup = el('<div class="pcv2-ctrl-group" id="pcV2BottomBarGroupRight"></div>');
-    const volumeBtn = el(
-      '<button type="button" class="pcv2-ctrl-btn" id="pcV2VolumeBtn" style="position:relative;" title="Volume">' +
-        '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>' +
-        '<span>Volume</span>' +
-        '<div class="pcv2-volume-popup" id="pcV2VolumePopup">' +
-          '<div class="pcv2-volume-slider-track"><div class="pcv2-volume-slider-fill" id="pcV2VolumeFill"></div><div class="pcv2-volume-slider-thumb" id="pcV2VolumeThumb"></div></div>' +
-          '<div class="pcv2-volume-popup-icon"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg></div>' +
-        '</div>' +
-      '</button>'
-    );
-    rightGroup.appendChild(volumeBtn);
-
-    [
-      { id: "speed", label: "Speed", icon: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 12L15.5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="1.4"/>' },
-      { id: "key", label: "Key", icon: '<path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15z"/>' },
-      { id: "eq", label: "EQ", icon: '<path d="M3 6h11M17 6h4M3 12h5M9 12h12M3 18h14M20 18h1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="14" cy="6" r="2.2"/><circle cx="7" cy="12" r="2.2"/><circle cx="17" cy="18" r="2.2"/>' }
-    ].forEach(entry => {
-      const btn = el(
-        '<button type="button" class="pcv2-ctrl-btn" id="pcV2Bottom' + entry.id.charAt(0).toUpperCase() + entry.id.slice(1) + 'Toggle" title="' + entry.label + ' ON/OFF (click to toggle, long-press or right-click to open Control panel)">' +
-          '<svg viewBox="0 0 24 24">' + entry.icon + '</svg>' +
-          '<span>' + entry.label + '</span>' +
-        '</button>'
-      );
-      btn.addEventListener("click", () => {
-        toggleBottomBarEffect(entry.id, btn);
-      });
-      btn.addEventListener("contextmenu", (e) => {
-        e.preventDefault();
-        switchPanel("control");
-      });
-      if (entry.id === "speed" || entry.id === "key") {
-        const cap = entry.id === "speed" ? "Speed" : "Key";
-        const mk = (sign, dir) => {
-          const b = el('<button type="button" class="pcv2-ctrl-btn pcv2-step-btn" title="' + cap + (dir < 0 ? " −" : " ＋") + '">' + sign + '</button>');
-          b.addEventListener("click", () => {
-            const t = document.getElementById("control" + cap + (dir < 0 ? "DownBtn" : "UpBtn"));
-            if (t) t.click();
-            updateBottomStepperValues();
-          });
-          return b;
-        };
-        const wrap = el('<div class="pcv2-stepper"></div>');
-        wrap.appendChild(mk("−", -1));
-        const lab = btn.querySelector("span");
-        if (lab) lab.innerHTML = '<b>' + (entry.id === "speed" ? "1.00x" : "0") + '</b> ' + cap;
-        wrap.appendChild(btn);
-        wrap.appendChild(mk("＋", 1));
-        rightGroup.appendChild(wrap);
-        btn.dataset.stepKind = entry.id;
-      } else {
-        rightGroup.appendChild(btn);
-      }
-      bottomBarEffectButtons[entry.id] = btn;
-      syncBottomBarEffectButton(entry.id, btn);
-    });
-
-    function updateBottomStepperValues() {
-      const sp = bottomBarEffectButtons.speed, ky = bottomBarEffectButtons.key;
-      if (sp && typeof currentSpeed === "number") {
-        const l = sp.querySelector("b"); const v = currentSpeed.toFixed(2) + "x";
-        if (l && l.textContent !== v) l.textContent = v;
-      }
-      if (ky && typeof currentKeySemitones === "number") {
-        const l = ky.querySelector("b"); const v = (currentKeySemitones > 0 ? "+" : "") + currentKeySemitones;
-        if (l && l.textContent !== v) l.textContent = v;
-      }
-    }
-    updateBottomStepperValues();
-    setInterval(updateBottomStepperValues, 250);
-
-    setupControlPanelEffectSync();
-
-    bottomBar.appendChild(el('<div class="pcv2-ctrl-spacer"></div>'));
-    bottomBar.appendChild(el('<div class="pcv2-ctrl-divider pcv2-ctrl-divider-sp"></div>'));
-    bottomBar.appendChild(rightGroup);
+    // 【v3.48.0】下部バー右端のVolume/Speed/Key/EQボタンは撤去(操作はControlパネルのみ)
 
     layout.appendChild(timeRow);
 
@@ -344,8 +333,8 @@
 
     // SP幅専用: PLAY/MARKERアンカータブ(#pcV2BottomBar直上)。押すと下段バーの横スクロールをgroup1/group2先頭へジャンプ。PC幅はCSSで非表示
     const anchorTabs = el('<div id="pcV2BottomBarAnchorTabs"></div>');
-    const anchorTabPlay = el('<button type="button" class="pcv2-anchor-tab" data-anchor-target="pcV2BottomBarGroupPlay">PLAY</button>');
-    const anchorTabMarker = el('<button type="button" class="pcv2-anchor-tab" data-anchor-target="pcV2BottomBarGroupMarker">MARKER</button>');
+    const anchorTabPlay = el('<button type="button" class="pcv2-anchor-tab" data-anchor-target="pcV2BottomBarGroupPlay">Play</button>');
+    const anchorTabMarker = el('<button type="button" class="pcv2-anchor-tab" data-anchor-target="pcV2BottomBarGroupMarker">Marker</button>');
     function scrollBottomBarToAnchor(targetId) {
       const bar = document.getElementById("pcV2BottomBar");
       const target = document.getElementById(targetId);
@@ -370,6 +359,58 @@
 
     root.appendChild(bottomBar);
 
+    // 【v3.45.0】SP専用メインドック(#pcV2SpDock): 前マーカー/Loop/再生/+Marker/次マーカー + Moreトグル。押す先は既存ボタン(idとハンドラは不変。ドックは中継+状態ミラーだけ)。
+    // 既存の下段バー(#pcV2BottomBar)は「More」で開閉(既定は閉。qn_sp_more)。PC幅はCSSで非表示
+    const SP_MORE_KEY = "qn_sp_more";
+    function buildSpDock() {
+      const svgOf = (id) => { const b = document.getElementById(id); const sv = b && b.querySelector("svg"); return sv ? sv.outerHTML : ""; };
+      const mk = (cls, id, title, iconHtml, label) => el('<button type="button" class="pcv2-dock-btn ' + cls + '" id="' + id + '" title="' + title + '">' + iconHtml + '<span>' + label + '</span></button>');
+      const dock = el('<div id="pcV2SpDock"></div>');
+      const prevM = mk("", "pcV2DockPrevMarker", "Previous marker", svgOf("prevMarkerBtn"), "Prev");
+      const loop = mk("pcv2-dock-loop", "pcV2DockLoop", "Loop", svgOf("loopToggleBtn"), "Loop");
+      const play = mk("pcv2-dock-play", "pcV2DockPlay", "Play / Pause", '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>', "");
+      const add = mk("pcv2-dock-add", "pcV2DockAdd", "Add marker", '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>', "Marker");
+      const nextM = mk("", "pcV2DockNextMarker", "Next marker", svgOf("nextMarkerBtn"), "Next");
+      const more = mk("pcv2-dock-more", "pcV2DockMore", "More controls", '<svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>', "More");
+      [prevM, loop, play, add, nextM, more].forEach(b => dock.appendChild(b));
+      const click = (id) => { const b = document.getElementById(id); if (b) b.click(); };
+      prevM.addEventListener("click", () => click("prevMarkerBtn"));
+      nextM.addEventListener("click", () => click("nextMarkerBtn"));
+      loop.addEventListener("click", () => click("loopToggleBtn"));
+      add.addEventListener("click", () => { if (typeof hapticTap === "function") hapticTap(); if (typeof addCurrentPin === "function") addCurrentPin(); });
+      play.addEventListener("click", () => { if (typeof togglePlay === "function") togglePlay(); });
+      // 再生/停止アイコンのミラー
+      const syncPlay = () => {
+        const playing = !audio.paused;
+        play.classList.toggle("is-playing", playing);
+        play.innerHTML = '<svg viewBox="0 0 24 24"><path d="' + (playing ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z") + '"/></svg>';
+      };
+      ["play", "pause", "ended", "emptied", "loadedmetadata"].forEach(n => audio.addEventListener(n, syncPlay));
+      // Loopの状態(OFF / A-B / Section)のミラー: 本体ボタンのclass/ラベルを写す(rAFは使わずMutationObserver)
+      const loopSrc = document.getElementById("loopToggleBtn");
+      const loopLbl = loop.querySelector("span");
+      const syncLoop = () => {
+        if (!loopSrc) return;
+        const on = loopSrc.classList.contains("is-active");
+        loop.classList.toggle("is-active", on);
+        const l = loopSrc.querySelector(".top-controls-btn-label");
+        loopLbl.textContent = l ? l.textContent : "Loop";
+      };
+      if (loopSrc && typeof MutationObserver === "function") new MutationObserver(syncLoop).observe(loopSrc, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true, characterData: true });
+      syncLoop();
+      // More: 既存の下段バーの開閉
+      const setMore = (open) => {
+        root.classList.toggle("qn-sp-more-open", open);
+        more.classList.toggle("is-open", open);
+        try { localStorage.setItem(SP_MORE_KEY, open ? "1" : "0"); } catch (e) {}
+        if (document.getElementById("pcV2Layout")?.classList.contains("pcv2-panel-open")) updatePcv2BottomBarsHeightVar();
+      };
+      more.addEventListener("click", () => { if (typeof hapticTap === "function") hapticTap(); setMore(!root.classList.contains("qn-sp-more-open")); });
+      let saved = false; try { saved = localStorage.getItem(SP_MORE_KEY) === "1"; } catch (e) {}
+      setMore(saved);
+      return dock;
+    }
+
     // PLAYタブ位置を#playToggle真上へ動的に合わせる(実測。初期scrollLeft=0基準で1回。呼び出しはsyncBottomBarPosition()のDOM順確定後)
     function alignPlayAnchorTab() {
       const playBtn = document.getElementById("playToggle");
@@ -384,6 +425,7 @@
     }
 
     appContainer.parentNode.insertBefore(root, appContainer.nextSibling);
+    root.appendChild(buildSpDock()); // 既存ボタンがdocumentに接続された後に作る(アイコン複製・ミラー用)
 
     // 【SP幅】SPは「アイコンバー最下部、その上にコントロールバー」。bottomBarは#pcV2Root直下、iconBarは#pcV2Layout内で階層が違いCSS orderでは不可→JSでDOM移動。PC幅に戻る時は元位置(#pcV2Root直下、layoutの後)へ
     syncBottomBarPosition();
@@ -407,11 +449,17 @@
     if (vbarContainer) waveArea.appendChild(vbarContainer);
     // waveHead確定後に時刻行の置き場所を確定(先のsyncTimeRowPosition()初回はwaveHead未生成で空振り)
     syncTimeRowPosition();
+    // シークバー1本の秒数設定(歯車)。位置は常に右端(CSS order)。時刻行がSP⇔PCで出入りしても順序が崩れない
+    // 【v3.56.3】上部の歯車ボタンは廃止(設定は下部ナビのSettings)。createGearButton APIは互換のため残す
+    QNBars.setOpenSettings(() => openSettingsPanel());
+    // 設定パネルの中身を先に作ってstashへ(プリロード操作要素を下部バーから外すため。let宣言より後に実行するrAF)
+    requestAnimationFrame(() => { const sb = ensureSettingsBody(); if (!sb.parentNode) getPanelStash().appendChild(sb); });
+    syncTimeRowPosition();
 
     const waveAddAudioBtn = el(
       '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddAudioBtn" title="Add Audio">' +
         '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-        '<span>AUDIO</span>' +
+        '<span>Audio</span>' +
       '</button>'
     );
     waveAddAudioBtn.addEventListener("click", () => {
@@ -422,21 +470,43 @@
     const waveAddMarkerBtn = el(
       '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddMarkerBtn" title="Add Marker">' +
         '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-        '<span>MARKER</span>' +
+        '<span>Marker</span>' +
       '</button>'
     );
     waveAddMarkerBtn.addEventListener("click", () => {
       if (typeof addCurrentPin === "function") addCurrentPin();
     });
     const waveFabRow = el('<div id="pcV2WaveFabRow"></div>');
-    waveFabRow.appendChild(waveAddAudioBtn);
-    waveFabRow.appendChild(waveAddMarkerBtn);
+    // Audio/Marker/再生の左に、シークバーの常用設定を常時表示(設定パネルのSeek bar項目と同じ値。変更は相互に同期)。狭い幅では折り返して上の段になる
+    const waveBarStrip = QNSettingsUI.inline([
+      { label: "Bar length", type: "stepper", values: () => QNBars.OPTIONS, get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: v => v + "s" },
+      { label: "Rows", type: "stepper", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
+      { label: "Follow", type: "switch", get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) }
+    ], () => syncSettingsBody());
+    window.qnBarStripSync = waveBarStrip.sync;
+    waveFabRow.appendChild(waveBarStrip.el);
+    const waveFabBtns = el('<div class="pcv2-wave-fab-btns"></div>');
+    waveFabRow.appendChild(waveFabBtns);
+    waveFabBtns.appendChild(waveAddAudioBtn);
+    waveFabBtns.appendChild(waveAddMarkerBtn);
+    // 【v3.38.0】MARKERの右に再生/停止ボタン(#playToggleを押すのと同じ。アイコンはaudioのplay/pauseに追従)
+    const waveFabPlayBtn = el(
+      '<button type="button" class="panel-fab-btn panel-fab-play-btn" id="pcV2WaveFabPlayBtn" title="Play / Pause">' +
+        '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>' +
+      '</button>'
+    );
+    waveFabPlayBtn.addEventListener("click", () => { if (typeof togglePlay === "function") togglePlay(); });
+    const syncFabPlay = () => {
+      const playing = !audio.paused;
+      waveFabPlayBtn.classList.toggle("is-playing", playing);
+      waveFabPlayBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="' + (playing ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z") + '"/></svg>';
+    };
+    ["play", "pause", "ended", "emptied", "loadedmetadata"].forEach(n => audio.addEventListener(n, syncFabPlay));
+    waveFabBtns.appendChild(waveFabPlayBtn);
     waveArea.appendChild(waveFabRow);
 
     const basicPanelBox = document.querySelector(".basic-panel-box");
     if (basicPanelBox) basicPanelBox.style.display = "none";
-
-    setupVolumeControl();
 
     initPanels();
 
@@ -475,87 +545,7 @@
     applyCollapse();
   }
 
-  function setupVolumeControl() {
-    const btn = document.getElementById("pcV2VolumeBtn");
-    const popup = document.getElementById("pcV2VolumePopup");
-    const track = popup ? popup.querySelector(".pcv2-volume-slider-track") : null;
-    const fill = document.getElementById("pcV2VolumeFill");
-    const thumb = document.getElementById("pcV2VolumeThumb");
-    if (!btn || !popup || !track) return;
-
-    // 【v2.13.6】ポップアップはbody直下+position:fixed(SP幅の#pcV2BottomBarはoverflow-x:autoで内部のabsolute子が切り取られるため)
-    document.body.appendChild(popup);
-
-    function applyVisual(ratio) {
-      const pct = Math.max(0, Math.min(1, ratio)) * 100;
-      if (fill) fill.style.height = pct + "%";
-      if (thumb) thumb.style.bottom = pct + "%";
-    }
-
-    function positionPopup() {
-      const r = btn.getBoundingClientRect();
-      popup.style.left = (r.left + r.width / 2) + "px";
-      popup.style.top = (r.top - 10) + "px";
-    }
-
-    function closePopup() {
-      popup.classList.remove("open");
-      btn.classList.remove("is-open");
-    }
-
-    const controlVolumeEl = document.getElementById("controlVolume");
-    applyVisual(controlVolumeEl ? parseFloat(controlVolumeEl.value) : (typeof audio !== "undefined" ? audio.volume : 0.8));
-
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (popup.classList.contains("open")) {
-        closePopup();
-      } else {
-        applyVisual(typeof audio !== "undefined" ? audio.volume : 0.8);
-        positionPopup();
-        popup.classList.add("open");
-        btn.classList.add("is-open");
-      }
-    });
-    document.addEventListener("click", closePopup);
-    popup.addEventListener("click", (e) => e.stopPropagation());
-    window.addEventListener("resize", closePopup);
-    const bottomBarEl = document.getElementById("pcV2BottomBar");
-    if (bottomBarEl) bottomBarEl.addEventListener("scroll", closePopup, { passive: true });
-
-    function setFromClientY(clientY) {
-      const rect = track.getBoundingClientRect();
-      const ratio = 1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-      applyVisual(ratio);
-      if (typeof audio !== "undefined") audio.volume = ratio;
-      if (controlVolumeEl) {
-        controlVolumeEl.value = ratio;
-        controlVolumeEl.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    }
-
-    const dragArea = popup;
-    dragArea.style.touchAction = "none";
-    dragArea.addEventListener("pointerdown", (e) => {
-      if (e.target.closest(".pcv2-volume-popup-icon")) return;
-      e.stopPropagation();
-      e.preventDefault();
-      setFromClientY(e.clientY);
-      try { dragArea.setPointerCapture(e.pointerId); } catch (err) {}
-      function move(ev) { setFromClientY(ev.clientY); }
-      function up(ev) {
-        dragArea.removeEventListener("pointermove", move);
-        dragArea.removeEventListener("pointerup", up);
-        dragArea.removeEventListener("pointercancel", up);
-        try { dragArea.releasePointerCapture(ev.pointerId); } catch (err) {}
-      }
-      dragArea.addEventListener("pointermove", move);
-      dragArea.addEventListener("pointerup", up);
-      dragArea.addEventListener("pointercancel", up);
-    });
-  }
-
-  let controlBody, markersBody, playlistBody, textBody, eqBody, exportBody, exportFooter;
+  let settingsBody, controlBody, markersBody, playlistBody, textBody, eqBody, exportBody, exportFooter;
   let backupBody, backupFooter, importBody, importFooter;
 
   function initPanels() {
@@ -587,6 +577,37 @@
     if (fullscreenBtn) holder.appendChild(fullscreenBtn);
   }
 
+  // 【v3.38.0】送り戻しボタンの秒数(設定パネルで5/10/15/30/60。localStorage qn_skip_sec、既定10)。ボタンのラベル/タイトルもここで更新
+  const SKIP_OPTIONS = [5, 10, 15, 30, 60];
+  let skipSec = 10;
+  try {
+    const v = parseInt(localStorage.getItem("qn_skip_sec"), 10);
+    if (SKIP_OPTIONS.indexOf(v) >= 0) skipSec = v;
+  } catch (e) {}
+  function applySkipLabels() {
+    const bk = document.getElementById("pcV2SkipBackBtn");
+    const fw = document.getElementById("pcV2SkipFwdBtn");
+    if (bk) {
+      const l = bk.querySelector(".top-controls-btn-label");
+      if (l) l.textContent = "-" + skipSec + "s";
+      bk.title = skipSec + "秒戻る";
+    }
+    if (fw) {
+      const l = fw.querySelector(".top-controls-btn-label");
+      if (l) l.textContent = "+" + skipSec + "s";
+      fw.title = skipSec + "秒進む";
+    }
+  }
+  function setSkipSec(v) {
+    if (SKIP_OPTIONS.indexOf(v) < 0) return;
+    skipSec = v;
+    try { localStorage.setItem("qn_skip_sec", String(v)); } catch (e) {}
+    applySkipLabels();
+  }
+  requestAnimationFrame(applySkipLabels);
+  // 【v3.54.0】長押しクイックポップアップ(player-quickpop.js)から使う
+  window.QNSkip = { options: SKIP_OPTIONS, get: () => skipSec, set: setSkipSec };
+
   function pcv2SkipBy(sec) {
     if (typeof audio === "undefined" || !audio || !isFinite(audio.duration) || audio.duration <= 0) return;
     if (typeof hapticTap === "function") hapticTap();
@@ -600,6 +621,7 @@
   function syncBottomBarPosition() {
     const bottomBar = document.getElementById("pcV2BottomBar");
     const anchorTabs = document.getElementById("pcV2BottomBarAnchorTabs");
+    const dockEl = document.getElementById("pcV2SpDock");
     const layoutEl = document.getElementById("pcV2Layout");
     const iconBar = document.getElementById("pcV2IconBar");
     const rootEl = document.getElementById("pcV2Root");
@@ -614,6 +636,8 @@
       if (anchorTabs && (anchorTabs.nextSibling !== bottomBar || anchorTabs.parentElement !== layoutEl)) {
         layoutEl.insertBefore(anchorTabs, bottomBar);
       }
+      // ドックは下段バーの直前(アンカータブの手前)
+      if (dockEl && (dockEl.nextSibling !== anchorTabs || dockEl.parentElement !== layoutEl)) layoutEl.insertBefore(dockEl, anchorTabs || bottomBar);
     } else {
       if (bottomBar.parentElement !== layoutEl || layoutEl.lastElementChild !== bottomBar) {
         layoutEl.appendChild(bottomBar);
@@ -651,24 +675,16 @@
     requestAnimationFrame(updateIconBarScrollHint);
   }
 
-  // 【SP幅】時刻行(.time-controls-row)はSP=#pcV2TimeRow(専用行、タップ領域を圧迫しない)、PC=group1(Repeatの右)へDOM移動
+  // 【v3.37.0】時刻行(.time-controls-row)はPC/SPとも波形ヘッダー(#pcV2WaveHead)の歯車の左。#pcV2TimeRowは常に非表示の空コンテナ(互換のため残す)
   function syncTimeRowPosition() {
     // querySelector(".time-controls-row")だけだと別行(adjust-controls-row等)を誤取得する。#timeDisplayからclosestで取る
     const timeDisplay = document.getElementById("timeDisplay");
     const timeControlsRow = timeDisplay ? timeDisplay.closest(".time-controls-row") : null;
-    const timeRow = document.getElementById("pcV2TimeRow");
     const waveHead = document.getElementById("pcV2WaveHead");
-    if (!timeControlsRow || !timeRow || !waveHead) return;
-
-    const isSpWidth = isSpWidthNow();
-    if (isSpWidth) {
-      if (timeControlsRow.parentElement !== timeRow) {
-        timeRow.appendChild(timeControlsRow);
-      }
-    } else {
-      if (timeControlsRow.parentElement !== waveHead) {
-        waveHead.appendChild(timeControlsRow);
-      }
+    if (!timeControlsRow || !waveHead) return;
+    const gear = document.getElementById("qnBarGearBtn");
+    if (timeControlsRow.parentElement !== waveHead || (gear && gear.parentElement === waveHead && timeControlsRow.nextSibling !== gear)) {
+      waveHead.insertBefore(timeControlsRow, gear && gear.parentElement === waveHead ? gear : null);
     }
   }
 
@@ -723,7 +739,8 @@
     const bottomBar = document.getElementById("pcV2BottomBar");
     const iconBar = document.getElementById("pcV2IconBar");
     if (!layoutEl || !bottomBar || !iconBar) return;
-    const total = bottomBar.getBoundingClientRect().height + iconBar.getBoundingClientRect().height;
+    const dockEl = document.getElementById("pcV2SpDock");
+    const total = bottomBar.getBoundingClientRect().height + iconBar.getBoundingClientRect().height + (dockEl ? dockEl.getBoundingClientRect().height : 0);
     layoutEl.style.setProperty("--pcv2-bottom-bars-height", total + "px");
   }
 
@@ -732,6 +749,25 @@
       updatePcv2BottomBarsHeightVar();
     }
   });
+
+  // 【v3.41.0】設定の下層ビュー(Backup/Import/Color/Keyboard)を開いている間true。ヘッダーに戻るボタンを出し、アイコンバーは「Settings」を点灯させる
+  let settingsSub = false, settingsScroll = 0;
+  function openSettingsPanel() {
+    if (settingsSub) { switchPanel("settings"); return; }
+    openPanelOverlay("settings");
+  }
+  function openSettingsSub(id) {
+    if (id === "transfer") { if (window.QNP2P) window.QNP2P.open(); return; }
+    const pb = document.getElementById("pcV2PanelBody");
+    if (pb) settingsScroll = pb.scrollTop; // 戻った時に同じ位置を見せる
+    settingsSub = true;
+    switchPanel(id, { fromSettings: true });
+  }
+  function addSettingsBackBtn(panelHeader) {
+    if (!settingsSub) return;
+    const back = QNSettingsUI.backButton(() => switchPanel("settings"));
+    panelHeader.appendChild(back);
+  }
 
   // 閉じる時は下へスライドしてから非表示(.pcv2-panel-closing=アニメ中だけパネルを残す)。再度開く操作で中断できる
   let sheetCloseTimer = 0;
@@ -746,6 +782,8 @@
     } else if (layoutEl) layoutEl.classList.remove("pcv2-panel-open", "pcv2-panel-closing");
 
     currentPanel = "seekbar";
+    settingsSub = false;
+    settingsScroll = 0;
     document.querySelectorAll("#pcV2IconBar .pcv2-icon-item").forEach(btn => {
       btn.classList.toggle("active", btn.getAttribute("data-panel-id") === "seekbar");
     });
@@ -753,6 +791,7 @@
 
   window.qnPcv2DismissAuxPanel = function () {
     if (currentPanel !== "backup" && currentPanel !== "import") return;
+    if (settingsSub) { switchPanel("settings"); return; }
     const isSpWidth = isSpWidthNow();
     if (isSpWidth) {
       closePanelOverlay();
@@ -770,7 +809,7 @@
       const addFileBtn = el(
         '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2LibraryAddFileBtn" title="Add Audio">' +
           '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-          '<span>AUDIO</span>' +
+          '<span>Audio</span>' +
         '</button>'
       );
       addFileBtn.addEventListener("click", () => {
@@ -783,7 +822,7 @@
       const newFolderBtn = el(
         '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2NewFolderBtn" title="New Folder">' +
           '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg>' +
-          '<span>FOLDER</span>' +
+          '<span>Folder</span>' +
         '</button>'
       );
       newFolderBtn.addEventListener("click", () => {
@@ -796,28 +835,21 @@
       addGroup.appendChild(newFolderBtn);
     }
 
-    if (panelId === "markers") {
-      const addMarkerBtn = el(
-        '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2AddMarkerBtn" title="Add Marker">' +
-          '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-          '<span>MARKER</span>' +
-        '</button>'
-      );
-      addMarkerBtn.addEventListener("click", () => {
-        if (typeof addCurrentPin === "function") addCurrentPin();
-      });
-      addGroup.appendChild(addMarkerBtn);
-    }
+    // 【v3.51.0】Markersパネルの+MARKERボタンは撤去(追加は下部ドック/波形のMARKER/長押し)
 
     fab.appendChild(addGroup);
 
-    const deleteBtn = el(
-      '<button type="button" class="panel-fab-btn panel-fab-delete-btn" id="pcV2DeleteSelectedBtn" disabled>' +
-        '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
-        '<span>Delete</span>' +
-      '</button>'
-    );
-    deleteBtn.addEventListener("click", () => deleteSelectedItems(panelId));
+    // 【v3.52.0】Markers/Library: 削除ボタンの位置はCancel(編集を抜ける)。選択が1件以上ある間は下のOKが「Delete」になり一括削除を実行する(syncEditBtn)
+    let cancelBtn = null;
+    {
+      cancelBtn = el(
+        '<button type="button" class="panel-fab-btn panel-fab-cancel-btn" id="pcV2' + (panelId === "markers" ? "Markers" : "Playlist") + 'CancelBtn">' +
+          '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>' +
+          '<span>Cancel</span>' +
+        '</button>'
+      );
+      cancelBtn.addEventListener("click", () => { if (editModeState[panelId]) toggleEditMode(panelId); });
+    }
     if (panelId === "playlist") {
       // 【v3.24.0】選択した曲をフォルダへ移動(編集モードのみ表示。Deleteと同じ選択を使う)
       const moveBtn = el(
@@ -829,15 +861,18 @@
       moveBtn.addEventListener("click", () => moveSelectedItems(moveBtn));
       fab.appendChild(moveBtn);
     }
-    fab.appendChild(deleteBtn);
+    fab.appendChild(cancelBtn);
 
     const editBtn = el(
       '<button type="button" class="panel-fab-btn panel-edit-btn" id="pcV2' + (panelId === "markers" ? "Markers" : "Playlist") + 'EditBtn" title="Edit ' + panelId + '">' +
         '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
-        '<span>EDIT</span>' +
+        '<span>Edit</span>' +
       '</button>'
     );
-    editBtn.addEventListener("click", () => toggleEditMode(panelId));
+    editBtn.addEventListener("click", () => {
+      if (editModeState[panelId] && selectedIndices[panelId].size > 0) { deleteSelectedItems(panelId); return; }
+      toggleEditMode(panelId);
+    });
     fab.appendChild(editBtn);
 
     return fab;
@@ -855,7 +890,7 @@
   function stashPanelContents(panelBody) {
     const stash = getPanelStash();
     const keep = [
-      controlBody, eqDividerEl, markersBody, playlistBody, textBody, eqBody,
+      settingsBody, controlBody, eqDividerEl, markersBody, playlistBody, textBody, eqBody,
       exportBody, exportFooter, backupBody, backupFooter, importBody, importFooter,
       pcv2QnSections.color, pcv2QnSections.keyboard
     ];
@@ -864,13 +899,85 @@
     });
   }
 
+
+  // ---------- 設定パネル(v3.37.0 / v3.44.0で共通部品化) ----------
+  // 部品はJS/qn-settings-ui.js(アプリのSettingsと共用)。中身は初回に1度だけ作り、パネルを離れる時はstashへ退避(stashPanelContents)。
+  // プリロード操作は既存の#loopPreRollControl要素をそのまま移す(player-controls.jsのハンドラを生かす)。新しい項目はここのrowsに足すだけ。
+  let settingsUI = null;
+  function ensureSettingsBody() {
+    if (settingsBody) return settingsBody;
+    const preCtl = document.getElementById("loopPreRollControl");
+    const rowsBar = [
+      { label: "Bar length", hint: "1 bar = seconds", type: "stepper", values: () => QNBars.OPTIONS, get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: v => v + "s" },
+      { label: "Bars on screen", hint: "Rows shown at once", type: "stepper", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
+      { label: "Wave shape", hint: "Mirror is symmetric around the center", type: "stepper", values: () => ["mirror", "bottom"], get: () => QNBars.getWaveShape(), set: v => QNBars.setWaveShape(v), fmt: v => v === "mirror" ? "Mirror" : "Bottom" },
+      { label: "Follow playhead", hint: "Auto-scroll while playing", type: "switch", get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) },
+      { label: "Pause after scrolling", hint: "Seconds before follow resumes", type: "stepper",
+        values: () => { const a = []; for (let i = QNBars.PAUSE_MIN; i <= QNBars.PAUSE_MAX; i++) a.push(i); return a; },
+        get: () => QNBars.getPause(), set: v => QNBars.setPause(v), fmt: v => v + "s", disabledWhen: () => !QNBars.getFollow() }
+    ];
+    const rowsPlay = [
+      { label: "Loop pre/post-roll", hint: "Seconds added around loop", type: "node", node: preCtl },
+      { label: "Skip buttons", hint: "Seconds for back / forward", type: "stepper", values: () => SKIP_OPTIONS, get: () => skipSec, set: v => setSkipSec(v), fmt: v => v + "s" },
+      { label: "Library repeat range", hint: "Auto Next / Repeat scope", type: "stepper", values: () => ["folder", "all"],
+        get: () => (typeof getAutoNextScope === "function" ? getAutoNextScope() : "folder"), set: v => { if (typeof setAutoNextScope === "function") setAutoNextScope(v); }, fmt: v => v === "folder" ? "Folder" : "All" },
+      { label: "Speed step", hint: "For the speed − / ＋ buttons", type: "stepper", values: () => (typeof SPEED_STEP_OPTIONS !== "undefined" ? SPEED_STEP_OPTIONS : [1, 2, 5, 10]),
+        get: () => (typeof getSpeedStepPct === "function" ? getSpeedStepPct() : 5), set: v => { if (typeof setSpeedStepPct === "function") setSpeedStepPct(v); }, fmt: v => v + "%" }
+    ];
+    if (!preCtl) rowsPlay.shift();
+    const rowsLang = [
+      { label: "Language", hint: "Interface text", type: "stepper", values: () => (window.QNI18N ? QNI18N.OPTIONS : ["auto"]),
+        get: () => (window.QNI18N ? QNI18N.getPref() : "auto"), set: v => { if (window.QNI18N) QNI18N.setPref(v); },
+        fmt: v => v === "auto" ? "Auto" : v === "ja" ? "日本語" : "English" }
+    ];
+    // 操作ガイド(説明だけの行=typeなし)。長押し対象(player-quickpop.jsのTARGETS)・波形ジェスチャー(player-ui-shared.js)・行スワイプ(qn-apps.jsのswipeRows)を変えたら文言も合わせる
+    const rowsHold = [
+      { label: "Hold a button marked ◢", hint: "Opens its quick settings in place" },
+      { label: "Play", hint: "Speed and key" },
+      { label: "Previous / next marker", hint: "Jump to any marker" },
+      { label: "A / B", hint: "Fine tune in 0.1 s steps" },
+      { label: "Add marker", hint: "Add a marker with a preset label" },
+      { label: "Previous / next track", hint: "Jump to a folder or track" },
+      { label: "Loop", hint: "Pre/post-roll seconds" },
+      { label: "Skip back / forward", hint: "Skip seconds" },
+      { label: "Repeat", hint: "Library repeat range" },
+      { label: "Library row", hint: "Favorite, skip, move, rename, delete" }
+    ];
+    const rowsGesture = [
+      { label: "Tap", hint: "Seek and play from that position" },
+      { label: "Hold", hint: "Add a marker at that position" },
+      { label: "Swipe sideways", hint: "Scrub the playback position" },
+      { label: "Double tap while playing", hint: "Stop at that position" }
+    ];
+    const rowsSwipe = [
+      { label: "Swipe a Library or Markers row", hint: "Show edit and delete buttons (mobile)" }
+    ];
+    const settingsSections = [{ title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "General", rows: rowsLang },
+      { title: "Hold for quick settings", rows: rowsHold }, { title: "Seek bar gestures", rows: rowsGesture }, { title: "List gestures", rows: rowsSwipe }];
+    settingsSections.onChange = () => { if (window.qnBarStripSync) window.qnBarStripSync(); };
+    settingsUI = QNSettingsUI.build(settingsSections);
+    const body = settingsUI.el;
+    body.id = "pcV2SettingsBody";
+    const more = QNSettingsUI.list(["backup", "import", "color", "keyboard", "transfer"], openSettingsSub);
+    const tr = more.querySelector('[data-panel-id="transfer"]');
+    if (tr && !(window.QNLibSync && window.QNLibSync.isActive())) tr.style.display = "none";
+    body.appendChild(more);
+    body.appendChild(QNSettingsUI.versionLine());
+    settingsBody = body;
+    return body;
+  }
+
+  function syncSettingsBody() {
+    if (settingsUI) settingsUI.sync();
+  }
+
   function switchPanel(panelId, opts) {
     currentPanel = panelId;
+    if (!(opts && opts.fromSettings)) settingsSub = false;
 
     // 【v3.14.0】格納中に外部(右クリック・Backup完了等)から呼ばれたら必ず展開してから表示。初期表示のみkeepCollapsed:trueで格納維持
     if (panelCollapsed && !(opts && opts.keepCollapsed)) setCollapsed(false);
 
-    syncAllBottomBarEffectButtons();
 
     if (panelId !== "markers" && editModeState.markers) {
       editModeState.markers = false;
@@ -880,7 +987,7 @@
     }
 
     document.querySelectorAll("#pcV2IconBar .pcv2-icon-item").forEach(btn => {
-      btn.classList.toggle("active", !isCollapsed() && btn.getAttribute("data-panel-id") === panelId);
+      btn.classList.toggle("active", !isCollapsed() && btn.getAttribute("data-panel-id") === (settingsSub ? "settings" : panelId));
     });
 
     const panelBody = document.getElementById("pcV2PanelBody");
@@ -914,6 +1021,7 @@
     if (panelId !== "playlist") panelBody.classList.remove("playlist-edit-mode");
 
     if (panelId === "keyboard" || panelId === "color") {
+      addSettingsBackBtn(panelHeader);
       const titleSpan = el('<span class="pcv2-panel-header-title"></span>');
       titleSpan.textContent = panelId === "keyboard" ? "Keyboard" : "Color";
       panelHeader.appendChild(titleSpan);
@@ -924,6 +1032,7 @@
     const item = ICON_ITEMS.find(i => i.id === panelId);
     if (!item) return;
 
+    addSettingsBackBtn(panelHeader);
     const titleSpan = el('<span class="pcv2-panel-header-title"></span>');
     titleSpan.textContent = item.label;
     panelHeader.appendChild(titleSpan);
@@ -960,6 +1069,11 @@
       if (exportModalOverlay) exportModalOverlay.classList.remove("open");
       if (exportBody) panelBody.appendChild(exportBody);
       if (exportFooter) panelBody.appendChild(exportFooter);
+    } else if (item.panelType === "settings") {
+      panelBody.appendChild(ensureSettingsBody());
+      syncSettingsBody();
+      panelBody.scrollTop = settingsScroll; // 下層から戻った時は元の位置(通常の表示は0)
+      settingsScroll = 0;
     } else if (item.panelType === "backup" || item.panelType === "import") {
       panelBody.classList.add("pcv2-panel-aux");
       if (typeof window.qnBackupMount === "function") window.qnBackupMount(item.panelType, panelBody);
@@ -998,8 +1112,11 @@
     if (editBtn) {
       editBtn.classList.toggle("active", editModeState[panelId]);
       const editBtnLabel = editBtn.querySelector("span");
-      if (editBtnLabel) editBtnLabel.textContent = editModeState[panelId] ? "OK" : "EDIT";
+      if (editBtnLabel) editBtnLabel.textContent = editModeState[panelId] ? "OK" : "Edit";
     }
+    const cancelBtnEl = document.getElementById(panelId === "markers" ? "pcV2MarkersCancelBtn" : "pcV2PlaylistCancelBtn");
+    if (cancelBtnEl) cancelBtnEl.style.display = editModeState[panelId] ? "flex" : "none";
+    syncEditBtn(panelId);
     if (addGroup) {
       addGroup.style.display = editModeState[panelId] ? "none" : "flex";
     }
@@ -1056,8 +1173,23 @@
     return items.indexOf(row);
   }
 
+  // 【v3.52.0】Markers編集中のFAB下ボタン: 選択0件=「OK」(編集を抜ける) / 1件以上=「Delete」(選択を一括削除)
+  const ICON_OK_EDIT = '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>';
+  const ICON_TRASH = '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>';
+  function syncEditBtn(panelId) {
+    const btn = document.getElementById(panelId === "markers" ? "pcV2MarkersEditBtn" : "pcV2PlaylistEditBtn");
+    if (!btn) return;
+    const del = editModeState[panelId] && selectedIndices[panelId].size > 0;
+    btn.classList.toggle("is-delete", del);
+    const label = btn.querySelector("span");
+    if (label) label.textContent = editModeState[panelId] ? (del ? "Delete" : "OK") : "Edit";
+    const path = btn.querySelector("svg");
+    if (path) path.innerHTML = del ? ICON_TRASH : ICON_OK_EDIT;
+  }
+
   function syncSelectionButtons(panelId) {
     const n = selectedIndices[panelId].size;
+    syncEditBtn(panelId);
     const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
     if (deleteBtn) deleteBtn.disabled = n === 0;
     if (panelId === "playlist") {
@@ -1130,7 +1262,7 @@
       if (panelId === "playlist") {
         const hasSelection = selectedIndices.playlist.size > 0;
         items.forEach(item => {
-          const toggle = item.querySelector(".playlist-skip-toggle");
+          const toggle = item.querySelector(".playlist-skip-toggle, .playlist-act-btn");
           if (!toggle) return;
           toggle.disabled = hasSelection;
           toggle.title = hasSelection ? "削除の選択中は切り替えられません" : toggle.dataset.baseTitle || toggle.title;
@@ -1138,11 +1270,11 @@
       } else if (panelId === "markers") {
         const hasSelection = selectedIndices.markers.size > 0;
         items.forEach(item => {
-          const toggle = item.querySelector(".toggle-btn");
-          if (!toggle) return;
-          if (!toggle.dataset.baseTitle) toggle.dataset.baseTitle = toggle.title;
-          toggle.disabled = hasSelection;
-          toggle.title = hasSelection ? "削除の選択中は切り替えられません" : toggle.dataset.baseTitle;
+          item.querySelectorAll(".pin-act-btn").forEach(toggle => {
+            if (!toggle.dataset.baseTitle) toggle.dataset.baseTitle = toggle.title;
+            toggle.disabled = hasSelection;
+            toggle.title = hasSelection ? "削除の選択中は切り替えられません" : toggle.dataset.baseTitle;
+          });
         });
       }
     };
@@ -1238,58 +1370,6 @@
     container.appendChild(eqDividerEl);
   }
 
-  function toggleBottomBarEffect(id, btn) {
-    hapticTap();
-    if (id === "speed") {
-      speedEffectEnabled = !speedEffectEnabled;
-      if (typeof updatePlaybackRate === "function") updatePlaybackRate();
-      const t = document.getElementById("controlSpeedEnableToggle");
-      if (t) t.setAttribute("aria-checked", String(speedEffectEnabled));
-    } else if (id === "key") {
-      keyEffectEnabled = !keyEffectEnabled;
-      if (typeof updatePlaybackRate === "function") updatePlaybackRate();
-      const t = document.getElementById("controlKeyEnableToggle");
-      if (t) t.setAttribute("aria-checked", String(keyEffectEnabled));
-    } else if (id === "eq") {
-      if (typeof setEqEffectEnabled === "function") setEqEffectEnabled(!eqEffectEnabled);
-      const t = document.getElementById("controlEqEnableToggle");
-      if (t) t.setAttribute("aria-checked", String(eqEffectEnabled));
-    }
-    syncBottomBarEffectButton(id, btn);
-  }
-
-  function syncBottomBarEffectButton(id, btn) {
-    let enabled = true;
-    if (id === "speed") enabled = typeof speedEffectEnabled === "undefined" || speedEffectEnabled;
-    else if (id === "key") enabled = typeof keyEffectEnabled === "undefined" || keyEffectEnabled;
-    else if (id === "eq") enabled = typeof eqEffectEnabled === "undefined" || eqEffectEnabled;
-    btn.classList.toggle("effect-off", !enabled);
-  }
-
-  function syncAllBottomBarEffectButtons() {
-    Object.keys(bottomBarEffectButtons).forEach(id => {
-      syncBottomBarEffectButton(id, bottomBarEffectButtons[id]);
-    });
-  }
-
-  let controlPanelEffectSyncSetup = false;
-  function setupControlPanelEffectSync() {
-    if (controlPanelEffectSyncSetup) return;
-    controlPanelEffectSyncSetup = true;
-    [
-      ["speed", "controlSpeedEnableToggle"],
-      ["key", "controlKeyEnableToggle"],
-      ["eq", "controlEqEnableToggle"]
-    ].forEach(([id, elId]) => {
-      const toggle = document.getElementById(elId);
-      if (!toggle) return;
-      toggle.addEventListener("click", () => {
-        const btn = bottomBarEffectButtons[id];
-        if (btn) syncBottomBarEffectButton(id, btn);
-      });
-    });
-  }
-
   let textEditModeOn = false;
   function setupTextPanelHeaderControls() {
     const panelHeader = document.getElementById("pcV2PanelHeader");
@@ -1312,7 +1392,7 @@
     const editBtn = el(
       '<button type="button" class="panel-fab-btn panel-edit-btn" id="pcV2TextEditBtn" title="Edit text">' +
         '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
-        '<span>EDIT</span>' +
+        '<span>Edit</span>' +
       '</button>'
     );
     const editBtnLabel = editBtn.querySelector("span");
@@ -1322,7 +1402,7 @@
       textEditModeOn = !textEditModeOn;
       textarea.readOnly = !textEditModeOn;
       editBtn.classList.toggle("active", textEditModeOn);
-      if (editBtnLabel) editBtnLabel.textContent = textEditModeOn ? "OK" : "EDIT";
+      if (editBtnLabel) editBtnLabel.textContent = textEditModeOn ? "OK" : "Edit";
       if (fullscreenBtn) fullscreenBtn.style.display = textEditModeOn ? "none" : "flex";
       if (textEditModeOn) textarea.focus();
     });
@@ -1384,135 +1464,12 @@
 
   let pcv2WaveRafId = null;
 
-  // 【v2.13.4 負荷対策】毎フレーム全再描画+getBoundingClientRect×6等がiOSで強制再読み込みの原因だった。対策: 1.描画はPCV2_WAVE_INTERVAL_MS間隔に間引く 2.再生位置/波形/マーカー/色/サイズが不変なら描画スキップ 3.バー矩形はresize時のみ計測、色文字列はキャッシュ 4.マーカー色判定はバーを左から走査しポインタを進める
+  // 【v2.13.4 負荷対策】毎フレーム全再描画がiOSで強制再読み込みの原因だった。波形/シークバーの描画本体はQNBars.draw()(player-bars.js。署名が同じ行はスキップ、見えている行だけ描画)。ここはPCV2_WAVE_INTERVAL_MS間隔に間引いた呼び出しと再描画の合図だけ。rAFループを増やさない
   const PCV2_WAVE_INTERVAL_MS = 100;
   let pcv2LastDrawAt = 0;
-  let pcv2LastSig = "";
-  let pcv2SizeDirty = true;
-  let pcv2LastPeaksRef = null;
-  let pcv2AccentCache = null;
-  let pcv2AccentCacheAt = 0;
-  const pcv2RowSizes = [null, null, null, null, null, null];
-  const pcv2RgbaCache = new Map();
-
-  function pcv2RgbaFor(hex, alpha) {
-    const key = hex + "|" + alpha;
-    let v = pcv2RgbaCache.get(key);
-    if (v === undefined) {
-      v = hexToRgba(hex, alpha);
-      pcv2RgbaCache.set(key, v);
-    }
-    return v;
-  }
-
-  function pcv2MeasureRows() {
-    const dpr = window.devicePixelRatio || 1;
-    for (let row = 0; row < 6; row++) {
-      const canvas = document.getElementById(`wave${row + 1}`);
-      const bar = document.getElementById(`bar${row + 1}`);
-      if (!canvas || !bar) { pcv2RowSizes[row] = null; continue; }
-      const rect = bar.getBoundingClientRect();
-      const w = Math.max(1, Math.floor(rect.width * dpr));
-      const h = Math.max(1, Math.floor(rect.height * dpr));
-      if (canvas.width !== w) canvas.width = w;
-      if (canvas.height !== h) canvas.height = h;
-      pcv2RowSizes[row] = { canvas, ctx2d: canvas.getContext("2d"), dpr };
-    }
-    pcv2SizeDirty = false;
-  }
-
-  function pcv2MarkersSig(markers) {
-    let s = "";
-    for (let i = 0; i < markers.length; i++) {
-      s += markers[i].t + ":" + (markers[i].color || "") + ",";
-    }
-    return s;
-  }
 
   function pcv2DrawWaveform(force) {
-    if (typeof waveformPeaks === "undefined" || !waveformPeaks || typeof audio === "undefined" || !audio.duration) return;
-    if (typeof getSegments !== "function") return;
-
-    const dur = audio.duration;
-    const ct = audio.currentTime;
-
-    let allMarkers = [];
-    if (typeof pins !== "undefined" && typeof MARKER_COLOR_PALETTE !== "undefined") {
-      allMarkers = pins
-        .filter(p => p.enabled)
-        .sort((a, b) => a.t - b.t);
-    }
-
-    const nowMs = performance.now();
-    if (!pcv2AccentCache || nowMs - pcv2AccentCacheAt > 500) {
-      pcv2AccentCache = getComputedStyle(document.body).getPropertyValue("--accent-primary").trim() || "#3b82f6";
-      pcv2AccentCacheAt = nowMs;
-    }
-    const accentColor = window.__qnGlowBaseAccent || pcv2AccentCache;
-
-    // 不変なら描画しない。再生位置は波形バー1本分の解像度で比較
-    const totalSamples = waveformPeaks.length;
-    const ctBucket = Math.floor((ct / dur) * totalSamples);
-    const sig = ctBucket + "|" + dur + "|" + totalSamples + "|" + accentColor + "|" +
-      (window.__qnWaveformDrawCount || 0) + "|" + pcv2MarkersSig(allMarkers);
-    const peaksChanged = waveformPeaks !== pcv2LastPeaksRef;
-    if (!force && !pcv2SizeDirty && !peaksChanged && sig === pcv2LastSig) return;
-    pcv2LastPeaksRef = waveformPeaks;
-    pcv2LastSig = sig;
-
-    if (pcv2SizeDirty) pcv2MeasureRows();
-
-    const { s1, s2, s3, s4, s5 } = getSegments(dur);
-    const bounds = [0, s1, s2, s3, s4, s5, dur];
-    const unplayedDefault = "rgba(255, 255, 255, 0.16)";
-
-    let markerPtr = -1;
-
-    for (let row = 0; row < 6; row++) {
-      const info = pcv2RowSizes[row];
-      if (!info) continue;
-      const { canvas, ctx2d, dpr } = info;
-      ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-
-      const rowStart = bounds[row];
-      const rowEnd = bounds[row + 1];
-
-      const startIdx = Math.floor((rowStart / dur) * totalSamples);
-      const endIdx = Math.max(startIdx + 1, Math.floor((rowEnd / dur) * totalSamples));
-      const sliceCount = endIdx - startIdx;
-      if (sliceCount <= 0) continue;
-
-      const barGap = 1 * dpr;
-      const step = canvas.width / sliceCount;
-      const barWidth = Math.max(1, step - barGap);
-      let currentFill = null;
-
-      for (let i = 0; i < sliceCount; i++) {
-        const peak = waveformPeaks[startIdx + i] || 0;
-        const barHeight = Math.max(2 * dpr, peak * canvas.height * 0.85);
-        const x = i * step;
-        const barTime = rowStart + (rowEnd - rowStart) * (i / sliceCount);
-
-        while (markerPtr + 1 < allMarkers.length && allMarkers[markerPtr + 1].t <= barTime) {
-          markerPtr++;
-        }
-        const found = markerPtr >= 0 ? allMarkers[markerPtr] : null;
-        const markerColor = (found && found.color && MARKER_COLOR_PALETTE[found.color]) || null;
-        const isPlayed = barTime <= ct;
-
-        let fill;
-        if (markerColor) {
-          fill = isPlayed ? markerColor : pcv2RgbaFor(markerColor, 0.35);
-        } else {
-          fill = isPlayed ? accentColor : unplayedDefault;
-        }
-        if (fill !== currentFill) {
-          ctx2d.fillStyle = fill;
-          currentFill = fill;
-        }
-        ctx2d.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-      }
-    }
+    QNBars.draw(!!force);
   }
 
   function pcv2WaveLoop(now) {
@@ -1522,31 +1479,16 @@
     if (now - pcv2LastDrawAt < PCV2_WAVE_INTERVAL_MS) return;
     pcv2LastDrawAt = now;
     pcv2DrawWaveform(false);
+    if (window.pcv2SyncBarMixer) window.pcv2SyncBarMixer();
   }
   pcv2WaveRafId = requestAnimationFrame(pcv2WaveLoop);
 
   window.addEventListener("resize", () => {
-    pcv2SizeDirty = true;
+    QNBars.markGeomDirty();
     if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform(true);
   });
 
-  if (typeof ResizeObserver === "function") {
-    let pcv2ResizeRaf = null;
-    const vbarContainerEl = document.getElementById("vbarContainer");
-    if (vbarContainerEl) {
-      new ResizeObserver(() => {
-        if (pcv2ResizeRaf) return;
-        pcv2ResizeRaf = requestAnimationFrame(() => {
-          pcv2ResizeRaf = null;
-          pcv2SizeDirty = true;
-          if (typeof drawWaveform === "function" && typeof waveformPeaks !== "undefined" && waveformPeaks) drawWaveform();
-          if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform(true);
-        });
-      }).observe(vbarContainerEl);
-    }
-  }
   if (typeof audio !== "undefined" && audio) {
-    audio.addEventListener("loadedmetadata", () => { pcv2SizeDirty = true; });
     audio.addEventListener("seeked", () => {
       if (document.body.classList.contains("pc-v2-active")) pcv2DrawWaveform(false);
     });
@@ -1588,7 +1530,6 @@ document.addEventListener("drop", e => {
   const allRepeatToggleBtn = document.getElementById("allRepeatToggleBtn");
   const markerNavBtn = document.getElementById("markerNavBtn");
   const loopToggleBtn = document.getElementById("loopToggleBtn");
-  const loopPreRollControl = document.getElementById("loopPreRollControl");
 
   if (!topControls || !row1 || !row2 || !playbackTripleBtn || !allRepeatToggleBtn || !markerNavBtn || !loopToggleBtn) {
     return;
@@ -1599,7 +1540,6 @@ document.addEventListener("drop", e => {
   topControls.appendChild(allRepeatToggleBtn);
   topControls.appendChild(markerNavBtn);
   topControls.appendChild(loopToggleBtn);
-  if (loopPreRollControl) topControls.appendChild(loopPreRollControl);
   row1.style.display = "none";
   row2.style.display = "none";
 })();

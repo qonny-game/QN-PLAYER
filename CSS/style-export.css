@@ -106,7 +106,7 @@
   font-size: var(--fs-micro);
   font-weight: 700;
   letter-spacing: 1px;
-  text-transform: uppercase;
+  text-transform: none;
   color: #6b6b7b;
 }
 
@@ -220,7 +220,7 @@
   font-weight: 500;
   letter-spacing: 0.5px;
   color: var(--icon-muted);
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .export-filename-input {
@@ -283,7 +283,7 @@
   font-size: var(--fs-btn-primary);
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
   box-shadow: 0 6px 20px var(--accent-glow);
   transition: background var(--dur-hover) var(--ease-snap), box-shadow var(--dur-press) var(--ease-snap), transform var(--dur-press) var(--ease-snap);
@@ -316,7 +316,7 @@
   font-size: var(--fs-btn-primary);
   font-weight: 600;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
   transition: background var(--dur-hover) var(--ease-snap), border-color var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
 }
@@ -468,19 +468,6 @@
   color: var(--text-pure-white, #fff);
 }
 
-#trackBackupTargetName {
-  display: block;
-  margin-bottom: 12px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-bright);
-  text-transform: none;
-  letter-spacing: normal;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .track-backup-tracklist-header {
   display: flex;
   align-items: center;
@@ -516,10 +503,25 @@
 .track-backup-tracklist {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 220px;
-  overflow-y: auto;
+  gap: 12px;
 }
+/* v3.55.0: Audio/YouTube/Pitchは別の枠。枠ごとにスクロール */
+.track-backup-group {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-field, 8px);
+  overflow: hidden;
+}
+.track-backup-group-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.track-backup-group > .track-backup-group-label { margin: 0; padding: 8px 12px; background: var(--bg-hover-subtle); }
 
 .track-backup-track-row {
   display: flex;

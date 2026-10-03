@@ -6,6 +6,8 @@ const controlSpeedDisplay = document.getElementById("controlSpeedDisplay");
 const spStatusSpeedValue = document.getElementById("spStatusSpeedValue");
 const SPEED_MIN = 0.5;
 const SPEED_MAX = 1.5;
+const SPEED_SNAPS = [0.5, 0.75, 1, 1.25, 1.5];
+const SPEED_SNAP_RANGE = 0.02;
 
 function syncSpeedDisplays() {
   if (speedDisplay) speedDisplay.textContent = currentSpeed.toFixed(2);
@@ -42,7 +44,13 @@ function handleSpeedRangeInput(e) {
   // スライダー操作時にWeb Audio接続を試みる(未操作なら接続しない設計を維持)
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
 
-  currentSpeed = parseFloat(e.target.value);
+  let rawSpeed = parseFloat(e.target.value);
+  // 0.50/0.75/1.00/1.25/1.50の近くでカチッとはまる(PCバーのミキサーも同じ入口)
+  for (let i = 0; i < SPEED_SNAPS.length; i++) {
+    if (Math.abs(rawSpeed - SPEED_SNAPS[i]) <= SPEED_SNAP_RANGE) { rawSpeed = SPEED_SNAPS[i]; break; }
+  }
+  e.target.value = rawSpeed;
+  currentSpeed = rawSpeed;
   if (currentSpeed !== lastSpeedTickValue) {
     hapticTick();
     lastSpeedTickValue = currentSpeed;
@@ -56,14 +64,33 @@ function handleSpeedRangeInput(e) {
 }
 if (controlSpeedRange) controlSpeedRange.oninput = handleSpeedRangeInput;
 
-const SPEED_STEP = 0.05;
+// 速度±ボタンの刻み(%)。設定パネルで変更(localStorage qn_speed_step_pct)。キーボードCtrl+←→の1%は別
+const SPEED_STEP_OPTIONS = [1, 2, 5, 10];
+const SPEED_STEP_KEY = "qn_speed_step_pct";
+let speedStepPct = 5;
+try {
+  const v = parseInt(localStorage.getItem(SPEED_STEP_KEY), 10);
+  if (SPEED_STEP_OPTIONS.indexOf(v) >= 0) speedStepPct = v;
+} catch (e) {}
+function getSpeedStepPct() { return speedStepPct; }
+function setSpeedStepPct(v) {
+  if (SPEED_STEP_OPTIONS.indexOf(v) < 0) return;
+  speedStepPct = v;
+  try { localStorage.setItem(SPEED_STEP_KEY, String(v)); } catch (e) {}
+  const d = document.getElementById("controlSpeedDownBtn");
+  const u = document.getElementById("controlSpeedUpBtn");
+  if (d) d.title = "Speed −" + v + "%";
+  if (u) u.title = "Speed +" + v + "%";
+}
 function snapSpeedStep(dir) {
-  const q = currentSpeed / SPEED_STEP;
+  const step = speedStepPct / 100;
+  const q = currentSpeed / step;
   const n = dir > 0 ? Math.floor(q + 1e-6) + 1 : Math.ceil(q - 1e-6) - 1;
-  return n * SPEED_STEP;
+  return Math.round(n * step * 100) / 100;
 }
 const controlSpeedDownBtn = document.getElementById("controlSpeedDownBtn");
 const controlSpeedUpBtn = document.getElementById("controlSpeedUpBtn");
+setSpeedStepPct(speedStepPct);
 function stepSpeed(dir) {
   hapticTap();
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
@@ -130,7 +157,7 @@ function updateAutoSpeedStatus() {
 
   if (spStatusAutoSpeedValue) {
     if (!autoSpeedEnabled) {
-      spStatusAutoSpeedValue.textContent = "OFF";
+      spStatusAutoSpeedValue.textContent = "Off";
     } else {
       const stepPercent = getAutoSpeedStepPercent();
       const sign = autoSpeedDirection === "up" ? "+" : "-";
@@ -211,26 +238,18 @@ function notifyLoopCompleted() {
 updateAutoSpeedStatus();
 
 const keyDisplay = document.getElementById("keyDisplay");
-const keyStepperFill = document.getElementById("keyStepperFill");
 const controlKeyDisplay = document.getElementById("controlKeyDisplay");
-const controlKeyStepperFill = document.getElementById("controlKeyStepperFill");
+const controlKeyRange = document.getElementById("controlKeyRange");
 const KEY_MIN = -12;
 const KEY_MAX = 12;
 
 function renderKeyDisplay() {
   const text = (currentKeySemitones > 0 ? "+" : "") + currentKeySemitones;
-  const pct = (Math.abs(currentKeySemitones) / KEY_MAX) * 50;
-  const left = currentKeySemitones >= 0 ? "50%" : (50 - pct) + "%";
-
   if (keyDisplay) keyDisplay.textContent = text;
-  if (keyStepperFill) {
-    keyStepperFill.style.width = pct + "%";
-    keyStepperFill.style.left = left;
-  }
   if (controlKeyDisplay) controlKeyDisplay.textContent = text;
-  if (controlKeyStepperFill) {
-    controlKeyStepperFill.style.width = pct + "%";
-    controlKeyStepperFill.style.left = left;
+  if (controlKeyRange) {
+    controlKeyRange.value = currentKeySemitones;
+    controlKeyRange.style.setProperty("--range-progress", String(((currentKeySemitones - KEY_MIN) / (KEY_MAX - KEY_MIN)) * 100));
   }
   const spStatusKeyValue = document.getElementById("spStatusKeyValue");
   if (spStatusKeyValue) spStatusKeyValue.textContent = text;
@@ -270,6 +289,8 @@ const controlKeyDownBtn = document.getElementById("controlKeyDownBtn");
 if (controlKeyUpBtn) controlKeyUpBtn.onclick = () => setKeySemitones(currentKeySemitones + 1);
 if (controlKeyDownBtn) controlKeyDownBtn.onclick = () => setKeySemitones(currentKeySemitones - 1);
 
+if (controlKeyRange) controlKeyRange.oninput = () => { setKeySemitones(parseInt(controlKeyRange.value, 10)); renderKeyDisplay(); };
+
 const controlKeyResetBtn = document.getElementById("controlKeyResetBtn");
 if (controlKeyResetBtn) controlKeyResetBtn.onclick = () => setKeySemitones(0);
 
@@ -277,7 +298,7 @@ renderKeyDisplay();
 
 // ピッチシフト準備完了でKEY/SPEED有効化。非対応(AudioWorklet無し)は無効のまま。トグルごと触れなくする
 function updateKeyControlAvailability() {
-  const keyElements = [controlKeyUpBtn, controlKeyDownBtn, controlKeyResetBtn, controlKeyEnableToggle];
+  const keyElements = [controlKeyUpBtn, controlKeyDownBtn, controlKeyResetBtn, controlKeyEnableToggle, controlKeyRange];
   const speedElements = [controlSpeedRange, controlSpeedResetBtn, controlSpeedEnableToggle, controlSpeedDownBtn, controlSpeedUpBtn];
 
   if (pitchShiftAvailable) {
@@ -483,6 +504,7 @@ if (controlSpeedEnableToggle) {
     hapticTap();
     speedEffectEnabled = !speedEffectEnabled;
     controlSpeedEnableToggle.setAttribute("aria-checked", String(speedEffectEnabled));
+    if (controlSpeedRange) controlSpeedRange.classList.toggle("is-effect-off", !speedEffectEnabled);
     updatePlaybackRate();
   };
 }
@@ -497,6 +519,7 @@ if (controlKeyEnableToggle) {
     hapticTap();
     keyEffectEnabled = !keyEffectEnabled;
     controlKeyEnableToggle.setAttribute("aria-checked", String(keyEffectEnabled));
+    if (controlKeyRange) controlKeyRange.classList.toggle("is-effect-off", !keyEffectEnabled);
     updatePlaybackRate();
   };
 }

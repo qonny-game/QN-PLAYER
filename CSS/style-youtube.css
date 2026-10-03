@@ -29,7 +29,7 @@
   font-size: var(--fs-title);
   font-weight: 600;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--icon-muted);
   flex-shrink: 0;
 }
@@ -70,7 +70,7 @@
   font-size: var(--fs-heading);
   font-weight: 600;
   letter-spacing: 0.4px;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-bright);
 }
 
@@ -169,12 +169,6 @@
   font-size: var(--fs-micro);
 }
 
-.qn-yt-btn.danger {
-  background: var(--danger, #ef4444);
-  border-color: transparent;
-  color: #fff;
-}
-
 .qn-yt-message {
   min-height: 18px;
   font-size: var(--fs-small);
@@ -227,7 +221,7 @@
   font-size: var(--fs-heading);
   font-weight: 600;
   letter-spacing: 0.4px;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-bright);
   margin: 0;
 }
@@ -1059,7 +1053,7 @@
 }
 .vbar-ab-pt.is-b .vbar-ab-flag { transform: translateX(calc(-100% - 3px)); }
 #pcV2BottomBar .ab-set-btn.has-point { color: var(--accent-primary); }
-.qn-yt-seekpop-btn.is-set { background: color-mix(in srgb, var(--accent-primary) 20%, transparent); border-radius: 8px; }
+.qn-yt-seekpop-btn.is-set { background: color-mix(in srgb, var(--accent-primary) 20%, transparent); border-radius: 0; }
 
 /* ---------- ポップアップColor: ラベル入力+プリセット+色(v3.9.0・PLAYER/YouTube共通) ---------- */
 .qn-style-pop {
@@ -1089,22 +1083,6 @@
 .qn-style-input:focus { outline: none; border-color: var(--accent-primary); }
 .qn-style-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .qn-style-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
-
-.qn-yt-preroll { display: flex; align-items: center; gap: 0; flex-shrink: 0; padding: 8px 4px; }
-.qn-yt-preroll-btn {
-  width: 20px; height: 20px; padding: 0;
-  background: none; border: none; cursor: pointer;
-  color: var(--icon-muted); font-size: 13px; line-height: 1;
-}
-@media (hover: hover) and (pointer: fine) { .qn-yt-preroll-btn:hover { color: var(--text-bright); } }
-.qn-yt-preroll-value {
-  min-width: 16px; text-align: center;
-  font-size: 22px; font-weight: 400;
-  color: var(--accent-primary, #3b82f6);
-  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-}
-.qn-yt-preroll-value b { font-weight: 400; }
-.qn-yt-preroll-unit { font-size: 0.6em; margin-left: 1px; }
 
 .qn-yt-loop-pre {
   position: absolute;
@@ -1137,50 +1115,33 @@
 /* v3.12.6: PLAYER下部バー(#pcV2BottomBar)とYouTube下段バー(.qn-yt-bar)の寸法を1仕様に(Speed/Keyトグルのみ例外)。最後に読まれるので個別指定を上書き。PC: バーpadding 10px 12px/ボタン 8px 4px/アイコン20px(中央32px)/ラベル9px/区切り余白6px。SP: ボタンpadding 10px/アイコン26px(中央38px)/ラベル11px */
 @media screen and (min-width: 901px) {
   #pcV2BottomBar, .qn-yt-bar { box-sizing: border-box; min-height: 80px; padding: 10px 12px; gap: 4px; }
-  #pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn),
   #pcV2BottomBar .tripleNavBtn-third,
   #pcV2BottomBar .loopbtn,
   .qn-yt-bbtn { padding: 8px 4px; min-height: 59px; box-sizing: border-box; }
-  #pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { padding-left: 0; padding-right: 0; }
-  #pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn) svg,
   #pcV2BottomBar .tripleNavBtn-third:not(.tripleNavBtn-center) svg,
   #pcV2BottomBar .loopbtn svg { width: 20px; height: 20px; margin: 6px auto; }
   #pcV2BottomBar .tripleNavBtn-center svg { width: 32px; height: 32px; margin: 0; }
-  #pcV2BottomBar .top-controls-btn-label,
-  #pcV2BottomBar .pcv2-ctrl-btn span { font-size: 9px; }
+  #pcV2BottomBar .top-controls-btn-label { font-size: 9px; }
   #pcV2BottomBar .pcv2-ctrl-divider, .qn-yt-bdiv { margin: 0 6px; }
 }
 @media screen and (max-width: 900px) {
-  #pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn),
   #pcV2BottomBar .tripleNavBtn-third,
   #pcV2BottomBar .loopbtn,
   .qn-yt-bbtn { padding: 10px 10px; min-height: 0; }
-  #pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn) svg,
   #pcV2BottomBar .tripleNavBtn-third:not(.tripleNavBtn-center) svg,
   #pcV2BottomBar .loopbtn svg { width: 26px; height: 26px; margin: 6px auto; }
   #pcV2BottomBar .tripleNavBtn-center svg { width: 38px; height: 38px; margin: 0; }
-  #pcV2BottomBar .top-controls-btn-label,
-  #pcV2BottomBar .pcv2-ctrl-btn span { font-size: 11px; }
+  #pcV2BottomBar .top-controls-btn-label { font-size: 11px; }
 }
 
 
 /* v3.16.0: PLAYER下部バーのラベル・Speed/Keyステッパーもyoutube下段バーと同表示に(PLは大文字化+行高9pxで幅広・1px低かった) */
-#pcV2BottomBar .top-controls-btn-label,
-#pcV2BottomBar .pcv2-ctrl-btn span {
+#pcV2BottomBar .top-controls-btn-label {
   text-transform: none;
   line-height: normal;
   white-space: nowrap;
 }
 
-/* Speed/Keyも1行(「1.00x Speed」)でバー高さをYouTubeと同じ80pxに。区切り周り(グループ4px+区切り余白6px)もYouTube準拠 */
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span {
-  display: block;
-  min-width: 0;
-  line-height: normal;
-  text-align: center;
-  white-space: nowrap;
-}
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { min-height: 59px; }
 #pcV2BottomBar #topControls.top-controls { gap: 4px; }
 
 .track-backup-group-label {
@@ -1188,7 +1149,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.8px;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--icon-muted);
 }
 .track-backup-group-label:not(:first-child) { margin-top: 6px; border-top: 1px solid var(--border-subtle); }
@@ -1236,3 +1197,30 @@
 .qn-yt-pllist .playlistItem.qn-yt-pllistrow { grid-template-columns: auto 1fr auto; }
 .qn-yt-plicon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: var(--icon-muted); }
 .qn-yt-plicon svg { width: 22px; height: 22px; fill: currentColor; }
+
+
+/* Libraryが0件の間の案内(v3.39.0): 手順1(URL貼り付け)→2(Save)。URL入力欄を脈動させ、入力済みなら手順2とSaveを強調 */
+.qn-yt-hint { display: none; margin: 0 0 12px; padding: 0; list-style: none; flex-direction: column; gap: 8px; }
+.qn-yt-sec-library.is-empty .qn-yt-hint { display: flex; }
+.qn-yt-hint li { display: flex; align-items: center; gap: 10px; font-size: var(--fs-body); color: var(--icon-muted); }
+.qn-yt-hint li b {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #1c1c24; border: 1px solid var(--border-subtle);
+  font-size: var(--fs-small); font-weight: 700; color: var(--text-bright);
+}
+.qn-yt-sec-library.is-empty .qn-yt-hint-1 { color: var(--text-bright); }
+.qn-yt-sec-library.is-empty .qn-yt-hint-1 b { background: var(--accent-primary); border-color: var(--accent-primary); color: var(--text-pure-white); }
+.qn-yt-sec-library.is-empty.has-url .qn-yt-hint-1 { color: var(--icon-muted); }
+.qn-yt-sec-library.is-empty.has-url .qn-yt-hint-1 b { background: #1c1c24; border-color: var(--border-subtle); color: var(--text-bright); }
+.qn-yt-sec-library.is-empty.has-url .qn-yt-hint-2 { color: var(--text-bright); }
+.qn-yt-sec-library.is-empty.has-url .qn-yt-hint-2 b { background: var(--accent-primary); border-color: var(--accent-primary); color: var(--text-pure-white); }
+@keyframes qn-yt-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 0%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 35%, transparent); }
+}
+.qn-yt-sec-library.is-empty:not(.has-url) .qn-yt-input[data-yt="urlInput"]:not(:focus) { border-color: var(--accent-primary); animation: qn-yt-pulse 1.8s ease-in-out infinite; }
+.qn-yt-sec-library.is-empty.has-url .qn-yt-btn.primary[data-yt="saveBtn"] { animation: qn-yt-pulse 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .qn-yt-sec-library.is-empty .qn-yt-input[data-yt="urlInput"], .qn-yt-sec-library.is-empty .qn-yt-btn.primary[data-yt="saveBtn"] { animation: none !important; }
+}

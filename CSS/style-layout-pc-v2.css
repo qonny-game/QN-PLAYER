@@ -121,11 +121,6 @@ body.pc-v2-active > .app-container {
 }
 
 
-.pcv2-icon-item[data-panel-id="seekbar"] {
-  display: none;
-}
-
-
 #pcV2IconBarSpacer {
   flex: 1;
 }
@@ -174,7 +169,11 @@ body.pc-v2-active > .app-container {
   align-items: center;
   gap: 10px;
   pointer-events: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: calc(100% - 40px);
 }
+.pcv2-wave-fab-btns { display: flex; align-items: center; gap: inherit; }
 
 
 #pcV2WaveHead {
@@ -425,24 +424,6 @@ body.pc-v2-active > .app-container {
   #pcV2BottomBar .pcv2-ctrl-group {
     flex-shrink: 0;
   }
-  #pcV2BottomBar .pcv2-ctrl-spacer {
-    min-width: 16px;
-  }
-}
-
-
-/* 【v3.15.0】PC幅が狭い時はVolume/Speed/Key/EQ(右グループ)を非表示(操作はControlパネル)。閾値: パネル展開時1340px以下、格納時960px以下(バー必要幅約883px。右カラム幅=画面幅−451px/−76px。) */
-@media screen and (min-width: 901px) and (max-width: 1340px) {
-  #pcV2Layout:not(.pcv2-collapsed) #pcV2BottomBarGroupRight,
-  #pcV2Layout:not(.pcv2-collapsed) #pcV2BottomBar > .pcv2-ctrl-spacer {
-    display: none;
-  }
-}
-@media screen and (min-width: 901px) and (max-width: 960px) {
-  #pcV2BottomBarGroupRight,
-  #pcV2BottomBar > .pcv2-ctrl-spacer {
-    display: none;
-  }
 }
 
 
@@ -496,147 +477,6 @@ body.pc-v2-active > .app-container {
   height: 24px;
   background: var(--border-subtle);
   margin: 0 10px;
-}
-
-
-#pcV2BottomBar .pcv2-ctrl-spacer {
-  flex: 1;
-}
-
-
-#pcV2BottomBar .pcv2-ctrl-divider-sp {
-  display: none;
-}
-
-
-#pcV2BottomBar .pcv2-ctrl-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  padding: 8px 7px;
-  cursor: pointer;
-  color: var(--icon-muted);
-  background: none;
-  border: none;
-  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  position: relative;
-  transition: transform var(--dur-press) var(--ease-snap);
-}
-
-
-@media (hover: hover) and (pointer: fine) {
-  #pcV2BottomBar .pcv2-ctrl-btn:hover {
-    color: var(--text-bright);
-  }
-}
-
-
-#pcV2BottomBar .pcv2-ctrl-btn:active {
-  transform: scale(0.94);
-}
-
-
-#pcV2BottomBar #pcV2BottomSpeedToggle:not(.effect-off),
-#pcV2BottomBar #pcV2BottomKeyToggle:not(.effect-off),
-#pcV2BottomBar #pcV2BottomEqToggle:not(.effect-off),
-#pcV2BottomBar #pcV2VolumeBtn.is-open,
-#pcV2BottomBar .pcv2-ctrl-btn.primary,
-#pcV2BottomBar .pcv2-ctrl-btn.active {
-  color: var(--accent-primary);
-}
-
-
-#pcV2BottomBar .pcv2-ctrl-btn svg {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
-}
-
-
-#pcV2BottomBar .pcv2-ctrl-btn.primary svg {
-  width: 26px;
-  height: 26px;
-}
-
-
-#pcV2BottomBar .pcv2-ctrl-btn span {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  display: block;
-  white-space: nowrap;
-}
-#pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn) svg { margin: 6px auto; box-sizing: content-box; }
-#pcV2BottomBar .pcv2-ctrl-btn:not(.pcv2-step-btn) { min-height: 57px; }
-
-
-#pcV2VolumePopup {
-  position: fixed;
-  bottom: auto;
-  left: 0;
-  top: 0;
-  transform: translate(-50%, -100%);
-  background: #101013;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-popup);
-  padding: 16px 12px 14px;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 56px;
-  z-index: 1000;
-  touch-action: none;
-}
-
-
-#pcV2VolumePopup.open {
-  display: flex;
-}
-
-
-#pcV2VolumePopup .pcv2-volume-slider-track {
-  position: relative;
-  width: 4px;
-  height: 90px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-}
-
-
-#pcV2VolumePopup .pcv2-volume-slider-fill {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: var(--accent-primary);
-  border-radius: 2px;
-}
-
-
-#pcV2VolumePopup .pcv2-volume-slider-thumb {
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, 50%);
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--text-pure-white);
-  cursor: pointer;
-}
-
-
-#pcV2VolumePopup .pcv2-volume-popup-icon {
-  color: var(--icon-muted);
-  display: flex;
-}
-
-
-#pcV2VolumePopup .pcv2-volume-popup-icon svg {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
 }
 
 
@@ -792,42 +632,6 @@ body.pc-v2-active #topControlsSpacer {
 }
 
 
-#pcV2BottomBar .loop-preroll-control {
-  padding: 8px 4px;
-  background: none;
-  border: none;
-  box-shadow: none;
-  gap: 0;
-}
-
-
-#pcV2BottomBar .loop-preroll-btn {
-  width: 20px;
-  height: 20px;
-  color: var(--icon-muted);
-  font-size: 13px;
-}
-
-
-#pcV2BottomBar .loop-preroll-btn:hover {
-  background: none;
-  color: var(--text-bright);
-}
-
-
-#pcV2BottomBar .loop-preroll-value {
-  min-width: 16px;
-  font-size: 22px;
-  font-weight: 400;
-  color: var(--icon-muted);
-}
-
-
-#pcV2BottomBar .loop-preroll-control.is-active .loop-preroll-value {
-  color: var(--accent-primary, #3b82f6);
-}
-
-
 body.pc-v2-active #appHeader {
   height: 52px;
   border-bottom: 1px solid var(--border-subtle);
@@ -862,112 +666,6 @@ body.pc-v2-active #qnMenuMount {
 }
 
 
-#pcV2HeaderNav {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-
-.pcv2-header-nav-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  color: var(--icon-muted);
-  cursor: pointer;
-  padding: 0;
-  background: none;
-  border: none;
-  border-radius: var(--radius-pill);
-  transition: color 120ms ease, background 120ms ease;
-}
-
-
-.pcv2-header-nav-trigger:hover,
-#pcV2HeaderNav.open .pcv2-header-nav-trigger {
-  color: var(--text-bright);
-  background: var(--bg-hover-subtle);
-}
-
-
-.pcv2-header-nav-trigger svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
-  transition: transform 120ms ease;
-}
-
-
-#pcV2HeaderNav.open .pcv2-header-nav-trigger svg {
-  transform: rotate(180deg);
-}
-
-
-.pcv2-header-nav-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  background: #101013;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-popup);
-  padding: 8px;
-  min-width: 320px;
-  max-width: 360px;
-  display: none;
-  flex-direction: column;
-  z-index: 300;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-}
-
-
-#pcV2HeaderNav.open .pcv2-header-nav-dropdown {
-  display: flex;
-}
-
-
-.pcv2-header-nav-link {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: var(--radius-field);
-  text-decoration: none;
-}
-
-
-.pcv2-header-nav-link:hover {
-  background: var(--bg-hover-subtle);
-}
-
-
-.pcv2-header-nav-link-name {
-  font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  color: var(--text-bright);
-  flex-shrink: 0;
-}
-
-
-.pcv2-header-nav-link-name-qn {
-  color: var(--accent-primary);
-}
-
-
-.pcv2-header-nav-link-desc {
-  font-family: var(--font-body, 'Instrument Sans'), sans-serif;
-  font-size: 11px;
-  color: var(--icon-muted);
-  text-align: right;
-  flex: 1;
-  white-space: normal;
-  word-break: break-word;
-}
-
-
 #pcV2WaveArea #topControls {
   margin-top: 4px;
 }
@@ -980,3 +678,67 @@ body.pc-v2-active #qnMenuMount {
 }
 
 
+
+
+/* ---------- 【v3.59.0】PC幅: 下部コントロールをゆったり(ボタン幅・クリック領域を拡大)、波形エリアの中央揃え、再生系とマーカー系の間を広げ、右にVolume/Speed/Key ---------- */
+@media screen and (min-width: 901px) {
+  #pcV2BottomBar { padding: 12px 24px; }
+  /* auto marginなら、幅が足りない時は左端から横スクロール(左が切れない) */
+  #pcV2BottomBar #topControls { margin: 0 auto; flex-shrink: 0; }
+  #pcV2BottomBar .tripleNavBtn-third,
+  #pcV2BottomBar .loopbtn {
+    padding: 10px 16px;
+    min-width: 68px;
+    min-height: 64px;
+    border-radius: 10px;
+  }
+  #pcV2BottomBar .tripleNavBtn-third:hover,
+  #pcV2BottomBar .loopbtn:hover { background: rgba(255, 255, 255, 0.05); }
+  #pcV2BottomBar .tripleNavBtn-center { min-width: 76px; }
+  #pcV2BottomBar .tripleNavBtn-third:not(.tripleNavBtn-center) svg, #pcV2BottomBar .loopbtn svg { width: 22px; height: 22px; }
+  #pcV2BottomBar .pcv2-ctrl-divider { margin: 0 28px; height: 32px; }
+
+  /* Volume / Speed / Key */
+  #pcV2BottomBar #pcV2BarMixer { gap: 20px; align-items: center; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item { display: flex; flex-direction: column; gap: 6px; width: 112px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-label { font-size: 11px; color: var(--icon-muted); user-select: none; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item[data-mix="speed"] .pcv2-mix-label,
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-key .pcv2-mix-label,
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item[data-mix="speed"] .pcv2-mix-val,
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-keyval { cursor: pointer; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-val { font-size: 12px; color: var(--text-bright, #fff); font-variant-numeric: tabular-nums; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-range { width: 100%; height: 28px; margin: 0; cursor: pointer; accent-color: var(--accent-primary, #3b82f6); }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-key { width: 104px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item[data-mix="vol"] { width: 144px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-volrow { display: flex; align-items: center; gap: 6px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-mute { flex: 0 0 auto; width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; border-radius: 8px; background: none; color: var(--icon-muted); cursor: pointer; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-mute:hover { color: var(--text-bright, #fff); background: rgba(255, 255, 255, 0.06); }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-mute svg { width: 20px; height: 20px; fill: currentColor; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-mute .pcv2-mix-ico-off, #pcV2BottomBar #pcV2BarMixer .pcv2-mix-mute.is-muted .pcv2-mix-ico-on { display: none; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-mute.is-muted .pcv2-mix-ico-off { display: block; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-mute.is-muted { color: var(--accent-primary, #3b82f6); }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-keyrow { display: flex; align-items: center; justify-content: space-between; height: 28px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-keyval { min-width: 32px; text-align: center; font-size: 14px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-btn {
+    width: 32px; height: 28px; padding: 0;
+    border: 1px solid var(--border-subtle); border-radius: 8px;
+    background: none; color: var(--icon-muted); font-size: 16px; line-height: 1; cursor: pointer;
+  }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-btn:hover { color: var(--text-bright, #fff); background: rgba(255, 255, 255, 0.06); }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-btn:active { transform: scale(0.94); }
+}
+
+/* 狭いPC幅(サイドパネル表示中の1280px等): 余白を詰めて全部が収まるように。それでも足りない時は横スクロール */
+@media screen and (min-width: 901px) and (max-width: 1600px) {
+  #pcV2BottomBar { padding: 10px 12px; }
+  #pcV2BottomBar .tripleNavBtn-third,
+  #pcV2BottomBar .loopbtn { padding: 8px 6px; min-width: 48px; }
+  #pcV2BottomBar .tripleNavBtn-center { min-width: 60px; }
+  #pcV2BottomBar .pcv2-ctrl-divider { margin: 0 12px; }
+  #pcV2BottomBar #pcV2BarMixer { gap: 10px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item { width: 76px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-key { width: 92px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item[data-mix="vol"] { width: 116px; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-btn { width: 28px; }
+}

@@ -4,7 +4,7 @@ QN-PLAYER（QNシリーズのブラウザ完結型MP3プレイヤー）の設計
 修正依頼の前に該当節を見て、同じ調査・同じ失敗を繰り返さないようにする。
 
 **関連ファイル（`md/`）：** `QUICK_START.md`（最初に読む）／`GOTCHAS.md`（落とし穴）／`PC_V2_FILE_INDEX.md`（大きいファイルの目次）／
-`YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約ルール。最優先）／`TUNER_APP.md`（TUNERアプリの仕様）／`PITCH_APP.md`（PITCHアプリの仕様）／`DOM_ID_REFERENCE.md`／`UI_TERMINOLOGY.md`／`CHANGELOG.md`
+`YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約ルール。最優先）／`TUNER_APP.md`（TUNERアプリの仕様）／`PITCH_APP.md`（PITCHアプリの仕様）／`DOM_ID_REFERENCE.md`／`UI_TERMINOLOGY.md`／`CLEANUP.md`（お掃除ルール）／`CHANGELOG.md`
 
 ---
 
@@ -15,6 +15,7 @@ index.html                    HTML骨格・モーダル類・<script>/<link>の�
 JS/
   player-shareware.js         無料版の機能制限・アンロック（SW_LIMITS / isUnlocked()）
   qn-marker-core.js           PLAYERとYouTube共通の「区間・ループ・前後マーカー」判定（QNMarkerCore。秒数だけを扱う純粋関数）
+  player-bars.js              シークバー(QNBars)：1本=5〜60秒の行を曲末まで縦に並べる仮想スクロール、波形描画、再生位置追従、歯車/秒数ポップアップ
   player-core.js              中核の状態（audio, pins, playlist）、IndexedDB(qnaudio_playlist_db)、beginSeek()、hexToRgba()
   player-ui-shared.js         loadFile / updateBars（毎フレームのループ判定）/ togglePlay / キーボードショートカット
   player-id3.js               ID3v2タグ（Title/Artist）
@@ -28,7 +29,7 @@ JS/
   player-text.js              Textタブ
   player-ui-pc-v2.js          【最大】唯一のUI実装。DOM組み立て・パネル・下段バー・波形（IIFE）。目次はPC_V2_FILE_INDEX.md
   qn-wakelock.js              再生中の画面スリープ防止 QNWake.set(key,on)
-  qn-apps.js                  アプリ枠：バッジ(＞)・フライアウト・#qnAppHost・Colorパネル借用・QNApps.register()
+  qn-apps.js                  アプリ枠：ヘッダーのロゴ切替・フライアウト・#qnAppHost・Colorパネル借用・QNApps.register()
   qn-app-youtube.js           YouTubeアプリ本体（IIFE）
   qn-pitch-core.js            TUNER/PITCH共通：マイク入力・ピッチ検出(自己相関)・音名変換（QNPitchCore。DOM操作なし）
   qn-app-tuner.js             TUNERアプリ本体（IIFE。Mic Tuner/Tone Generator/Sensitivity/Display）
@@ -44,7 +45,8 @@ CSS/
   style-layout-pc-v2.css      PC v2のシェル（アイコンバー・波形エリア・下段バー・3カラムgrid）…PC幅
   style-layout-pc-v2-sp.css   上の続き：SP幅(≤900px)の縦積み組み替え＋下段バーの追記
   style-pcv2-panels.css       中央パネル(#pcV2PanelBody)の中身
-  style-apps.css              アプリ枠（バッジ・フライアウト・トースト・#qnAppHost）
+  style-bars.css              シークバー行(#vbarScroll/#vbarRows/.vbar)・歯車・秒数ポップアップ。寸法は#vbarContainerの--qn-bar-*
+  style-apps.css              アプリ枠（ロゴ切替・フライアウト・トースト・#qnAppHost）
   style-youtube.css           YouTubeアプリ専用（.qn-yt*）
   style-tuner.css             TUNERアプリ専用（.qn-tn*）
   style-pitch.css             PITCHアプリ専用（.qn-pt*）
@@ -52,8 +54,8 @@ favicon/  md/  pricing*.html  QUICK_START.md
 ```
 
 **読み込み順（`index.html`）。順序で上書きが決まる／グローバルでつながるので変えない：**
-- CSS：core → playlist → markers → control-eq → controls → export → text → layout-sp → layout-pc-v2 → **layout-pc-v2-sp** → pcv2-panels → auth → shareware → theme → apps → **youtube** → tuner → pitch
-- JS：jszip → lame → player-shareware → qn-marker-core → player-core → player-ui-shared → player-id3 → player-playlist → player-track-backup → player-markers → **player-marker-presets** → player-control-eq → player-controls → player-export → player-text → player-ui-pc-v2 → qn-wakelock → qn-apps → qn-app-youtube → qn-pitch-core → qn-app-tuner → qn-pitch-filters → qn-app-pitch → player-theme → player-auth(module)
+- CSS：core → playlist → markers → control-eq → controls → export → text → layout-sp → layout-pc-v2 → **layout-pc-v2-sp** → pcv2-panels → **bars** → auth → shareware → theme → apps → **youtube** → tuner → pitch
+- JS：jszip → lame → player-shareware → qn-marker-core → player-core → **player-bars** → player-ui-shared → player-id3 → player-playlist → player-track-backup → player-markers → **player-marker-presets** → player-control-eq → player-controls → player-export → player-text → player-ui-pc-v2 → qn-wakelock → qn-apps → qn-app-youtube → qn-pitch-core → qn-app-tuner → qn-pitch-filters → qn-app-pitch → player-theme → player-auth(module)
 
 新しい関数を他ファイルから使う時は「呼ぶ側より前に定義されているか」を確認する。共通ヘルパーは`player-core.js`が定位置。
 `player-ui-pc-v2.js`と`qn-app-youtube.js`は、それぞれ1つのIIFEの中で多数の変数を共有している。**ファイル分割はしない**（変数の持ち方から作り直しになるため）。
@@ -84,6 +86,16 @@ favicon/  md/  pricing*.html  QUICK_START.md
 | テキストメモ | localStorage | `mp3_text_<ファイル名>` |
 | ループ設定 | localStorage | `mp3player_loop_mode` / `mp3player_loop_enabled` / `mp3player_loop_preroll_seconds`（0〜5秒）／`mp3player_repeat_mode` |
 | マーカーメモのプリセット色／カスタムプリセット | localStorage | `qn_marker_preset_colors_v1`（`{名前:色キー|null}`、初期値`MARKER_PRESET_COLOR_DEFAULTS`）／`qn_marker_custom_presets_v1`（`[{label,color}]`最大30）。PLAYERとYouTubeで共用（`getAllMarkerPresetLabels()`） |
+| シークバー1本の秒数 | localStorage | `qn_bar_sec`（5/10/15/30/60、既定5） |
+| シークバー追従ON/OFF | localStorage | `qn_bar_follow`（"0"でOFF、既定ON） |
+| 波形の形 | localStorage | `qn_bar_wave`（`mirror`既定\|`bottom`） |
+| 手動スクロール後の追従停止秒数 | localStorage | `qn_bar_follow_pause`（1〜30、既定6） |
+| シークバーの1画面の本数 | localStorage | `qn_bar_rows`（0=自動/3/4/5/6/8、既定0） |
+| 送り戻しボタンの秒数 | localStorage | `qn_skip_sec`（5/10/15/30/60、既定10） |
+| 表示言語 | localStorage | `qn_lang`（`auto`既定\|`ja`\|`en`。autoはブラウザ言語がjaなら日本語）。`JS/qn-i18n.js` |
+| 速度±ボタンの刻み(%) | localStorage | `qn_speed_step_pct`（1/2/5/10、既定5） |
+| YouTubeの送り戻し秒数 | localStorage | `qn_yt_skip_sec`（5/10/15/30/60、既定10） |
+| SPの下段バー(More)の開閉 | localStorage | `qn_sp_more`（"1"で開く、既定は閉） |
 | パネル格納／最後のアプリ | localStorage | `qn_panel_collapsed`（PLAYER）／`qn_yt_panel_collapsed`／`qn_last_app` |
 | TUNER | localStorage | `qn_tuner_display` `qn_tuner_sens` `qn_tuner_smooth` `qn_tuner_panel_collapsed`（詳細は`TUNER_APP.md`） |
 | PITCH | localStorage／IndexedDB | `qn_pitch_filters` `qn_pitch_rec_meta`(録音の改名) `qn_pitch_panel_collapsed`／IndexedDB `qn_pitch_db`(録音実体。レコードは再putしない)（詳細は`PITCH_APP.md`） |
@@ -131,7 +143,7 @@ favicon/  md/  pricing*.html  QUICK_START.md
 - 例外：下段バー（文字入り・大きめ）、アイコンバーのラベル、ロゴ・スプラッシュ、波形上のマーカーラベル、テキストのフルスクリーン、料金モーダルの大見出し、2〜4pxの細部。
 - テーマ色（`--accent-primary`）：フローティングボタン(`.panel-fab-btn`)の背景とパネル見出しの文字。EDIT中(OK)は「白地＋テーマ色の文字」に反転。Deleteは常に赤（`--danger`）。
 - アイコンSVGは`fill: currentColor`。状態を持つ下段バーのボタンは「通常＝`--icon-muted`、ON＝`--accent-primary`」。ホバーの明色化はマウス環境限定。
-- シークバー(`#pcV2WaveArea .vbar`)の高さは固定値・vhで指定しない（`#vbarContainer`の残り高さを6本で等分。再描画はResizeObserver）。
+- シークバーの行(`.vbar`)の寸法は`#vbarContainer`の`--qn-bar-h/-gap/-label-w`等（style-bars.css）が唯一の元。行は固定高さで、曲の長さ÷秒数ぶん縦に並ぶ（`#vbarScroll`がスクロール）。
 
 ---
 
@@ -139,7 +151,7 @@ favicon/  md/  pricing*.html  QUICK_START.md
 
 `QNApps.register({id,label,icon,order,ready,sidebar,onSidebar,shortcuts,shortcutsNote,mount,onShow,onHide})`（`qn-apps.js`冒頭にコメントあり）で足す。共通部品：`QNApps.renderShortcuts(hostEl,id)` / `setSideActive` / `toast` / Colorパネル借用。
 
-- **サイドバー**：上段＝アプリ固有項目、下段＝Backup / Import / Keyboard / Color（本体と同じ並び）。アプリ切替はサイドバー先頭のバッジ`#qnAppBadge`(＞)のフライアウトから。
+- **サイドバー**：上段＝アプリ固有項目、下段＝Backup / Import / Keyboard / Color（本体と同じ並び）。アプリ切替はヘッダーのロゴ`#qnAppLogoBtn`(V付き)のドロップダウンから。
 - **Color**：アプリ側で別実装しない。`qn-apps.js`が本体のテーマ切替セクションを`#qnColorPop`へ借りて表示し、閉じたら戻す。
 - **Backup/Import/Keyboard**：本体の部品を借りる（`qnBackupMountInto`、`renderShortcuts`）。アプリ側はデータの出し入れ（YouTubeは`window.QNYouTubeBackup`）やショートカット一覧を渡すだけ。
 - **PLAYERと同じ部品・同じ操作**：リスト行・EDIT→OK・丸チェック削除・カラーパレット・プリセットチップ・シークバー(`.vbar`/`.vfill`)は本体のクラスを流用。本体CSSが`#pcV2PanelBody`スコープなら、アプリ側に同等ルールを写す。

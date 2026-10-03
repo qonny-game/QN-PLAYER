@@ -28,14 +28,15 @@ async function decodeWaveform(file, token) {
   try {
     const arrayBuffer = await file.arrayBuffer();
     if (token !== waveformDecodeToken) return;
-    // 【v2.13.4 負荷対策】共有AudioContext(getAudioCtx)でデコードしない(通常再生でWeb Audioが常駐しiOS Safariで問題)。波形は4000ピークしか使わないので低サンプルレートのOfflineAudioContextでデコードしメモリを約1/5に
+    // 【v2.13.4 負荷対策】共有AudioContext(getAudioCtx)でデコードしない(通常再生でWeb Audioが常駐しiOS Safariで問題)。波形は低解像度で足りるので低サンプルレートのOfflineAudioContextでデコードしメモリを約1/5に
     const audioBuffer = await decodeForWaveform(arrayBuffer);
 
     if (token !== waveformDecodeToken) return;
 
     const channelCount = audioBuffer.numberOfChannels;
     const rawLength = audioBuffer.length;
-    const samples = 4000;
+    // 【v3.58.0】5秒1本でも滑らかに見えるよう毎秒160ピーク(下限4000・上限480000=約50分)。QNBarsが1本あたりの区間で最大値を取って間引く
+    const samples = Math.max(4000, Math.min(480000, Math.round(audioBuffer.duration * 160)));
     const blockSize = Math.max(1, Math.floor(rawLength / samples));
     const peaks = new Float32Array(samples);
 
@@ -77,49 +78,12 @@ async function decodeWaveform(file, token) {
   }
 }
 
+// 実描画はQNBars(player-bars.js)。ここは「波形/長さが確定した」合図で、行の作り直し+再描画を依頼する
 function drawWaveform() {
   if (!waveformPeaks || !audio.duration) return;
   window.__qnWaveformDrawCount = (window.__qnWaveformDrawCount || 0) + 1;
-  const dur = audio.duration;
-  const { s1, s2, s3, s4, s5 } = getSegments(dur);
-  const bounds = [0, s1, s2, s3, s4, s5, dur];
-
-  for (let row = 0; row < 6; row++) {
-    const canvas = document.getElementById(`wave${row + 1}`);
-    const bar = document.getElementById(`bar${row + 1}`);
-    if (!canvas || !bar) continue;
-
-    const rect = bar.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const w = Math.max(1, Math.floor(rect.width * dpr));
-    const h = Math.max(1, Math.floor(rect.height * dpr));
-    if (canvas.width !== w) canvas.width = w;
-    if (canvas.height !== h) canvas.height = h;
-
-    const ctx2d = canvas.getContext("2d");
-    ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-
-    const rowStart = bounds[row];
-    const rowEnd = bounds[row + 1];
-    const totalSamples = waveformPeaks.length;
-
-    const startIdx = Math.floor((rowStart / dur) * totalSamples);
-    const endIdx = Math.max(startIdx + 1, Math.floor((rowEnd / dur) * totalSamples));
-    const sliceCount = endIdx - startIdx;
-    if (sliceCount <= 0) continue;
-
-    const barGap = 1 * dpr;
-    const barWidth = Math.max(1, canvas.width / sliceCount - barGap);
-
-    ctx2d.fillStyle = "rgba(255, 255, 255, 0.16)";
-
-    for (let i = 0; i < sliceCount; i++) {
-      const peak = waveformPeaks[startIdx + i] || 0;
-      const barHeight = Math.max(2 * dpr, peak * canvas.height * 0.85);
-      const x = i * (canvas.width / sliceCount);
-      ctx2d.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-    }
-  }
+  QNBars.sync();
+  QNBars.draw(true);
 }
 
 window.addEventListener("resize", () => {
@@ -223,6 +187,8 @@ function loadFile(file) {
 
   audio.onloadedmetadata = () => {
     prevTime = audio.currentTime;
+    QNBars.sync();
+    QNBars.onTrackLoaded();
     drawWaveform();
 
     renderPins();
@@ -248,8 +214,9 @@ function updatePlayButtonState() {
 
   if (!audio.paused) {
     playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
-    playBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
-    playBtn.style.boxShadow = "0 6px 20px rgba(16, 185, 129, 0.4)";
+    // v3.54.0: 再生中も停止中と同じ色(緑のグラデにしない)
+    playBtn.style.background = "";
+    playBtn.style.boxShadow = "";
   } else {
     playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
     playBtn.style.background = "";
@@ -509,17 +476,13 @@ document.addEventListener("keydown", e => {
 
 
 
-// updateBarsは毎フレーム呼ばれる: 配列/DOM参照は使い回す(GC抑制)。時刻・.vbar-fillの見た目はUPDATE_BARS_VISUAL_INTERVAL_MSで間引く。マーカー区間ループの折り返し判定は精度のため間引かず毎フレーム
-const updateBarsFillEls = [1, 2, 3, 4, 5, 6].map(i => document.getElementById(`fill${i}`));
+// updateBarsは毎フレーム呼ばれる: 配列/DOM参照は使い回す(GC抑制)。時刻表示はUPDATE_BARS_VISUAL_INTERVAL_MSで間引く。マーカー区間ループの折り返し判定は精度のため間引かず毎フレーム
 const updateBarsCurrentValEl = document.getElementById("currentTimeVal");
 const updateBarsDurationValEl = document.getElementById("durationVal");
-const updateBarsP = [0, 0, 0, 0, 0, 0];
-const updateBarsThresholds = [0, 0, 0, 0, 0, 0, 0];
 const UPDATE_BARS_VISUAL_INTERVAL_MS = 100;
 let lastVisualUpdateTime = 0;
 let lastCurrentTimeText = null;
 let lastDurationText = null;
-const updateBarsLastP = [-1, -1, -1, -1, -1, -1];
 
 function updateBars() {
   requestAnimationFrame(updateBars);
@@ -542,33 +505,6 @@ function updateBars() {
       if (durText !== lastDurationText) {
         updateBarsDurationValEl.textContent = durText;
         lastDurationText = durText;
-      }
-    }
-
-    const step = dur / 6;
-    updateBarsThresholds[0] = 0;
-    updateBarsThresholds[1] = step;
-    updateBarsThresholds[2] = step * 2;
-    updateBarsThresholds[3] = step * 3;
-    updateBarsThresholds[4] = step * 4;
-    updateBarsThresholds[5] = step * 5;
-    updateBarsThresholds[6] = dur;
-
-    for (let i = 0; i < 6; i++) {
-      if (ct >= updateBarsThresholds[i + 1]) {
-        updateBarsP[i] = 100;
-      } else if (ct > updateBarsThresholds[i]) {
-        updateBarsP[i] = ((ct - updateBarsThresholds[i]) / (updateBarsThresholds[i + 1] - updateBarsThresholds[i])) * 100;
-        break;
-      } else {
-        updateBarsP[i] = 0;
-      }
-    }
-
-    for (let i = 0; i < 6; i++) {
-      if (updateBarsFillEls[i] && updateBarsP[i] !== updateBarsLastP[i]) {
-        updateBarsFillEls[i].style.width = updateBarsP[i] + "%";
-        updateBarsLastP[i] = updateBarsP[i];
       }
     }
   }
@@ -627,6 +563,29 @@ function updateBars() {
     }
   }
 
+  // 【v3.46.0】スキップ区間: 再生が自然にスキップ開始マーカーを跨いだ時だけ、次の(スキップでない)マーカーへ飛ぶ。ループ中・シーク中・ジャンプ中は対象外(ユーザーがタップして入った区間はそのまま再生される)
+  if (!loopEnabled && !isSeeking && !isJumping && !audio.paused && typeof getSkipRanges === "function") {
+    const cur = audio.currentTime;
+    if (cur > prevTime && cur - prevTime < 0.5) {
+      const ranges = getSkipRanges();
+      let target = -1;
+      for (let k = 0; k < ranges.length; k++) {
+        if (prevTime < ranges[k].start && cur >= ranges[k].start && cur < ranges[k].end) { target = ranges[k].end; break; }
+      }
+      if (target >= 0) {
+        // 連続するスキップ区間(終点が次のスキップの始点)は続けて飛ぶ
+        let moved = true;
+        while (moved) { moved = false; for (let k = 0; k < ranges.length; k++) if (Math.abs(ranges[k].start - target) < 0.001) { target = ranges[k].end; moved = true; } }
+        audio.currentTime = target;
+        prevTime = target;
+        isJumping = true;
+        renderSegments();
+        setTimeout(() => { isJumping = false; }, 200);
+        return;
+      }
+    }
+  }
+
   prevTime = audio.currentTime;
 }
 
@@ -666,37 +625,108 @@ function abLeaveIfOutside(t) {
   else { loopEnabled = false; if (typeof applyLoopButtonUI === "function") applyLoopButtonUI(); }
 }
 
-function calcTimeFromBarPosition(bar, barIndex, clientX) {
-  const rect = bar.getBoundingClientRect();
-  const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  const dur = audio.duration;
-  const { s1, s2, s3, s4, s5 } = getSegments(dur);
-  const boundaries = [0, s1, s2, s3, s4, s5, dur];
-  return boundaries[barIndex] + ratio * (boundaries[barIndex + 1] - boundaries[barIndex]);
-}
+// 行(.vbar)のタップでシーク。行は仮想スクロールで作り直されるので、親(#vbarRows)で受ける(委譲)
+document.getElementById("vbarRows").addEventListener("click", e => {
+  const bar = e.target.closest ? e.target.closest(".vbar") : null;
+  if (!bar || !audio.duration) return;
+  if (typeof lastPinTapAt !== "undefined" && Date.now() - lastPinTapAt < 400) return;
 
-document.querySelectorAll(".vbar").forEach((bar, index) => {
-  bar.addEventListener("click", e => {
-    if (typeof lastPinTapAt !== "undefined" && Date.now() - lastPinTapAt < 400) return;
-    beginSeek();
+  const clickedTime = QNBars.timeInRow(bar, parseInt(bar.dataset.row, 10), e.clientX);
+  if (clickedTime === null) return;
+  beginSeek();
+  abLeaveIfOutside(clickedTime);
 
-    const clickedTime = calcTimeFromBarPosition(bar, index, e.clientX);
-    abLeaveIfOutside(clickedTime);
+  audio.currentTime = clickedTime;
+  prevTime = clickedTime;
 
-    audio.currentTime = clickedTime;
-    prevTime = clickedTime;
+  renderSegments(getActiveSegment(clickedTime));
+  audio.play();
+  updatePlayButtonState();
 
-    renderSegments(getActiveSegment(clickedTime));
-    audio.play();
-    updatePlayButtonState();
+  setTimeout(() => {
+    isSeeking = false;
+  }, 150);
 
-    setTimeout(() => {
-      isSeeking = false;
-    }, 150);
-
-    if (typeof showPinPopup === "function") showPinPopup(clickedTime, bar, e.clientX, null);
-  });
+  if (typeof showPinPopup === "function") showPinPopup(clickedTime, bar, e.clientX, null);
 });
+
+
+// 【v3.45.0】波形のジェスチャー(タップ=従来どおりシーク+再生)
+//  長押し(0.5秒): その位置にマーカー追加 / 横スワイプ: 再生位置をスクラブ(行の幅=バー長の秒数) / ダブルタップ(再生中): その位置で停止
+//  マーカーの線・A/B旗の上から始めた操作は対象外(それぞれ独自のドラッグ/タップ)。#vbarRowsはCSSでtouch-action:pan-y(横方向はこちらで処理)
+(function () {
+  const rowsEl = document.getElementById("vbarRows");
+  if (!rowsEl) return;
+  const LONG_MS = 500, MOVE_PX = 10, DBL_MS = 320, DBL_PX = 36;
+  let g = null, suppressUntil = 0, lastTap = { at: 0, x: 0, y: 0 };
+
+  function clearTimer() { if (g && g.timer) { clearTimeout(g.timer); g.timer = 0; } }
+
+  rowsEl.addEventListener("pointerdown", e => {
+    if (!audio.duration || (e.pointerType === "mouse" && e.button !== 0)) return;
+    if (e.target.closest && e.target.closest(".vbar-line, .vbar-label, .vbar-ab-pt")) return;
+    const bar = e.target.closest ? e.target.closest(".vbar") : null;
+    if (!bar) return;
+    g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, bar: bar, mode: null, startT: audio.currentTime, timer: 0, touch: e.pointerType !== "mouse" };
+    g.timer = setTimeout(() => {
+      if (!g || g.mode) return;
+      g.mode = "long";
+      const t = QNBars.timeInRow(g.bar, parseInt(g.bar.dataset.row, 10), g.x0);
+      suppressUntil = Date.now() + 700;
+      if (t !== null && typeof addPinAt === "function") addPinAt(t);
+    }, LONG_MS);
+  });
+
+  rowsEl.addEventListener("pointermove", e => {
+    if (!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if (!g.mode) {
+      if (Math.abs(dx) < MOVE_PX && Math.abs(dy) < MOVE_PX) return;
+      clearTimer();
+      if (g.touch && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        g.mode = "scrub";
+        g.startT = audio.currentTime;
+        try { rowsEl.setPointerCapture(e.pointerId); } catch (err) {}
+        beginSeek();
+        if (typeof hidePinPopup === "function") hidePinPopup();
+      } else { g.mode = "other"; return; }
+    }
+    if (g.mode === "scrub") {
+      const w = g.bar.getBoundingClientRect().width || 1;
+      const t = Math.max(0, Math.min(audio.duration, g.startT + dx / w * QNBars.getSec()));
+      audio.currentTime = t;
+      prevTime = t;
+    }
+  });
+
+  function end(e) {
+    if (!g || e.pointerId !== g.id) return;
+    clearTimer();
+    if (g.mode === "scrub") {
+      suppressUntil = Date.now() + 400;
+      setTimeout(() => { isSeeking = false; }, 150);
+    }
+    g = null;
+  }
+  rowsEl.addEventListener("pointerup", end);
+  rowsEl.addEventListener("pointercancel", end);
+
+  // 長押し/スクラブ直後のclickは無効化。ダブルタップ(2回目)は再生中ならその位置で停止して通常のシーク+再生を止める(captureで先に受ける)
+  rowsEl.addEventListener("click", e => {
+    if (Date.now() < suppressUntil) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+    const now = Date.now();
+    const dbl = now - lastTap.at < DBL_MS && Math.abs(e.clientX - lastTap.x) < DBL_PX && Math.abs(e.clientY - lastTap.y) < DBL_PX;
+    lastTap = { at: now, x: e.clientX, y: e.clientY };
+    if (dbl && !audio.paused) {
+      e.stopImmediatePropagation();
+      lastTap.at = 0;
+      if (typeof hidePinPopup === "function") hidePinPopup();
+      if (typeof hapticTap === "function") hapticTap();
+      audio.pause();
+      updatePlayButtonState();
+    }
+  }, true);
+})();
 
 
 

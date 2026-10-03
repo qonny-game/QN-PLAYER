@@ -33,3 +33,40 @@
 - 3.33.1 スワイプ判定を緩和、タイトルEnter確定でアーティスト入力へ移行、SPは行の編集/HIDEアイコン非表示、マーカー行・再生中の曲の左余白をタイトルに合わせ。
 - 3.34.0 MP3埋め込みジャケット(ID3 APIC)をライブラリ行・Now Playing行のサムネに表示(端末内メモリのみ、保存・同期なし)。
 - 3.35.0 スワイプ後ボタンが2回押し必要だった不具合を修正、プリセットポップアップが入力欄に被らないよう配置を修正、PLマーカー行にA/Bボタン追加、A/Bをブロック型デザインに変更(PL/YT共通)。
+- 3.36.0 シークバーを可変長に変更。1本=5/10/15/30/60秒(波形エリア右上の歯車で切替、`qn_bar_sec`、既定5秒)で曲末まで縦に並べ、縦スクロール(見えている行だけ描画する仮想スクロール)。行の左に開始時刻。再生中は再生行が見える位置へ自動スクロール(手動スクロール後6秒、再生/シークで再開)。新規JS/player-bars.js・CSS/style-bars.css。波形ピークは毎秒40個に細分化。
+- 3.37.0 シークバー改良。波形を隙間なしの連続描画に変更(点を約1.5px間隔に細分化)。時刻表示(現在/全体)を波形ヘッダーの歯車の左へ移動(PC/SP共通、`#pcV2TimeRow`は常時非表示)。歯車は設定パネル(Settings)を開く: バー長、追従ON/OFF(`qn_bar_follow`)、手動スクロール後の追従停止秒数(`qn_bar_follow_pause`、1〜30、既定6)、ループのプリロード秒(下部バーから移設)、速度±ボタンの刻み(`qn_speed_step_pct`、1/2/5/10%、既定5)、Backup/Import/Transfer(サイドバーから移設、サイドバーのPLAYER側は削除)。
+- 3.38.0 Libraryの「NEXT: FOLDER/ALL」ボタンを撤去し設定パネルへ移設(Library repeat range: Folder/All)。送り戻しボタンの秒数を設定で5/10/15/30/60に変更可(`qn_skip_sec`、既定10、ボタンのラベル/タイトルも連動)。Clear ABボタン撤去。波形エリア右下のMARKERの右に再生/停止ボタン(`#pcV2WaveFabPlayBtn`)を追加。多言語化の引き継ぎメモ `md/I18N_HANDOFF.md` 追加。
+- 3.39.0 シークバーの「1画面の本数」を設定で変更可(Bars on screen: Auto/3/4/5/6/8、`qn_bar_rows`、画面の高さにN本ちょうど収まるようバー高と行間を自動計算)。YouTubeアプリを開いた時、SP幅でも初回からLibraryパネルを開く(閉じた後はその状態を保つ)。YouTubeのLibraryが0件の間、URL貼り付け→Saveの2ステップ案内を表示しURL入力欄を強調(URL入力後はSaveを強調)。
+- 3.40.0 ボタンの角丸を整理。中途半端な角丸(6〜14px)のボタン/ボタン群(設定パネルの選択肢・ステッパー・Backup類、プリロード、Loop系、タブ、速度ステッパー、三連ボタンの端など)を四角(0)に変更。円・ピル型のボタンはそのまま。入力欄・ポップアップは対象外。
+- 3.41.0 設定の再編。アイコンバー最下段(PC=Colorの下、SP=バー右端)に「Settings」ボタンを追加(波形ヘッダーの歯車と同じ設定パネルを開く。SPは上下に設定アイコン)。波形ヘッダーの歯車はSP幅で大きく(40px)。Backup/Import/Color/Keyboardは設定パネル内の「More」リストから下層ビューとして開き、ヘッダーの戻るボタンで設定に戻る(下層表示中もアイコンバーはSettingsが点灯)。PLAYER表示中はアイコンバーのKeyboard/Colorを非表示(CSS)。YouTube等のアプリ表示中はqn-apps.jsがColorボタンを使うためDOMとして残す。
+- 3.42.0 全アプリ(YouTube/PITCH/TUNER)の設定を統一。アプリ表示中もサイドバー最下段は「Settings」のみ(アプリ側のBackup/Import/Keyboardサイドバー項目は撤去、Colorボタンも非表示)。Settingsを押すと`#qnColorPop`(qn-apps.js)が「Settings」一覧(Backup/Import/Color/Keyboard/Transfer)になり、項目から下層ビュー(戻るボタン付き)を開く。Backup/Importは本体共通画面(`qnBackupMountInto`)、Keyboardは`QNApps.renderShortcuts`、Colorは本体のテーマセクションを借りて、閉じる/戻る時に返す。各アプリ内の旧backup/import/keyboardセクションは未使用のまま残置。
+- 3.43.0 設定パネルのデザイン統一。複数選択肢の項目(バー長/本数/追従停止秒/プリロード/スキップ秒/Library範囲/速度刻み)は全て「‹ 値 ›」の同一部品`.qn-stepper`に統一(端で矢印が薄くなる)。ルール: 行高56px・操作部高40px・枠1px・背景#1c1c24・角丸0(ON/OFFスイッチのみピル)・階層に入る行は右に›。項目の定義は`SETTING_DEFS`(player-ui-pc-v2.js)に集約。`#loopPreRollControl`のマークアップを`.qn-stepper`系に変更し、旧`.loop-preroll-*`のCSSを削除。
+- 3.44.0 設定UIを共通化。部品=JS/qn-settings-ui.js(QNSettingsUI.build/list/backButton)、CSS=CSS/style-settings.css(style-bars.cssから移動)。PLAYER設定とアプリのSettingsが同じ部品で、アプリは`register({settings})`で固有の行を足す。YouTubeはSkip buttons(5/10/15/30/60、qn_yt_skip_sec)とLoop pre/post-rollを設定へ移設(バー内のプリロール撤去、J/Lも同秒数)。MOREの下層から戻るとスクロール位置を復元。PITCH/TUNERは固有設定なし(Moreのみ)。
+- 3.45.0 SPの操作性改善。下部にメインドック(#pcV2SpDock: 前マーカー/Loop/再生/+Marker/次マーカー/More)を新設、既存の下段バーはMoreで開閉(既定は閉)。波形に長押し=マーカー追加・横スワイプ=スクラブ・再生中ダブルタップ=その位置で停止。シークバーのポップアップにLoop(その区間をSectionループ)を追加。SPでは波形右下のMARKER/再生FABを非表示。
+- 3.46.0 マーカーのスキップ機能(PLAYER)。マーカーに skip を付けると、そのマーカーから次のマーカーまでを再生中に飛ばす(例: 1-2-3(skip)-4 → 3の区間を飛ばして4から続く)。ポップアップの「Skip」/マーカー一覧の「S」で切替、波形は斜線表示、前後マーカー移動もskipマーカーを飛ばす。ループ中・タップで直接入った区間は対象外。バックアップ/同期にも含む。
+- 3.46.1 波形ポップアップのLoopをトグル化(Sectionループ中は「Loop ON」表示で、押すとOFF)。
+- 3.47.0 SPのアイコンバー刷新。アプリ切替をヘッダー左の#qnAppSwitchBtnに移し(PC幅は従来の#qnAppBadge)、アイコンバーは横スクロールなしの等分(Seekbar/Library/Markers/Text/Control/Settings)、ラベルは選択中のタブだけ表示。SPヘッダーのバージョン表記は省き、設定の最下段に「QNPLAYER vX」を表示。
+- 3.48.0 SPアイコンバーからSeekbarタブを撤去(5タブ等分)。アプリ切替メニューをSPはヘッダーの切替ボタン直下のドロップダウン(アイコン＋文字の縦リスト・暗幕なし)に変更。表示中はアプリ表示領域をメニュー高さ分だけ下へずらしYouTubeプレイヤーを覆わない。
+- 3.49.0 下部バーのVolume/Speed/Key/EQボタンを撤去(操作はControlパネルのみ。関連JS/CSSも削除)。SPアイコンバーは非選択ラベルを`visibility:hidden`にして選択でバー高さが変わらないように。アプリ一覧表示中にホストを下げた隙間を背景色で塞ぎPLAYERの映り込みを解消。
+- 3.50.0 ヘッダーのロゴをアプリ切替に(`#qnAppLogoBtn`: QN色付き+アプリ名+V。PC/SP共通)。一覧は直下のドロップダウン(QNPLAYER/QNVIDEO/QNTUNER/QNPITCH。名前は`qn-apps.js`のBRAND)。サイドバーのPLAYERバッジとSPの切替ボタンを撤去。幕は暗くしない。
+- 3.51.0 PLAYERのMarkersパネルを再構成。A/Bボタンと+MARKERボタンを撤去。行のボタンはスワイプトレイと同じ□(アイコン+ラベル): 通常=SKIP/HIDE、EDIT=編集/SKIP/HIDE+選択〇、スワイプ=編集/SKIP/HIDE/DELETE。色丸のタップは編集(メモ+プリセット)と同じ表示。アイコン/ラベルは`window.QN_ROW_ACT`に一元化。
+- 3.52.0 Markers行を調整。スワイプは編集/削除のみ。SKIP/HIDEは背景なし+区切り線(ON中はアイコンを薄暗く)。EDIT=SKIP/HIDE/編集/DELETE(ゴミ箱タイル。選択トグル、選択中は赤)。FABはDeleteの位置がCancel、選択1件以上でOKがDeleteに。色丸を20pxに拡大。
+- 3.52.1 Markers行のボタンを下部コントロールと同じサイズ感に(アイコン20px/ラベル9px/weight600)。50px正方形で、ボタン間の隙間0(編集とDELETEの間のgrid gapも打ち消し)。
+- 3.53.0 UI文言を「先頭大文字・以後小文字」に統一(ロゴ・MP3/WAV/ZIP/EQ/OK等の略語・音名は大文字維持。`text-transform: uppercase`は#appLogo/#splashLogo/P2Pコード入力のみ)。PLAYERのLibraryをMarkersと同じ行ルールに: Skipタイル(背景なし+区切り線、ON中は薄暗く)、編集モードのDeleteは選択タイル、FABはCancel+OK→Delete(Move併存)、スワイプは編集/削除のみ。
+- 3.53.1 マーカーのメモ入力: 開いた直後の一瞬のblur無視/編集中は一覧を再描画しない/プリセットが画面外にはみ出さないよう幅・左位置を補正。Library: 選択タイルをゴミ箱→「Select」(輪/チェック)に。編集モードの入力欄の文字サイズ・行高を表示時と揃えた。フォルダ見出しの高さ40→48px。Skip/Hideの標準色を下部ボタンと同じ`--icon-muted`に。
+- 3.54.0 下部コントロールの長押しクイック設定(`JS/player-quickpop.js`, `CSS/style-quickpop.css`): Loop/ドックLoop=プリロール秒、±skip=送り戻し秒、Repeat=Library範囲、時間表示=Bar length/Bars on screen/Follow playhead。部品は設定パネルと同じQNSettingsUI。長押し後のclickは握りつぶす。SPドックの+Markerをアクセント色に、再生中のドック/FAB/再生ボタンを緑でなく停止中と同じ色に統一。
+- 3.55.0 長押し対象に右下の目印(◢)を追加し、波形行の時刻ラベル(.vbar-time)にもBar設定ポップアップ。SPのMoreは「再生系/マーカー系」の2ページ(各ページ均等配置、横スナップ、左右端の矢印で移動)。Backupの一覧をAudio/YouTube/Pitchの別枠に分離。Marker Memo Colorsはデフォルト8項目の名前も編集でき、「Reset to default」で名前と色を初期値へ(カスタム行は残す)。
+- 3.56.0 長押しクイック設定を拡張(`JS/player-quickpop.js`): Play=Speed/Key、前後マーカー=マーカー一覧ジャンプ、A/B=±0.1s微調整+±1s+Clear、+Marker=プリセット選択でラベル付き追加、前後トラック=フォルダ/曲一覧、Libraryの行=クイックメニュー(Pin/Skip/Move/Rename/Delete確認付き)。波形のマーカー/A/Bポップアップに◂▸の±0.1s微調整。新対象にも◢目印。
+- 3.56.1 SPのMore下段バー: 各ページのボタンを横幅いっぱいに等分(flex:1 1 0)。左右余白を16pxに縮め、ページ矢印も細く(16px)。
+- 3.56.2 SP波形ヘッダー: 時刻をファイル名の下へ移動(grid、歯車は右端2行ぶち抜き)。長いファイル名はマーキーを止めて末尾を…で省略し、横幅を超えない。
+- 3.56.3 波形ヘッダー右上の歯車ボタンを廃止(設定は下部ナビのSettings。Barの設定は時刻ラベル長押しでも開く)。
+- 3.57.0 和英切替(第1段階): `JS/qn-i18n.js`新設(日本語キーの辞書+MutationObserverで英語時のみDOM差し替え。title/aria-label/alert/confirmも対応)、Settings>General>Language(Auto/日本語/English、`qn_lang`)。詳細はmd/I18N_HANDOFF.md。
+- 3.57.1 和英切替(第2段階): `JS/qn-i18n-apps.js`新設でYouTube/PITCH/TUNERの文言を英訳(`QNI18N.addDict/addRules`を追加)。
+- 3.58.0 波形をよりリアルに: ピーク密度を毎秒40→160(`player-ui-shared.js`)、バー刻みを1.5→0.5CSSpx(`BAR_STEP_CSS`)、Mirror(上下対称・既定)/Bottom(従来)切替を追加(Settings>Seek bar>Wave shape、`qn_bar_wave`)。
+- 3.59.0 PC幅の下部コントロール: ボタン幅/クリック領域を拡大、波形エリアの中央揃え、再生系とマーカー系の間を拡大、右にVolume/Speed(スライダー)・Key(−/＋)を追加(`#pcV2BarMixer`、既存のapplyVolumeChange/handleSpeedRangeInput/setKeySemitonesに委譲、pcv2WaveLoopで表示同期)。SP幅は非表示。狭いPC幅(<=1600px)は余白を詰め、足りなければ横スクロール。
+- 3.60.0 日本語表示を本格対応: 英語のUI文言(設定項目・ポップアップ・ツールチップ・メッセージ等)を日本語化する`JS/qn-i18n-ja.js`(英語→日本語辞書)を追加。`qn-i18n.js`を双方向化(日本語表示でもobserverが動く、`KEEP_SEL`のアイコンボタン/パネル見出しは英語のまま、`DATA_SEL`のユーザーデータは変換しない)。PCバーのVolumeにミュートボタンを追加。
+- 3.61.0 Speedバーを0.50/0.75/1.00/1.25/1.50でスナップ(コントロール・PCバーミキサー共通)。Controlパネル: Speed/KeyのON/OFFをEQと同じスイッチに、−/＋をバー左右へ、Keyをスライダー化(0でスナップ)、OFF時は無彩色。設定の見出しをコントロール見出しと同サイズに、設定のステッパーは端でループ。EQのSave as Presetをプリセットボタンと同じデザインに。Backup: YouTubeは曲選択をやめ「YouTube各種データ」の1項目に、「PLAYER音声データ」「ユーザー設定データ」へ改名。
+- 3.61.0(追記) マーカー線ポップアップのLoopアイコンを下部Loopボタンと同じに統一。
+- 4.0.0 メジャー更新(機能は3.61.0と同じ)。PC v2統一UI・和英切替・長押しメニュー・波形/ミキサー・Backup再編までを一区切りとした完全版。
+- 4.0.1 お掃除ルールを`md/CLEANUP.md`に集約(以後お掃除のたびに更新)。QUICK_STARTとPROJECT_CONTEXTから参照を追加。
+- 4.0.2 お掃除(未使用JS関数・死んだCSS/idの削除、見た目差分0確認)。設定パネルに操作ガイド(◢長押し・シークバーのタップ/長押し/スワイプ/ダブルタップ・行スワイプ)を追加(en/ja)。波形右下の+Audio/+Marker/再生の行にBar length・Rows・Followの帯を常時表示し、時間表示/時刻ラベルの長押し(◢)は撤去。シークバー右端のマーカーが見切れる不具合を修正(`#vbarRows .vbar`に`width:auto`)。

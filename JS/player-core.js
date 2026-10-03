@@ -693,42 +693,12 @@ function getActiveSegment(atTime) {
   return withColor(0, 1);
 }
 
-function getSegments(dur) {
-  const step = dur / 6;
-  return {
-    s1: step,
-    s2: step * 2,
-    s3: step * 3,
-    s4: step * 4,
-    s5: step * 5
-  };
-}
-
 function formatTime(seconds) {
   if (isNaN(seconds) || seconds < 0) return "00:00.0";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   const sText = s.toFixed(1).padStart(4, '0');
   return `${String(m).padStart(2, '0')}:${sText}`;
-}
-
-function getPinRow(t, dur) {
-  const { s1, s2, s3, s4, s5 } = getSegments(dur);
-  if (t <= s1) return 1;
-  if (t <= s2) return 2;
-  if (t <= s3) return 3;
-  if (t <= s4) return 4;
-  if (t <= s5) return 5;
-  return 6;
-}
-
-function timeToPercentInRow(t, dur) {
-  const { s1, s2, s3, s4, s5 } = getSegments(dur);
-  const bounds = [0, s1, s2, s3, s4, s5, dur];
-  const row = getPinRow(t, dur) - 1;
-  const start = bounds[row];
-  const end = bounds[row + 1];
-  return ((t - start) / (end - start)) * 100;
 }
 
 function audioBufferToWavBlob(audioBuffer) {

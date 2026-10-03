@@ -103,6 +103,7 @@
     right: 14px;
     bottom: 14px;
     gap: 8px;
+    max-width: calc(100% - 28px);
   }
 
   #pcV2WaveFabRow .panel-fab-btn {
@@ -110,35 +111,27 @@
     font-size: 13px;
   }
 
-  #pcV2BottomBar .pcv2-ctrl-divider-sp {
-    display: block;
-    flex-shrink: 0;
-  }
-
-  /* #pcV2TimeRow: PC幅共通側はdisplay:none、SP幅でflexに戻す(order:2) */
+  /* #pcV2TimeRow: v3.37.0〜 時刻表示は波形ヘッダー(歯車の左)へ移動したため常に非表示(空コンテナ) */
   #pcV2TimeRow {
-    display: flex;
-    order: 2;
-    padding: 2px 16px 6px;
+    display: none;
   }
 
-  #pcV2BottomBar .pcv2-ctrl-btn {
-    padding: 14px 12px;
+  /* 【v3.56.2】SP: ファイル名の下に時刻。歯車は右端で2行ぶち抜き。長いファイル名は省略(…) */
+  #pcV2WaveHead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    row-gap: 2px;
+    align-items: center;
+    max-width: 100%;
+    overflow: hidden;
   }
-
-  #pcV2BottomBar .pcv2-ctrl-btn svg {
-    width: 28px;
-    height: 28px;
-  }
-
-  #pcV2BottomBar .pcv2-ctrl-btn.primary svg {
-    width: 38px;
-    height: 38px;
-  }
-
-  #pcV2BottomBar .pcv2-ctrl-btn span {
-    font-size: 11px;
-  }
+  #pcV2WaveHead #appTitle { grid-column: 1; grid-row: 1; min-width: 0; max-width: 100%; }
+  #pcV2WaveHead #appTitle #appTitleInner { display: block; overflow: hidden; text-overflow: ellipsis; animation: none !important; transform: none !important; }
+  #pcV2WaveHead #appTitle #appTitleText { display: inline; }
+  #pcV2WaveHead #appTitle #appTitleText.marquee-clone { display: none; }
+  #pcV2WaveHead .time-controls-row { grid-column: 1; grid-row: 2; min-width: 0; }
 
   #pcV2BottomBar .tripleNavBtn-third {
     padding: 10px 6px;
@@ -227,10 +220,6 @@
     flex-shrink: 0;
     gap: 8px;
     padding: 12px 10px;
-  }
-
-  .pcv2-icon-item[data-panel-id="seekbar"] {
-    display: flex;
   }
 
   .pcv2-icon-item svg {
@@ -360,34 +349,8 @@ html {
   scrollbar-gutter: stable;
 }
 
-#pcV2BottomBar .pcv2-stepper { display: inline-flex; align-items: center; gap: 0; }
-#pcV2BottomBar .pcv2-step-btn { min-width: 26px; padding-left: 4px; padding-right: 4px; font-size: 18px; line-height: 1; }
-
-#pcV2BottomBar .pcv2-step-btn { font-size: 18px; min-height: 0; align-self: center; }
 #pcV2BottomBar #setABtn .top-controls-btn-label,
-#pcV2BottomBar #setBBtn .top-controls-btn-label,
-#pcV2BottomBar #clearABBtn .top-controls-btn-label { display: block; white-space: nowrap; }
-
-#pcV2BottomBar .pcv2-stepper { gap: 0; margin: 0 2px; }
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { padding-left: 0; padding-right: 0; }
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span {
-  display: flex; flex-direction: column; align-items: center;
-  min-width: 36px; line-height: 1.15; text-align: center; white-space: nowrap;
-}
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span b { font-weight: 700; font-variant-numeric: tabular-nums; }
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span i { font-style: normal; text-transform: uppercase; font-size: 8px; letter-spacing: 0.4px; opacity: 0.85; }
-#pcV2BottomBar .pcv2-step-btn { min-width: 20px; padding: 8px 2px; }
-
-#pcV2BottomBar .pcv2-ctrl-btn,
-#pcV2BottomBar .pcv2-stepper { align-self: flex-start; }
-#pcV2BottomBar .pcv2-stepper { align-items: flex-start; margin: 0; }
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) { padding-left: 0; padding-right: 0; min-height: 0; }
-#pcV2BottomBar .pcv2-stepper > .pcv2-ctrl-btn:not(.pcv2-step-btn) span { min-width: 26px; }
-#pcV2BottomBar .pcv2-step-btn {
-  min-width: 14px; width: 14px; height: 40px; margin-top: 4px; padding: 0;
-  display: flex; align-items: center; justify-content: center;
-  min-height: 0; align-self: flex-start;
-}
+#pcV2BottomBar #setBBtn .top-controls-btn-label { display: block; white-space: nowrap; }
 
 #pcV2BottomBar .top-controls-btn-label {
   display: block;
@@ -403,6 +366,125 @@ html {
 }
 #pcV2BottomBar .tripleNavBtn-third { min-height: 57px; }
 
-#pcV2BottomBar .pcv2-stepper { margin: 0 12px; }
-#pcV2BottomBar #pcV2VolumeBtn,
-#pcV2BottomBar #pcV2BottomEqToggle { margin: 0 6px; }
+
+/* ---------- SPメインドック(v3.45.0) ----------
+   前マーカー/Loop/再生/+Marker/次マーカー/Moreを1行に。再生は円(円角はそのまま)、他は角ボタン。タップ領域は全て48px以上。
+   既存の下段バー(#pcV2BottomBar)は「More」で開閉(#pcV2Root.qn-sp-more-open)。押す先は既存ボタン(JSの中継)。 */
+#pcV2SpDock { display: none; }
+@media screen and (max-width: 900px) {
+  #pcV2SpDock {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1.7fr 1.2fr 1fr 0.9fr;
+    align-items: center;
+    order: 3;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 110;
+    background: #0a0a0c;
+    border-top: 1px solid var(--border-subtle);
+    padding: 6px 6px 4px;
+    gap: 2px;
+  }
+  #pcV2BottomBarAnchorTabs { display: none; }
+  #pcV2Root:not(.qn-sp-more-open) #pcV2BottomBar { display: none; }
+  #pcV2WaveFabRow #pcV2WaveAddMarkerBtn, #pcV2WaveFabRow #pcV2WaveFabPlayBtn { display: none; }
+  .pcv2-dock-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 56px;
+    padding: 4px 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    color: var(--icon-muted);
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pcv2-dock-btn svg { width: 28px; height: 28px; fill: currentColor; display: block; }
+  .pcv2-dock-btn span { font-size: 11px; line-height: 1; white-space: nowrap; }
+  .pcv2-dock-btn:active { background: rgba(255, 255, 255, 0.06); }
+  .pcv2-dock-loop.is-active, .pcv2-dock-more.is-open { color: var(--accent-primary); }
+  .pcv2-dock-add { color: var(--accent-primary); }
+  .pcv2-dock-add svg { width: 32px; height: 32px; }
+  .pcv2-dock-play {
+    justify-self: center;
+    width: 64px;
+    height: 64px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    color: var(--sidebar-on-accent, #fff);
+  }
+  .pcv2-dock-play svg { width: 34px; height: 34px; }
+  .pcv2-dock-play:active { background: var(--accent-primary); transform: scale(0.94); }
+  /* v3.54.0: 再生中も停止中と同じ色(緑にしない) */
+  .pcv2-dock-play.is-playing { background: var(--accent-primary); }
+  .pcv2-dock-more svg { transition: transform 150ms ease; }
+  .pcv2-dock-more.is-open svg { transform: rotate(180deg); }
+  /* 波形の横スワイプ(シーク)を使うため、縦スクロール以外はブラウザに任せない */
+  #vbarRows { touch-action: pan-y; }
+}
+
+
+/* ---------- 【v3.55.0】SP: Moreの下段バーは「再生系=1画面」「マーカー系=1画面」の2ページ。各画面はボタンを均等配置(バランス)、横スナップ+右端/左端の矢印で移動 ---------- */
+@media (max-width: 900px) {
+  #pcV2BottomBar {
+    padding: 0;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
+  }
+  #pcV2BottomBar #topControls {
+    width: 200%;
+    flex: 0 0 200%;
+    min-width: 200%;
+    position: relative !important;
+  }
+  #pcV2BottomBar .pcv2-ctrl-group {
+    flex: 0 0 50%;
+    width: 50%;
+    box-sizing: border-box;
+    padding: 0 16px;
+    justify-content: stretch;
+    scroll-snap-align: start;
+  }
+  /* 各ボタンは幅いっぱいを等分(flex:1 1 0) */
+  #pcV2BottomBar .pcv2-ctrl-group > * { flex: 1 1 0; min-width: 0; }
+  #pcV2BottomBar .pcv2-ctrl-group > * > button { flex: 1 1 0; min-width: 0; }
+  #pcV2BottomBar .pcv2-ctrl-divider { display: none; }
+  /* ページ移動の矢印(sticky: バーの左右端に固定) */
+  #pcV2BottomBar .pcv2-bar-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    width: 16px;
+    align-self: stretch;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--icon-muted);
+    cursor: pointer;
+    z-index: 3;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #pcV2BottomBar .pcv2-bar-page svg { width: 20px; height: 20px; margin: 0 -2px; fill: currentColor; }
+  #pcV2BottomBar .pcv2-bar-page.is-next { right: 0; margin-left: -16px; order: 99; }
+  #pcV2BottomBar .pcv2-bar-page.is-prev { left: 0; margin-right: -16px; order: -1; }
+  #pcV2BottomBar.is-page-1 .pcv2-bar-page.is-prev { visibility: hidden; pointer-events: none; }
+  #pcV2BottomBar:not(.is-page-1) .pcv2-bar-page.is-next { visibility: hidden; pointer-events: none; }
+}
+@media (min-width: 901px) {
+  #pcV2BottomBar .pcv2-bar-page { display: none; }
+}
+
+/* 【v3.59.0】Volume/Speed/KeyのミキサーはPC幅専用(SPの2ページバーには出さない) */
+@media (max-width: 900px) {
+  #pcV2BarMixer, .pcv2-mixer-divider { display: none !important; }
+}

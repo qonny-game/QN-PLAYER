@@ -60,6 +60,13 @@ const trackBackupTotalSizeEl = document.getElementById("trackBackupTotalSize");
 
 const trackBackupIncludeAudioEl = document.getElementById("trackBackupIncludeAudio");
 const trackBackupIncludeSettingsEl = document.getElementById("trackBackupIncludeSettings");
+const trackBackupIncludeYoutubeEl = document.getElementById("trackBackupIncludeYoutube");
+// 「YouTube各種データ」にチェックが入っていればLibrary全動画(マーカー・A/B・フォルダ含む)を出力。件数を返す
+function ytIncludeCount() {
+  const y = ytBackupApi();
+  return (trackBackupIncludeYoutubeEl && trackBackupIncludeYoutubeEl.checked && y) ? y.list().length : 0;
+}
+if (trackBackupIncludeYoutubeEl) trackBackupIncludeYoutubeEl.addEventListener("change", () => updateTrackBackupSelectionSummary());
 
 let trackBackupSelectedNames = new Set();
 // YouTube動画のチェック状態(キー=item.id)。開くたび全選択でリセット
@@ -80,7 +87,8 @@ function formatFileSize(bytes) {
 function updateTrackBackupSelectionSummary() {
   if (!Array.isArray(playlist)) return;
   const selectedTracks = playlist.filter(t => trackBackupSelectedNames.has(t.name));
-  const ytCount = trackBackupSelectedYtIds.size;
+  // YouTubeは曲単位で選ばず「YouTube各種データ」の1項目で丸ごと(v3.61.0)
+  const ytCount = ytIncludeCount();
   const pt = ptBackupApi();
   const ptSel = pt ? pt.list().filter(it => trackBackupSelectedPtIds.has(it.id)) : [];
   const ptCount = ptSel.length;
@@ -88,7 +96,6 @@ function updateTrackBackupSelectionSummary() {
     // 曲(PLAYER)・動画(YouTube)・録音(PITCH)を数える
     const parts = [];
     if (selectedTracks.length > 0) parts.push(`${selectedTracks.length}曲`);
-    if (ytCount > 0) parts.push(`${ytCount}動画`);
     if (ptCount > 0) parts.push(`${ptCount}録音`);
     trackBackupSelectedCountEl.textContent = parts.length ? parts.join(" + ") + "選択中" : "0曲選択中";
   }
@@ -115,13 +122,21 @@ function renderTrackBackupTrackList() {
 
   const tracks = Array.isArray(playlist) ? playlist : [];
   const yt = ytBackupApi();
-  const ytList = yt ? yt.list() : [];
   const ptApi = ptBackupApi();
   const ptList = ptApi ? ptApi.list() : [];
-  // YouTube動画/PITCH録音がある時だけ見出しで分ける
-  const grouped = ytList.length > 0 || ptList.length > 0;
-
-  if (grouped && tracks.length > 0) trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("PLAYER"));
+  // 【v3.55.0】Audio / YouTube / Pitch はそれぞれ独立した枠(見出し+一覧)にする
+  let host = trackBackupTrackListEl;
+  function startGroup(text) {
+    host = document.createElement("div");
+    host.className = "track-backup-group";
+    host.appendChild(makeTrackBackupGroupLabel(text));
+    const rows = document.createElement("div");
+    rows.className = "track-backup-group-rows";
+    host.appendChild(rows);
+    trackBackupTrackListEl.appendChild(host);
+    host = rows;
+  }
+  if (tracks.length > 0) startGroup("Audio");
 
   tracks.forEach(track => {
     const row = document.createElement("label");
@@ -151,42 +166,11 @@ function renderTrackBackupTrackList() {
     sizeSpan.textContent = formatFileSize(track.file && track.file.size);
     row.appendChild(sizeSpan);
 
-    trackBackupTrackListEl.appendChild(row);
+    host.appendChild(row);
   });
 
-  if (ytList.length > 0) {
-    trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("YouTube"));
-    ytList.forEach(it => {
-      const row = document.createElement("label");
-      row.className = "track-backup-track-row";
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = trackBackupSelectedYtIds.has(it.id);
-      checkbox.onchange = () => {
-        if (checkbox.checked) trackBackupSelectedYtIds.add(it.id);
-        else trackBackupSelectedYtIds.delete(it.id);
-        updateTrackBackupSelectionSummary();
-      };
-      row.appendChild(checkbox);
-
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "track-backup-track-name";
-      nameSpan.textContent = it.title;
-      nameSpan.title = it.title;
-      row.appendChild(nameSpan);
-
-      const sizeSpan = document.createElement("span");
-      sizeSpan.className = "track-backup-track-size";
-      sizeSpan.textContent = it.markerCount + " markers";
-      row.appendChild(sizeSpan);
-
-      trackBackupTrackListEl.appendChild(row);
-    });
-  }
-
   if (ptList.length > 0) {
-    trackBackupTrackListEl.appendChild(makeTrackBackupGroupLabel("PITCH"));
+    startGroup("Pitch");
     ptList.forEach(it => {
       const row = document.createElement("label");
       row.className = "track-backup-track-row";
@@ -212,7 +196,7 @@ function renderTrackBackupTrackList() {
       sizeSpan.textContent = formatFileSize(it.size);
       row.appendChild(sizeSpan);
 
-      trackBackupTrackListEl.appendChild(row);
+      host.appendChild(row);
     });
   }
 }
@@ -258,6 +242,7 @@ function prepareBackupView() {
   }
   if (trackBackupIncludeAudioEl) trackBackupIncludeAudioEl.checked = true;
   if (trackBackupIncludeSettingsEl) trackBackupIncludeSettingsEl.checked = true;
+  if (trackBackupIncludeYoutubeEl) trackBackupIncludeYoutubeEl.checked = true;
 
   renderTrackBackupTrackList();
   updateTrackBackupSelectionSummary();
@@ -311,7 +296,7 @@ function downloadBlobAs(blob, name) {
 async function runTrackBackup() {
   const targetTracks = (Array.isArray(playlist) ? playlist : []).filter(t => trackBackupSelectedNames.has(t.name));
   const yt = ytBackupApi();
-  const ytIds = yt ? yt.list().map(it => it.id).filter(id => trackBackupSelectedYtIds.has(id)) : [];
+  const ytIds = (yt && ytIncludeCount() > 0) ? yt.list().map(it => it.id) : [];
   const ptApi = ptBackupApi();
   const ptIds = ptApi ? ptApi.list().map(it => it.id).filter(id => trackBackupSelectedPtIds.has(id)) : [];
   if (targetTracks.length === 0 && ytIds.length === 0 && ptIds.length === 0) {
@@ -367,7 +352,8 @@ async function runTrackBackup() {
             time: p.t,
             enabled: p.enabled !== false,
             color: p.color || null,
-            memo: p.memo || ""
+            memo: p.memo || "",
+            skip: p.skip ? true : undefined
           }));
           const storedAB = loadStoredABFor(track.name);
           trackData.abA = storedAB.a;
@@ -389,7 +375,7 @@ async function runTrackBackup() {
     }
 
     // ---------- YouTube側のJSON（YouTubeアプリの形式。設定データ=タイトル・マーカー・AB点） ----------
-    const ytJsonText = hasYt ? JSON.stringify(yt.buildExport(ytIds, opts.settings), null, 2) : null;
+    const ytJsonText = hasYt ? JSON.stringify(yt.buildExport(ytIds, true), null, 2) : null;
 
     // ---------- PITCH側(pitch.json + pitch/音声ファイル) ----------
     const ptExport = hasPt ? await ptApi.buildExport(ptIds, opts.audio) : null;
@@ -672,7 +658,7 @@ async function handleTrackImportFileSelected(file) {
 
     if (trackImportPtList && pt) {
       trackImportPtList.forEach(x => {
-        if (pt.exists(x.key)) duplicateEntries.push({ key: "pt:" + x.key, label: "[PITCH] " + (pt.titleOf(x.key) || x.name) });
+        if (pt.exists(x.key)) duplicateEntries.push({ key: "pt:" + x.key, label: "[Pitch] " + (pt.titleOf(x.key) || x.name) });
       });
     }
 
@@ -918,7 +904,8 @@ function applyImportedMarkersAndText(name, trackData) {
       t: typeof m.time === "number" ? m.time : 0,
       enabled: m.enabled !== false,
       memo: m.memo || "",
-      color: m.color || null
+      color: m.color || null,
+      skip: m.skip ? true : undefined
     }));
     try {
       localStorage.setItem("mp3_pins_" + name, JSON.stringify(pinsToSave));

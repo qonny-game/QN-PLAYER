@@ -104,7 +104,7 @@
   font-size: var(--fs-micro);
   font-weight: 600;
   letter-spacing: 0.6px;
-  text-transform: uppercase;
+  text-transform: none;
   color: #6b6b7b;
 }
 
@@ -206,7 +206,7 @@
   color: var(--icon-muted);
   font-weight: 500;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: none;
   font-size: var(--fs-micro);
 }
 .qn-shortcut-table td {
@@ -255,14 +255,6 @@
   min-width: 0;
   padding: 4px 0;
 }
-.qn-marker-preset-color-name {
-  font-size: var(--fs-body);
-  font-weight: 600;
-  color: var(--text-bright, #f0f0f3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .qn-marker-preset-color-swatch {
   flex-shrink: 0;
 }
@@ -305,3 +297,19 @@
   .qn-marker-custom-del:hover { color: #fff; background: var(--accent-primary); }
 }
 .qn-marker-custom-row { gap: 6px; }
+
+/* v3.55.0: Marker Memo Colorsの「Reset to default」(右寄せの小ボタン)。デフォルト項目の名前も入力で編集できる */
+.qn-marker-preset-colors-title.has-reset { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.qn-marker-reset-btn {
+  height: var(--btn-h, 28px);
+  padding: 0 var(--btn-pad-x, 12px);
+  background: #1c1c24;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-bright);
+  font-family: inherit;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  cursor: pointer;
+}
+.qn-marker-reset-btn:hover { background: #24242e; }

@@ -22,6 +22,9 @@
 <link rel="stylesheet" href="CSS/style-layout-pc-v2.css">
 <link rel="stylesheet" href="CSS/style-layout-pc-v2-sp.css">
 <link rel="stylesheet" href="CSS/style-pcv2-panels.css">
+<link rel="stylesheet" href="CSS/style-bars.css">
+<link rel="stylesheet" href="CSS/style-settings.css">
+<link rel="stylesheet" href="CSS/style-quickpop.css">
 <link rel="stylesheet" href="CSS/style-auth.css">
 <link rel="stylesheet" href="CSS/style-shareware.css">
 <link rel="stylesheet" href="CSS/style-theme.css">
@@ -31,17 +34,17 @@
 <link rel="stylesheet" href="CSS/style-pitch.css">
 <script>
   // アプリバージョン一元管理(QN_APP_VERSION)。<title>はここで即更新、#splashVersion/#appVersionは各要素直後のinline scriptが反映
-  window.QN_APP_VERSION = "3.35.0";
+  window.QN_APP_VERSION = "4.0.2";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
     { key: "Space", action: "Play / Pause" },
     { key: "Enter", action: "Seek to Start" },
     { key: "P / M", action: "Add Marker" },
-    { key: "L", action: "Loop ON/OFF" },
+    { key: "L", action: "Loop on/off" },
     { key: "R", action: "Repeat" },
     { key: "1 - 9", action: "Jump to Marker" },
-    { key: "Ctrl + 1 - 9", action: "Marker ON/OFF" },
+    { key: "Ctrl + 1 - 9", action: "Marker on/off" },
     { key: "→", action: "Next Marker" },
     { key: "←", action: "Prev Marker" },
     { key: "↑", action: "First Marker" },
@@ -72,7 +75,7 @@
   }, 5000);
 </script>
 
-<div id="dropOverlay">DROP AUDIO FILE HERE</div>
+<div id="dropOverlay">Drop audio file here</div>
 
 <div id="appHeader">
   <div id="qnMenuMount">
@@ -116,7 +119,7 @@
       </div>
     </div>
   </div>
-  <h1 id="appLogo"><span id="appLogoQN">QN</span>PLAYER <span id="appVersion">v</span></h1>
+  <h1 id="appLogo"><button type="button" id="qnAppLogoBtn" aria-haspopup="menu" aria-expanded="false" title="Switch app"><span id="appLogoQN">QN</span><span id="appLogoName">PLAYER</span><svg class="qn-logo-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button><span id="appVersion">v</span></h1>
   <script>
     document.getElementById("appVersion").textContent = "v" + window.QN_APP_VERSION;
   </script>
@@ -149,7 +152,7 @@
       <div class="user-dropdown-body">
         <div class="user-dropdown-item">
           <span class="user-dropdown-label">プラン</span>
-          <span id="userPlanBadge" class="sw-header-plan-badge">FREE</span>
+          <span id="userPlanBadge" class="sw-header-plan-badge">Free</span>
         </div>
         <div class="user-dropdown-item" id="userPlanRemainingRow" style="display:none;">
           <span class="user-dropdown-label">残り</span>
@@ -161,7 +164,7 @@
         </div>
       </div>
       <div class="user-dropdown-footer">
-        <button id="swUpgradeBtn" title="Upgrade to Premium">UPGRADE</button>
+        <button id="swUpgradeBtn" title="Upgrade to Premium">Upgrade</button>
         <button id="btnCancelSubscription" style="display:none;">解約する</button>
         <button id="btnLogout">
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17 7l-1.41 1.41L17.17 10H9v2h8.17l-1.58 1.58L17 15l4-4zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h7v-2H5V5z"/></svg>
@@ -183,12 +186,7 @@
   <div class="player-section">
     <p id="appTitle"><span id="appTitleInner"><span id="appTitleText">No file loaded</span></span></p>
     <div id="vbarContainer">
-      <div class="vbar" id="bar1"><canvas class="vwave" id="wave1"></canvas><div id="fill1" class="vfill"></div></div>
-      <div class="vbar" id="bar2"><canvas class="vwave" id="wave2"></canvas><div id="fill2" class="vfill"></div></div>
-      <div class="vbar" id="bar3"><canvas class="vwave" id="wave3"></canvas><div id="fill3" class="vfill"></div></div>
-      <div class="vbar" id="bar4"><canvas class="vwave" id="wave4"></canvas><div id="fill4" class="vfill"></div></div>
-      <div class="vbar" id="bar5"><canvas class="vwave" id="wave5"></canvas><div id="fill5" class="vfill"></div></div>
-      <div class="vbar" id="bar6"><canvas class="vwave" id="wave6"></canvas><div id="fill6" class="vfill"></div></div>
+      <div id="vbarScroll"><div id="vbarRows"></div></div>
       <span id="swLoopCounter"></span>
     </div>
     
@@ -237,10 +235,10 @@
           <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
           <span class="top-controls-btn-label">Loop</span>
         </button>
-        <div id="loopPreRollControl" class="loop-preroll-control" title="Loop pre/post-roll seconds">
-          <button id="loopPreRollMinus" class="loop-preroll-btn" type="button" title="Decrease">−</button>
-          <span id="loopPreRollValue" class="loop-preroll-value">0<span class="loop-preroll-unit">s</span></span>
-          <button id="loopPreRollPlus" class="loop-preroll-btn" type="button" title="Increase">＋</button>
+        <div id="loopPreRollControl" class="qn-stepper" title="Loop pre/post-roll seconds">
+          <button id="loopPreRollMinus" class="qn-stepper-btn" type="button" title="Decrease" aria-label="Decrease"><svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
+          <span id="loopPreRollValue" class="qn-stepper-val">0<span class="qn-stepper-unit">s</span></span>
+          <button id="loopPreRollPlus" class="qn-stepper-btn" type="button" title="Increase" aria-label="Increase"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></button>
         </div>
       </div>
     </div>
@@ -292,14 +290,14 @@
         <div class="control-card" id="controlSpeedCard">
           <label>
             Speed <span id="controlSpeedDisplay" style="color:#fff;">1.00</span>x
-            <button class="mini-reset-btn" id="controlSpeedResetBtn" title="Reset speed to 1.00x">RESET</button>
-            <span class="control-stepper">
-              <button type="button" class="control-effect-toggle control-effect-icon" id="controlSpeedEnableToggle" role="switch" aria-checked="true" title="Speed effect ON/OFF"><svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg></button>
-              <button type="button" class="control-step-btn" id="controlSpeedDownBtn" title="Speed −5%">−</button>
-              <button type="button" class="control-step-btn" id="controlSpeedUpBtn" title="Speed +5%">＋</button>
-            </span>
+            <button class="mini-reset-btn" id="controlSpeedResetBtn" title="Reset speed to 1.00x">Reset</button>
+            <button type="button" class="glow-switch control-effect-toggle" id="controlSpeedEnableToggle" role="switch" aria-checked="true" title="Speed effect on/off"><span class="glow-switch-knob"></span></button>
           </label>
-          <input type="range" id="controlSpeedRange" min="0.5" max="1.5" step="0.01" value="1.0">
+          <div class="control-slider-row">
+            <button type="button" class="control-step-btn" id="controlSpeedDownBtn" title="Speed −5%">−</button>
+            <input type="range" id="controlSpeedRange" min="0.5" max="1.5" step="0.01" value="1.0">
+            <button type="button" class="control-step-btn" id="controlSpeedUpBtn" title="Speed +5%">＋</button>
+          </div>
 
           <div class="auto-speed-card" id="controlAutoSpeedCard">
             <label class="auto-speed-header">
@@ -346,17 +344,13 @@
         <div class="control-card key-control-card">
           <label>
             Key <span id="controlKeyDisplay" style="color:#fff;">0</span> st
-            <button class="mini-reset-btn" id="controlKeyResetBtn" title="Reset key to 0">RESET</button>
-            <span class="control-stepper">
-              <button type="button" class="control-effect-toggle control-effect-icon" id="controlKeyEnableToggle" role="switch" aria-checked="true" title="Key effect ON/OFF"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></button>
-              <button type="button" class="control-step-btn" id="controlKeyDownBtn" title="Key down 1 semitone">−</button>
-              <button type="button" class="control-step-btn" id="controlKeyUpBtn" title="Key up 1 semitone">＋</button>
-            </span>
+            <button class="mini-reset-btn" id="controlKeyResetBtn" title="Reset key to 0">Reset</button>
+            <button type="button" class="glow-switch control-effect-toggle" id="controlKeyEnableToggle" role="switch" aria-checked="true" title="Key effect on/off"><span class="glow-switch-knob"></span></button>
           </label>
-          <div class="key-stepper">
-            <div class="key-stepper-bar">
-              <div class="key-stepper-fill" id="controlKeyStepperFill"></div>
-            </div>
+          <div class="control-slider-row">
+            <button type="button" class="control-step-btn" id="controlKeyDownBtn" title="Key down 1 semitone">−</button>
+            <input type="range" id="controlKeyRange" min="-12" max="12" step="1" value="0">
+            <button type="button" class="control-step-btn" id="controlKeyUpBtn" title="Key up 1 semitone">＋</button>
           </div>
         </div>
       </div>
@@ -365,7 +359,7 @@
     <div class="mobile-tab-panel" data-tab-panel="markers">
       <div class="markers-heading-row">
         <h3>Markers</h3>
-        <span id="loopInfo">ACTIVE 0/0</span>
+        <span id="loopInfo">Active 0/0</span>
       </div>
       <div id="markersNowPlaying" style="display:none"></div>
       <div id="pinList"></div>
@@ -375,10 +369,6 @@
       <div class="markers-heading-row">
         <h3>Library</h3>
         <span id="playlistInfo">0 tracks</span>
-        <button type="button" id="playlistScopeBtn" class="mini-reset-btn playlist-scope-btn" hidden>
-          <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-          <span class="playlist-scope-label">NEXT: FOLDER</span>
-        </button>
       </div>
       <div id="playlistBox"></div>
     </div>
@@ -388,7 +378,7 @@
         <h3>Text</h3>
         <button id="noteTextFullscreenBtn" class="panel-fab-btn panel-addfile-btn" title="Fullscreen">
           <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-          <span>FULL</span>
+          <span>Full</span>
         </button>
       </div>
       <textarea id="noteTextArea" class="note-textarea" placeholder="Lyrics, memo, anything…"></textarea>
@@ -419,7 +409,7 @@
         <div class="basic-panel-divider eq-inline-divider"></div>
         <div class="eq-inline-title">
           Equalizer
-          <button class="mini-reset-btn" id="controlEqResetBtn" title="Reset EQ to flat" data-preset="flat">RESET</button>
+          <button class="mini-reset-btn" id="controlEqResetBtn" title="Reset EQ to flat" data-preset="flat">Reset</button>
           <button class="glow-switch control-effect-toggle" id="controlEqEnableToggle" role="switch" aria-checked="true" title="Toggle EQ effect on/off">
             <span class="glow-switch-knob"></span>
           </button>
@@ -485,10 +475,7 @@
             <button type="button" class="eq-preset-btn" data-preset="vshape">V-Shape</button>
           </div>
           <div class="eq-preset-buttons eq-preset-custom-row" id="eqCustomPresetButtons"></div>
-          <button type="button" class="eq-preset-save-btn" id="eqSavePresetBtn" title="Save current EQ as a custom preset">
-            <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-            <span>Save as Preset</span>
-          </button>
+          <button type="button" class="eq-preset-btn eq-preset-save-btn" id="eqSavePresetBtn" title="Save current EQ as a custom preset">Save as Preset</button>
         </div>
       </div>
     </div>
@@ -665,11 +652,15 @@
         <div class="track-backup-checklist">
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeAudio" checked>
-            <span class="track-backup-row-label">音声データ</span>
+            <span class="track-backup-row-label">PLAYER音声データ</span>
           </label>
           <label class="track-backup-row">
             <input type="checkbox" id="trackBackupIncludeSettings" checked>
-            <span class="track-backup-row-label">設定データ</span>
+            <span class="track-backup-row-label">ユーザー設定データ</span>
+          </label>
+          <label class="track-backup-row">
+            <input type="checkbox" id="trackBackupIncludeYoutube" checked>
+            <span class="track-backup-row-label">YouTube各種データ</span>
           </label>
         </div>
       </div>
@@ -727,11 +718,15 @@
 </div>
 
 
+<script src="JS/qn-i18n.js"></script>
+<script src="JS/qn-i18n-apps.js"></script>
+<script src="JS/qn-i18n-ja.js"></script>
 <script src="JS/jszip.min.js"></script>
 <script src="JS/lame_min.js"></script>
 <script src="JS/player-shareware.js"></script>
 <script src="JS/qn-marker-core.js"></script>
 <script src="JS/player-core.js"></script>
+<script src="JS/player-bars.js"></script>
 <script src="JS/player-ui-shared.js"></script>
 <script src="JS/player-id3.js"></script>
 <script src="JS/player-playlist.js"></script>
@@ -742,9 +737,11 @@
 <script src="JS/player-marker-presets.js"></script>
 <script src="JS/player-control-eq.js"></script>
 <script src="JS/player-controls.js"></script>
+<script src="JS/qn-settings-ui.js"></script>
 <script src="JS/player-export.js"></script>
 <script src="JS/player-text.js"></script>
 <script src="JS/player-ui-pc-v2.js"></script>
+<script src="JS/player-quickpop.js"></script>
 <script src="JS/qn-wakelock.js"></script>
 <script src="JS/qn-apps.js"></script>
 <script src="JS/player-swipe.js"></script>
