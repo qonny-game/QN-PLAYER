@@ -8,7 +8,8 @@
   "use strict";
 
   var META_KEY = "qn_libsync_meta_v1";
-  var DOC_INDEX = "lib_index", DOC_FOLDERS = "lib_folders", DOC_ORDER = "lib_order";
+  var DOC_INDEX = "lib_index", DOC_FOLDERS = "lib_folders", DOC_ORDER = "lib_order", DOC_DEVICES = "lib_devices";
+  var DEV_FRESH_MS = 30 * 24 * 60 * 60 * 1000, DEV_REFRESH_MS = 3 * 24 * 60 * 60 * 1000, DEV_MISS_MAX = 2000;
   var TOMB_TTL_MS = 180 * 24 * 60 * 60 * 1000;
   var CHUNK = 150;                                   // 1トランザクションで書く曲数(Firestoreは500書き込みまで)
   var PIN_MAX = 500, TEXT_MAX = 50000, MEMO_MAX = 500, TITLE_MAX = 300;
@@ -42,7 +43,7 @@
 
   // ---------- 保存(同期用メタ) ----------
   // known[h]={g:状態の署名|null,u:更新時刻,n:ファイル名,del?:true}  g=null かつ !del → 未インポート(ghost)
-  var meta = { known: {}, ghosts: {}, pendDel: {}, fKnown: {}, ordList: [], ordU: 0, fOrdList: [], fOrdU: 0, lastSync: 0, ghostOpen: true };
+  var meta = { known: {}, ghosts: {}, pendDel: {}, fKnown: {}, ordList: [], ordU: 0, fOrdList: [], fOrdU: 0, lastSync: 0, ghostOpen: true, devId: "", devSig: "", devU: 0, peer: { n: 0, labels: [] } };
   (function loadMeta() {
     try {
       var m = JSON.parse(localStorage.getItem(META_KEY) || "{}");
@@ -51,6 +52,10 @@
         ["ordList", "fOrdList"].forEach(function (k) { if (Array.isArray(m[k])) meta[k] = m[k]; });
         ["ordU", "fOrdU", "lastSync"].forEach(function (k) { if (isNum(m[k])) meta[k] = m[k]; });
         if (typeof m.ghostOpen === "boolean") meta.ghostOpen = m.ghostOpen;
+        if (typeof m.devId === "string") meta.devId = m.devId;
+        if (typeof m.devSig === "string") meta.devSig = m.devSig;
+        if (isNum(m.devU)) meta.devU = m.devU;
+        if (m.peer && isNum(m.peer.n) && Array.isArray(m.peer.labels)) meta.peer = m.peer;
       }
     } catch (e) {}
   })();
@@ -518,6 +523,51 @@
     return changed;
   }
 
+  // ---------- 他端末の「MP3が無い曲」(送信側のボタン用) ----------
+  // lib_devices: {d:{<devId>:{l:端末種別,u:更新時刻,m:[MP3が無い曲のhash]}}}。各端末が自分の未インポート(ghost)一覧を書き、他端末が読んで「送れる曲」を数える。MP3は含まない
+  function devLabel() {
+    var u = navigator.userAgent || "";
+    if (/iPhone/.test(u)) return "iPhone";
+    if (/iPad/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1)) return "iPad";
+    if (/Android/.test(u)) return "Android";
+    if (/Macintosh/.test(u)) return "Mac";
+    if (/Windows/.test(u)) return "Windows";
+    return "Other";
+  }
+  function devicesStep(A) {
+    if (!meta.devId) { meta.devId = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); saveMeta(); }
+    var mine = Object.keys(meta.ghosts).filter(validHash).sort().slice(0, DEV_MISS_MAX);
+    var sig = sigOf(mine), now = Date.now();
+    var needWrite = sig !== meta.devSig || now - meta.devU > DEV_REFRESH_MS;
+    var haveLocal = {};
+    playlist.forEach(function (t) { var h = trackHash(t); if (h) haveLocal[h] = true; });
+    function count(doc) {
+      var seen = {}, labels = [], d = doc && doc.d && typeof doc.d === "object" ? doc.d : {};
+      Object.keys(d).forEach(function (id) {
+        var e = d[id];
+        if (id === meta.devId || !e || !Array.isArray(e.m) || !isNum(e.u) || now - e.u > DEV_FRESH_MS) return;
+        var any = false;
+        e.m.forEach(function (h) { if (validHash(h) && haveLocal[h]) { seen[h] = true; any = true; } });
+        if (any) labels.push(str(e.l, 12) || "Other");
+      });
+      return { n: Object.keys(seen).length, labels: labels };
+    }
+    var work = needWrite
+      ? A.syncTx(async function (api) {
+          var cur = await api.get(DOC_DEVICES), d = cur && cur.d && typeof cur.d === "object" ? cur.d : {}, out = {};
+          Object.keys(d).forEach(function (id) { if (d[id] && isNum(d[id].u) && now - d[id].u <= DEV_FRESH_MS && id !== meta.devId) out[id] = d[id]; });
+          out[meta.devId] = { l: devLabel(), u: now, m: mine };
+          api.set(DOC_DEVICES, { d: out });
+          return { d: out };
+        }).then(function (doc) { meta.devSig = sig; meta.devU = now; return doc; })
+      : A.syncGetMany([DOC_DEVICES]).then(function (r) { return r[0]; });
+    return work.then(function (doc) {
+      var c = count(doc), changed = c.n !== meta.peer.n || c.labels.join(",") !== meta.peer.labels.join(",");
+      meta.peer = c; saveMeta();
+      return changed;
+    });
+  }
+
   async function syncNow() {
     var A = window.QN_AUTH;
     if (!syncUser || !ready || !A || typeof A.syncTx !== "function" || typeof A.syncGetMany !== "function") return;
@@ -529,6 +579,7 @@
       mergeDuplicateFolders();
       res = await cycle(A);
       if (mergeDuplicateFolders()) res = { again: true }; // 取り込んだ結果に同名があった → 統合分をもう一度同期
+      try { if (await devicesStep(A)) { if (typeof renderPlaylist === "function") renderPlaylist(); } } catch (e) { console.warn("[QN_LIB_SYNC] devices", e); } // 補助情報。失敗しても同期自体は成功扱い
       lastErr = "";
       setStatus("ok");
     } catch (err) {
@@ -612,6 +663,22 @@
   function decorateLibrary(box, editMode) {
     if (!box || !syncUser) return;
     var gl = ghostList();
+    if (meta.peer && meta.peer.n > 0 && typeof window.qnOpenTransfer === "function") {
+      var ps = document.createElement("div");
+      ps.className = "playlist-peer-section qn-lib-extra";
+      var pt = document.createElement("div");
+      pt.className = "playlist-peer-text";
+      pt.textContent = "他の端末(" + meta.peer.labels.join("・") + ")にMP3が無い曲: " + meta.peer.n + "曲";
+      var pb = document.createElement("button");
+      pb.type = "button";
+      pb.className = "playlist-ghost-transfer";
+      pb.textContent = "Send";
+      pb.title = "他の端末へMP3を送信";
+      pb.addEventListener("click", function () { window.qnOpenTransfer(); });
+      ps.appendChild(pt);
+      ps.appendChild(pb);
+      box.appendChild(ps);
+    }
     if (gl.length) {
       var sec = document.createElement("div");
       sec.className = "playlist-ghost-section qn-lib-extra";
@@ -620,8 +687,24 @@
       head.className = "playlist-ghost-head";
       head.textContent = (meta.ghostOpen ? "▾ " : "▸ ") + "未インポート(" + gl.length + ")";
       head.addEventListener("click", function () { meta.ghostOpen = !meta.ghostOpen; saveMeta(); renderPlaylist(); });
-      sec.appendChild(head);
+      var headRow = document.createElement("div");
+      headRow.className = "playlist-ghost-headrow";
+      headRow.appendChild(head);
+      if (typeof window.qnOpenTransfer === "function") {
+        var trBtn = document.createElement("button");
+        trBtn.type = "button";
+        trBtn.className = "playlist-ghost-transfer";
+        trBtn.textContent = "Transfer";
+        trBtn.title = "他の端末からMP3を受信";
+        trBtn.addEventListener("click", function () { window.qnOpenTransfer(); });
+        headRow.appendChild(trBtn);
+      }
+      sec.appendChild(headRow);
       if (meta.ghostOpen) {
+        var note = document.createElement("div");
+        note.className = "playlist-ghost-note";
+        note.textContent = "この端末にMP3がない曲です。設定 > 転送 で他の端末から受信できます。";
+        sec.appendChild(note);
         gl.forEach(function (g) {
           var row = document.createElement("div");
           row.className = "playlist-ghost-row";
@@ -639,7 +722,7 @@
           row.appendChild(info);
           row.addEventListener("click", function (e) {
             if (e.target.closest("button")) return;
-            toast("この端末にMP3がありません。「" + (g.n || "") + "」を追加すると設定が適用されます");
+            toast("この端末にMP3がありません。設定 > 転送 で他の端末から受信するか、「" + (g.n || "") + "」を追加してください");
           });
           if (editMode) {
             var del = document.createElement("button");

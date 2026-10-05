@@ -488,32 +488,9 @@ let lastVisualUpdateTime = 0;
 let lastCurrentTimeText = null;
 let lastDurationText = null;
 
-function updateBars() {
-  requestAnimationFrame(updateBars);
-  if (!audio.duration) return;
-
-  const dur = audio.duration;
-  const ct = audio.currentTime;
-  const now = performance.now();
-
-  if (now - lastVisualUpdateTime >= UPDATE_BARS_VISUAL_INTERVAL_MS) {
-    lastVisualUpdateTime = now;
-
-    if (updateBarsCurrentValEl && updateBarsDurationValEl) {
-      const ctText = formatTime(ct);
-      const durText = formatTime(dur);
-      if (ctText !== lastCurrentTimeText) {
-        updateBarsCurrentValEl.textContent = ctText;
-        lastCurrentTimeText = ctText;
-      }
-      if (durText !== lastDurationText) {
-        updateBarsDurationValEl.textContent = durText;
-        lastDurationText = durText;
-      }
-    }
-  }
-
-  // 折り返し判定は毎フレーム(間引かない)。loopEnabled判定を先に(OFFなら配列生成しない)。v3.7.0〜: A-Bループはloop WrapAB()
+// ループの折り返し判定(A-B/マーカー区間)。updateBars(rAF)から毎フレーム呼ぶ。画面が見えない間(別アプリ・ロック中)はrAFが止まるので、下のバックグラウンド用タイマーからも呼ぶ。prevTimeは呼び出し側が更新する
+function loopTick(ct) {
+  // 折り返し判定(間引かない)。loopEnabled判定を先に(OFFなら配列生成しない)。v3.7.0〜: A-Bループはloop WrapAB()
   if (loopEnabled && loopMode === "ab" && !isSeeking && !isJumping && !audio.paused) {
     const abr = getABRange();
     if (abr) loopWrapAB(abr, ct);
@@ -566,6 +543,43 @@ function updateBars() {
       }
     }
   }
+}
+
+// 【v4.10.1】画面が非表示の間はrAFが止まりループが効かなくなるため、タイマーとtimeupdateで折り返し判定だけ続ける(表示中は何もしない=二重処理なし)。バックグラウンドではブラウザがタイマーを間引くので精度は落ちる(最大で約1秒遅れ)
+function backgroundLoopTick() {
+  if (!document.hidden || !audio.duration || !loopEnabled || audio.paused) return;
+  loopTick(audio.currentTime);
+  prevTime = audio.currentTime;
+}
+setInterval(backgroundLoopTick, 100);
+audio.addEventListener("timeupdate", backgroundLoopTick);
+
+function updateBars() {
+  requestAnimationFrame(updateBars);
+  if (!audio.duration) return;
+
+  const dur = audio.duration;
+  const ct = audio.currentTime;
+  const now = performance.now();
+
+  if (now - lastVisualUpdateTime >= UPDATE_BARS_VISUAL_INTERVAL_MS) {
+    lastVisualUpdateTime = now;
+
+    if (updateBarsCurrentValEl && updateBarsDurationValEl) {
+      const ctText = formatTime(ct);
+      const durText = formatTime(dur);
+      if (ctText !== lastCurrentTimeText) {
+        updateBarsCurrentValEl.textContent = ctText;
+        lastCurrentTimeText = ctText;
+      }
+      if (durText !== lastDurationText) {
+        updateBarsDurationValEl.textContent = durText;
+        lastDurationText = durText;
+      }
+    }
+  }
+
+  loopTick(ct);
 
   // 【v3.46.0】スキップ区間: 再生が自然にスキップ開始マーカーを跨いだ時だけ、次の(スキップでない)マーカーへ飛ぶ。ループ中・シーク中・ジャンプ中は対象外(ユーザーがタップして入った区間はそのまま再生される)
   if (!loopEnabled && !isSeeking && !isJumping && !audio.paused && typeof getSkipRanges === "function") {

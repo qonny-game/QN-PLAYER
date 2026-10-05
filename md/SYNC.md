@@ -114,3 +114,6 @@ service cloud.firestore {
 
 ## 同名フォルダの統合（v4.9.3〜）
 同期の前後に`mergeDuplicateFolders()`が走り、前後の空白を除いて同名のフォルダを1つにする。残すのは**id昇順で先頭**（全端末で同じ結果になるので消し合わない）。曲とghostの所属を付け替え、他は`deletePlaylistFolder`で削除（tombstoneで伝わる）。
+
+## 他端末の未インポート(v4.10.0〜)
+`users/{uid}/sync/lib_devices`: `{d:{<devId>:{l:端末種別,u:更新時刻,m:[MP3が無い曲のhash]}}}`。各端末が同期の最後(`devicesStep`)に、自分のghost一覧が変わった時(または3日ごと)に書く。読む側は30日以内の端末だけ数え、自分がMP3を持っている曲を集計してLibraryに「他の端末にMP3が無い曲: N曲」+Sendボタンを出す。devIdは`qn_libsync_meta_v1.devId`。補助情報なので失敗しても同期は成功扱い。反映は相手端末が同期した後、自分の次の同期から。

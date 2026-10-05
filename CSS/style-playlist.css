@@ -475,14 +475,14 @@ body.dragover #dropOverlay {
 
 /* ---------- v3.28.0 Library同期(player-sync.js): 未インポート(ghost)セクション/同期ステータス行 ---------- */
 .playlist-ghost-section { margin-top: 10px; border-top: 1px dashed var(--border, rgba(128,128,128,.35)); padding-top: 6px; opacity: .85; }
-.playlist-ghost-head { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 6px 8px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: inherit; opacity: .8; cursor: pointer; }
+.playlist-ghost-head { display: block; flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 6px 8px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: inherit; opacity: .8; cursor: pointer; }
 .playlist-ghost-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: default; }
 .playlist-ghost-row:hover { background: rgba(128,128,128,.12); }
 .playlist-ghost-info { flex: 1; min-width: 0; }
 .playlist-ghost-title { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .75; }
 .playlist-ghost-sub { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .55; }
 .playlist-ghost-del { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(128,128,128,.2); color: inherit; font-size: 12px; cursor: pointer; }
-.playlist-sync-foot { margin: 8px 0 2px; padding: 4px 8px; font-size: 11px; text-align: right; opacity: .6; user-select: none; }
+.playlist-sync-foot { margin: 8px 0 2px; padding: 10px 8px; font-size: 11px; text-align: left; /* 右下のFABに隠れないよう左寄せ */ opacity: .6; user-select: none; }
 .playlist-sync-foot.can { cursor: pointer; }
 .playlist-sync-foot.err { color: #e5534b; opacity: .9; }
 
@@ -500,3 +500,10 @@ body.dragover #dropOverlay {
 /* ---------- v3.30.0 Markersパネルの「再生中の曲」(renderNowPlaying)。行はライブラリと同じ.playlistItem、並び替えつまみだけ無し ---------- */
 #markersNowPlaying { border-bottom: 1px solid var(--border-subtle); margin-bottom: 8px; }
 #markersNowPlaying .playlistItem.is-nowplaying { grid-template-columns: auto 1fr auto auto; cursor: default; }
+
+.playlist-ghost-headrow { display: flex; align-items: center; gap: 8px; }
+.playlist-ghost-transfer { flex: none; margin-right: 8px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border, rgba(128,128,128,.45)); background: none; color: inherit; font-size: 11px; font-weight: 600; cursor: pointer; opacity: .85; }
+@media (hover: hover) and (pointer: fine) { .playlist-ghost-transfer:hover { background: rgba(128,128,128,.15); } }
+.playlist-ghost-note { padding: 2px 10px 8px; font-size: 11px; line-height: 1.5; opacity: .6; }
+.playlist-peer-section { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 6px 0 6px 10px; border-top: 1px dashed var(--border, rgba(128,128,128,.35)); }
+.playlist-peer-text { flex: 1; min-width: 0; font-size: 12px; line-height: 1.4; opacity: .75; }

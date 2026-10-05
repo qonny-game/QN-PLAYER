@@ -185,3 +185,5 @@
 - `QNSettingsUI.inline`の行に`spHide:true`を付けるとスマホ幅(≤900px)の帯から外れる(Settingsパネルの行には影響しない)。
 
 - **iOS: `input`イベント内で`<input>`の`value`を書き換えない**(スペース挿入・大文字化・桁区切りなど)。同じ文字が二重に入る(Transferのコード入力で発生)。整形は`blur`/`change`/送信時にし、入力値の解釈は読む側(normCode等)で行う。
+
+- **`requestAnimationFrame`は画面が見えない間(別アプリ・ロック中)止まる。** 再生中に必ず動くべき処理(ループの折り返し等)はrAFだけに置かず、`document.hidden`中はsetInterval/timeupdateでも回す(`backgroundLoopTick`)。バックグラウンドのタイマーは間引かれる(約1秒)。

@@ -757,6 +757,8 @@
     if (settingsSub) { switchPanel("settings"); return; }
     openPanelOverlay("settings");
   }
+  // Libraryの「未インポート」横のTransferボタン(player-sync.js)から開く。戻るとLibraryへ戻る
+  window.qnOpenTransfer = function () { switchPanel("transfer", { backTo: "playlist" }); };
   function openSettingsSub(id) {
     const pb = document.getElementById("pcV2PanelBody");
     if (pb) settingsScroll = pb.scrollTop; // 戻った時に同じ位置を見せる
@@ -1066,7 +1068,7 @@
     } else if (item.panelType === "transfer") {
       // 設定の下層パネル(Backup/Importと同じ部品。中身はplayer-p2p.js)。戻り先は設定の一覧
       panelBody.classList.add("pcv2-panel-aux");
-      if (window.QNP2P) window.QNP2P.mount(panelBody, () => switchPanel("settings"));
+      if (window.QNP2P) window.QNP2P.mount(panelBody, () => switchPanel((opts && opts.backTo) || "settings"));
     } else if (item.panelType === "backup" || item.panelType === "import") {
       panelBody.classList.add("pcv2-panel-aux");
       if (typeof window.qnBackupMount === "function") window.qnBackupMount(item.panelType, panelBody);
