@@ -425,6 +425,8 @@
 
     appContainer.parentNode.insertBefore(root, appContainer.nextSibling);
     root.appendChild(buildSpDock()); // 既存ボタンがdocumentに接続された後に作る(アイコン複製・ミラー用)
+    // 【v4.11.0】SPのMore: ドックの上に開く。設定帯(Bar length/Rows)は#pcV2MorePanelへ、その下に下段バー(Track/Track/Repeat)。DOM順は#pcV2Layout内で 波形→MorePanel→下段バー→ドック→アイコンバー(syncBottomBarPosition)
+    root.appendChild(el('<div id="pcV2MorePanel"></div>'));
 
     // 【SP幅】SPは「アイコンバー最下部、その上にコントロールバー」。bottomBarは#pcV2Root直下、iconBarは#pcV2Layout内で階層が違いCSS orderでは不可→JSでDOM移動。PC幅に戻る時は元位置(#pcV2Root直下、layoutの後)へ
     syncBottomBarPosition();
@@ -444,6 +446,25 @@
 
     const waveHead = el('<div id="pcV2WaveHead"></div>');
     if (appTitle) waveHead.appendChild(appTitle);
+    // 【v4.11.0】SP: タイトル+時間の行の右端に 前/次トラック・リピート(本体の#prevTrackBtn/#nextTrackBtn/#allRepeatToggleBtnへ中継+アイコン/点灯のミラー)。PC幅はCSSで非表示
+    const headBtns = el('<div id="pcV2WaveHeadBtns"></div>');
+    [["pcV2HeadPrevTrack", "prevTrackBtn", "Prev Track"], ["pcV2HeadNextTrack", "nextTrackBtn", "Next Track"], ["pcV2HeadRepeat", "allRepeatToggleBtn", "Repeat"]].forEach(([id, srcId, title]) => {
+      const src = document.getElementById(srcId);
+      const b = el('<button type="button" class="pcv2-head-btn" id="' + id + '" title="' + title + '"></button>');
+      b.addEventListener("click", () => { if (src) src.click(); });
+      const sync = () => {
+        if (!src) return;
+        const sv = src.querySelector("svg");
+        const html = sv ? sv.outerHTML : "";
+        if (b.innerHTML !== html) b.innerHTML = html;
+        b.classList.toggle("is-active", src.classList.contains("is-active"));
+        b.title = src.title || title;
+      };
+      if (src && typeof MutationObserver === "function") new MutationObserver(sync).observe(src, { attributes: true, attributeFilter: ["class", "title"], childList: true, subtree: true });
+      sync();
+      headBtns.appendChild(b);
+    });
+    waveHead.appendChild(headBtns);
     waveArea.appendChild(waveHead);
     if (vbarContainer) waveArea.appendChild(vbarContainer);
     // waveHead確定後に時刻行の置き場所を確定(先のsyncTimeRowPosition()初回はwaveHead未生成で空振り)
@@ -483,10 +504,28 @@
       { label: "Follow", type: "switch", spHide: true, get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) }
     ], () => syncSettingsBody());
     window.qnBarStripSync = waveBarStrip.sync;
+    waveBarStrip.el.classList.add("qn-wave-bar-strip"); // SP幅ではMore内(#pcV2MorePanel)へ移す(syncMoreExtras)。PC幅はここ
     waveFabRow.appendChild(waveBarStrip.el);
     const waveFabBtns = el('<div class="pcv2-wave-fab-btns"></div>');
     waveFabRow.appendChild(waveFabBtns);
     waveFabBtns.appendChild(waveAddAudioBtn);
+    // 【v4.11.0】SP: Audioの右にA/Bボタン(本体の#setABtn/#setBBtnへ中継+ラベル/点灯のミラー。長押しはquickpopの対象)。PC幅はCSSで非表示
+    const makeAbMirror = (kind) => {
+      const src = document.getElementById(kind === "A" ? "setABtn" : "setBBtn");
+      const b = el('<button type="button" class="panel-fab-btn pcv2-fab-ab" id="pcV2FabSet' + kind + '" title="' + (kind === "A" ? "現在位置をA点に（もう一度押すと解除）" : "現在位置をB点に（もう一度押すと解除）") + '"><span>' + kind + ' --</span></button>');
+      b.addEventListener("click", () => { if (src) src.click(); });
+      const sync = () => {
+        if (!src) return;
+        const l = src.querySelector(".top-controls-btn-label");
+        b.firstChild.textContent = l ? l.textContent : kind + " --";
+        b.classList.toggle("has-point", src.classList.contains("has-point"));
+      };
+      if (src && typeof MutationObserver === "function") new MutationObserver(sync).observe(src, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true, characterData: true });
+      sync();
+      return b;
+    };
+    waveFabBtns.appendChild(makeAbMirror("A"));
+    waveFabBtns.appendChild(makeAbMirror("B"));
     waveFabBtns.appendChild(waveAddMarkerBtn);
     // 【v3.38.0】MARKERの右に再生/停止ボタン(#playToggleを押すのと同じ。アイコンはaudioのplay/pauseに追従)
     const waveFabPlayBtn = el(
@@ -503,6 +542,7 @@
     ["play", "pause", "ended", "emptied", "loadedmetadata"].forEach(n => audio.addEventListener(n, syncFabPlay));
     waveFabBtns.appendChild(waveFabPlayBtn);
     waveArea.appendChild(waveFabRow);
+    requestAnimationFrame(() => syncBottomBarPosition()); // 設定帯(Bar length/Rows)を作った後でSPのMoreへ移す(初回のsyncBottomBarPositionは設定帯の生成より前に走るため)
     // FAB帯の高さに合わせて波形エリア下の空きを決める(固定値だと帯が高い時にシークバーへ重なる)
     if (window.ResizeObserver) {
       new ResizeObserver(() => {
@@ -624,6 +664,28 @@
     setTimeout(() => { isSeeking = false; }, 150);
   }
 
+  // SP幅: Bar length/Rowsの設定帯をMore(#pcV2MorePanel)内へ、PC幅は元の#pcV2WaveFabRow先頭へ戻す(同じ要素を移すだけ=値の同期やqnBarStripSyncはそのまま)
+  function syncMoreExtras(isSp) {
+    const strip = document.querySelector(".qn-wave-bar-strip");
+    const more = document.getElementById("pcV2MorePanel");
+    const fabRow = document.getElementById("pcV2WaveFabRow");
+    if (!strip || !more || !fabRow) return;
+    if (isSp) { if (strip.parentElement !== more) more.appendChild(strip); }
+    else if (strip.parentElement !== fabRow) fabRow.insertBefore(strip, fabRow.firstChild);
+  }
+
+  // SP幅: Libraryの Audio/Folder ボタンはパネルタイトルの右(ヘッダー)へ、PC幅は右下FABへ。ヘッダーはパネル切替のたびに作り直されるので、Libraryを開いた時と幅が変わった時に呼ぶ
+  function placeLibraryAddGroup() {
+    const header = document.getElementById("pcV2PanelHeader");
+    const group = document.querySelector("#pcV2PanelHeader .pcv2-fab-addgroup, #pcV2PanelFab .pcv2-fab-addgroup");
+    if (!header || !group || currentPanel !== "playlist") return;
+    if (isSpWidthNow()) { if (group.parentElement !== header) header.appendChild(group); }
+    else {
+      const fab = document.getElementById("pcV2PanelFab");
+      if (fab && group.parentElement !== fab) fab.insertBefore(group, fab.firstChild);
+    }
+  }
+
   function syncBottomBarPosition() {
     const bottomBar = document.getElementById("pcV2BottomBar");
     const anchorTabs = document.getElementById("pcV2BottomBarAnchorTabs");
@@ -634,16 +696,13 @@
     if (!bottomBar || !layoutEl || !iconBar || !rootEl) return;
 
     const isSpWidth = isSpWidthNow();
+    const morePanel = document.getElementById("pcV2MorePanel");
+    syncMoreExtras(isSpWidth);
     if (isSpWidth) {
-      // anchorTabsはbottomBarの直前。bottomBarを先に動かし、その直前にanchorTabsを挿す
-      if (bottomBar.nextSibling !== iconBar || bottomBar.parentElement !== layoutEl) {
-        layoutEl.insertBefore(bottomBar, iconBar);
-      }
-      if (anchorTabs && (anchorTabs.nextSibling !== bottomBar || anchorTabs.parentElement !== layoutEl)) {
-        layoutEl.insertBefore(anchorTabs, bottomBar);
-      }
-      // ドックは下段バーの直前(アンカータブの手前)
-      if (dockEl && (dockEl.nextSibling !== anchorTabs || dockEl.parentElement !== layoutEl)) layoutEl.insertBefore(dockEl, anchorTabs || bottomBar);
+      // Moreはドックの上に開く。アイコンバー直前に 設定帯(MorePanel) → 下段バー → ドック → アンカータブ(SPでは非表示) の順で並べる
+      const seq = [morePanel, bottomBar, dockEl, anchorTabs].filter(Boolean);
+      const inOrder = seq.every((n, i) => n.parentElement === layoutEl && n.nextSibling === (seq[i + 1] || iconBar));
+      if (!inOrder) seq.forEach(n => layoutEl.insertBefore(n, iconBar));
     } else {
       if (bottomBar.parentElement !== layoutEl || layoutEl.lastElementChild !== bottomBar) {
         layoutEl.appendChild(bottomBar);
@@ -652,6 +711,7 @@
         layoutEl.insertBefore(anchorTabs, bottomBar);
       }
     }
+    placeLibraryAddGroup();
   }
 
   // スクロールヒント矢印: 右にスクロール余地がある間だけ表示(PC幅はCSSで常時非表示)
@@ -741,7 +801,8 @@
     const iconBar = document.getElementById("pcV2IconBar");
     if (!layoutEl || !bottomBar || !iconBar) return;
     const dockEl = document.getElementById("pcV2SpDock");
-    const total = bottomBar.getBoundingClientRect().height + iconBar.getBoundingClientRect().height + (dockEl ? dockEl.getBoundingClientRect().height : 0);
+    const moreEl = document.getElementById("pcV2MorePanel");
+    const total = bottomBar.getBoundingClientRect().height + iconBar.getBoundingClientRect().height + (dockEl ? dockEl.getBoundingClientRect().height : 0) + (moreEl ? moreEl.getBoundingClientRect().height : 0);
     layoutEl.style.setProperty("--pcv2-bottom-bars-height", total + "px");
   }
 
@@ -1047,6 +1108,7 @@
         attachDisableGuard("playlist");
         panelBody.appendChild(buildPanelFab(panelId));
         if (scopeBtnEl) panelHeader.appendChild(scopeBtnEl);
+        placeLibraryAddGroup();
         if (typeof syncAutoNextScopeButton === "function") syncAutoNextScopeButton();
       } else if (panelId === "text") {
         if (textBody) panelBody.appendChild(textBody);
@@ -1101,7 +1163,7 @@
     const editBtn = document.getElementById(editBtnId);
     const deleteBtn = document.getElementById("pcV2DeleteSelectedBtn");
     const fab = document.getElementById("pcV2PanelFab");
-    const addGroup = fab ? fab.querySelector(".pcv2-fab-addgroup") : null;
+    const addGroup = document.querySelector("#pcV2PanelHeader .pcv2-fab-addgroup, #pcV2PanelFab .pcv2-fab-addgroup");
     const cssClass = panelId + "-edit-mode";
     if (panelBody) panelBody.classList.toggle(cssClass, editModeState[panelId]);
     if (editBtn) {

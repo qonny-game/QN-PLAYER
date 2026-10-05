@@ -495,3 +495,36 @@ html {
 @media (max-width: 900px) {
   #pcV2BarMixer, .pcv2-mixer-divider { display: none !important; }
 }
+
+
+/* ---------- 【v4.11.0】SPの再配置: Moreはドックの上に開く(設定帯のみ)/ 前次トラック・リピートは波形ヘッダー右端 / AudioはA・Bと同じ行で小さく ---------- */
+#pcV2MorePanel, #pcV2WaveHeadBtns, #pcV2WaveFabRow .pcv2-fab-ab { display: none; } /* PC幅では出さない(.panel-fab-btnのdisplay:flexに勝つためidを付ける) */
+@media screen and (max-width: 900px) {
+  /* DOM順は波形→MorePanel→下段バー→ドック→アイコンバー(JS: syncBottomBarPosition)。orderも合わせる */
+  #pcV2MorePanel { order: 2; flex-shrink: 0; background: #0a0a0c; border-top: 1px solid var(--border-subtle); padding: 8px 14px; }
+  #pcV2Root.qn-sp-more-open #pcV2MorePanel { display: block; }
+  #pcV2SpDock { order: 3; }
+  /* 下段バーの中身は全て他へ移した(再生/マーカー系はドック、トラック/リピートはヘッダー、A/BはAudioの隣、-10s/+10sは廃止)。操作元のボタンはDOMに残す(ドック等が.click()で中継するため) */
+  #pcV2BottomBar, #pcV2Root.qn-sp-more-open #pcV2BottomBar { display: none !important; }
+
+  /* 波形ヘッダー: 右端にボタン群(2行ぶち抜き) */
+  #pcV2WaveHead { grid-template-columns: minmax(0, 1fr) auto; }
+  #pcV2WaveHeadBtns { display: flex; align-items: center; gap: 2px; grid-column: 2; grid-row: 1 / span 2; }
+  .pcv2-head-btn { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; background: none; border: none; border-radius: 10px; color: var(--icon-muted); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pcv2-head-btn svg { width: 26px; height: 26px; fill: currentColor; display: block; }
+  .pcv2-head-btn:active { background: rgba(255, 255, 255, 0.08); }
+  .pcv2-head-btn.is-active { color: var(--accent-primary); }
+
+  /* Audioは小さく、空いた所にA/B */
+  #pcV2WaveFabRow .pcv2-wave-fab-btns { display: flex; gap: 8px; align-items: stretch; }
+  #pcV2WaveFabRow #pcV2WaveAddAudioBtn { flex: 0 0 auto; height: 36px; padding: 0 14px; font-size: 12px; gap: 6px; }
+  #pcV2WaveFabRow #pcV2WaveAddAudioBtn svg { width: 15px; height: 15px; }
+  #pcV2WaveFabRow .pcv2-fab-ab { display: flex; flex: 1 1 0; min-width: 0; height: 36px; padding: 0 8px; font-size: 13px; background: none; border: 1px solid var(--border-strong, rgba(255,255,255,0.2)); color: var(--icon-muted); box-shadow: none; white-space: nowrap; }
+  #pcV2WaveFabRow .pcv2-fab-ab.has-point { color: var(--accent-primary); border-color: var(--accent-primary); }
+  #pcV2WaveFabRow .pcv2-fab-ab:hover { background: none; }
+
+  /* Library: Audio/Folderはパネルタイトルの右(ヘッダー内)に横並びで小さく */
+  #pcV2PanelHeader .pcv2-fab-addgroup { display: flex; flex-direction: row; align-items: center; gap: 6px; margin-left: auto; }
+  #pcV2PanelHeader .pcv2-fab-addgroup .panel-fab-btn { height: 32px; padding: 0 12px; gap: 5px; font-size: 12px; box-shadow: none; }
+  #pcV2PanelHeader .pcv2-fab-addgroup .panel-fab-btn svg { width: 15px; height: 15px; }
+}

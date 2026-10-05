@@ -135,7 +135,7 @@
     },
     // A/B長押し: 0.1秒単位の微調整
     ab: function (target) {
-      var kind = target && target.id === "setBBtn" ? "B" : "A";
+      var kind = target && (target.id === "setBBtn" || target.id === "pcV2FabSetB") ? "B" : "A";
       var get = function () { return kind === "A" ? abA : abB; };
       var put = function (v) { if (kind === "A") abA = v; else abB = v; afterABChange(); };
       return { title: kind + " point", build: function (ctx) {
@@ -257,13 +257,13 @@
   var TARGETS = [
     ["#playToggle, #pcV2DockPlay", "play"],
     ["#prevMarkerBtn, #nextMarkerBtn, #pcV2DockPrevMarker, #pcV2DockNextMarker", "markers"],
-    ["#setABtn, #setBBtn", "ab"],
+    ["#setABtn, #setBBtn, #pcV2FabSetA, #pcV2FabSetB", "ab"],
     ["#addPinBtn, #pcV2DockAdd", "addpin"],
-    ["#prevTrackBtn, #nextTrackBtn", "tracks"],
+    ["#prevTrackBtn, #nextTrackBtn, #pcV2HeadPrevTrack, #pcV2HeadNextTrack", "tracks"],
     ["#playlistBox .playlistItem:not(.is-nowplaying)", "libitem"],
     ["#loopToggleBtn, #pcV2DockLoop", "loop"],
     ["#pcV2SkipBackBtn, #pcV2SkipFwdBtn", "skip"],
-    ["#allRepeatToggleBtn", "repeat"]
+    ["#allRepeatToggleBtn, #pcV2HeadRepeat", "repeat"]
   ];
   // 他アプリ(VIDEO等)の対象: add(selector, defFn(el))。defFnは{title, rows|build}を返す
   var EXTRA = [];

@@ -96,3 +96,4 @@
 - 4.10.0 Libraryに「他の端末にMP3が無い曲: N曲」+Sendボタンを追加(送信側の案内)。各端末が自分の未インポート一覧を`lib_devices`へ書き、他端末が読んで集計(30日以内の端末のみ)。Sendを押すとTransferパネルが開く。
 - 4.10.1 画面が見えない間(別アプリ・ロック中)にループ(A-B/区間)が効かない不具合を修正。折り返し判定を`loopTick`に切り出し、非表示中はsetInterval(100ms)+timeupdateで継続(表示中はrAFのみ)。
 - 4.10.2 PLAYERのシークバーポップアップで、Loop ON時にアイコンと文字がアクセント色にならない不具合を修正(SVGが灰色固定だった。`.qn-yt-seekpop-btn.is-set`で上書き)。
+- 4.11.0 SP幅の再配置。Moreはドックの上に開き(ドックが動かない)中身はBar length/Rowsの設定帯だけ(下段バーは廃止=Play/-10s/+10s/マーカー系/Loopは撤去、Track前次・Repeatは波形ヘッダー右端、A・BはAudioの隣)。Audioボタンを小型化。LibraryのAudio/Folderはパネルタイトルの右へ。操作元の下段バーのボタンはDOMに残し、ドック/ヘッダー/A・Bはミラー(`.click()`中継)。長押し(quickpop)はミラーにも対応。PC幅は変更なし。
