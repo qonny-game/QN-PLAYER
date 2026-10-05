@@ -226,7 +226,6 @@
     "Delete": "削除",
     "Tap again to delete": "もう一度タップで削除",
     // ---- エクスポート ----
-    "Export Audio": "音声を書き出し",
     "Range": "範囲",
     "All (Full Track)": "すべて(曲全体)",
     "Marker Range": "マーカー範囲",

@@ -566,14 +566,6 @@ body {
   gap: 0;
 }
 
-.adjust-controls-row #exportToggleBtn{
-  flex-grow: 1;
-  flex-shrink: 1;
-  flex-basis: 0%;
-  width: 100%;
-  min-width: 0;
-}
-
 
 .adjust-controls-row .time-controls-buttons .av-toggle-btn {
   border-radius: 0 !important;

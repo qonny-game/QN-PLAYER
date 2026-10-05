@@ -16,7 +16,6 @@ grep -o 'id="[a-zA-Z0-9]*"' JS/player-ui-pc-v2.js | sed 's/id="//;s/"//' | sort 
 | `playlistBox` `playlistInfo` `playlistScopeBtn` | ライブラリ一覧／Auto Next範囲ボタン(PC v2ではパネルヘッダーへ移動、他パネルへ切替時はholderへ退避)。フォルダ見出しは`.playlistFolderHeader`(`data-folder-id`)、曲の行は`.playlistItem`(`data-index`=playlist[]のindex、`data-folder`)。移動UIは`#pcV2NewFolderBtn` `#pcV2MoveSelectedBtn` `#playlistFolderPicker` |
 | `eq*` | EQ（`player-control-eq.js`） |
 | `control*` | Speed/AutoSpeed/Key（`player-controls.js`）。`controlSpeedEnableToggle`/`controlKeyEnableToggle`はEQと同じ`.glow-switch`(role=switch, aria-checked)。−/＋はバー左右、Keyは`controlKeyRange`(−12〜12) |
-| `export*` | 現在曲の範囲書き出し（`player-export.js`） |
 | `user*` `sw*` | 無料版/課金（`player-shareware.js`） |
 | `qn*` | ハンバーガーメニュー(`#qnMenuMount`配下、`player-theme.js`)。`qnMarkerPresetColorRows`＝Colorパネル内のMarker Memo Colors（`renderMarkerPresetColorSettings()`が中身を生成） |
 | `note*` | Textタブ（`player-text.js`） |

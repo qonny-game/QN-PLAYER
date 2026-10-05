@@ -33,7 +33,7 @@
 
 ## 3. 消してはいけないもの・触らないもの
 - **動的に組み立てられるクラス名・idは、単純な文字列検索で未使用と決めない。** 例：`"is-" + kind`（`.is-a/.is-b`）、`"pcv2-panel-" + panelId`（`.pcv2-panel-*`）、`eqBand0〜9`。
-- `JS/jszip.min.js`・`JS/lame_min.js`（外部ライブラリ。触らない）。
+- `JS/jszip.min.js`（外部ライブラリ。触らない）。
 - **分割しないファイル**：`player-ui-pc-v2.js`・`qn-app-youtube.js`（1つのIIFE内で多数の変数を共有。分割すると作り直しになる）。
 - **読み込み順**（`index.html`のCSS/JS。順序で上書き・グローバル参照が決まる）。並べ替えない。
 - 他アプリ・他端末から参照される保存キー・IndexedDB名（互換性が壊れる）。

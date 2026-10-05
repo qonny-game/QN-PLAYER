@@ -1,6 +1,6 @@
 // player-ui-pc-v2.js — 左アイコンバー+中央パネル+右波形の3カラム(SP幅はCSS @media(max-width:900px)で縦積み。DOM/JSはPC/SP共通、常時有効)。
-// 【方針】既存DOM(#pinList,#playlistBox,#noteTextArea,Control系input,EQバンド,Exportモーダル中身)はidで参照されるので複製せず、骨組み(#pcV2Layout)へ「移動」する(イベントはそのまま生きる)。
-// 依存: player-core.js, player-ui-shared.js, player-control-eq.js, player-export.jsより後(setMobileTab,openEqModal,openExportModal等を呼ぶ)。末尾に旧player-ui-pc.js由来(D&D追加、flattenForPc/restoreForSp)を同居
+// 【方針】既存DOM(#pinList,#playlistBox,#noteTextArea,Control系input,EQバンド,EQモーダル中身)はidで参照されるので複製せず、骨組み(#pcV2Layout)へ「移動」する(イベントはそのまま生きる)。
+// 依存: player-core.js, player-ui-shared.js, player-control-eq.js, (setMobileTab,openEqModal等を呼ぶ)。末尾に旧player-ui-pc.js由来(D&D追加、flattenForPc/restoreForSp)を同居
 
 (function () {
   let built = false;
@@ -9,7 +9,7 @@
   let panelCollapsed = false;
   try { panelCollapsed = localStorage.getItem(PANEL_COLLAPSED_KEY) === "1"; } catch (e) {}
 
-  // アイコンバー項目。panelType: tab=既存.mobile-tab-panel表示 / eq=EQモーダル中身 / export=Exportモーダル中身 / action=即実行(現在該当なし、ロジックのみ残す) / close=開いていれば閉じる(現在該当なし)。並び: Library→Markers→Text→Control→Backup→Import(Exportは非表示。v3.48.0でSP専用のSeekbarタブは撤去)
+  // アイコンバー項目。panelType: tab=既存.mobile-tab-panel表示 / eq=EQモーダル中身 / action=即実行(現在該当なし、ロジックのみ残す) / close=開いていれば閉じる(現在該当なし)。並び: Library→Markers→Text→Control→Backup→Import(v3.48.0でSP専用のSeekbarタブは撤去)
   const ICON_ITEMS = [
     {
       id: "playlist",
@@ -38,13 +38,6 @@
       panelType: "tab",
       tabName: "control",
       icon: '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>'
-    },
-    {
-      id: "export",
-      label: "Export",
-      panelType: "export",
-      icon: '<path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM13 12.67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>',
-      hidden: true
     },
     {
       id: "backup",
@@ -609,7 +602,7 @@
     applyCollapse();
   }
 
-  let settingsBody, controlBody, markersBody, playlistBody, textBody, eqBody, exportBody, exportFooter;
+  let settingsBody, controlBody, markersBody, playlistBody, textBody, eqBody;
   let backupBody, backupFooter, importBody, importFooter;
 
   function initPanels() {
@@ -621,9 +614,6 @@
     const eqModal = document.getElementById("eqModalOverlay");
     eqBody = eqModal ? eqModal.querySelector(".export-modal-body") : null;
 
-    const exportModal = document.getElementById("exportModalOverlay");
-    exportBody = exportModal ? exportModal.querySelector(".export-modal-body") : null;
-    exportFooter = exportModal ? exportModal.querySelector(".export-modal-footer") : null;
 
 
     if (typeof window.qnBackupParts === "function") {
@@ -979,7 +969,7 @@
     const stash = getPanelStash();
     const keep = [
       settingsBody, controlBody, eqDividerEl, markersBody, playlistBody, textBody, eqBody,
-      exportBody, exportFooter, backupBody, backupFooter, importBody, importFooter,
+      backupBody, backupFooter, importBody, importFooter,
       pcv2QnSections.color, pcv2QnSections.keyboard
     ];
     keep.forEach(node => {
@@ -1139,12 +1129,6 @@
       }
       // 既存のタブ状態・関連ロジック(ハイライト、Text自動保存登録等)を呼び出し元と合わせる
       if (typeof setMobileTab === "function") setMobileTab(panelId);
-    } else if (item.panelType === "export") {
-      if (typeof openExportModal === "function") openExportModal();
-      const exportModalOverlay = document.getElementById("exportModalOverlay");
-      if (exportModalOverlay) exportModalOverlay.classList.remove("open");
-      if (exportBody) panelBody.appendChild(exportBody);
-      if (exportFooter) panelBody.appendChild(exportFooter);
     } else if (item.panelType === "settings") {
       panelBody.appendChild(ensureSettingsBody());
       syncSettingsBody();

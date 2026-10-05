@@ -103,3 +103,4 @@
 - 4.11.4 ミキサーのKeyを±ボタンからスライダー(-12〜+12)に変更しVolume/Speedと統一(PC/SP共通)。
 - 4.11.5 SPのMoreのSpeed/Keyにもバー左にアイコンのリセットボタンを追加(Volumeのミュートボタンと同じ位置・サイズ。タップで1.00x/0に戻す)。PC下部バーは変更なし。
 - 4.12.0 アプリ内ガイドを追加。サイドバーのSettings直上に「Guide」ボタン(別タブで`guide/index.html`を開く=再生は止まらない)。ガイドは`guide/`配下の静的ページ8枚(はじめに/はじめての方へ/画面の見かた/操作ガイド/保存・同期/アプリの切り替え/無料版とPremium/設定・ショートカット・FAQ)+スクリーンショット`guide/img/*.webp`。スタイル`guide/guide.css`、ライトボックスとテーマ色反映`guide/guide.js`(`qn_theme`を読んでアクセント色に)。アプリ側のサイドバーでもGuideは表示(`style-apps.css`の例外に追加)。文言は日本語のみ。
+- 4.12.1 使われていない「Export Audio」(現在曲の範囲書き出し WAV/MP3)を撤去。`JS/player-export.js`・`JS/lame_min.js`を削除、index.htmlの`#exportToggleBtn`と`#exportModalOverlay`、player-core.jsの書き出し用関数(`audioBufferToWavBlob`/`audioBufferToMp3Blob`/`sliceAudioBuffer`/`renderExportBuffer`/`suggestExportFileName`)、player-ui-pc-v2.jsの非表示Export項目とパネル分岐、style-core.cssの`#exportToggleBtn`を削除。`CSS/style-export.css`はEQ/Backup/Import/解約モーダルと共用のため残した(書き出し専用セレクタの掃除は未実施)。ガイドのBackup説明に「書き出し(エクスポート)」の表記を追加。

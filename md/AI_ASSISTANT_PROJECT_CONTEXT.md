@@ -25,7 +25,6 @@ JS/
   player-marker-presets.js    マーカーメモのプリセット・自動カラー・カスタムプリセット・メモ編集ポップアップ（player-markers.jsの続き）
   player-control-eq.js        EQ
   player-controls.js          Speed/AutoSpeed/Key/Loop/プリロールのつまみ
-  player-export.js            現在曲の範囲書き出し（WAV/MP3）
   player-text.js              Textタブ
   player-ui-pc-v2.js          【最大】唯一のUI実装。DOM組み立て・パネル・下段バー・波形（IIFE）。目次はPC_V2_FILE_INDEX.md
   qn-wakelock.js              再生中の画面スリープ防止 QNWake.set(key,on)
@@ -37,7 +36,7 @@ JS/
   qn-app-pitch.js             PITCHアプリ本体（IIFE。ピッチロール/録音/再生/Filters/Recordings/Backup窓口QNPitchBackup）
   player-theme.js             カラーテーマ・ショートカット一覧・ハンバーガーメニュー
   player-auth.js              Firebase Auth（module）
-  jszip.min.js / lame_min.js  外部ライブラリ（触らない）
+  jszip.min.js                外部ライブラリ（触らない）
 CSS/
   style-core.css              :root トークン＋PC/SP共通デザイン
   style-playlist / markers / control-eq / controls / export / text / auth / shareware / theme .css   機能ごと（名前でJSが分かる）
@@ -55,7 +54,7 @@ favicon/  md/  pricing*.html  QUICK_START.md
 
 **読み込み順（`index.html`）。順序で上書きが決まる／グローバルでつながるので変えない：**
 - CSS：core → playlist → markers → control-eq → controls → export → text → layout-sp → layout-pc-v2 → **layout-pc-v2-sp** → pcv2-panels → **bars** → auth → shareware → theme → apps → **youtube** → tuner → pitch
-- JS：jszip → lame → player-shareware → qn-marker-core → player-core → **player-bars** → player-ui-shared → player-id3 → player-playlist → player-track-backup → player-markers → **player-marker-presets** → player-control-eq → player-controls → player-export → player-text → player-ui-pc-v2 → qn-wakelock → qn-apps → qn-app-youtube → qn-pitch-core → qn-app-tuner → qn-pitch-filters → qn-app-pitch → player-theme → player-auth(module)
+- JS：jszip → player-shareware → qn-marker-core → player-core → **player-bars** → player-ui-shared → player-id3 → player-playlist → player-track-backup → player-markers → **player-marker-presets** → player-control-eq → player-controls → player-text → player-ui-pc-v2 → qn-wakelock → qn-apps → qn-app-youtube → qn-pitch-core → qn-app-tuner → qn-pitch-filters → qn-app-pitch → player-theme → player-auth(module)
 
 新しい関数を他ファイルから使う時は「呼ぶ側より前に定義されているか」を確認する。共通ヘルパーは`player-core.js`が定位置。
 `player-ui-pc-v2.js`と`qn-app-youtube.js`は、それぞれ1つのIIFEの中で多数の変数を共有している。**ファイル分割はしない**（変数の持ち方から作り直しになるため）。
