@@ -290,6 +290,9 @@
       mixer.querySelector("#pcV2BarKeyUp").addEventListener("click", () => setKeySemitones(currentKeySemitones + 1));
       mixer.querySelector('[data-mix="key"] .pcv2-mix-label').addEventListener("click", () => setKeySemitones(0));
       mixer.querySelector('[data-mixval="key"]').addEventListener("click", () => setKeySemitones(0));
+      // 塗り側トラック用の--p(スライダー位置%)。thumbの左側をアクセント色にする
+      const paintRange = (r) => { const mn = parseFloat(r.min), mx = parseFloat(r.max); r.style.setProperty("--p", (mx > mn ? ((parseFloat(r.value) - mn) / (mx - mn)) * 100 : 0) + "%"); };
+      [barVol, barSpeed].forEach(r => r.addEventListener("input", () => paintRange(r)));
       let mixLast = "";
       window.pcv2SyncBarMixer = function (force) {
         const sig = audio.volume + "|" + currentSpeed + "|" + currentKeySemitones + "|" + audio.muted;
@@ -297,6 +300,7 @@
         mixLast = sig;
         if (document.activeElement !== barVol) barVol.value = audio.volume;
         if (document.activeElement !== barSpeed) barSpeed.value = currentSpeed;
+        paintRange(barVol); paintRange(barSpeed);
         mixer.querySelector('[data-mixval="vol"]').textContent = audio.muted ? "Mute" : Math.round(audio.volume * 100) + "%";
         barMute.classList.toggle("is-muted", audio.muted);
         barMute.title = audio.muted ? "Unmute" : "Mute";
@@ -445,7 +449,17 @@
 
 
     const waveHead = el('<div id="pcV2WaveHead"></div>');
-    if (appTitle) waveHead.appendChild(appTitle);
+    if (appTitle) {
+      waveHead.appendChild(appTitle);
+      // 【v4.11.2】ファイル名タップでLibraryを開く(既にLibraryが開いていれば何もしない)
+      appTitle.style.cursor = "pointer";
+      appTitle.addEventListener("click", () => {
+        const layoutEl = document.getElementById("pcV2Layout");
+        const open = isSpWidthNow() ? !!(layoutEl && layoutEl.classList.contains("pcv2-panel-open")) : !panelCollapsed;
+        if (open && currentPanel === "playlist" && !settingsSub) return;
+        openPanelOverlay("playlist");
+      });
+    }
     // 【v4.11.0】SP: タイトル+時間の行の右端に 前/次トラック・リピート(本体の#prevTrackBtn/#nextTrackBtn/#allRepeatToggleBtnへ中継+アイコン/点灯のミラー)。PC幅はCSSで非表示
     const headBtns = el('<div id="pcV2WaveHeadBtns"></div>');
     [["pcV2HeadPrevTrack", "prevTrackBtn", "Prev Track"], ["pcV2HeadNextTrack", "nextTrackBtn", "Next Track"], ["pcV2HeadRepeat", "allRepeatToggleBtn", "Repeat"]].forEach(([id, srcId, title]) => {
@@ -455,7 +469,8 @@
       const sync = () => {
         if (!src) return;
         const sv = src.querySelector("svg");
-        const html = sv ? sv.outerHTML : "";
+        const bd = src.querySelector(".repeat-one-badge");
+        const html = (sv ? sv.outerHTML : "") + (bd ? bd.outerHTML : "");
         if (b.innerHTML !== html) b.innerHTML = html;
         b.classList.toggle("is-active", src.classList.contains("is-active"));
         b.title = src.title || title;
@@ -976,8 +991,6 @@
     const rowsPlay = [
       { label: "Loop pre/post-roll", hint: "Seconds added around loop", type: "node", node: preCtl },
       { label: "Skip buttons", hint: "Seconds for back / forward", type: "stepper", values: () => SKIP_OPTIONS, get: () => skipSec, set: v => setSkipSec(v), fmt: v => v + "s" },
-      { label: "Library repeat range", hint: "Auto Next / Repeat scope", type: "stepper", values: () => ["folder", "all"],
-        get: () => (typeof getAutoNextScope === "function" ? getAutoNextScope() : "folder"), set: v => { if (typeof setAutoNextScope === "function") setAutoNextScope(v); }, fmt: v => v === "folder" ? "Folder" : "All" },
       { label: "Auto normalize", hint: "Match volume across tracks", type: "switch", get: () => !!(window.QNNorm && QNNorm.isOn()), set: on => { if (window.QNNorm) QNNorm.setOn(on); } },
       { label: "Normalize level", hint: "Target loudness (higher = louder)", type: "stepper", values: () => (window.QNNorm ? QNNorm.TARGETS : [-18]),
         get: () => (window.QNNorm ? QNNorm.getTarget() : -18), set: v => { if (window.QNNorm) QNNorm.setTarget(v); }, fmt: v => v + " dB", disabledWhen: () => !(window.QNNorm && QNNorm.isOn()) },

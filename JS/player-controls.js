@@ -449,13 +449,14 @@ const REPEAT_MODE_STORAGE_KEY = "mp3player_repeat_mode";
 
 const REPEAT_ICON_OFF = '<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>';
 const REPEAT_ICON_ALL = '<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>';
+const REPEAT_ICON_FOLDER = '<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg><span class="repeat-one-badge repeat-folder-badge">F</span>';
 const REPEAT_ICON_ONE = '<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg><span class="repeat-one-badge">1</span>';
 
 function applyRepeatModeUI() {
   if (!allRepeatToggleBtn) return;
 
-  const iconHtml = repeatMode === "one" ? REPEAT_ICON_ONE : repeatMode === "all" ? REPEAT_ICON_ALL : REPEAT_ICON_OFF;
-  const labelText = repeatMode === "one" ? "Repeat 1" : repeatMode === "all" ? "Repeat All" : "Repeat";
+  const iconHtml = repeatMode === "one" ? REPEAT_ICON_ONE : repeatMode === "folder" ? REPEAT_ICON_FOLDER : repeatMode === "all" ? REPEAT_ICON_ALL : REPEAT_ICON_OFF;
+  const labelText = repeatMode === "one" ? "Repeat 1" : repeatMode === "folder" ? "Repeat Folder" : repeatMode === "all" ? "Repeat All" : "Repeat";
 
   allRepeatToggleBtn.innerHTML = iconHtml;
   const label = document.createElement("span");
@@ -465,13 +466,13 @@ function applyRepeatModeUI() {
 
   const isActive = repeatMode !== "off";
   allRepeatToggleBtn.classList.toggle("is-active", isActive);
-  allRepeatToggleBtn.title = repeatMode === "one" ? "Repeat One (click to cycle)" : repeatMode === "all" ? "Repeat All (click to cycle)" : "Repeat Off (click to cycle)";
+  allRepeatToggleBtn.title = repeatMode === "one" ? "Repeat One (click to cycle)" : repeatMode === "folder" ? "Repeat Folder (click to cycle)" : repeatMode === "all" ? "Repeat All (click to cycle)" : "Repeat Off (click to cycle)";
 }
 
 if (allRepeatToggleBtn) {
   try {
     const savedRepeatMode = localStorage.getItem(REPEAT_MODE_STORAGE_KEY);
-    if (savedRepeatMode === "one" || savedRepeatMode === "all" || savedRepeatMode === "off") {
+    if (savedRepeatMode === "one" || savedRepeatMode === "folder" || savedRepeatMode === "all" || savedRepeatMode === "off") {
       repeatMode = savedRepeatMode;
     }
   } catch (e) {}
@@ -486,7 +487,7 @@ if (allRepeatToggleBtn) {
       return;
     }
     hapticTap();
-    repeatMode = repeatMode === "off" ? "one" : repeatMode === "one" ? "all" : "off";
+    repeatMode = repeatMode === "off" ? "one" : repeatMode === "one" ? "folder" : repeatMode === "folder" ? "all" : "off";
     try { localStorage.setItem(REPEAT_MODE_STORAGE_KEY, repeatMode); } catch (e) {}
     applyRepeatModeUI();
   };

@@ -242,14 +242,6 @@
         { label: "Skip time", hint: "Seconds for back / forward", type: "stepper", values: function () { return S.options; },
           get: function () { return S.get(); }, set: function (v) { S.set(v); }, fmt: seconds }
       ] };
-    },
-    repeat: function () {
-      return { title: "Repeat", rows: [
-        { label: "Library repeat range", hint: "Auto Next / Repeat scope", type: "stepper", values: function () { return ["folder", "all"]; },
-          get: function () { return getAutoNextScope(); },
-          set: function (v) { setAutoNextScope(v); if (typeof syncAutoNextScopeButton === "function") syncAutoNextScopeButton(); },
-          fmt: function (v) { return v === "folder" ? "Folder" : "All"; } }
-      ] };
     }
   };
 
@@ -262,8 +254,7 @@
     ["#prevTrackBtn, #nextTrackBtn, #pcV2HeadPrevTrack, #pcV2HeadNextTrack", "tracks"],
     ["#playlistBox .playlistItem:not(.is-nowplaying)", "libitem"],
     ["#loopToggleBtn, #pcV2DockLoop", "loop"],
-    ["#pcV2SkipBackBtn, #pcV2SkipFwdBtn", "skip"],
-    ["#allRepeatToggleBtn, #pcV2HeadRepeat", "repeat"]
+    ["#pcV2SkipBackBtn, #pcV2SkipFwdBtn", "skip"]
   ];
   // 他アプリ(VIDEO等)の対象: add(selector, defFn(el))。defFnは{title, rows|build}を返す
   var EXTRA = [];

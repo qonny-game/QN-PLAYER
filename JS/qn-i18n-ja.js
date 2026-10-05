@@ -327,7 +327,7 @@
     [/^A-B Loop \(click: Section\)$/g, "A-Bループ(クリック: 区間)"],
     [/^Section Loop \(click: OFF\)$/g, "区間ループ(クリック: OFF)"],
     [/^Loop OFF \((\w)\)$/g, "ループ OFF ($1)"],
-    [/^Repeat (One|All|Off) \(click to cycle\)$/g, function (m, k) { return "リピート " + ({ One: "1曲", All: "全曲", Off: "OFF" })[k] + "(クリックで切替)"; }],
+    [/^Repeat (One|Folder|All|Off) \(click to cycle\)$/g, function (m, k) { return "リピート " + ({ One: "1曲", Folder: "フォルダ", All: "全曲", Off: "OFF" })[k] + "(クリックで切替)"; }],
     [/^Repeat Off \((\w)\)$/g, "リピート OFF ($1)"],
     [/^Auto Next: (.+)$/g, "Auto Next: $1"],
     [/^(\d+(?:\.\d+)?) MB$/g, "$1 MB"]

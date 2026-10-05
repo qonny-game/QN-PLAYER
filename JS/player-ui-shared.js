@@ -324,7 +324,7 @@ audio.onended = () => {
     return;
   }
 
-  const wrapAround = repeatMode === "all";
+  const wrapAround = repeatMode === "all" || repeatMode === "folder";
   const nextIndex = findEnabledTrackIndex(currentPlaylistIndex, 1, wrapAround);
   if (nextIndex !== -1) {
     playTrackAt(nextIndex);

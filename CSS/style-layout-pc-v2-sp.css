@@ -549,3 +549,36 @@ html {
 #pcV2PanelHeader .pcv2-fab-addgroup { display: flex; flex-direction: row; align-items: center; gap: 6px; margin-left: auto; }
 #pcV2PanelHeader .pcv2-fab-addgroup .panel-fab-btn { height: 32px; padding: 0 12px; gap: 5px; font-size: 12px; box-shadow: none; }
 #pcV2PanelHeader .pcv2-fab-addgroup .panel-fab-btn svg { width: 15px; height: 15px; }
+
+/* v4.11.2: Moreミキサーの見た目調整(白枠線を消しBar lengthと同じスライダー外観に / Speedを長くKeyを狭く) + ヘッドのリピートバッジ */
+@media (max-width: 900px) {
+  #pcV2MorePanel #pcV2BarMixer { grid-template-columns: 1fr auto; gap: 8px 16px; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range {
+    -webkit-appearance: none; appearance: none; height: 18px; background: transparent; outline: none; border: none; box-shadow: none; cursor: pointer; touch-action: pan-y; -webkit-tap-highlight-color: transparent;
+  }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range:focus, #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range:focus-visible { outline: none; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--accent-primary) var(--p, 0%), #2a2a34 var(--p, 0%)); border: none; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range::-moz-range-track { height: 4px; border-radius: 2px; background: #2a2a34; border: none; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent-primary); }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--text-bright, #fff); border: none; box-shadow: none; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--text-bright, #fff); border: none; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-item[data-mix="key"] { width: 112px; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-btn { width: 32px; height: 30px; font-size: 16px; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-keyval { min-width: 28px; font-size: 14px; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-keyrow { height: 30px; }
+  .pcv2-head-btn { position: relative; }
+  .pcv2-head-btn .repeat-one-badge { top: 4px; right: 4px; left: auto; transform: none; width: 13px; height: 13px; font-size: 9px; }
+  .pcv2-head-btn .repeat-folder-badge { font-size: 8px; }
+  #pcV2WaveHead #appTitle { cursor: pointer; }
+}
+
+/* v4.11.2: ミキサーのスライダーをBar length等(.qn-set-range)と同じ外観に統一(PC/SP共通) */
+#pcV2BarMixer .pcv2-mix-range {
+  -webkit-appearance: none; appearance: none; height: 18px; background: transparent; outline: none; border: none; box-shadow: none; cursor: pointer; touch-action: pan-y; -webkit-tap-highlight-color: transparent;
+}
+#pcV2BarMixer .pcv2-mix-range:focus, #pcV2BarMixer .pcv2-mix-range:focus-visible { outline: none; }
+#pcV2BarMixer .pcv2-mix-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--accent-primary) var(--p, 0%), #2a2a34 var(--p, 0%)); border: none; }
+#pcV2BarMixer .pcv2-mix-range::-moz-range-track { height: 4px; border-radius: 2px; background: #2a2a34; border: none; }
+#pcV2BarMixer .pcv2-mix-range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent-primary); }
+#pcV2BarMixer .pcv2-mix-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--text-bright, #fff); border: none; box-shadow: none; }
+#pcV2BarMixer .pcv2-mix-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--text-bright, #fff); border: none; }

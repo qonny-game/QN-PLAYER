@@ -645,7 +645,7 @@ function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
   if (playlist.length === 0) return -1;
   // 【v3.24.0】Auto Next範囲: フォルダがあり設定が"folder"なら、今の曲と同じフォルダ(連続グループ)内だけで進む/戻る/ラップする
   let lo = 0, hi = playlist.length - 1;
-  if (playlistFolders.length > 0 && getAutoNextScope() === "folder" && playlist[fromIndex]) {
+  if (playlistFolders.length > 0 && repeatMode === "folder" && playlist[fromIndex]) {
     const fid = trackFolderId(playlist[fromIndex]);
     lo = hi = fromIndex;
     while (lo > 0 && trackFolderId(playlist[lo - 1]) === fid) lo--;
@@ -677,7 +677,7 @@ function seekToTrackStart() {
 function playPrevTrack() {
   if (currentPlaylistIndex < 0) return;
   hapticTap();
-  const wrapAround = repeatMode === "all";
+  const wrapAround = repeatMode === "all" || repeatMode === "folder";
   const prevIndex = findEnabledTrackIndex(currentPlaylistIndex, -1, wrapAround);
   if (prevIndex !== -1) playTrackAt(prevIndex);
 }
@@ -685,7 +685,7 @@ function playPrevTrack() {
 function playNextTrack() {
   if (currentPlaylistIndex < 0) return;
   hapticTap();
-  const wrapAround = repeatMode === "all";
+  const wrapAround = repeatMode === "all" || repeatMode === "folder";
   const nextIndex = findEnabledTrackIndex(currentPlaylistIndex, 1, wrapAround);
   if (nextIndex !== -1) playTrackAt(nextIndex);
 }
