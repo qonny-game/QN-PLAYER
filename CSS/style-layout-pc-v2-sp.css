@@ -582,3 +582,17 @@ html {
 #pcV2BarMixer .pcv2-mix-range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent-primary); }
 #pcV2BarMixer .pcv2-mix-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--text-bright, #fff); border: none; box-shadow: none; }
 #pcV2BarMixer .pcv2-mix-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--text-bright, #fff); border: none; }
+
+/* v4.11.3: ミキサーの見出し「ラベル 値」をBar length/Rows(.qn-set-inline)と同じ表示に統一(左寄せで密着・同サイズ・値は太字白。Keyの値も見出し側へ) */
+#pcV2Layout #pcV2BarMixer .pcv2-mix-head { display: flex; align-items: baseline; justify-content: flex-start; gap: 6px; }
+#pcV2Layout #pcV2BarMixer .pcv2-mix-label { font-size: var(--fs-small); color: var(--icon-muted); white-space: nowrap; }
+#pcV2Layout #pcV2BarMixer .pcv2-mix-val, #pcV2Layout #pcV2BarMixer .pcv2-mix-keyval { font-size: var(--fs-small); font-weight: 700; color: var(--text-bright); min-width: 0; text-align: left; font-variant-numeric: tabular-nums; }
+#pcV2Layout #pcV2BarMixer .pcv2-mix-keyrow { justify-content: space-between; }
+
+/* v4.11.3: Keyもスライダー(Volume/Speedと同一外観)。SPはSpeedと半分ずつ */
+#pcV2Layout #pcV2BarMixer .pcv2-mix-keyrow, #pcV2Layout #pcV2BarMixer .pcv2-mix-btn { display: none; }
+#pcV2BarMixer .pcv2-mix-key .pcv2-mix-range { width: 100%; }
+@media (max-width: 900px) {
+  #pcV2MorePanel #pcV2BarMixer { grid-template-columns: 1fr 1fr; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-item[data-mix="key"] { width: auto; }
+}
