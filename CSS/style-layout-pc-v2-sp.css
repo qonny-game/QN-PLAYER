@@ -596,3 +596,13 @@ html {
   #pcV2MorePanel #pcV2BarMixer { grid-template-columns: 1fr 1fr; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-item[data-mix="key"] { width: auto; }
 }
+
+/* v4.11.5: SPのMoreでSpeed/Keyにもリセットボタン(Volumeのミュートボタンと同じ位置・サイズ)。PC下部バーでは非表示 */
+.pcv2-mix-reset { display: none; }
+@media (max-width: 900px) {
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-reset { flex: 0 0 auto; width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; border-radius: 8px; background: none; color: var(--icon-muted); -webkit-tap-highlight-color: transparent; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-reset svg { width: 22px; height: 22px; fill: currentColor; }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-reset:active { background: rgba(255, 255, 255, 0.08); color: var(--accent-primary, #3b82f6); }
+  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-volrow { gap: 4px; }
+  #pcV2MorePanel #pcV2BarMixer { grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+}

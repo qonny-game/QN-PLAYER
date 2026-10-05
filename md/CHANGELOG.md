@@ -101,3 +101,4 @@
 - 4.11.2 リピートを One→Folder→All→Off の順に変更(新モード"folder"=今のフォルダ内でループ。Offはライブラリ全体を順送りで端で停止)。設定とリピート長押しの「Library repeat range」を撤去しAuto Next範囲はrepeatModeから決まる。SPヘッドのリピートにも"1"/"F"バッジを表示。Moreのミキサーはスライダーの白枠線を消してBar lengthと同じ外観に、Speedを長くKeyを狭く。ファイル名(タイトル)タップでLibraryを開く。 スライダー(Volume/Speed/Key系・設定・EQ)のつまみを白16pxの同一デザインに統一。
 - 4.11.3 ミキサー(Volume/Speed/Key)の見出しを「ラベル 値」左寄せ・同サイズ・値は太字白に統一(Bar length/Rowsと同じ表示)。Keyの値は中央から見出し側へ移動。
 - 4.11.4 ミキサーのKeyを±ボタンからスライダー(-12〜+12)に変更しVolume/Speedと統一(PC/SP共通)。
+- 4.11.5 SPのMoreのSpeed/Keyにもバー左にアイコンのリセットボタンを追加(Volumeのミュートボタンと同じ位置・サイズ。タップで1.00x/0に戻す)。PC下部バーは変更なし。
