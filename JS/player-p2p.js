@@ -138,9 +138,10 @@
   }
   function codeEntry(items) {
     var inp = document.createElement("input");
-    inp.type = "text"; inp.className = "export-filename-input qn-p2p-input"; inp.maxLength = 7; inp.placeholder = "ABC 123";
-    inp.autocapitalize = "characters"; inp.autocomplete = "off"; inp.spellcheck = false;
-    inp.addEventListener("input", function () { var c = normCode(inp.value); inp.value = c.length > 3 ? c.slice(0, 3) + " " + c.slice(3) : c; });
+    inp.type = "text"; inp.className = "export-filename-input qn-p2p-input"; inp.maxLength = 8; inp.placeholder = "ABC123";
+    inp.autocapitalize = "characters"; inp.autocomplete = "off"; inp.spellcheck = false; inp.setAttribute("autocorrect", "off"); inp.setAttribute("enterkeyhint", "go");
+    // 入力中にinp.valueを書き換えない(iOSのキーボードが同じ文字を二重に入れる)。整形・大文字化はフォーカスを外した時だけ。入力値の解釈はnormCode(Connect時)
+    inp.addEventListener("blur", function () { inp.value = normCode(inp.value); });
     var go = runBtn("Connect", function () { var c = normCode(inp.value); if (c.length !== CODE_LEN) { toast("6文字のコードを入力してください"); return; } startReceive(c, items); });
     inp.addEventListener("keydown", function (e) { if (e.key === "Enter") go.click(); });
     show({

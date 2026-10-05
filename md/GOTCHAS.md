@@ -183,3 +183,5 @@
 - スクロールする行の窓: バーの外に縦スクロール専用の余白を残し、押した瞬間にシークしない(`attachTrackSeek`のscrub判定)。
 - SPのFAB帯(`.qn-set-inline`)は2列の格子: スライダー=上段、スイッチ=下段(CSSのorder)。単独で右寄せになるボタンを作らず、帯・入力・ボタンは同じ左右端に揃える。PLの`--pcv2-wave-fab-space`はResizeObserverで帯の高さから設定する(固定値にしない)。
 - `QNSettingsUI.inline`の行に`spHide:true`を付けるとスマホ幅(≤900px)の帯から外れる(Settingsパネルの行には影響しない)。
+
+- **iOS: `input`イベント内で`<input>`の`value`を書き換えない**(スペース挿入・大文字化・桁区切りなど)。同じ文字が二重に入る(Transferのコード入力で発生)。整形は`blur`/`change`/送信時にし、入力値の解釈は読む側(normCode等)で行う。

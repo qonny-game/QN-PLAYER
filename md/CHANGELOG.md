@@ -90,3 +90,4 @@
 - 4.9.1 Library同期の失敗時、ステータス末尾に原因(Firestoreのcode等)を`[permission-denied]`の形で表示(原因調査用)。
 - 4.9.2 `setPlaylistFolderOrder`が未定義でLibrary同期が失敗していた不具合を修正(player-core.jsに追加。フォルダ見出しのドラッグ並び替えも同じ関数を使う)。同期エラー表示の文字数上限を80に拡大。
 - 4.9.3 Library同期で同名フォルダを自動統合(`mergeDuplicateFolders`)。id昇順で先頭を残し、曲・未インポート曲の所属を付け替えて他を削除(tombstoneで他端末にも伝わる)。同期の前後に実行。
+- 4.9.4 Transfer受信のコード入力で、iOS Chromeで同じ文字が二重に入る不具合を修正(入力中に値を書き換えるinputハンドラを廃止。整形はblur時のみ)。
