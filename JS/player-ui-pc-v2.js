@@ -527,20 +527,7 @@
     waveFabBtns.appendChild(makeAbMirror("A"));
     waveFabBtns.appendChild(makeAbMirror("B"));
     waveFabBtns.appendChild(waveAddMarkerBtn);
-    // 【v3.38.0】MARKERの右に再生/停止ボタン(#playToggleを押すのと同じ。アイコンはaudioのplay/pauseに追従)
-    const waveFabPlayBtn = el(
-      '<button type="button" class="panel-fab-btn panel-fab-play-btn" id="pcV2WaveFabPlayBtn" title="Play / Pause">' +
-        '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>' +
-      '</button>'
-    );
-    waveFabPlayBtn.addEventListener("click", () => { if (typeof togglePlay === "function") togglePlay(); });
-    const syncFabPlay = () => {
-      const playing = !audio.paused;
-      waveFabPlayBtn.classList.toggle("is-playing", playing);
-      waveFabPlayBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="' + (playing ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z") + '"/></svg>';
-    };
-    ["play", "pause", "ended", "emptied", "loadedmetadata"].forEach(n => audio.addEventListener(n, syncFabPlay));
-    waveFabBtns.appendChild(waveFabPlayBtn);
+    // 【v4.11.1】波形エリア右下の再生/停止ボタン(●)は撤去(再生はドック/下段バーのPlay)
     waveArea.appendChild(waveFabRow);
     requestAnimationFrame(() => syncBottomBarPosition()); // 設定帯(Bar length/Rows)を作った後でSPのMoreへ移す(初回のsyncBottomBarPositionは設定帯の生成より前に走るため)
     // FAB帯の高さに合わせて波形エリア下の空きを決める(固定値だと帯が高い時にシークバーへ重なる)
@@ -669,21 +656,28 @@
     const strip = document.querySelector(".qn-wave-bar-strip");
     const more = document.getElementById("pcV2MorePanel");
     const fabRow = document.getElementById("pcV2WaveFabRow");
-    if (!strip || !more || !fabRow) return;
-    if (isSp) { if (strip.parentElement !== more) more.appendChild(strip); }
-    else if (strip.parentElement !== fabRow) fabRow.insertBefore(strip, fabRow.firstChild);
+    const mixer = document.getElementById("pcV2BarMixer");
+    const top = document.getElementById("topControls");
+    if (!more) return;
+    if (isSp) {
+      // More内は 設定帯(Bar length/Rows) → ミキサー(Volume/Speed/Key)の順
+      if (mixer && mixer.parentElement !== more) more.appendChild(mixer);
+      if (strip && (strip.parentElement !== more || more.firstChild !== strip)) more.insertBefore(strip, more.firstChild);
+    } else {
+      if (strip && fabRow && strip.parentElement !== fabRow) fabRow.insertBefore(strip, fabRow.firstChild);
+      if (mixer && top && mixer.parentElement !== top) {
+        const div = top.querySelector(".pcv2-mixer-divider");
+        if (div) div.after(mixer); else top.appendChild(mixer);
+      }
+    }
   }
 
-  // SP幅: Libraryの Audio/Folder ボタンはパネルタイトルの右(ヘッダー)へ、PC幅は右下FABへ。ヘッダーはパネル切替のたびに作り直されるので、Libraryを開いた時と幅が変わった時に呼ぶ
+  // Libraryの Audio/Folder ボタンはパネルタイトルの右(ヘッダー)へ(PC/SP共通。v4.11.1〜)。ヘッダーはパネル切替のたびに作り直されるので、Libraryを開いた時に呼ぶ
   function placeLibraryAddGroup() {
     const header = document.getElementById("pcV2PanelHeader");
     const group = document.querySelector("#pcV2PanelHeader .pcv2-fab-addgroup, #pcV2PanelFab .pcv2-fab-addgroup");
     if (!header || !group || currentPanel !== "playlist") return;
-    if (isSpWidthNow()) { if (group.parentElement !== header) header.appendChild(group); }
-    else {
-      const fab = document.getElementById("pcV2PanelFab");
-      if (fab && group.parentElement !== fab) fab.insertBefore(group, fab.firstChild);
-    }
+    if (group.parentElement !== header) header.appendChild(group);
   }
 
   function syncBottomBarPosition() {
