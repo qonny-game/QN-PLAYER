@@ -76,6 +76,7 @@
 - ショートカット：`SHORTCUTS`配列＋`onSpaceKey`（`QNApps.register`の`shortcuts`にも渡す）
 
 ## その他
+- `guide/` — アプリ内ガイド(v4.12.0〜)。静的HTML8枚(index/start/screen/operations/data/apps/plan/reference)＋`guide.css`/`guide.js`＋`img/*.webp`(スクショ)。入口はサイドバーSettings直上のGuideボタン(`player-ui-pc-v2.js`の`build()`、`window.open`で別タブ)。アプリ本体のJS/CSSには依存せず、`qn_theme`だけ読む。画面や仕様を変えたら該当ページと画像を直す。
 - `JS/qn-wakelock.js` — `QNWake.set(key,on)`。audio再生/停止/終了をフックし、visibilitychangeで再取得。
 - `JS/qn-marker-core.js` — `QNMarkerCore`：区間の決め方・プリロール込みの許容範囲・前後マーカー移動・A-B範囲外判定（PLAYER/YouTube共通）。
 - `JS/player-marker-presets.js` — プリセット/自動カラー/カスタムプリセット、`startPinMemoEdit`（メモ編集のプリセットポップアップ）。

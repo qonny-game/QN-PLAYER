@@ -144,6 +144,7 @@
     "0.1s earlier": "0.1秒前へ",
     "0.1s later": "0.1秒後へ",
     "Settings": "設定",
+    "User guide": "使い方ガイド",
     // ---- 設定パネル ----
     "Seek bar": "シークバー",
     "Bar length": "バーの長さ",
