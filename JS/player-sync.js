@@ -503,7 +503,7 @@
       setStatus("ok");
     } catch (err) {
       console.error("[QN_LIB_SYNC]", err);
-      lastErr = String((err && (err.code || err.message)) || "unknown").replace(/^firestore\//, "").slice(0, 40);
+      lastErr = String((err && (err.code || err.message)) || "unknown").replace(/^firestore\//, "").slice(0, 80);
       setStatus("error");
     }
     syncing = false;

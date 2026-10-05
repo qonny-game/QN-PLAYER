@@ -314,6 +314,25 @@ function movePlaylistFolder(id, dir) {
   normalizePlaylistGrouping();
 }
 
+// フォルダ表示順をid配列どおりに並べ替える(配列に無いフォルダは現在の相対順で末尾)。曲の並びも合わせて直す。変わったらtrueを返す(曲順の保存は呼び出し側のpersistPlaylistOrder)。呼び元: ドラッグ並び替え(player-playlist.js)・同期(player-sync.js)
+function setPlaylistFolderOrder(ids) {
+  const byId = new Map(playlistFolders.map(f => [f.id, f]));
+  const next = [];
+  (ids || []).forEach(id => {
+    const f = byId.get(id);
+    if (f && next.indexOf(f) < 0) next.push(f);
+  });
+  playlistFolders.forEach(f => { if (next.indexOf(f) < 0) next.push(f); });
+  const changed = next.some((f, i) => f !== playlistFolders[i]);
+  if (changed) {
+    playlistFolders.length = 0;
+    next.forEach(f => playlistFolders.push(f));
+    writePlaylistFolders();
+  }
+  const regrouped = normalizePlaylistGrouping();
+  return changed || regrouped;
+}
+
 // フォルダ削除: 中の曲は消さず未分類へ戻す
 function deletePlaylistFolder(id) {
   const i = playlistFolders.findIndex(f => f.id === id);
