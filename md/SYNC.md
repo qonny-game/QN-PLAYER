@@ -111,3 +111,6 @@ service cloud.firestore {
 
 ### YouTubeのフォルダ（v3.31.0）
 `yt_library`ドキュメントに`folders:[{id,n}]`・`foldersAt`を追加。フォルダ一覧は新しい方を丸ごと採用(同時刻はリモート)。動画の所属は各動画の`folder`(動画のLWWに乗る)。存在しないフォルダidを指す動画は未分類表示。開閉は同期しない。
+
+## 同名フォルダの統合（v4.9.3〜）
+同期の前後に`mergeDuplicateFolders()`が走り、前後の空白を除いて同名のフォルダを1つにする。残すのは**id昇順で先頭**（全端末で同じ結果になるので消し合わない）。曲とghostの所属を付け替え、他は`deletePlaylistFolder`で削除（tombstoneで伝わる）。

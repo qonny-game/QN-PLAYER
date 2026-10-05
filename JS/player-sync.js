@@ -490,6 +490,34 @@
     return { again: skipped.length > 0 };
   }
 
+  // 同名フォルダ(前後の空白は無視)を1つに統合。残すのはid昇順で先頭(どの端末でも同じ結果になる=お互いに消し合わない)。
+  // 曲は残す側へ移し、不要側は削除(通常の削除と同じ=tombstoneで他端末にも伝わる)。未インポート曲の所属も付け替える。変更があればtrue
+  function mergeDuplicateFolders() {
+    if (typeof playlistFolders === "undefined" || typeof deletePlaylistFolder !== "function") return false;
+    var groups = {}, changed = false, ghostsChanged = false;
+    playlistFolders.forEach(function (f) { var k = String(f.name || "").trim(); (groups[k] = groups[k] || []).push(f); });
+    Object.keys(groups).forEach(function (k) {
+      var g = groups[k];
+      if (g.length < 2) return;
+      g.sort(function (a, b) { return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; });
+      var keep = g[0];
+      g.slice(1).forEach(function (d) {
+        playlist.forEach(function (t) {
+          if (t.folder === d.id) { t.folder = keep.id; updatePlaylistMetaEntry(t.name, { folder: keep.id }); }
+        });
+        Object.keys(meta.ghosts).forEach(function (h) { if (meta.ghosts[h].fo === d.id) { meta.ghosts[h].fo = keep.id; ghostsChanged = true; } });
+        deletePlaylistFolder(d.id);
+        changed = true;
+      });
+    });
+    if (ghostsChanged) saveMeta();
+    if (changed) {
+      if (typeof persistPlaylistOrder === "function") persistPlaylistOrder();
+      if (typeof renderPlaylist === "function") renderPlaylist();
+    }
+    return changed;
+  }
+
   async function syncNow() {
     var A = window.QN_AUTH;
     if (!syncUser || !ready || !A || typeof A.syncTx !== "function" || typeof A.syncGetMany !== "function") return;
@@ -498,7 +526,9 @@
     setStatus("syncing");
     var res = null;
     try {
+      mergeDuplicateFolders();
       res = await cycle(A);
+      if (mergeDuplicateFolders()) res = { again: true }; // 取り込んだ結果に同名があった → 統合分をもう一度同期
       lastErr = "";
       setStatus("ok");
     } catch (err) {
