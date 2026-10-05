@@ -123,7 +123,7 @@
 - v3.52.1: 行ボタンは50px正方形(行のmin-height 50px=ボタン高)。`.pinItem`のcolumn-gap 8pxは編集EDIT時に`.pin-act-cell{margin-right:-8px}`で打ち消し、タイル同士を密着。
 
 ## 文言ルールとLibraryの行(v3.53.0)
-- UI文言は「先頭大文字・以後小文字」(例: Skip / Drop audio file here)。例外=ロゴ、略語・形式名(MP3/WAV/ZIP/EQ/OK/BPM等)、音名。CSSで`text-transform: uppercase`を新設しない(ロゴ以外)。ラベルは元の文字列を直接その表記で書く。
+- UI文言は「先頭大文字・以後小文字」(例: Skip / Drop audio or video files here)。例外=ロゴ、略語・形式名(MP3/WAV/ZIP/EQ/OK/BPM等)、音名。CSSで`text-transform: uppercase`を新設しない(ロゴ以外)。ラベルは元の文字列を直接その表記で書く。
 - Libraryの行(`.playlistItem`)も`.playlist-act-cell`(Skip)+編集中の`.playlist-del-zone`(中に`.del-btn`+`.playlist-del-tile`)。通常/編集とも正方形57px・隙間0(編集中は`.playlist-act-cell{margin-right:-8px}`でgrid gapを打ち消し)。Skip中は行全体でなく子要素だけopacity .4。旧`.playlist-skip-toggle`はPLAYERでは使わない(YouTube側は従来)。
 - FAB(Markers/Library共通): `#pcV2MarkersCancelBtn`/`#pcV2PlaylistCancelBtn`がDeleteの位置、EditBtnは選択0=OK/1以上=Delete(`syncEditBtn`)。`#pcV2DeleteSelectedBtn`は廃止。
 - v3.53.1: メモ編集中は`window.qnPinMemoEditing`でrenderPinList()を止める(commit/cancel/applyPresetで解除)。`.playlist-editable-input`はfont-size/weight/line-height等をinheritする(入力欄の既定13.3pxで編集モードの見た目が変わるため)。Libraryの`.playlist-del-tile`は輪/チェックの2svg(`.sel-off`/`.sel-on`)をCSSで切替。

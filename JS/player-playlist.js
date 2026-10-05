@@ -1,8 +1,13 @@
 // player-playlist.js — ファイル追加/一覧描画/削除/ドラッグ並び替え/playTrackAt/前後送り。関数宣言のみなので読込順は実行時に影響しない(推奨: core→playlist→ui-shared)。
 // 依存: hapticTap,hapticWarning,loadFile,updatePlayButtonState(ui-shared)、savePlaylistTrack,deletePlaylistTrack,persistPlaylistOrder,setAppTitle(core)
 
+// 取り込み可能な形式。動画(mp4等)は音声トラックだけを再生に使う(audio要素で再生できる形式のみ。実際に鳴るかはブラウザ依存)。index.htmlの#fileInput acceptも同じ拡張子に揃えること
+function isSupportedMediaFile(f) {
+  return /^(audio|video)\//.test(f.type || "") || /\.(mp3|wav|ogg|oga|m4a|aac|flac|webm|opus|mp4|m4v|mov|3gp|3g2|mkv|mka|weba|ogv|aif|aiff|aifc|caf|mp2|mpga|amr)$/i.test(f.name);
+}
+
 function addFilesToPlaylist(files) {
-  const audioFiles = files.filter(f => f.type.startsWith("audio/") || /\.(mp3|wav|ogg|oga|m4a|aac|flac|webm|opus)$/i.test(f.name));
+  const audioFiles = files.filter(isSupportedMediaFile);
   if (audioFiles.length === 0) return;
 
   // 無料版: ライブラリ3曲まで。超過時はアンロックモーダルでブロック(既存は消さない)

@@ -247,9 +247,10 @@
     return !!document.querySelector(".playlistItem.dragging, .playlistFolderHeader.dragging, .folder-drag-hidden");
   }
   function pad(n) { return (n < 10 ? "0" : "") + n; }
+  var lastErr = ""; // 直近の失敗理由(Firestoreのcode等)。ステータス末尾に[ ]で表示
   function statusText() {
     if (status === "syncing") return "☁ 同期中…" + (prog.total > 1 ? " " + prog.done + "/" + prog.total : "");
-    if (status === "error") return "☁ 同期できませんでした(タップで再試行)";
+    if (status === "error") return "☁ 同期できませんでした(タップで再試行)" + (lastErr ? " [" + lastErr + "]" : "");
     if (status === "ok") { var d = new Date(meta.lastSync || Date.now()); return "☁ 同期済み " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + "  ↻"; }
     return "";
   }
@@ -498,9 +499,11 @@
     var res = null;
     try {
       res = await cycle(A);
+      lastErr = "";
       setStatus("ok");
     } catch (err) {
       console.error("[QN_LIB_SYNC]", err);
+      lastErr = String((err && (err.code || err.message)) || "unknown").replace(/^firestore\//, "").slice(0, 40);
       setStatus("error");
     }
     syncing = false;

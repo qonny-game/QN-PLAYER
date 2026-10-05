@@ -34,7 +34,7 @@
 <link rel="stylesheet" href="CSS/style-pitch.css">
 <script>
   // アプリバージョン一元管理(QN_APP_VERSION)。<title>はここで即更新、#splashVersion/#appVersionは各要素直後のinline scriptが反映
-  window.QN_APP_VERSION = "4.8.3";
+  window.QN_APP_VERSION = "4.9.1";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -75,7 +75,7 @@
   }, 5000);
 </script>
 
-<div id="dropOverlay">Drop audio file here</div>
+<div id="dropOverlay">Drop audio or video files here</div>
 
 <div id="appHeader">
   <div id="qnMenuMount">
@@ -262,7 +262,7 @@
             </span>
           </button>
 
-          <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.webm,.opus" multiple style="display:none;">
+          <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.webm,.opus,.mp4,.m4v,.mov,.3gp,.3g2,.mkv,.mka,.weba,.ogv,.aif,.aiff,.aifc,.caf,.mp2,.mpga,.amr" multiple style="display:none;">
         </div>
       </div>
     </div>

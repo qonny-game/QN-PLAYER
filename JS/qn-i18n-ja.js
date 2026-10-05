@@ -7,7 +7,7 @@
 
   QNI18N.addJaDict({
     // ---- メニュー/ショートカット/アカウント ----
-    "Drop audio file here": "音声ファイルをここにドロップ",
+    "Drop audio or video files here": "音声・動画ファイルをここにドロップ",
     "Theme & Shortcuts": "テーマとショートカット",
     "Color Theme": "カラーテーマ",
     "Glow current color": "現在の色を光らせる",

@@ -86,3 +86,5 @@
 - 4.8.1 SPのVIDEOでパネルを開いた時、パネルが動画の下辺まで上がらず下がっていた不具合を修正(4.7.2で入れたステージの高さ拡張をパネルを閉じている時だけに限定)
 - 4.8.2 SPのVIDEOで、URL欄+Save+設定帯(Bar length/Rows)を下段コントロール(バー/ドック)の直上に移して同じstickyで固定(シークバー側のスクロールに埋もれない)。PC幅は従来位置。Rowsの自動計算もこれに合わせて調整
 - 4.8.3 SPのVIDEOで、URL欄+Saveと設定帯(Bar length/Rows)をMoreの開閉に合わせて表示(閉じている間は隠してシークバー領域を拡大。開閉状態は保存。Rows=Autoは開閉で再計算)。PC幅は変更なし
+- 4.9.0 PLAYERに取り込める形式を拡大。mp4/m4v/mov/3gp/mkv等の動画ファイルと、aif/aiff/caf/mka/weba/amr等の音声を追加(動画は音声トラックのみ再生)。判定は`isSupportedMediaFile`(player-playlist.js)に一本化し、ファイル選択のaccept・ドロップ共通。再生できるかはブラウザの対応コーデック依存
+- 4.9.1 Library同期の失敗時、ステータス末尾に原因(Firestoreのcode等)を`[permission-denied]`の形で表示(原因調査用)。
