@@ -98,7 +98,7 @@ favicon/  md/  pricing*.html  QUICK_START.md
 | パネル格納／最後のアプリ | localStorage | `qn_panel_collapsed`（PLAYER）／`qn_yt_panel_collapsed`／`qn_last_app` |
 | TUNER | localStorage | `qn_tuner_display` `qn_tuner_sens` `qn_tuner_smooth` `qn_tuner_panel_collapsed`（詳細は`TUNER_APP.md`） |
 | PITCH | localStorage／IndexedDB | `qn_pitch_filters` `qn_pitch_rec_meta`(録音の改名) `qn_pitch_panel_collapsed`／IndexedDB `qn_pitch_db`(録音実体。レコードは再putしない)（詳細は`PITCH_APP.md`） |
-| YouTube | localStorage | `qn_yt_items` `qn_yt_rate` `qn_yt_autonext` `qn_yt_preroll`（詳細は`YOUTUBE_APP.md`§4） |
+| YouTube | localStorage | `qn_yt_items` `qn_yt_rate` `qn_yt_repeat` `qn_yt_preroll`（詳細は`YOUTUBE_APP.md`§4） |
 | 無料版/アンロック | localStorage | `qnplayer_unlock_until` ほか`qnplayer_*`（`player-shareware.js`） |
 
 - `loopActiveMarkerIndex` / `isSeeking`はループ折り返し判定のグローバル状態。シーク系を足す時は`beginSeek()`経由にして整合を保つ。

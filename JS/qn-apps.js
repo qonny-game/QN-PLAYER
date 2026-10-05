@@ -454,7 +454,7 @@
       if (typeof secs === "function") secs = secs();
       setUI = QNSettingsUI.build(secs || []);
       var host = setUI.el;
-      var ids = ["backup", "import", "color", "keyboard", "transfer"].filter(function (id) {
+      var ids = ["backup", "import", "color", "keyboard", "transfer", "guide"].filter(function (id) {
         if (id === "transfer") return !!(window.QNLibSync && window.QNLibSync.isActive());
         if (id === "color") return !!findColorSection();
         return true;
@@ -462,6 +462,7 @@
       host.appendChild(QNSettingsUI.list(ids, function (id) {
         showSetView(id);
       }));
+      host.appendChild(QNSettingsUI.legalLinks());
       host.appendChild(QNSettingsUI.versionLine());
       body.appendChild(host);
     } else if (name === "color") {

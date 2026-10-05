@@ -6,7 +6,7 @@
   display: none;
 }
 
-#pcV2IconBar.qn-app-sidebar #pcV2IconBarBottom > .pcv2-icon-item:not([data-panel-id="settings"]):not([data-panel-id="guide"]):not(.qn-appside-item) {
+#pcV2IconBar.qn-app-sidebar #pcV2IconBarBottom > .pcv2-icon-item:not([data-panel-id="settings"]):not(.qn-appside-item) {
   display: none;
 }
 

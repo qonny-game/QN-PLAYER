@@ -32,7 +32,7 @@
 ### Library（本体のLibraryと同じ行・操作）
 - 行：つかみ（ドラッグ並べ替え）／サムネイル（`i.ytimg.com/vi/<id>/mqdefault.jpg`を`<img>`で**表示のみ**・保存しない・加工しない）／タイトル（鉛筆で編集）。行クリックで再生。
 - 行右はPLAYERと同じ□タイル（`.playlist-act-cell > .playlist-act-btn`のSKIP。SKIPはAuto Nextで飛ばす。`QN_ROW_ACT`のアイコン/ラベル）。右下FAB **Edit**：タイトルが入力欄になり、行に選択タイル（Select）が出る。FABは Move / **Cancel**（編集を抜ける）/ OK。選択が1件以上あるとOKが**Delete**に変わり一括削除（PLAYERと同じ）。
-- **Auto Next**：動画が終わったらLibraryの次（SKIP除く）を読み込む。初期OFF・利用者がONにした時だけ（§2-2）。
+- **Repeat**（v4.14.0〜。旧Auto Nextの切替は廃止し次動画への自動再生は標準搭載）：PLと同じ Off→One→Folder→All（`qn_yt_repeat`、バッジ1/F）。動画終了時 Off=Libraryの次へ進み最後で止まる／One=同じ動画をもう一度／Folder=今のフォルダ内を折り返す／All=全体を折り返す。SKIPは飛ばす。前/次Trackも同じ範囲(Folder/Allは折り返し)。判定は`neighborItem()`の1箇所。
 
 ### Libraryのフォルダ（v3.31.0〜）
 PLのLibraryと同じ操作。FOLDERで作成→名前入力、見出しクリックで開閉(端末ごと・同期しない)、EDITで改名/▲▼並び替え/✕削除(2タップ、中の動画は未分類へ)、動画を選んでMoveで移動、つかみのドラッグでも別フォルダへ移動可(見出しにドロップ=その先頭)。データは`qn_yt_folders`=`{list:[{id,name}],at}`と各item.folder。Auto Next/Track前後はフォルダ順の表示順で進む。同期はドキュメントに`folders`/`foldersAt`(一覧は新しい方を丸ごと採用)を追加、動画の所属は`folder`(動画のupdatedAtで合体)。
@@ -59,7 +59,7 @@ YouTube Data API v3(`playlists`/`playlistItems`、最大500件)で公開/限定�
 - 前/次マーカー：現在位置基準（区間ループ中のプリ/ポスト再生中は区間の内側として扱う）。次が無ければ最初、前が無ければ最後へ。
 
 ### 下段コントロールバー（`.qn-yt-bar`）
-PLAYERの`#pcV2BottomBar`と同じ「アイコン＋ラベル」のフラットなデザイン。並び：再生系（Track / −10s / Play / +10s / Track / Auto Next）│マーカー系（Marker / ＋Marker / Marker / Set A / Set B / Loop / Clear AB）│スピード（− 1x Speed ＋。アイコンを押すと1xに戻る）。
+PLAYERの`#pcV2BottomBar`と同じ「アイコン＋ラベル」のフラットなデザイン。並び：再生系（Track / −10s / Play / +10s / Track / Repeat）│マーカー系（Marker / ＋Marker / Marker / Set A / Set B / Loop / Clear AB）│スピード（− 1x Speed ＋。アイコンを押すと1xに戻る）。
 PC幅はステージの下端に吸着、SP幅はアイコンバー直上に固定して横スクロール。パネルを開いている間はSP幅では隠す。再生ボタンは`updatePlayBtn`がPlay/Pause表示を差し替える。
 
 ### 長押しクイック設定（v4.1.0〜）
@@ -125,7 +125,7 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 - 呼んでよいのは**公式ドキュメントに載っているメソッドだけ**。現在使用：`seekTo` / `getCurrentTime` / `getDuration` / `loadVideoById` / `cueVideoById` / `playVideo`（利用者操作起点のみ）/ `pauseVideo` / `setPlaybackRate` / `getPlaybackRate` / `getAvailablePlaybackRates`／`getPlayerState` / `getVolume` / `setVolume` / `isMuted` / `mute` / `unMute`（ショートカット用）。タイトル取得用に、YouTube公開の`oembed`エンドポイントも`fetch`している（`fetchYtTitle`。結果は端末ローカルの28日キャッシュのみ）。新しいメソッドは公式ドキュメントで確認してから。
 - 非公式・未文書のAPIやYouTubeページのDOM操作には頼らない。再生/停止は標準コントロールを使い、自前の再生・停止ボタンは**付けない**（下段バーのPlayは、利用者操作起点で公式メソッドを呼ぶだけの補助）。
 - 再生開始は**利用者の操作起点**（`autoplay: 0`）。マーカーのクリックによるジャンプは利用者操作なのでOK。
-- **Auto Next**は利用者が明示的にONにした時だけ（初期OFF、`qn_yt_autonext`）。自動再生は「プレイヤーが見えていて半分超が見えている」時に限る（別タブ/アプリ非表示/半分以上隠れている時は進まない：`playerMostlyVisible()`）。
+- **次動画への自動再生は標準搭載**（v4.14.0〜。利用者の要望でON/OFF切替を廃止。Repeat=OneはもとのRepeat設定で同じ動画をもう一度）。規約リスク: 初期OFF/利用者がONにした時だけ、という安全側の運用から外れている。自動再生は「プレイヤーが見えていて半分超が見えている」時に限る（別タブ/アプリ非表示/半分以上隠れている時は進まない：`playerMostlyVisible()`）。
 - 画面スリープ防止は「画面が見えている間だけ」画面を消さないためのもの。バックグラウンド再生を作らない。
 
 ### 2-3. 音声・映像データ／YouTubeのデータに触れない
@@ -178,7 +178,7 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 | `qn_yt_api_key` | Playlists用のYouTube Data APIキー(端末ローカル) |
 | `qn_yt_aspect_v1` | 動画の縦横比キャッシュ(28日) |
 | `qn_yt_title_cache` | YouTube由来タイトルの短期キャッシュ(28日で削除。Backup/同期対象外) |
-| `qn_yt_rate` / `qn_yt_autonext` / `qn_yt_preroll` / `qn_yt_panel_collapsed` | 再生スピード / Auto Next / プリロール秒(0〜5) / PC幅のパネル格納 |
+| `qn_yt_rate` / `qn_yt_repeat` / `qn_yt_preroll` / `qn_yt_panel_collapsed` | 再生スピード / Auto Next / プリロール秒(0〜5) / PC幅のパネル格納 |
 | `qn_marker_preset_colors_v1` / `qn_marker_custom_presets_v1` | 本体と共通のメモプリセット色／カスタムプリセット |
 
 ```json
@@ -206,13 +206,13 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 **規約（すべてチェックが付くこと）**
 - [ ] 標準コントロール表示（`controls: 1`）／プレイヤーの上に何も重なっていない（パネル・Colorパネル・ポップアップ含む。SP幅も）
 - [ ] プレイヤーがCSSで切り抜かれ/隠されていない／SPで200px以上
-- [ ] 見えないまま音だけ流れる状態がない（閉じる/隠す時は一時停止）／自動再生していない（Auto Nextは初期OFF・見えている時だけ）
+- [ ] 見えないまま音だけ流れる状態がない（閉じる/隠す時は一時停止）／自動再生していない（次動画への自動再生は見えている時だけ）
 - [ ] 使用APIが§2-2の公式メソッドだけ／永続保存・BackupにYouTube由来のタイトル・サムネイル・音声・映像がない（タイトルは28日キャッシュのみ・起動時に期限切れ削除）／ダウンロード・書き出し機能がない
 - [ ] 権利者への注意書き(`.qn-yt-legal`)が消えていない
 
 **機能**
 - [ ] URL読み込み／不正URLのエラー／Saveで保存（入力欄が空に戻る）／リロード後も残る／タイトル空欄Saveで自動取得（手入力済みでも空欄Saveで自動に戻る）
-- [ ] Library：並べ替え、EDIT→PLAY/SKIP・選択削除、Auto Next
+- [ ] Library：並べ替え、EDIT→PLAY/SKIP・選択削除、Repeat(Off/One/Folder/All)
 - [ ] Markers：追加、色、メモ＋プリセット、表示/非表示、選択削除、チャプター貼り付け、A/B・Loop 3モード
 - [ ] シークバー：クリック/ドラッグ、マーカーのドラッグ、前/次マーカー、ポップアップ
 - [ ] Backup→Importで元に戻る／SP幅でパネル開閉してもプレイヤーが隠れない
@@ -241,3 +241,10 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 
 SP幅(≤900px)ではFAB行(`.qn-yt-stage-fab`)をJS(matchMedia)で`.qn-yt-controls`の先頭へ移し、下段バー/ドックと一緒にstickyで下端固定する。PC幅は元のステージ内に戻す。パネルを開いている間は非表示。
 SPではFAB行はMore(`.qn-yt-more-open`)が開いている間だけ表示する。
+
+## SP幅のMore/レイアウト（v4.14.0〜）
+PLの#pcV2MorePanelと同じ構成。下段バー(.qn-yt-bar)はSPでは出さずDOMに残す(中継元)。-10s/+10sはSPでは廃止(PCは従来どおり)。
+- タイトル行の右: Track前/次・Repeat(`.qn-yt-headbtns`。バーのボタンへclick中継+svg/バッジ/点灯のミラー)
+- シークバー直下: A/B(`.qn-yt-abrow`。Set A/Bへ中継、has-pointとラベルをミラー。長押しクイック設定は`data-dock`=abA/abB)
+- More(.qn-yt-stage-fab): Bar length/Rows帯 + `.qn-yt-mixcard`(URL+Save、Speedスライダー+リセット。値はYouTubeが許す段階にスナップ)。Volume/Keyは無し
+- `[data-yt]`はrefsで同名だと後勝ち。ミラーには別名(headPrev/abA等)を付ける

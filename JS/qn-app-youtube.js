@@ -28,7 +28,8 @@
 
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
   var FOLDERS_KEY = "qn_yt_folders", FOLDER_COLLAPSED_KEY = "qn_yt_folder_collapsed";
-  var FLAG_KEY = "qn_yt_autonext", RATE_KEY = "qn_yt_rate";
+  var REPEAT_KEY = "qn_yt_repeat", RATE_KEY = "qn_yt_rate";
+  try { localStorage.removeItem("qn_yt_autonext"); } catch (e) {} // v4.14.0: Auto Nextは標準搭載(切替廃止)
   var FALLBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
   var YT_ICON = '<path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.28 5 12 5 12 5s-6.28 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2C2 8.77 2 12 2 12s0 3.23.4 4.8a2.5 2.5 0 0 0 1.76 1.77C5.72 19 12 19 12 19s6.28 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77C22 15.23 22 12 22 12s0-3.23-.4-4.8zM10 15V9l5.2 3L10 15z"/>';
@@ -347,7 +348,7 @@
         bbtn("playBtn", "center", BI.play, "Play", "再生 / 一時停止 (Space / K)") +
         bbtn("skipFwdBtn", "", BI.fwd10, "+10s", "10秒進む (L)") +
         bbtn("nextVideoBtn", "", BI.nextTrack, "Track", "Libraryの次の動画 (Shift+N)") +
-        bbtn("autoNext", "", BI.repeat, "Auto Next", "終了したらLibraryの次の動画を読み込む（ON/OFF）") +
+        bbtn("repeatBtn", "", BI.repeat, "Repeat", "Repeat Off (click to cycle)") +
       '</div>' +
       '<div class="qn-yt-bdiv"></div>' +
       '<div class="qn-yt-bgroup">' +
@@ -506,14 +507,37 @@
         // プレイヤーは標準コントロールのまま。上に何も重ねない(規約)
         '<div class="qn-yt-player-wrap" data-qn-keep-visible><div id="qnYtPlayer"></div></div>' +
         '<div class="qn-yt-custom">' +
-          '<p class="qn-yt-fetched-title" data-yt="fetchedTitle"></p>' +
+          // SP: タイトル行の右端にTrack前/次・Repeat(PLの#pcV2WaveHeadBtnsと同じ。本体バーのボタンへ中継+見た目ミラー)。PC幅はdisplay:contentsでタイトルのみ
+          '<div class="qn-yt-titlerow">' +
+            '<p class="qn-yt-fetched-title" data-yt="fetchedTitle"></p>' +
+            '<div class="qn-yt-headbtns">' +
+              '<button type="button" class="pcv2-head-btn" data-yt="headPrev" data-dock="headPrev" title="Prev Track"></button>' +
+              '<button type="button" class="pcv2-head-btn" data-yt="headNext" data-dock="headNext" title="Next Track"></button>' +
+              '<button type="button" class="pcv2-head-btn" data-yt="headRepeat" data-dock="headRepeat" title="Repeat"></button>' +
+            '</div>' +
+          '</div>' +
           '<div class="qn-yt-seek" data-yt="seekTracks"><div class="qn-yt-marker-layer" data-yt="markerLayer"></div></div>' +
+          // SP: シークバー直下にA/B(PLのAudio横A/Bと同じ。バーのSet A/Set Bへ中継)。PC幅は非表示
+          '<div class="qn-yt-abrow">' +
+            '<button type="button" class="qn-yt-ab" data-yt="abA" data-dock="abA" title="現在地をA点に設定"><span>A --</span></button>' +
+            '<button type="button" class="qn-yt-ab" data-yt="abB" data-dock="abB" title="現在地をB点に設定"><span>B --</span></button>' +
+          '</div>' +
         '</div>' +
         // PLの波形エリア右下(#pcV2WaveFabRow)と同位置のMARKERボタン。プレイヤーの外(下)・通常フロー(重ねない)
         '<div class="qn-yt-stage-fab">' +
-          '<div class="qn-yt-urlgrp">' +
-            '<input data-yt="stageUrl" class="qn-yt-input qn-yt-stage-url" type="text" placeholder="Paste YouTube URL" autocomplete="off" spellcheck="false" aria-label="YouTube URL">' +
-            '<button type="button" class="panel-fab-btn panel-addfile-btn qn-yt-stage-save" data-yt="stageSave" title="Save to Library"><span>Save</span></button>' +
+          // PLのMoreミキサー(#pcV2BarMixer)と同じカード。URL+Save(PLのVolume枠の代わり)とSpeedスライダー。PC幅はdisplay:contentsでURL欄のみ(Speedは下段バー)
+          '<div class="qn-yt-mixcard">' +
+            '<div class="qn-yt-urlgrp">' +
+              '<input data-yt="stageUrl" class="qn-yt-input qn-yt-stage-url" type="text" placeholder="Paste YouTube URL" autocomplete="off" spellcheck="false" aria-label="YouTube URL">' +
+              '<button type="button" class="panel-fab-btn panel-addfile-btn qn-yt-stage-save" data-yt="stageSave" title="Save to Library"><span>Save</span></button>' +
+            '</div>' +
+            '<div class="qn-yt-mix-speed">' +
+              '<div class="qn-yt-mix-row">' +
+                '<button type="button" class="qn-yt-mix-reset" data-yt="mixSpeedReset" aria-label="Reset speed" title="Reset to 1x"><svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg></button>' +
+                '<input type="range" class="qn-yt-mix-range" data-yt="mixSpeed" min="0" max="7" step="1" value="3" aria-label="Speed">' +
+                '<span class="qn-yt-mix-val" data-yt="mixSpeedVal" title="Tap to reset to 1x">1x</span>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
           '<button type="button" class="panel-fab-btn panel-addfile-btn" data-yt="stageAddMarker" title="Add Marker">' +
             '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Marker</span>' +
@@ -691,6 +715,8 @@
       function relay(dock, bar) { refs[dock].addEventListener("click", function () { refs[bar].click(); }); }
       relay("dockPrev", "prevMarkerBtn"); relay("dockLoop", "loopToggleBtn"); relay("dockPlay", "playBtn");
       relay("dockAdd", "addMarkerBtn"); relay("dockNext", "nextMarkerBtn");
+      relay("headPrev", "prevVideoBtn"); relay("headNext", "nextVideoBtn"); relay("headRepeat", "repeatBtn");
+      relay("abA", "setABtn"); relay("abB", "setBBtn");
       function mirror(src, dst, fn) {
         if (typeof MutationObserver !== "function") return;
         var run = function () { fn(src, dst); };
@@ -706,6 +732,24 @@
         d.classList.toggle("is-active", a.classList.contains("is-active"));
         var l = a.querySelector("span"), t = d.querySelector("span");
         if (l && t) t.textContent = l.textContent;
+      });
+      // SPタイトル行のTrack/Repeat: 本体バーのsvg+バッジ/点灯/titleをコピー(PLの#pcV2WaveHeadBtnsと同じ)
+      [["headPrev", "prevVideoBtn", "Prev Track"], ["headNext", "nextVideoBtn", "Next Track"], ["headRepeat", "repeatBtn", "Repeat"]].forEach(function (a) {
+        mirror(refs[a[1]], refs[a[0]], function (src, dst) {
+          var sv = src.querySelector("svg"), bd = src.querySelector(".repeat-one-badge");
+          var html = (sv ? sv.outerHTML : "") + (bd ? bd.outerHTML : "");
+          if (dst.innerHTML !== html) dst.innerHTML = html;
+          dst.classList.toggle("is-active", src.classList.contains("is-active"));
+          dst.title = src.title || a[2];
+        });
+      });
+      // シークバー下のA/B: ラベル(A 0:12)と設定済み表示(has-point)をコピー
+      [["abA", "setABtn"], ["abB", "setBBtn"]].forEach(function (a) {
+        mirror(refs[a[1]], refs[a[0]], function (src, dst) {
+          var l = src.querySelector("span"), t = dst.querySelector("span");
+          if (l && t && t.textContent !== l.textContent) t.textContent = l.textContent;
+          dst.classList.toggle("has-point", src.classList.contains("has-point"));
+        });
       });
       function setMore(open) {
         root.querySelector(".qn-yt").classList.toggle("qn-yt-more-open", open);
@@ -725,7 +769,8 @@
         { label: "Rows", type: "slider", values: function () { return [1, 2, 3, 4, 5, 6, 7, 8, -1]; }, fmt: function (v) { return v === -1 ? "Auto" : String(v); }, get: function () { return SEGS_SETTING !== 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING !== 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
         { label: "Follow", type: "switch", spHide: true, get: function () { return followOn; }, set: setFollow }
       ]);
-      refs.stageUrl.parentNode.parentNode.insertBefore(segStrip.el, refs.stageUrl.parentNode);
+      var mixcard = root.querySelector(".qn-yt-mixcard");
+      mixcard.parentNode.insertBefore(segStrip.el, mixcard);
     }
     // SP: URL+設定帯(.qn-yt-stage-fab)を下段コントロールの直上(同じsticky内)へ移す。PCは元の位置
     (function () {
@@ -788,11 +833,13 @@
     var bottom = ctl ? ctl.getBoundingClientRect().top : window.innerHeight;
     if (sk.classList.contains("is-scroll")) top -= sk.scrollTop * 0; // 窓の上端は動かない
     var fabH = fab && fab.offsetParent !== null && fab.parentNode !== ctl ? fab.offsetHeight + 12 : 0; // SPはcontrols内(bottomがその上端)なので加算しない
+    var ab = root.querySelector(".qn-yt-abrow");
+    if (ab && ab.offsetParent !== null) fabH += ab.offsetHeight + 14; // SP: シークバー直下のA/B行ぶん
     var pitch = 44;
     if (tracks.length > 1) pitch = tracks[1].offsetTop - tracks[0].offsetTop || pitch;
     var gap = 24, padTop = 24;
     var avail = bottom - top - padTop - fabH - 16;
-    return Math.max(2, Math.min(12, Math.floor((avail + gap) / pitch)));
+    return Math.max(isSp() ? 1 : 2, Math.min(12, Math.floor((avail + gap) / pitch)));
   }
   function recalcAuto() {
     if (SEGS_SETTING !== -1) return;
@@ -1495,8 +1542,8 @@
     updatePlayBtn(false);
     refs.prevMarkerBtn.addEventListener("click", function () { jumpMarker(-1); });
     refs.nextMarkerBtn.addEventListener("click", function () { jumpMarker(1); });
-    syncAutoNextBtn();
-    refs.autoNext.addEventListener("click", function () { setAutoNext(!autoNext); });
+    renderRepeat();
+    refs.repeatBtn.addEventListener("click", cycleRepeat);
     refs.speedDown.addEventListener("click", function () { stepRate(-1, true); });
     var spMid = refs.speedVal && refs.speedVal.closest(".qn-yt-bstep-mid");
     if (spMid) {
@@ -1505,6 +1552,14 @@
       spMid.addEventListener("click", function () { resetRate(); });
     }
     refs.speedUp.addEventListener("click", function () { stepRate(1, true); });
+    // Moreのスピードスライダー(PLのSpeedと同じ: スライダー+リセットアイコン+ラベル/値タップで1x)。値はYouTubeが許すスピードの段階にスナップ
+    refs.mixSpeed.addEventListener("input", function () {
+      var v = parseInt(refs.mixSpeed.value, 10) || 0, mx = parseInt(refs.mixSpeed.max, 10) || 1;
+      refs.mixSpeed.style.setProperty("--p", (v / mx) * 100 + "%"); // 操作中はスライダー自身の位置で塗る(YouTube側の反映は非同期)
+      setRateIdx(v);
+    });
+    refs.mixSpeedReset.addEventListener("click", function () { resetRate(); });
+    refs.mixSpeedVal.addEventListener("click", function () { resetRate(); });
     renderSpeed();
 
   }
@@ -1549,23 +1604,67 @@
     var actual = desiredRate;
     try { if (player && playerReady && player.getPlaybackRate) actual = player.getPlaybackRate(); } catch (e) {}
     refs.speedVal.textContent = actual + "x";
+    if (refs.mixSpeed) {
+      var rates = availableRates(), idx = 0, i;
+      for (i = 0; i < rates.length; i++) if (rates[i] <= actual + 0.001) idx = i;
+      refs.mixSpeed.max = String(rates.length - 1);
+      if (document.activeElement !== refs.mixSpeed) refs.mixSpeed.value = String(idx);
+      refs.mixSpeed.style.setProperty("--p", (rates.length > 1 ? (idx / (rates.length - 1)) * 100 : 0) + "%");
+      refs.mixSpeedVal.textContent = actual + "x";
+    }
+  }
+  function setRateIdx(i) {
+    var rates = availableRates();
+    i = Math.max(0, Math.min(rates.length - 1, i));
+    desiredRate = rates[i];
+    try { localStorage.setItem(RATE_KEY, String(desiredRate)); } catch (e) {}
+    try { if (player && playerReady && player.setPlaybackRate) player.setPlaybackRate(desiredRate); } catch (e) {}
+    renderSpeed();
   }
 
-  // Auto Next(規約): 自動再生は「プレイヤーが画面に見えていて半分超が見えている」時だけ。画面外・別タブ・アプリ非表示では行わない。初期OFF、ONにした時だけ動く
-  var autoNext = (function () {
-    try { return localStorage.getItem(FLAG_KEY) === "1"; } catch (e) { return false; }
+  // Repeat(PLAYERの#allRepeatToggleBtnと同じ: Off→One→Folder→All)。動画が終わった時の挙動:
+  //  Off=Library(表示順)の次へ進み最後で止まる / One=同じ動画をもう一度 / Folder=今のフォルダ内を折り返す / All=Library全体を折り返す。SKIPの動画は飛ばす
+  // 次の動画への自動再生は標準搭載(切替なし)。規約: プレイヤーが見えていて半分超が見えている時だけ(playerMostlyVisible)
+  var repeatMode = (function () {
+    try { var v = localStorage.getItem(REPEAT_KEY); return v === "one" || v === "folder" || v === "all" ? v : "off"; } catch (e) { return "off"; }
   })();
-
-  function setAutoNext(on) {
-    autoNext = !!on;
-    try { localStorage.setItem(FLAG_KEY, autoNext ? "1" : "0"); } catch (e) {}
-    syncAutoNextBtn();
+  function cycleRepeat() {
+    repeatMode = repeatMode === "off" ? "one" : repeatMode === "one" ? "folder" : repeatMode === "folder" ? "all" : "off";
+    try { localStorage.setItem(REPEAT_KEY, repeatMode); } catch (e) {}
+    renderRepeat();
   }
-  function syncAutoNextBtn() {
-    if (!refs.autoNext) return;
-    refs.autoNext.classList.toggle("is-active", !!autoNext);
-    refs.autoNext.setAttribute("aria-pressed", String(!!autoNext));
+  function renderRepeat() {
+    var b = refs.repeatBtn;
+    if (!b) return;
+    var badge = repeatMode === "one" ? '<span class="repeat-one-badge">1</span>' : repeatMode === "folder" ? '<span class="repeat-one-badge repeat-folder-badge">F</span>' : "";
+    var label = repeatMode === "one" ? "Repeat 1" : repeatMode === "folder" ? "Repeat Folder" : repeatMode === "all" ? "Repeat All" : "Repeat";
+    b.innerHTML = '<svg viewBox="0 0 24 24">' + BI.repeat + '</svg>' + badge + '<span class="qn-yt-rlabel">' + label + '</span>';
+    b.classList.toggle("is-active", repeatMode !== "off");
+    b.setAttribute("aria-pressed", String(repeatMode !== "off"));
+    b.title = (repeatMode === "one" ? "Repeat One" : repeatMode === "folder" ? "Repeat Folder" : repeatMode === "all" ? "Repeat All" : "Repeat Off") + " (click to cycle)";
   }
+  // 今の動画からdir(+1/-1)方向の、SKIPでない動画。wrap=端で折り返す。Folderはフォルダがある時だけ今のフォルダ(連続グループ)内に限る(PLのfindEnabledTrackIndexと同じ)
+  function neighborItem(dir, wrap) {
+    if (!current || !current.itemId) return null;
+    var ord = orderedItems(), idx = -1, i;
+    for (i = 0; i < ord.length; i++) if (ord[i].id === current.itemId) idx = i;
+    if (idx < 0) return null;
+    var lo = 0, hi = ord.length - 1;
+    if (repeatMode === "folder" && ytFolders.list.length) {
+      var fid = folderIdOf(ord[idx]);
+      lo = hi = idx;
+      while (lo > 0 && folderIdOf(ord[lo - 1]) === fid) lo--;
+      while (hi < ord.length - 1 && folderIdOf(ord[hi + 1]) === fid) hi++;
+    }
+    var span = hi - lo + 1, k = idx + dir;
+    for (var s = 0; s < span; s++) {
+      if (k < lo || k > hi) { if (!wrap) return null; k = k < lo ? hi : lo; }
+      if (ord[k] && !ord[k].skip) return ord[k];
+      k += dir;
+    }
+    return null;
+  }
+  function repeatWraps() { return repeatMode === "all" || repeatMode === "folder"; }
 
   function playerMostlyVisible() {
     if (document.visibilityState !== "visible") return false;
@@ -1581,12 +1680,13 @@
   }
 
   function handleEnded() {
-    if (!autoNext || !current || !current.itemId) return;
-    var idx = -1, ord = orderedItems();
-    for (var i = 0; i < ord.length; i++) if (ord[i].id === current.itemId) idx = i;
-    if (idx < 0) return;
-    var next = null;
-    for (var j = idx + 1; j < ord.length; j++) if (!ord[j].skip) { next = ord[j]; break; }
+    if (!current || !current.itemId) return;
+    if (repeatMode === "one") {
+      if (!playerMostlyVisible()) return;
+      try { player.seekTo(0, true); player.playVideo(); } catch (e) {}
+      return;
+    }
+    var next = neighborItem(1, repeatWraps());
     if (!next) { showMessage("Libraryの最後の動画でした"); return; }
     if (!playerMostlyVisible()) return;
     refs.urlInput.value = next.url;
@@ -2964,11 +3064,7 @@
   }
   function gotoNeighbor(dir) {
     if (!current || !current.itemId) { showMessage("Libraryの動画を選んでください"); return; }
-    var idx = -1, i, ord = orderedItems();
-    for (i = 0; i < ord.length; i++) if (ord[i].id === current.itemId) idx = i;
-    if (idx < 0) return;
-    var target = null;
-    for (i = idx + dir; i >= 0 && i < ord.length; i += dir) if (!ord[i].skip) { target = ord[i]; break; }
+    var target = neighborItem(dir, repeatWraps());
     if (!target) { showMessage(dir > 0 ? "Libraryの最後の動画です" : "Libraryの最初の動画です"); return; }
     refs.urlInput.value = target.url;
     openVideo(target.videoId, target.url, target.id, { play: true });
@@ -3401,8 +3497,8 @@
     function ready() { return !!(current && playerReady); }
     function afterLoop() { persistLoop(); updateLoopUI(); renderMarkers(); }
     // 下段バー(.qn-yt-bbtn)とSPドック(.qn-yt-dock)の両方を対象にする
-    var DOCK_OF = { playBtn: "dockPlay", prevMarkerBtn: "dockPrev", nextMarkerBtn: "dockNext", addMarkerBtn: "dockAdd", loopToggleBtn: "dockLoop" };
-    function at(name) { return '.qn-yt-bbtn[data-yt="' + name + '"]' + (DOCK_OF[name] ? ',.qn-yt-dock [data-dock="' + DOCK_OF[name] + '"]' : ""); }
+    var DOCK_OF = { playBtn: "dockPlay", prevMarkerBtn: "dockPrev", nextMarkerBtn: "dockNext", addMarkerBtn: "dockAdd", loopToggleBtn: "dockLoop", prevVideoBtn: "headPrev", nextVideoBtn: "headNext", setABtn: "abA", setBBtn: "abB" };
+    function at(name) { return '.qn-yt-bbtn[data-yt="' + name + '"]' + (DOCK_OF[name] ? ',[data-dock="' + DOCK_OF[name] + '"]' : ""); }
     function round1(v) { return Math.round(v * 10) / 10; }
     function sec(v) { return v + "s"; }
 
@@ -3429,7 +3525,7 @@
       } };
     });
     Q.add(at("setABtn") + "," + at("setBBtn"), function (el) {
-      var kind = el.getAttribute("data-yt") === "setBBtn" ? "B" : "A", key = kind === "A" ? "loopA" : "loopB";
+      var kind = /^(setBBtn|abB)$/.test(el.getAttribute("data-yt")) ? "B" : "A", key = kind === "A" ? "loopA" : "loopB";
       if (!ready()) return null;
       function put(v) { current[key] = v; if ((current.loopA === null || current.loopB === null) && current.loopMode === "ab") setLoopMode("off"); afterLoop(); }
       return { title: kind + " point", build: function (ctx) {

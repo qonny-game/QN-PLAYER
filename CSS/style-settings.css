@@ -180,6 +180,10 @@
 .qn-stepper-unit { font-size: inherit; font-weight: inherit; }
 .qn-set-row { min-height: 56px; padding: 8px 0; }
 .qn-set-list-item { min-height: 56px; padding-top: 0; padding-bottom: 0; }
+.qn-set-legal { display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 16px 0 0; font-size: var(--fs-micro); letter-spacing: 0.4px; }
+.qn-set-legal a { color: var(--icon-muted); text-decoration: none; padding: 6px 0; }
+.qn-set-legal a:hover, .qn-set-legal a:focus-visible { color: var(--text-pure-white); text-decoration: underline; }
+.qn-set-legal + .qn-set-version { padding-top: 4px; }
 .qn-set-version { padding: 16px 0 8px; font-size: var(--fs-micro); color: var(--icon-muted); letter-spacing: 0.4px; }
 @media screen and (max-width: 900px) {
   body.pc-v2-active #appHeader #appVersion { display: none; }

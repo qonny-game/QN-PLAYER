@@ -76,7 +76,8 @@
 - ショートカット：`SHORTCUTS`配列＋`onSpaceKey`（`QNApps.register`の`shortcuts`にも渡す）
 
 ## その他
-- `guide/` — アプリ内ガイド(v4.12.0〜)。静的HTML8枚(index/start/screen/operations/data/apps/plan/reference)＋`guide.css`/`guide.js`＋`img/*.webp`(スクショ)。入口はサイドバーSettings直上のGuideボタン(`player-ui-pc-v2.js`の`build()`、`window.open`で別タブ)。アプリ本体のJS/CSSには依存せず、`qn_theme`だけ読む。画面や仕様を変えたら該当ページと画像を直す。
+- `guide/` — アプリ内ガイド(v4.12.0〜)。静的HTML8枚(index/start/screen/operations/data/apps/plan/reference)＋`guide.css`/`guide.js`＋`img/*.webp`(スクショ)。入口は設定の「More」一覧のGuide行(Transferの下。`qn-settings-ui.js`の`list()`が`window.open`で別タブに開く。PLAYERもアプリも共通。サイドバーのアイコンはv4.12.2で廃止)。アプリ本体のJS/CSSには依存せず、`qn_theme`だけ読む。画面や仕様を変えたら該当ページと画像を直す。
+- `terms.html` / `privacy.html` — 利用規約・プライバシーポリシー(v4.13.0〜。ルート直下の静的ページ。pricing.htmlと同じ見た目)。入口は設定(PLAYER/アプリ共通)の最下段のリンク(`qn-settings-ui.js`の`legalLinks()`)、pricing/ガイドのフッター。**取得する情報・外部サービス・決済・YouTube利用が変わったら必ず直す**(特にプライバシーポリシー第2・4条)。qnaudio.stream側(サービス紹介サイト)にも同名ページがあるので、更新したら両方そろえる。
 - `JS/qn-wakelock.js` — `QNWake.set(key,on)`。audio再生/停止/終了をフックし、visibilitychangeで再取得。
 - `JS/qn-marker-core.js` — `QNMarkerCore`：区間の決め方・プリロール込みの許容範囲・前後マーカー移動・A-B範囲外判定（PLAYER/YouTube共通）。
 - `JS/player-marker-presets.js` — プリセット/自動カラー/カスタムプリセット、`startPinMemoEdit`（メモ編集のプリセットポップアップ）。

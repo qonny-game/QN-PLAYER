@@ -12,9 +12,10 @@ window.QNSettingsUI = (function () {
     import: '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>',
     color: '<path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10c1.38 0 2.5-1.12 2.5-2.5 0-.61-.23-1.2-.64-1.67-.08-.09-.13-.21-.13-.33 0-.28.22-.5.5-.5H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 8 6.5 8 8 8.67 8 9.5 7.33 11 6.5 11zm3-4C8.67 7 8 6.33 8 5.5S8.67 4 9.5 4s1.5.67 1.5 1.5S10.33 7 9.5 7zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 4 14.5 4s1.5.67 1.5 1.5S15.33 7 14.5 7zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 8 17.5 8s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>',
     keyboard: '<path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM11 8h2v2h-2V8zM11 11h2v2h-2v-2zM8 8h2v2H8V8zM8 11h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm10 6H9v-2h6v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>',
-    transfer: '<path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>'
+    transfer: '<path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>',
+    guide: '<path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/>'
   };
-  var LABELS = { backup: "Backup", import: "Import", color: "Color", keyboard: "Keyboard", transfer: "Transfer" };
+  var LABELS = { backup: "Backup", import: "Import", color: "Color", keyboard: "Keyboard", transfer: "Transfer", guide: "Guide" };
 
   function haptic() { if (typeof hapticTap === "function") { try { hapticTap(); } catch (e) {} } }
 
@@ -148,14 +149,14 @@ window.QNSettingsUI = (function () {
     return { el: root, sync: sync };
   }
 
-  // 階層に入る行の一覧(Backup/Import/Color/Keyboard/Transfer)。onPick(id)
+  // 階層に入る行の一覧(Backup/Import/Color/Keyboard/Transfer/Guide)。onPick(id)。Guideだけは別タブでguide/index.htmlを開く(再生を止めない。onPickは呼ばない)
   function list(ids, onPick) {
     var wrap = make('<div class="qn-set-sec"><div class="qn-set-sec-title">More</div><div class="qn-set-list"></div></div>');
     var host = wrap.querySelector(".qn-set-list");
     ids.forEach(function (id) {
       var b = make('<button type="button" class="qn-set-list-item" data-panel-id="' + id + '"><svg class="qn-set-list-ico" viewBox="0 0 24 24">' + ICONS[id] + '</svg><span></span><svg class="qn-set-list-chev" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></button>');
       b.querySelector("span").textContent = LABELS[id];
-      b.addEventListener("click", function () { haptic(); onPick(id); });
+      b.addEventListener("click", function () { haptic(); if (id === "guide") { window.open("guide/index.html", "_blank", "noopener"); return; } onPick(id); });
       host.appendChild(b);
     });
     return wrap;
@@ -167,6 +168,13 @@ window.QNSettingsUI = (function () {
     return back;
   }
 
+  // 利用規約・プライバシーポリシーへのリンク(設定の最下段、バージョン表記の上)。別タブで開く(再生を止めない)。ページはルート直下のterms.html / privacy.html
+  function legalLinks() {
+    var d = make('<div class="qn-set-legal"><a href="terms.html" target="_blank" rel="noopener">Terms of Service</a><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></div>');
+    d.addEventListener("click", function (e) { if (e.target.closest && e.target.closest("a")) haptic(); });
+    return d;
+  }
+
   // 設定の最下段に出すバージョン表記(SPではヘッダーのバージョンを省くため、ここで確認できる)
   function versionLine() {
     var d = make('<div class="qn-set-version"></div>');
@@ -174,5 +182,5 @@ window.QNSettingsUI = (function () {
     return d;
   }
 
-  return { versionLine: versionLine, build: build, inline: inline, list: list, backButton: backButton, LABELS: LABELS, ICONS: ICONS };
+  return { legalLinks: legalLinks, versionLine: versionLine, build: build, inline: inline, list: list, backButton: backButton, LABELS: LABELS, ICONS: ICONS };
 })();

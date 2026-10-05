@@ -1298,3 +1298,56 @@
   .qn-yt .qn-yt-bdiv, .qn-yt .qn-yt-bspacer { margin: 0 28px; }
   .qn-yt .qn-yt-bstep-btn { width: 40px; }
 }
+
+/* ---------- v4.14.0: MOREの中身をPLAYERと同じ配置に ----------
+   PC幅: 見た目は従来どおり(タイトル行/ミックスカードは display:contents、A/B・ヘッドボタン・Speedスライダーは非表示)。Auto Nextを廃止しRepeat(Off/One/Folder/All)に置換
+   SP幅: 下段バーは出さない(中継元としてDOMにだけ残す。-10s/+10sは廃止)。Track前/次・Repeatはタイトル行の右、A/Bはシークバー直下、Moreは Bar length/Rows帯 + URL+Save/Speedのカード */
+.qn-yt-bbtn .repeat-one-badge {
+  position: absolute; top: 8px; right: 50%; left: auto; transform: translateX(14px);
+  width: 13px; height: 13px; padding: 0; margin: 0; font-size: 9px; font-weight: 700; letter-spacing: 0; line-height: 1;
+  color: var(--accent-primary); background: #0d0d0f;
+}
+.qn-yt-bbtn .repeat-folder-badge { font-size: 8px; }
+.qn-yt-titlerow { display: contents; }
+.qn-yt-headbtns, .qn-yt-abrow, .qn-yt-mix-speed { display: none; }
+.qn-yt-mixcard { display: contents; }
+
+@media screen and (max-width: 900px) {
+  .qn-yt .qn-yt-controls .qn-yt-bar { display: none; }
+
+  .qn-yt-custom { margin-top: 6px; }
+  .qn-yt-titlerow { display: flex; align-items: center; gap: 4px; margin: 0 0 2px; }
+  .qn-yt-titlerow .qn-yt-fetched-title { flex: 1 1 auto; min-width: 0; margin: 0; }
+  .qn-yt-headbtns { display: flex; align-items: center; gap: 2px; margin-left: auto; flex: 0 0 auto; }
+  .qn-yt-headbtns .pcv2-head-btn { position: relative; }
+
+  .qn-yt-abrow { display: flex; gap: 8px; margin-top: 6px; }
+  .qn-yt-ab {
+    display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-width: 0; height: 36px; padding: 0 8px;
+    font-family: var(--font-display, 'Instrument Sans'), sans-serif; font-size: 13px; font-weight: 600; white-space: nowrap;
+    background: none; border: 1px solid var(--border-strong, rgba(255,255,255,0.2)); border-radius: var(--radius-popup, 10px);
+    color: var(--icon-muted); cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .qn-yt-ab:active { transform: scale(0.97); }
+  .qn-yt-ab.has-point { color: var(--accent-primary); border-color: var(--accent-primary); }
+
+  .qn-yt-mixcard {
+    display: grid; grid-template-columns: 1fr; gap: 6px; padding: 8px 16px 8px;
+    background: #0e0e13; border: 1px solid var(--border-subtle); border-radius: var(--radius-popup, 10px);
+  }
+  .qn-yt-mix-speed { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .qn-yt-mix-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+  .qn-yt-mix-label { font-size: 12px; color: var(--icon-muted); user-select: none; cursor: pointer; }
+  .qn-yt-mix-val { flex: 0 0 auto; min-width: 34px; text-align: right; font-size: 13px; color: var(--text-bright, #fff); font-variant-numeric: tabular-nums; cursor: pointer; }
+  .qn-yt-mix-row { display: flex; align-items: center; gap: 8px; }
+  .qn-yt-mix-reset { flex: 0 0 auto; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; border-radius: 8px; background: none; color: var(--icon-muted); -webkit-tap-highlight-color: transparent; cursor: pointer; }
+  .qn-yt-mix-reset svg { width: 22px; height: 22px; fill: currentColor; }
+  .qn-yt-mix-reset:active { background: rgba(255, 255, 255, 0.08); color: var(--accent-primary, #3b82f6); }
+  .qn-yt-mix-range { flex: 1 1 auto; min-width: 0; width: 100%; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; accent-color: var(--accent-primary, #3b82f6); }
+  .qn-yt-mix-range:focus, .qn-yt-mix-range:focus-visible { outline: none; }
+  .qn-yt-mix-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--accent-primary) var(--p, 0%), #2a2a34 var(--p, 0%)); border: none; }
+  .qn-yt-mix-range::-moz-range-track { height: 4px; border-radius: 2px; background: #2a2a34; border: none; }
+  .qn-yt-mix-range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent-primary); }
+  .qn-yt-mix-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--text-bright, #fff); border: none; box-shadow: none; }
+  .qn-yt-mix-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--text-bright, #fff); border: none; }
+}
