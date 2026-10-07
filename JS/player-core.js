@@ -515,7 +515,9 @@ function replayAppTitleMarquee() {
 
 function getAudioCtx() {
   if (!window.__qnAudioCtx) {
-    window.__qnAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    // 再生用途なので大きめのバッファ(playback)。iOSでAudioWorkletの処理落ち(プツプツ)を減らす
+    try { window.__qnAudioCtx = new Ctx({ latencyHint: "playback" }); } catch (e) { window.__qnAudioCtx = new Ctx(); }
   }
   // 自動再生ポリシーでAudioContextがsuspendedのことがある。取得毎にresume
   if (window.__qnAudioCtx.state === "suspended") {
@@ -553,6 +555,19 @@ let eqFilters = [];
 
 let soundTouchNode = null;
 let pitchShiftAvailable = false;
+
+// Speedの伸縮エンジン。既定"st"=SoundTouchが時間伸縮(audio要素は音程を保たず再生速度だけ変える)。"native"=従来のブラウザ標準の伸縮(iOSでは伸びずに隙間が空く)。切替: URLに ?stretch=native / ?stretch=st を付けて開くと端末に保存
+function getStretchEngine() {
+  try {
+    const q = new URLSearchParams(location.search).get("stretch");
+    if (q === "native" || q === "st") localStorage.setItem("qn_stretch_engine", q);
+    return localStorage.getItem("qn_stretch_engine") === "native" ? "native" : "st";
+  } catch (e) { return "st"; }
+}
+const STRETCH_PARAMS = { sequenceMs: 120, seekWindowMs: 30, overlapMs: 20 }; // 遅い再生向けに窓を長め(既定より滑らか)
+function setElementPreservesPitch(on) {
+  audio.preservesPitch = on; audio.webkitPreservesPitch = on; audio.mozPreservesPitch = on;
+}
 // 自動ノーマライズ(player-normalize.js)用: EQの後ろに Gain → リミッタ を置く
 let normGainNode = null;
 let normLimiterNode = null;
@@ -580,6 +595,7 @@ async function setupAudioGraph() {
     const { SoundTouchNode } = await loadSoundTouchModule();
     await ensureSoundTouchWorklet(ctx, SoundTouchNode);
     stNode = new SoundTouchNode({ context: ctx });
+    try { stNode.setStretchParameters(STRETCH_PARAMS); } catch (e) {}
   } catch (err) {
     console.warn("SoundTouchJS unavailable, Speed/Key features disabled:", err);
     stNode = null;
@@ -635,10 +651,13 @@ function updatePlaybackRate() {
   const effectiveSpeed = speedEffectEnabled ? currentSpeed : 1.0;
   const effectiveKeySemitones = keyEffectEnabled ? currentKeySemitones : 0;
   if (pitchShiftAvailable && soundTouchNode) {
+    const native = getStretchEngine() === "native";
+    // st: audio要素は音程そのまま(preservesPitch=false)で速度だけ変え、SoundTouchが「playbackRate分の速度差」を伸縮で埋める(pitch=1)。native: 要素側で伸縮(pitch=speedで相殺)
+    setElementPreservesPitch(native);
     audio.playbackRate = effectiveSpeed;
     try {
       soundTouchNode.playbackRate.value = effectiveSpeed;
-      soundTouchNode.pitch.value = effectiveSpeed;
+      soundTouchNode.pitch.value = native ? effectiveSpeed : 1;
       const clampedSemitones = Math.max(-24, Math.min(24, effectiveKeySemitones));
       soundTouchNode.pitchSemitones.value = clampedSemitones;
     } catch (e) {

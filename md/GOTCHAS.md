@@ -191,3 +191,5 @@
 - **SP(v4.11.0〜): 下段バー`#pcV2BottomBar`は常に非表示(display:none)だが、操作元のボタン(#prevTrackBtn/#setABtn等)はDOMに残す。** ドック・波形ヘッダー(`#pcV2WaveHeadBtns`)・A/B(`#pcV2FabSetA/B`)は`.click()`で中継するミラー。ボタンの新設/撤去はミラー側と`player-quickpop.js`のTARGETSも見ること。設定帯(`.qn-wave-bar-strip`)はSPで`#pcV2MorePanel`、PCで`#pcV2WaveFabRow`(syncMoreExtras)。
 
 - repeatMode は "off"|"one"|"folder"|"all" の4値(v4.11.2〜)。Auto Next範囲の別設定(`qn_autonext_scope`/getAutoNextScope)は参照されなくなった(残置のみ)。folder=今の曲と同じフォルダ内を折り返し、all=全体を折り返し、off=全体を順送りで端で停止。SPヘッドのミラーボタンは本体ボタンの`svg`に加え`.repeat-one-badge`もコピーすること(でないと"1"/"F"が出ない)。
+
+- **Speedの時間伸縮はSoundTouchに任せる**(v4.14.1〜 `updatePlaybackRate`)。audio要素は`preservesPitch=false`で速度だけ変え、SoundTouchは`pitch=1`+`playbackRate=速度`(ライブラリ本来の使い方)。以前は`preservesPitch=true`+`pitch=速度`で相殺していたが、iOS(WebKit)はWeb Audio経由だとブラウザ側の伸縮が効かず、遅くした分の音が足りない=隙間(スライサーのようなプツプツ)になった。Chromeでは再現しないので実機確認。戻す手段は`?stretch=native`。
