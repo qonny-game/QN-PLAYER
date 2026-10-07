@@ -16,7 +16,18 @@
 .qn-stem-btn.is-primary { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
 .qn-stem-mix { display: flex; flex-direction: column; gap: 6px; transition: opacity 120ms ease; }
 .qn-stem-mix.is-off { opacity: 0.4; pointer-events: none; }
-.qn-stem-part { display: grid; grid-template-columns: 64px 30px 30px 1fr; align-items: center; gap: 8px; min-height: 40px; }
+.qn-stem-partbox { display: flex; flex-direction: column; gap: 2px; }
+.qn-stem-partbox.is-muted .qn-stem-wave { opacity: 0.35; }
+.qn-stem-part { display: grid; grid-template-columns: 64px 30px 30px 1fr 30px; align-items: center; gap: 8px; min-height: 36px; }
+.qn-stem-part > .qn-stem-name { grid-column: 1; grid-row: 1; }
+.qn-stem-part > .qn-stem-ms:nth-of-type(1) { grid-column: 2; grid-row: 1; }
+.qn-stem-part > .qn-stem-ms:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+.qn-stem-part > .qn-set-range { grid-column: 4; grid-row: 1; width: 100%; min-width: 0; margin: 0; }
+.qn-stem-part > .qn-stem-vol { grid-column: 5; grid-row: 1; }
+.qn-stem-vol { font-style: normal; font-size: var(--fs-micro); text-align: right; color: var(--icon-muted); font-variant-numeric: tabular-nums; }
+.qn-stem-wave { position: relative; height: 28px; margin-bottom: 6px; border-radius: 4px; background: #0e0e13; cursor: pointer; overflow: hidden; pointer-events: auto; }
+.qn-stem-wave canvas { display: block; width: 100%; height: 100%; }
+.qn-stem-head { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; margin-left: -1px; background: var(--text-bright, #fff); pointer-events: none; }
 .qn-stem-name { font-size: var(--fs-body); color: var(--text-bright); }
 .qn-stem-ms {
   width: 30px; height: 30px; padding: 0; border-radius: 6px; background: #1b1b23; border: 1px solid var(--border-subtle);

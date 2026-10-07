@@ -16,6 +16,7 @@
   var MODEL_MBS = { "4": 172, "6": 136 };
   var MAX_SECS = { "4": 720, "6": 600 }; // 6は出力が6本ぶんでメモリを食うので短め
   var MODE_KEY = "qn_stem_mode";
+  var VOL_UNITY = 0.7, BOOST = 3; // スライダー70%=原音、100%=3倍(約+9.5dB)。ブースト分はWeb Audio(GainNode)＋ソフトリミッターで出す
   var DB_NAME = "qn_stem_db", STORE = "stems", KEEP_MAX = 6;
   var PARTS4 = [
     { id: "vocals", label: "Vocals" },
@@ -42,7 +43,8 @@
     prog: 0, dl: null, seg: 0, segTotal: 0, t0: 0,
     blobs: null, cached: false,
     active: false, els: null, urls: null,
-    vol: { vocals: 1, drums: 1, bass: 1, other: 1, guitar: 1, piano: 1 },
+    vol: { vocals: 0.7, drums: 0.7, bass: 0.7, other: 0.7, guitar: 0.7, piano: 0.7 }, // スライダー位置(0〜1)。0.7=原音レベル(ゲイン1.0)、1.0=ブースト上限(BOOST倍)
+    peaks: null,
     mute: {}, solo: {}
   };
   var gpuOk = null; // null=確認中 / true / false(requestAdapterで実際に取れるか)
@@ -88,15 +90,43 @@
   function cacheDel(key) { return idb("readwrite", function (s) { s.delete(key); }).catch(function () {}); }
 
   // ---------- 再生(stem 4本 + 録音トラックを、マスターaudioへ追従) ----------
+  // ---------- 出力バス(各<audio>→GainNode→ソフトリミッター→出力)。<audio>.volumeは1.0までなのでブーストはGainNodeで行う。PC専用なのでWeb Audio経由でよい ----------
+  var bus = null;
+  function getBus() {
+    if (bus) return bus;
+    var C = window.AudioContext || window.webkitAudioContext;
+    var ctx = new C({ latencyHint: "interactive" });
+    var shaper = ctx.createWaveShaper(), n = 4096, curve = new Float32Array(n);
+    for (var i = 0; i < n; i++) { // |x|<=0.8は素通し、それ以上はtanhで0.95付近へ丸める(ブースト時の割れ防止)
+      var x = i / (n - 1) * 2 - 1, ax = Math.abs(x);
+      curve[i] = ax <= 0.8 ? x : (x < 0 ? -1 : 1) * (0.8 + 0.2 * Math.tanh((ax - 0.8) / 0.2));
+    }
+    shaper.curve = curve; shaper.oversample = "2x";
+    shaper.connect(ctx.destination);
+    bus = { ctx: ctx, out: shaper };
+    return bus;
+  }
+  function busResume() { if (bus && bus.ctx.state === "suspended") bus.ctx.resume().catch(function () {}); }
+  function wireEl(e) {
+    var b = getBus();
+    e._qnSrc = b.ctx.createMediaElementSource(e);
+    e._qnGain = b.ctx.createGain();
+    e._qnSrc.connect(e._qnGain); e._qnGain.connect(b.out);
+    busResume();
+  }
+  function unwireEl(e) { try { if (e._qnSrc) e._qnSrc.disconnect(); if (e._qnGain) e._qnGain.disconnect(); } catch (x) {} e._qnSrc = e._qnGain = null; }
+  function gainOf(pos) { pos = Math.max(0, Math.min(1, pos)); return pos <= VOL_UNITY ? pos / VOL_UNITY : 1 + (pos - VOL_UNITY) / (1 - VOL_UNITY) * (BOOST - 1); }
+  function setGain(e, g) { if (e && e._qnGain) e._qnGain.gain.value = g; }
+
   function applyVol() {
     if (st.els) {
       var anySolo = parts().some(function (p) { return st.solo[p.id]; });
       parts().forEach(function (p) {
         var on = anySolo ? !!st.solo[p.id] : !st.mute[p.id];
-        st.els[p.id].volume = on ? Math.max(0, Math.min(1, st.vol[p.id])) : 0;
+        setGain(st.els[p.id], on ? gainOf(st.vol[p.id]) : 0);
       });
     }
-    rec.tracks.forEach(function (t) { if (t.el) t.el.volume = t.mute ? 0 : Math.max(0, Math.min(1, t.vol)); });
+    rec.tracks.forEach(function (t) { if (t.el) setGain(t.el, t.mute ? 0 : gainOf(t.vol)); });
   }
   // target: その要素の再生位置(秒)。範囲外(録音開始前/終了後)・マスター停止中は止める
   function syncEl(e, target, rate, hard, m) {
@@ -122,7 +152,7 @@
     });
   }
   var masterEvents = ["play", "pause", "seeked", "ratechange", "waiting", "playing"];
-  function onMaster(ev) { followAll(ev.type === "seeked" || ev.type === "play"); }
+  function onMaster(ev) { if (ev.type === "play") busResume(); followAll(ev.type === "seeked" || ev.type === "play"); }
   function enable() {
     var m = A();
     if (!m || !st.blobs || st.active) return;
@@ -132,6 +162,7 @@
       var e = new Audio();
       e.preload = "auto"; e.src = u;
       try { e.preservesPitch = true; } catch (x) {}
+      wireEl(e);
       st.urls[p.id] = u; st.els[p.id] = e;
     });
     st.active = true;
@@ -142,6 +173,7 @@
   function disable() {
     var m = A();
     if (m) m.muted = false;
+    if (st.els) parts().forEach(function (p) { unwireEl(st.els[p.id]); });
     if (st.els) parts().forEach(function (p) { try { st.els[p.id].pause(); st.els[p.id].removeAttribute("src"); st.els[p.id].load(); } catch (x) {} });
     if (st.urls) parts().forEach(function (p) { URL.revokeObjectURL(st.urls[p.id]); });
     st.els = st.urls = null; st.active = false;
@@ -153,21 +185,22 @@
   function lastOffset() { try { return parseInt(localStorage.getItem(OFFSET_KEY), 10) || 0; } catch (e) { return 0; } }
   function newRecTracks() {
     rec.tracks = [];
-    for (var i = 0; i < REC_N; i++) rec.tracks.push({ id: i, blob: null, url: "", el: null, startPos: 0, rate: 1, offset: lastOffset(), vol: 1, mute: false });
+    for (var i = 0; i < REC_N; i++) rec.tracks.push({ id: i, blob: null, url: "", el: null, startPos: 0, rate: 1, offset: lastOffset(), vol: VOL_UNITY, mute: false });
   }
   newRecTracks();
   function recMakeEl(t) {
-    if (t.el) { try { t.el.pause(); } catch (x) {} }
+    if (t.el) { try { t.el.pause(); } catch (x) {} unwireEl(t.el); }
     if (t.url) URL.revokeObjectURL(t.url);
     t.el = null; t.url = "";
     if (!t.blob) return;
     t.url = URL.createObjectURL(t.blob);
     t.el = new Audio(); t.el.preload = "auto"; t.el.src = t.url;
     try { t.el.preservesPitch = true; } catch (x) {}
+    wireEl(t.el);
   }
   function recClear() {
     if (rec.cur >= 0) recAbort();
-    rec.tracks.forEach(function (t) { if (t.el) { try { t.el.pause(); } catch (x) {} } if (t.url) URL.revokeObjectURL(t.url); });
+    rec.tracks.forEach(function (t) { if (t.el) { try { t.el.pause(); } catch (x) {} unwireEl(t.el); } if (t.url) URL.revokeObjectURL(t.url); });
     newRecTracks();
   }
   function recSave() {
@@ -176,7 +209,7 @@
     var k = "rec|" + st.key;
     if (!has) return cacheDel(k);
     return idb("readwrite", function (s) {
-      return s.put({ key: k, ts: Date.now(), recs: rec.tracks.map(function (t) { return { id: t.id, blob: t.blob, startPos: t.startPos, rate: t.rate, offset: t.offset, vol: t.vol, mute: t.mute }; }) });
+      return s.put({ key: k, ts: Date.now(), recs: rec.tracks.map(function (t) { return { id: t.id, blob: t.blob, startPos: t.startPos, rate: t.rate, offset: t.offset, vol: t.vol, v2: true, mute: t.mute }; }) });
     }).catch(function () {});
   }
   function recLoad(key) {
@@ -184,7 +217,7 @@
       if (!r || st.key !== key) return;
       r.recs.forEach(function (x) {
         var t = rec.tracks[x.id]; if (!t) return;
-        t.blob = x.blob; t.startPos = x.startPos; t.rate = x.rate; t.offset = x.offset; t.vol = x.vol; t.mute = x.mute;
+        t.blob = x.blob; t.startPos = x.startPos; t.rate = x.rate; t.offset = x.offset; t.vol = x.v2 ? x.vol : VOL_UNITY; t.mute = x.mute; // v2無し=旧単位の音量なので原音レベルに戻す
         recMakeEl(t);
       });
       applyVol(); followAll(true); render();
@@ -247,7 +280,7 @@
   function recStop() { if (rec.mr && rec.mr.state !== "inactive") rec.mr.stop(); }
   function recDelete(i) {
     var t = rec.tracks[i];
-    if (t.el) { try { t.el.pause(); } catch (x) {} }
+    if (t.el) { try { t.el.pause(); } catch (x) {} unwireEl(t.el); }
     if (t.url) URL.revokeObjectURL(t.url);
     t.blob = null; t.el = null; t.url = "";
     recSave(); render();
@@ -411,20 +444,33 @@
 
       var mix = h("div", "qn-stem-mix" + (st.active ? "" : " is-off"));
       parts().forEach(function (p) {
+        var box = h("div", "qn-stem-partbox");
         var r = h("div", "qn-stem-part");
         r.appendChild(h("span", "qn-stem-name", p.label));
         var mb = h("button", "qn-stem-ms" + (st.mute[p.id] ? " is-on" : ""), "M"); mb.type = "button"; mb.title = "Mute";
         var sb = h("button", "qn-stem-ms" + (st.solo[p.id] ? " is-on is-solo" : ""), "S"); sb.type = "button"; sb.title = "Solo";
-        var rg = h("input", "qn-set-range"); rg.type = "range"; rg.min = 0; rg.max = 1; rg.step = 0.01; rg.value = st.vol[p.id];
-        var paint = function () { rg.style.setProperty("--p", Math.round(rg.value * 100) + "%"); };
+        var rg = h("input", "qn-set-range"); rg.type = "range"; rg.min = 0; rg.max = 100; rg.step = 1; rg.value = Math.round(st.vol[p.id] * 100);
+        rg.title = "70 = original level, up to 100 = boost";
+        var val = h("em", "qn-stem-vol", String(rg.value));
+        var paint = function () { rg.style.setProperty("--p", rg.value + "%"); val.textContent = rg.value; };
         paint();
-        rg.addEventListener("input", function () { st.vol[p.id] = parseFloat(rg.value); paint(); applyVol(); });
-        mb.addEventListener("click", function () { st.mute[p.id] = !st.mute[p.id]; applyVol(); mb.classList.toggle("is-on", !!st.mute[p.id]); });
+        rg.addEventListener("input", function () { st.vol[p.id] = parseFloat(rg.value) / 100; paint(); applyVol(); });
+        rg.addEventListener("dblclick", function () { rg.value = VOL_UNITY * 100; st.vol[p.id] = VOL_UNITY; paint(); applyVol(); });
+        mb.addEventListener("click", function () { st.mute[p.id] = !st.mute[p.id]; applyVol(); mb.classList.toggle("is-on", !!st.mute[p.id]); box.classList.toggle("is-muted", !!st.mute[p.id]); });
         sb.addEventListener("click", function () { st.solo[p.id] = !st.solo[p.id]; applyVol(); sb.classList.toggle("is-on", !!st.solo[p.id]); sb.classList.toggle("is-solo", !!st.solo[p.id]); });
-        r.appendChild(mb); r.appendChild(sb); r.appendChild(rg);
-        mix.appendChild(r);
+        r.appendChild(mb); r.appendChild(sb); r.appendChild(rg); r.appendChild(val);
+        box.appendChild(r);
+        var wv = h("div", "qn-stem-wave"); wv.dataset.part = p.id;
+        wv.appendChild(h("canvas")); wv.appendChild(h("i", "qn-stem-head"));
+        wv.addEventListener("click", function (ev) {
+          var m = A(); if (!m || !m.duration) return;
+          var rc = wv.getBoundingClientRect(); m.currentTime = Math.max(0, Math.min(1, (ev.clientX - rc.left) / rc.width)) * m.duration;
+        });
+        box.appendChild(wv);
+        mix.appendChild(box);
       });
       root.appendChild(mix);
+      ensurePeaks(); startWaveLoop();
       root.appendChild(h("p", "qn-stem-note", "EQ and Key do not apply in stem mode. Speed, seek and loop work as usual."));
       var del = h("button", "qn-stem-btn", "Delete saved parts"); del.type = "button";
       del.addEventListener("click", function () {
@@ -436,6 +482,55 @@
     }
     renderRec();
   }
+
+  // ---------- パートごとの波形(1行) ----------
+  var PEAK_N = 900, waveRaf = 0;
+  function peaksOf(blob) {
+    return blob.arrayBuffer().then(function (ab) {
+      var pcm = new Int16Array(ab, 44, Math.floor((ab.byteLength - 44) / 2)), frames = pcm.length >> 1, out = new Float32Array(PEAK_N);
+      for (var b = 0; b < PEAK_N; b++) {
+        var i0 = Math.floor(b * frames / PEAK_N), i1 = Math.max(i0 + 1, Math.floor((b + 1) * frames / PEAK_N)), mx = 0;
+        for (var i = i0; i < i1; i++) { var a = pcm[i * 2], c = pcm[i * 2 + 1]; if (a < 0) a = -a; if (c < 0) c = -c; if (a > mx) mx = a; if (c > mx) mx = c; }
+        out[b] = mx / 32768;
+      }
+      return out;
+    });
+  }
+  function ensurePeaks() {
+    if (!st.blobs) return;
+    if (st.peaks && st.peaksFor === st.blobs) { paintWaves(); return; }
+    var blobs = st.blobs; st.peaks = {}; st.peaksFor = blobs;
+    Promise.all(Object.keys(blobs).map(function (k) { return peaksOf(blobs[k]).then(function (pk) { if (st.blobs === blobs) st.peaks[k] = pk; }); }))
+      .then(function () { if (st.blobs === blobs) paintWaves(); });
+  }
+  function paintWaves() {
+    if (!root || !st.peaks) return;
+    var color = getComputedStyle(root).getPropertyValue("--accent-primary").trim() || "#3b82f6";
+    root.querySelectorAll(".qn-stem-wave").forEach(function (wv) {
+      var pk = st.peaks[wv.dataset.part], cv = wv.firstChild;
+      if (!pk || !wv.clientWidth) return;
+      var dpr = window.devicePixelRatio || 1, w = Math.floor(wv.clientWidth * dpr), hh = Math.floor(wv.clientHeight * dpr);
+      cv.width = w; cv.height = hh;
+      var g = cv.getContext("2d"); g.clearRect(0, 0, w, hh); g.fillStyle = color;
+      var mid = hh / 2, bw = Math.max(1, Math.floor(2 * dpr)), step = bw + Math.max(1, Math.floor(dpr)); // 棒グラフ(メインのバー波形に合わせた細い棒)
+      for (var x = 0, n = 0; x < w; x += step, n++) {
+        var v = pk[Math.min(PEAK_N - 1, Math.floor(x / w * PEAK_N))];
+        var bh = Math.max(dpr, Math.sqrt(v) * hh * 0.95); // sqrtで小さい音も見えるように
+        g.fillRect(x, mid - bh / 2, bw, bh);
+      }
+    });
+  }
+  function waveLoop() {
+    waveRaf = 0;
+    if (!root || !root.isConnected || !st.blobs) return;
+    var m = A();
+    if (m && m.duration) {
+      var left = (m.currentTime / m.duration * 100) + "%";
+      root.querySelectorAll(".qn-stem-head").forEach(function (e) { e.style.left = left; });
+    }
+    waveRaf = requestAnimationFrame(waveLoop);
+  }
+  function startWaveLoop() { if (!waveRaf) waveRaf = requestAnimationFrame(waveLoop); }
 
   function slider(min, max, step, val, onInput) {
     var rg = h("input", "qn-set-range"); rg.type = "range"; rg.min = min; rg.max = max; rg.step = step; rg.value = val;
@@ -469,8 +564,11 @@
       card.appendChild(top);
       if (t.blob && !recording) {
         var r1 = h("div", "qn-rec-line"); r1.appendChild(h("span", "", "Volume"));
-        r1.appendChild(slider(0, 1, 0.01, t.vol, function (v) { t.vol = v; applyVol(); }));
+        var vv = h("em", "", String(Math.round(t.vol * 100)));
+        r1.appendChild(slider(0, 100, 1, Math.round(t.vol * 100), function (v) { t.vol = v / 100; vv.textContent = String(v); applyVol(); }));
         r1.lastChild.addEventListener("change", recSave);
+        r1.lastChild.title = "70 = original level, up to 100 = boost";
+        r1.appendChild(vv);
         card.appendChild(r1);
         var r2 = h("div", "qn-rec-line"); r2.appendChild(h("span", "", "Delay"));
         var val = h("em", "", fmtMs(t.offset));
