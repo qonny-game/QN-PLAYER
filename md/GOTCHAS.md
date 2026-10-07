@@ -195,3 +195,5 @@
 - **Speedの時間伸縮はSoundTouchに任せる**(v4.14.1〜 `updatePlaybackRate`)。audio要素は`preservesPitch=false`で速度だけ変え、SoundTouchは`pitch=1`+`playbackRate=速度`(ライブラリ本来の使い方)。以前は`preservesPitch=true`+`pitch=速度`で相殺していたが、iOS(WebKit)はWeb Audio経由だとブラウザ側の伸縮が効かず、遅くした分の音が足りない=隙間(スライサーのようなプツプツ)になった。Chromeでは再現しないので実機確認。戻す手段は`?stretch=native`。
 
 - **Stem(v4.16.0)**: 分離はmodule worker(`player-stem-worker.js`)で実行しメインスレッドを止めない。ONNX Runtimeはシングルスレッドのみ(マルチスレッドにはSharedArrayBuffer=COOP/COEPが必要でYouTube埋め込み等が壊れる)。Stemモード中はマスター`audio`をmutedにして4本の別`<audio>`をcurrentTime/playbackRate/再生状態へ追従させる(EQ/Key=SoundTouch経路は効かない)。YouTube(音声取得不可)・SP幅は非対応。モデルURL/ORT配布元は`window.QN_STEM_MODEL_URL`/`QN_STEM_ORT_BASE`で差し替え可(既定はHugging Face/jsDelivr)。
+
+- **録音トラック(v4.17.0)**: 録音はMediaRecorder→デコード→16bit mono WAV化して保持(MediaRecorderのwebmはduration/シークが不安定なため)。再生位置=(曲位置−startPos)/録音時rate+offset(ms)、再生rate=マスターrate/録音時rate。Stem/録音の保存キーは`名前|サイズ`(File.lastModifiedはライブラリ復元のたびに変わるので使わない)。

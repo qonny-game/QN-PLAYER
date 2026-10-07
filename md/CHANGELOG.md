@@ -111,3 +111,4 @@
 - 4.15.0 Bar lengthに3s/2min/3min/4minを追加し、60sを1min表記に(PLAYER/YouTube共通。保存値は秒のまま)。スライダー横にFitボタンを追加(曲/動画全体が画面の行数に収まる最小のバー長を選ぶ。QNSettingsUI.inlineの行に action:{label,title,run} を指定すると小ボタンが付く)。
 - 4.15.1 Rows(行数)をAuto/3〜12に拡張(PLAYER/YouTube共通。YouTubeの旧1・2行は3に読み替え)。バーの設定帯の「Auto」「Fit」は日本語表示でも英語のまま。
 - 4.16.0 Stemパネルを追加(PC専用・サイドバーのStemアイコン)。再生中のローカル曲をブラウザ内(Demucs/ONNX Runtime Web, WebGPU優先・無ければWASM)で4パート(Vocals/Drums/Bass/Other)に分離し、パート別の音量・ミュート・ソロで再生。結果は曲ごとにIndexedDBへ保存(player-stem.js/player-stem-worker.js/JS/stem/)。
+- 4.17.0 Stemパネルに録音トラック(Rec 1〜4)を追加。マイクで曲を聴きながら録音、トラック別の音量・ミュート・遅延補正(-500〜+500ms)。曲ごとにIndexedDBへ保存。Stem/録音の曲キーを名前|サイズに変更(ライブラリ復元で変わらないように)。

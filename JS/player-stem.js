@@ -1,7 +1,8 @@
 // player-stem.js — Stemパネル(v4.16.0, PC専用)。再生中のローカル曲を、ブラウザ内でDemucsにより4パート(drums/bass/other/vocals)へ分離し、パート別の音量/ミュート/ソロで鳴らす。
-// - 分離: JS/player-stem-worker.js(module worker)。WebGPUがあれば優先、無ければWASM単スレッド(遅い)。モデルはCache API、結果(16bit WAV×4)はIndexedDB "qn_stem_db"に曲キー(名前|サイズ|更新日時)で保存。
+// - 分離: JS/player-stem-worker.js(module worker)。WebGPUがあれば優先、無ければWASM単スレッド(遅い)。モデルはCache API、結果(16bit WAV×4)はIndexedDB "qn_stem_db"に曲キー(名前|サイズ)で保存。
 // - 再生: マスターは既存の<audio>(#audio)をそのまま時計に使う(シーク/A-Bループ/マーカー/速度は従来通り)。Stemモード中はマスターをmutedにし、4本の<audio>(各stem WAV)を
 //   マスターのcurrentTime/playbackRate/再生状態へ追従させる(ズレ>60msでcurrentTimeを合わせ直す)。EQ/Key(SoundTouch経路)はStemモード中は効かない。
+// - 録音(v4.17.0): マイクをMediaRecorderで録り、デコードして16bit WAV(mono)にして保持。再生はstemと同じ追従方式で、録音開始時の曲位置(startPos)・録音時のrate・遅延補正offset(ms)から位置を決める(曲ごとにIndexedDBのキー rec|曲キー へ保存、4トラック)。
 // - YouTube/iPhone(SP幅)は非対応。window.QNStem.mount(host)をplayer-ui-pc-v2.jsのswitchPanel("stem")が呼ぶ。
 (function () {
   "use strict";
@@ -35,7 +36,8 @@
   function curTrack() {
     try { return (typeof playlist !== "undefined" && typeof currentPlaylistIndex !== "undefined" && currentPlaylistIndex >= 0) ? playlist[currentPlaylistIndex] : null; } catch (e) { return null; }
   }
-  function keyOf(f) { return f ? [f.name || "", f.size || 0, f.lastModified || 0].join("|") : ""; }
+  // lastModifiedは入れない(ライブラリ復元時にFileが作り直されて毎回変わる)
+  function keyOf(f) { return f ? [f.name || "", f.size || 0].join("|") : ""; }
   function isSp() { return window.matchMedia && window.matchMedia("(max-width: 900px)").matches; }
 
   // ---------- IndexedDB ----------
@@ -61,7 +63,7 @@
     return idb("readwrite", function (s) { return s.put(rec); }).then(function () {
       return idb("readonly", function (s) { return s.getAll(); });
     }).then(function (all) {
-      all = (all || []).sort(function (a, b) { return b.ts - a.ts; });
+      all = (all || []).filter(function (x) { return x.key.indexOf("rec|") !== 0; }).sort(function (a, b) { return b.ts - a.ts; });
       var drop = all.slice(KEEP_MAX);
       if (!drop.length) return;
       return idb("readwrite", function (s) { drop.forEach(function (x) { s.delete(x.key); }); });
@@ -69,24 +71,38 @@
   }
   function cacheDel(key) { return idb("readwrite", function (s) { s.delete(key); }).catch(function () {}); }
 
-  // ---------- 再生(4本のaudioをマスターへ追従) ----------
+  // ---------- 再生(stem 4本 + 録音トラックを、マスターaudioへ追従) ----------
   function applyVol() {
-    if (!st.els) return;
-    var anySolo = PARTS.some(function (p) { return st.solo[p.id]; });
-    PARTS.forEach(function (p) {
-      var on = anySolo ? !!st.solo[p.id] : !st.mute[p.id];
-      st.els[p.id].volume = on ? Math.max(0, Math.min(1, st.vol[p.id])) : 0;
-    });
+    if (st.els) {
+      var anySolo = PARTS.some(function (p) { return st.solo[p.id]; });
+      PARTS.forEach(function (p) {
+        var on = anySolo ? !!st.solo[p.id] : !st.mute[p.id];
+        st.els[p.id].volume = on ? Math.max(0, Math.min(1, st.vol[p.id])) : 0;
+      });
+    }
+    rec.tracks.forEach(function (t) { if (t.el) t.el.volume = t.mute ? 0 : Math.max(0, Math.min(1, t.vol)); });
+  }
+  // target: その要素の再生位置(秒)。範囲外(録音開始前/終了後)・マスター停止中は止める
+  function syncEl(e, target, rate, hard, m) {
+    if (e.playbackRate !== rate) e.playbackRate = rate;
+    var dur = e.duration;
+    if (m.paused || target < 0 || (isFinite(dur) && target >= dur)) {
+      if (!e.paused) e.pause();
+      if (target < 0 && e.currentTime > 0.01) { try { e.currentTime = 0; } catch (x) {} }
+      return;
+    }
+    if (hard || Math.abs(e.currentTime - target) > 0.06) { try { e.currentTime = target; } catch (x) {} }
+    if (e.paused && e.readyState >= 2) e.play().catch(function () {});
   }
   function followAll(hard) {
     var m = A();
-    if (!m || !st.els) return;
-    PARTS.forEach(function (p) {
-      var e = st.els[p.id];
-      if (e.playbackRate !== m.playbackRate) e.playbackRate = m.playbackRate;
-      if (hard || Math.abs(e.currentTime - m.currentTime) > 0.06) { try { e.currentTime = m.currentTime; } catch (x) {} }
-      if (m.paused) { if (!e.paused) e.pause(); }
-      else if (e.paused && e.readyState >= 2) e.play().catch(function () {});
+    if (!m) return;
+    if (st.els) PARTS.forEach(function (p) { syncEl(st.els[p.id], m.currentTime, m.playbackRate, hard, m); });
+    rec.tracks.forEach(function (t) {
+      if (!t.el) return;
+      // 録音は実時間(録音時のrate)で収録されているので、曲位置→録音内位置へ換算。offset(ms)は遅れて録れた分だけ前へ詰める
+      var r = t.rate || 1;
+      syncEl(t.el, (m.currentTime - t.startPos) / r + t.offset / 1000, m.playbackRate / r, hard, m);
     });
   }
   var masterEvents = ["play", "pause", "seeked", "ratechange", "waiting", "playing"];
@@ -105,17 +121,120 @@
     st.active = true;
     m.muted = true;
     applyVol();
-    masterEvents.forEach(function (n) { m.addEventListener(n, onMaster); });
     followAll(true);
-    syncTimer = setInterval(function () { followAll(false); }, 150);
   }
   function disable() {
     var m = A();
-    if (m) { masterEvents.forEach(function (n) { m.removeEventListener(n, onMaster); }); m.muted = false; }
-    clearInterval(syncTimer);
+    if (m) m.muted = false;
     if (st.els) PARTS.forEach(function (p) { try { st.els[p.id].pause(); st.els[p.id].removeAttribute("src"); st.els[p.id].load(); } catch (x) {} });
     if (st.urls) PARTS.forEach(function (p) { URL.revokeObjectURL(st.urls[p.id]); });
     st.els = st.urls = null; st.active = false;
+  }
+
+  // ---------- 録音トラック(4本) ----------
+  var REC_N = 4, OFFSET_KEY = "qn_rec_offset_ms";
+  var rec = { tracks: [], cur: -1, mr: null, stream: null, t0: 0, tick: 0 };
+  function lastOffset() { try { return parseInt(localStorage.getItem(OFFSET_KEY), 10) || 0; } catch (e) { return 0; } }
+  function newRecTracks() {
+    rec.tracks = [];
+    for (var i = 0; i < REC_N; i++) rec.tracks.push({ id: i, blob: null, url: "", el: null, startPos: 0, rate: 1, offset: lastOffset(), vol: 1, mute: false });
+  }
+  newRecTracks();
+  function recMakeEl(t) {
+    if (t.el) { try { t.el.pause(); } catch (x) {} }
+    if (t.url) URL.revokeObjectURL(t.url);
+    t.el = null; t.url = "";
+    if (!t.blob) return;
+    t.url = URL.createObjectURL(t.blob);
+    t.el = new Audio(); t.el.preload = "auto"; t.el.src = t.url;
+    try { t.el.preservesPitch = true; } catch (x) {}
+  }
+  function recClear() {
+    if (rec.cur >= 0) recAbort();
+    rec.tracks.forEach(function (t) { if (t.el) { try { t.el.pause(); } catch (x) {} } if (t.url) URL.revokeObjectURL(t.url); });
+    newRecTracks();
+  }
+  function recSave() {
+    if (!st.key) return Promise.resolve();
+    var has = rec.tracks.some(function (t) { return t.blob; });
+    var k = "rec|" + st.key;
+    if (!has) return cacheDel(k);
+    return idb("readwrite", function (s) {
+      return s.put({ key: k, ts: Date.now(), recs: rec.tracks.map(function (t) { return { id: t.id, blob: t.blob, startPos: t.startPos, rate: t.rate, offset: t.offset, vol: t.vol, mute: t.mute }; }) });
+    }).catch(function () {});
+  }
+  function recLoad(key) {
+    return cacheGet("rec|" + key).then(function (r) {
+      if (!r || st.key !== key) return;
+      r.recs.forEach(function (x) {
+        var t = rec.tracks[x.id]; if (!t) return;
+        t.blob = x.blob; t.startPos = x.startPos; t.rate = x.rate; t.offset = x.offset; t.vol = x.vol; t.mute = x.mute;
+        recMakeEl(t);
+      });
+      applyVol(); followAll(true); render();
+    });
+  }
+  function wavMono(f32, sr) {
+    var n = f32.length, out = new ArrayBuffer(44 + n * 2), v = new DataView(out);
+    var w = function (o, str) { for (var i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+    w(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); w(8, "WAVE"); w(12, "fmt ");
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, "data"); v.setUint32(40, n * 2, true);
+    for (var i = 0; i < n; i++) { var a = Math.max(-1, Math.min(1, f32[i])); v.setInt16(44 + i * 2, a < 0 ? a * 32768 : a * 32767, true); }
+    return new Blob([out], { type: "audio/wav" });
+  }
+  function recCleanup() {
+    clearInterval(rec.tick);
+    if (rec.stream) { rec.stream.getTracks().forEach(function (x) { x.stop(); }); }
+    rec.stream = null; rec.mr = null; rec.cur = -1;
+  }
+  function recAbort() {
+    var mr = rec.mr;
+    if (mr) { mr.onstop = null; try { mr.stop(); } catch (x) {} }
+    recCleanup(); render();
+  }
+  function recStart(i) {
+    var m = A(), t = rec.tracks[i];
+    if (!m || rec.cur >= 0 || !t) return;
+    if (!navigator.mediaDevices || !window.MediaRecorder) { st.recMsg = "Recording is not supported in this browser"; render(); return; }
+    st.recMsg = "";
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
+      var chunks = [], mr = new MediaRecorder(stream);
+      rec.stream = stream; rec.mr = mr; rec.cur = i; rec.t0 = Date.now();
+      mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+      mr.onstart = function () {
+        t.startPos = m.currentTime; t.rate = m.playbackRate || 1;
+        if (m.paused) m.play().catch(function () {});
+      };
+      mr.onstop = function () {
+        var type = mr.mimeType;
+        recCleanup(); st.recMsg = "Processing recording…"; render();
+        new Blob(chunks, { type: type }).arrayBuffer().then(function (ab) {
+          return new OfflineAudioContext(1, 44100, 44100).decodeAudioData(ab);
+        }).then(function (buf) {
+          t.blob = wavMono(buf.getChannelData(0), buf.sampleRate);
+          t.offset = lastOffset();
+          recMakeEl(t); applyVol(); followAll(true); st.recMsg = ""; recSave(); render();
+        }).catch(function () { st.recMsg = "Could not process the recording"; render(); });
+      };
+      mr.start();
+      rec.tick = setInterval(function () {
+        var e = root && root.querySelector(".qn-rec-time"); if (e) e.textContent = fmtT((Date.now() - rec.t0) / 1000);
+      }, 500);
+      render();
+    }).catch(function (err) {
+      st.recMsg = (err && err.name === "NotAllowedError") ? "Microphone access was denied" : "Could not access the microphone";
+      render();
+    });
+  }
+  function recStop() { if (rec.mr && rec.mr.state !== "inactive") rec.mr.stop(); }
+  function recDelete(i) {
+    var t = rec.tracks[i];
+    if (t.el) { try { t.el.pause(); } catch (x) {} }
+    if (t.url) URL.revokeObjectURL(t.url);
+    t.blob = null; t.el = null; t.url = "";
+    recSave(); render();
   }
 
   // ---------- 分離 ----------
@@ -173,8 +292,10 @@
     if (key === st.key) return;
     if (st.active) disable();
     if (worker) { worker.terminate(); worker = null; }
+    recClear();
     st.key = key; st.name = tr ? (tr.name || (tr.file && tr.file.name) || "") : "";
     st.blobs = null; st.cached = false; st.phase = "idle"; st.msg = ""; st.solo = {}; st.mute = {};
+    if (key) recLoad(key);
     if (key) cacheGet(key).then(function (rec) {
       if (rec && st.key === key && st.phase === "idle") { st.blobs = rec.stems; st.cached = true; st.phase = "ready"; render(); }
     });
@@ -186,6 +307,9 @@
     if (!m) return;
     wired = true;
     ["loadedmetadata", "emptied"].forEach(function (n) { m.addEventListener(n, function () { setTimeout(onTrackChange, 0); }); });
+    masterEvents.forEach(function (n) { m.addEventListener(n, onMaster); });
+    syncTimer = setInterval(function () { followAll(false); }, 150);
+    m.addEventListener("ended", function () { if (rec.cur >= 0) recStop(); });
   }
 
   // ---------- UI ----------
@@ -271,6 +395,57 @@
       });
       root.appendChild(del);
     }
+    renderRec();
+  }
+
+  function slider(min, max, step, val, onInput) {
+    var rg = h("input", "qn-set-range"); rg.type = "range"; rg.min = min; rg.max = max; rg.step = step; rg.value = val;
+    var paint = function () { rg.style.setProperty("--p", Math.round((rg.value - min) / (max - min) * 100) + "%"); };
+    paint();
+    rg.addEventListener("input", function () { paint(); onInput(parseFloat(rg.value)); });
+    return rg;
+  }
+  function fmtMs(v) { return (v > 0 ? "+" : "") + v + " ms"; }
+  function renderRec() {
+    root.appendChild(h("div", "qn-stem-sec", "Record"));
+    root.appendChild(h("p", "qn-stem-note", "Records from the microphone while the track plays. Use headphones. If a take sounds late or early, adjust its Delay."));
+    if (st.recMsg) root.appendChild(h("p", "qn-stem-err", st.recMsg));
+    rec.tracks.forEach(function (t, i) {
+      var recording = rec.cur === i, busy = rec.cur >= 0 && !recording;
+      var card = h("div", "qn-rec" + (recording ? " is-rec" : ""));
+      var top = h("div", "qn-rec-top");
+      top.appendChild(h("span", "qn-stem-name", "Rec " + (i + 1)));
+      if (recording) top.appendChild(h("span", "qn-rec-time", "0:00"));
+      var rb = h("button", "qn-stem-btn qn-rec-btn" + (recording ? " is-stop" : " is-primary"), recording ? "Stop" : (t.blob ? "Re-record" : "Record"));
+      rb.type = "button"; rb.disabled = busy;
+      rb.addEventListener("click", function () { if (recording) recStop(); else recStart(i); });
+      top.appendChild(rb);
+      if (t.blob && !recording) {
+        var mb = h("button", "qn-stem-ms" + (t.mute ? " is-on" : ""), "M"); mb.type = "button"; mb.title = "Mute";
+        mb.addEventListener("click", function () { t.mute = !t.mute; applyVol(); mb.classList.toggle("is-on", t.mute); recSave(); });
+        var db2 = h("button", "qn-stem-ms", "×"); db2.type = "button"; db2.title = "Delete";
+        db2.addEventListener("click", function () { recDelete(i); });
+        top.appendChild(mb); top.appendChild(db2);
+      }
+      card.appendChild(top);
+      if (t.blob && !recording) {
+        var r1 = h("div", "qn-rec-line"); r1.appendChild(h("span", "", "Volume"));
+        r1.appendChild(slider(0, 1, 0.01, t.vol, function (v) { t.vol = v; applyVol(); }));
+        r1.lastChild.addEventListener("change", recSave);
+        card.appendChild(r1);
+        var r2 = h("div", "qn-rec-line"); r2.appendChild(h("span", "", "Delay"));
+        var val = h("em", "", fmtMs(t.offset));
+        r2.appendChild(slider(-500, 500, 1, t.offset, function (v) {
+          t.offset = v; val.textContent = fmtMs(v);
+          try { localStorage.setItem(OFFSET_KEY, String(v)); } catch (x) {}
+          followAll(true);
+        }));
+        r2.lastChild.addEventListener("change", recSave);
+        r2.appendChild(val);
+        card.appendChild(r2);
+      }
+      root.appendChild(card);
+    });
   }
 
   window.QNStem = {
