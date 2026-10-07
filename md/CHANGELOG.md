@@ -110,3 +110,4 @@
 - 4.14.1 iPhoneでSpeedを下げると音が途切れる(隙間が空く)不具合を修正。時間伸縮をブラウザ標準からSoundTouchに変更(audio要素は音程保持なしで速度だけ変更、SoundTouchはpitch=1)、AudioContextをlatencyHint=playbackに、伸縮の窓を長めに。従来方式は URLに ?stretch=native を付けると戻せる(?stretch=stで再び新方式)。
 - 4.15.0 Bar lengthに3s/2min/3min/4minを追加し、60sを1min表記に(PLAYER/YouTube共通。保存値は秒のまま)。スライダー横にFitボタンを追加(曲/動画全体が画面の行数に収まる最小のバー長を選ぶ。QNSettingsUI.inlineの行に action:{label,title,run} を指定すると小ボタンが付く)。
 - 4.15.1 Rows(行数)をAuto/3〜12に拡張(PLAYER/YouTube共通。YouTubeの旧1・2行は3に読み替え)。バーの設定帯の「Auto」「Fit」は日本語表示でも英語のまま。
+- 4.16.0 Stemパネルを追加(PC専用・サイドバーのStemアイコン)。再生中のローカル曲をブラウザ内(Demucs/ONNX Runtime Web, WebGPU優先・無ければWASM)で4パート(Vocals/Drums/Bass/Other)に分離し、パート別の音量・ミュート・ソロで再生。結果は曲ごとにIndexedDBへ保存(player-stem.js/player-stem-worker.js/JS/stem/)。

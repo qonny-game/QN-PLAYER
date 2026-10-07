@@ -24,6 +24,7 @@ JS/
   player-markers.js           マーカー：追加/削除/ドラッグ/波形上のポップアップ/A-B点/Color
   player-marker-presets.js    マーカーメモのプリセット・自動カラー・カスタムプリセット・メモ編集ポップアップ（player-markers.jsの続き）
   player-control-eq.js        EQ
+  player-stem.js              Stemパネル(分離UI/4パート再生/IndexedDB保存)。player-stem-worker.js=Demucs実行ワーカー、JS/stem/=demucs-web(MIT)
   player-controls.js          Speed/AutoSpeed/Key/Loop/プリロールのつまみ
   player-text.js              Textタブ
   player-ui-pc-v2.js          【最大】唯一のUI実装。DOM組み立て・パネル・下段バー・波形（IIFE）。目次はPC_V2_FILE_INDEX.md

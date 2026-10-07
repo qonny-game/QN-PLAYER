@@ -40,6 +40,13 @@
       icon: '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>'
     },
     {
+      // 【v4.16.0】Stem(PC専用)。再生中のローカル曲をブラウザ内で4パートに分離して鳴らす。中身はplayer-stem.js(QNStem.mount)。SP幅はCSSでアイコンごと非表示
+      id: "stem",
+      label: "Stem",
+      panelType: "stem",
+      icon: '<path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>'
+    },
+    {
       id: "backup",
       label: "Backup",
       bottom: true,
@@ -1121,6 +1128,8 @@
       }
       // 既存のタブ状態・関連ロジック(ハイライト、Text自動保存登録等)を呼び出し元と合わせる
       if (typeof setMobileTab === "function") setMobileTab(panelId);
+    } else if (item.panelType === "stem") {
+      if (window.QNStem) window.QNStem.mount(panelBody);
     } else if (item.panelType === "settings") {
       panelBody.appendChild(ensureSettingsBody());
       syncSettingsBody();

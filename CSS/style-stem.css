@@ -1,0 +1,27 @@
+/* style-stem.css — Stemパネル(JS/player-stem.js)。行/スイッチ/スライダーは style-settings.css の .qn-set-row/.qn-set-switch/.qn-set-range を再利用。SP幅はアイコンごと非表示(PC専用) */
+.qn-stem { display: flex; flex-direction: column; gap: 10px; padding: 8px 0 24px; }
+.qn-stem-track { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.qn-stem-track small { font-size: var(--fs-micro); color: var(--icon-muted); }
+.qn-stem-track span { font-size: var(--fs-body); color: var(--text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qn-stem-note { margin: 0; font-size: var(--fs-micro); line-height: 1.5; color: var(--icon-muted); }
+.qn-stem-err { margin: 0; font-size: var(--fs-small, 12px); color: #ff7a7a; word-break: break-word; }
+.qn-stem-label { font-size: var(--fs-body); color: var(--text-bright); }
+.qn-stem-bar { height: 6px; border-radius: 3px; background: #2a2a34; overflow: hidden; }
+.qn-stem-bar i { display: block; height: 100%; background: var(--accent-primary); transition: width 200ms linear; }
+.qn-stem-btn {
+  align-self: flex-start; min-height: 36px; padding: 0 16px; border-radius: var(--radius-popup, 8px);
+  background: #1b1b23; border: 1px solid var(--border-subtle); color: var(--text-bright);
+  font-size: var(--fs-body); cursor: pointer;
+}
+.qn-stem-btn.is-primary { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+.qn-stem-mix { display: flex; flex-direction: column; gap: 6px; transition: opacity 120ms ease; }
+.qn-stem-mix.is-off { opacity: 0.4; pointer-events: none; }
+.qn-stem-part { display: grid; grid-template-columns: 64px 30px 30px 1fr; align-items: center; gap: 8px; min-height: 40px; }
+.qn-stem-name { font-size: var(--fs-body); color: var(--text-bright); }
+.qn-stem-ms {
+  width: 30px; height: 30px; padding: 0; border-radius: 6px; background: #1b1b23; border: 1px solid var(--border-subtle);
+  color: var(--icon-muted); font-size: var(--fs-micro); font-weight: 700; cursor: pointer;
+}
+.qn-stem-ms.is-on { background: #6b2b2b; border-color: #a04040; color: #fff; }
+.qn-stem-ms.is-solo { background: var(--accent-primary); border-color: var(--accent-primary); }
+@media (max-width: 900px) { .pcv2-icon-item[data-panel-id="stem"] { display: none !important; } }

@@ -6,6 +6,25 @@
   if (!window.QNI18N) return;
 
   QNI18N.addJaDict({
+    // ---- Stem(v4.16.0) ----
+    "Track": "曲",
+    "Stem is available on PC only for now.": "Stemは今のところPC専用です",
+    "Load a track in Library to separate it into parts.": "Libraryで曲を読み込むとパートに分離できます",
+    "Separate into 4 parts": "4パートに分離",
+    "Decoding audio…": "音声をデコード中…",
+    "Downloading model": "モデルをダウンロード中",
+    "Loading model": "モデルを読み込み中",
+    "Preparing parts": "パートを準備中",
+    "Separating": "分離中",
+    "Using the saved model": "保存済みのモデルを使用",
+    "Stem mode": "Stemモード",
+    "Play the four parts instead of the original": "元の音源の代わりに4パートを再生",
+    "Mute": "ミュート",
+    "Solo": "ソロ",
+    "Delete saved parts": "保存したパートを削除",
+    "EQ and Key do not apply in stem mode. Speed, seek and loop work as usual.": "Stemモード中はEQとKeyは効きません。Speed・シーク・ループは通常どおり使えます",
+    "Cancel": "キャンセル",
+    "Could not decode this file": "このファイルをデコードできませんでした",
     // ---- メニュー/ショートカット/アカウント ----
     "Drop audio or video files here": "音声・動画ファイルをここにドロップ",
     "Theme & Shortcuts": "テーマとショートカット",
@@ -332,6 +351,9 @@
     [/^Repeat (One|Folder|All|Off) \(click to cycle\)$/g, function (m, k) { return "リピート " + ({ One: "1曲", Folder: "フォルダ", All: "全曲", Off: "OFF" })[k] + "(クリックで切替)"; }],
     [/^Repeat Off \((\w)\)$/g, "リピート OFF ($1)"],
     [/^Auto Next: (.+)$/g, "Auto Next: $1"],
+    [/^Runs in this browser \(WebGPU\)\. The first run downloads a model of about (\d+) MB\.$/g, "ブラウザ内(WebGPU)で実行します。初回は約$1 MBのモデルをダウンロードします"],
+    [/^WebGPU is not available here, so processing runs on the CPU and can take a very long time\. The first run downloads a model of about (\d+) MB\.$/g, "この環境ではWebGPUが使えないためCPUで処理します。非常に時間がかかることがあります。初回は約$1 MBのモデルをダウンロードします"],
+    [/^This track is too long \(limit: (\d+) min\)$/g, "この曲は長すぎます(上限$1分)"],
     [/^(\d+(?:\.\d+)?) MB$/g, "$1 MB"]
   ]);
 })();
