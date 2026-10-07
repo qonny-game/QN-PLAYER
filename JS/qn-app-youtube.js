@@ -19,7 +19,7 @@
   var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
   var SEGS = Math.max(1, SEGS_SETTING);
   // 表示する行数=SEGS(1〜8/Auto)。1行の秒数ROWSEC(5〜60秒): 全長/秒数の行を作り、SEGS行ぶんの窓でスクロール(PLのBar length/Rowsと同じ考え方)
-  var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60];
+  var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_OPTIONS = [3, 5, 10, 15, 20, 25, 30, 45, 60, 120, 180, 240];
   var ROWSEC = (function () { try { var v = parseInt(localStorage.getItem(ROWSEC_KEY), 10); return ROWSEC_OPTIONS.indexOf(v) >= 0 ? v : 30; } catch (e) { return 30; } })();
   var SEGS_LAST_KEY = "qn_yt_segs_last", SEGS_LAST = (function () { try { var v = parseInt(localStorage.getItem(SEGS_LAST_KEY), 10); return (v >= 1 && v <= 8) || v === -1 ? v : (SEGS_SETTING || 3); } catch (e) { return 3; } })();
   var FOLLOW_KEY = "qn_yt_follow", FPAUSE_KEY = "qn_yt_follow_pause", FPAUSE_MIN = 1, FPAUSE_MAX = 30;
@@ -765,7 +765,7 @@
     if (window.QNSettingsUI && QNSettingsUI.inline) {
       segStrip = QNSettingsUI.inline([
         { label: "Seek bar", type: "switch", spHide: true, get: function () { return SEGS_SETTING !== 0; }, set: function (on) { setSegs(on ? SEGS_LAST : 0); } },
-        { label: "Bar length", type: "slider", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
+        { label: "Bar length", type: "slider", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt, action: { label: "Fit", title: "Fit the whole video on screen", run: fitRowSec } },
         { label: "Rows", type: "slider", values: function () { return [1, 2, 3, 4, 5, 6, 7, 8, -1]; }, fmt: function (v) { return v === -1 ? "Auto" : String(v); }, get: function () { return SEGS_SETTING !== 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING !== 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
         { label: "Follow", type: "switch", spHide: true, get: function () { return followOn; }, set: setFollow }
       ]);
@@ -807,7 +807,7 @@
 
   // ---------- 分割シークバー: 行の長さrowLen()秒。Fit=全長/SEGS、秒数指定=全長/秒数行(SEGS行ぶんの窓でスクロール) ----------
   var segStrip = null;
-  function rowSecFmt(v) { return v + "s"; }
+  function rowSecFmt(v) { return v >= 60 ? (v / 60) + "min" : v + "s"; }
   function rowLen() { return ROWSEC; }
   function rowTotal() {
     if (!duration) return SEGS;
@@ -852,6 +852,14 @@
     try { localStorage.setItem(ROWSEC_KEY, String(v)); } catch (e) {}
     if (segStrip) segStrip.sync();
     ensureRows(true);
+  }
+  // Fit: 動画全体が今の行数(Rows。Autoなら画面に入る数)に収まる最小のバー長を選ぶ。収まらない時は最大
+  function fitRowSec() {
+    if (!duration || SEGS_SETTING === 0) return;
+    var vis = Math.max(1, SEGS), pick = ROWSEC_OPTIONS[ROWSEC_OPTIONS.length - 1];
+    for (var i = 0; i < ROWSEC_OPTIONS.length; i++) if (Math.ceil(duration / ROWSEC_OPTIONS[i] - 1e-6) <= vis) { pick = ROWSEC_OPTIONS[i]; break; }
+    setRowSec(pick);
+    if (refs.seekTracks) refs.seekTracks.scrollTop = 0;
   }
   function setFollow(on) {
     followOn = !!on;

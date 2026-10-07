@@ -121,12 +121,24 @@ window.QNSettingsUI = (function () {
       if (r.spHide) item.classList.add("qn-sp-hide"); // スマホ幅では出さない項目(Settingsパネルには残る)
       var ctl = newControl(r);
       if (ctl) item.appendChild(ctl);
+      // action: {label,title,run} = スライダー横の小ボタン(Fitなど)。値は変えず run() を呼ぶだけ
+      if (r.action) {
+        var ab = make('<button type="button" class="qn-set-fit"></button>');
+        ab.textContent = r.action.label; if (r.action.title) ab.title = r.action.title;
+        item.classList.add("has-fit"); item.appendChild(ab);
+      }
       infos.push({ def: r, row: item, ctl: ctl });
       root.appendChild(item);
     });
     function sync() { infos.forEach(syncInfo); }
     root.addEventListener("click", function (e) {
       var btn = e.target.closest ? e.target.closest("button") : null;
+      if (btn && btn.classList.contains("qn-set-fit")) {
+        for (var k = 0; k < infos.length; k++) {
+          if (infos[k].def.action && infos[k].row.contains(btn)) { haptic(); infos[k].def.action.run(); sync(); if (onChange) onChange(); break; }
+        }
+        return;
+      }
       if (!btn || !applyClick(infos, btn)) return;
       sync();
       if (onChange) onChange();

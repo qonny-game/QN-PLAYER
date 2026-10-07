@@ -199,3 +199,13 @@
   .qn-set-inline-item + .qn-set-inline-item { border-left: 0; }
   .qn-set-inline-item:not(.is-slider) + .qn-set-inline-item:not(.is-slider) { border-left: 1px solid var(--border-subtle); }
 }
+
+/* v4.15.0: スライダー横の小ボタン(Fit)。値の行の右、スライダーと同じ段 */
+.qn-set-inline-item.has-fit { grid-template-columns: auto 1fr auto; }
+.qn-set-fit {
+  grid-area: 2 / 3 / 3 / 4; align-self: center; height: 24px; padding: 0 10px; margin-left: 6px;
+  font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.2px; color: var(--icon-muted);
+  background: none; border: 1px solid var(--border-strong, rgba(255,255,255,0.2)); border-radius: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.qn-set-fit:active { color: var(--accent-primary); border-color: var(--accent-primary); }
+@media (hover: hover) and (pointer: fine) { .qn-set-fit:hover { color: var(--text-bright, #fff); } }

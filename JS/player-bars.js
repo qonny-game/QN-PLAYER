@@ -1,10 +1,11 @@
-// player-bars.js — 可変長シークバー。1本=BAR_SEC秒(5/10/15/30/60)を曲末まで縦に並べ、見えている行だけDOM化する(仮想スクロール)。スクロール入れ物=#vbarScroll、行の親=#vbarRows。
+// player-bars.js — 可変長シークバー。1本=BAR_SEC秒(3/5/10/15/20/25/30/45/60/120/180/240)を曲末まで縦に並べ、見えている行だけDOM化する(仮想スクロール)。スクロール入れ物=#vbarScroll、行の親=#vbarRows。
 // 規約: 行番号は0始まり。行内の横位置は「行の開始からBAR_SEC秒=0〜100%」(最終行は途中まで)。他ファイルは行DOMを直接探さず QNBars.* を使う。
 // 描画はpcv2WaveLoop(player-ui-pc-v2.js、100ms間引き)から draw() を呼ぶ。rAFループを新設しない。依存: player-core.js(audio, pins, waveformPeaks, hexToRgba, MARKER_COLOR_PALETTE)。
 // 行が作られたら decorateBarRow(el,row)(player-markers.js)が線/A-B/区間ハイライトを付ける。
 
 const QNBars = (function () {
-  const OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60];
+  const OPTIONS = [3, 5, 10, 15, 20, 25, 30, 45, 60, 120, 180, 240];
+  const fmtSec = (v) => v >= 60 ? (v / 60) + "min" : v + "s"; // 60s以上は分表記(保存値は秒)
   const STORE_KEY = "qn_bar_sec";
   const ROWS_KEY = "qn_bar_rows";
   const ROWS_OPTIONS = [0, 3, 4, 5, 6, 8];   // 0=自動(CSSの既定寸法)。1画面に並べる本数
@@ -521,6 +522,18 @@ const QNBars = (function () {
     }
   }
 
+  // Fit: 曲全体が今の画面に収まる最小のバー長を選ぶ(Rows指定があればその本数、Autoなら画面の高さに入る本数)。長すぎて最大でも収まらない時は最大
+  function fit() {
+    syncDur();
+    if (!dur) return;
+    if (geomDirty) measure();
+    const vis = rowsVisible > 0 ? rowsVisible : Math.max(1, Math.floor((g.viewH - g.padTop - g.padBottom + g.gap) / g.pitch));
+    let pick = OPTIONS[OPTIONS.length - 1];
+    for (let i = 0; i < OPTIONS.length; i++) { if (Math.ceil(dur / OPTIONS[i]) <= vis) { pick = OPTIONS[i]; break; } }
+    setSec(pick);
+    scrollEl.scrollTop = 0;
+  }
+
   function getWaveShape() { return waveShape; }
   function setWaveShape(v) {
     waveShape = v === "bottom" ? "bottom" : "mirror";
@@ -614,6 +627,8 @@ const QNBars = (function () {
 
   return {
     OPTIONS,
+    fmtSec,
+    fit,
     getSec,
     setSec,
     ROWS_OPTIONS,

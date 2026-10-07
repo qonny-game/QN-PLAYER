@@ -15,7 +15,7 @@ index.html                    HTML骨格・モーダル類・<script>/<link>の�
 JS/
   player-shareware.js         無料版の機能制限・アンロック（SW_LIMITS / isUnlocked()）
   qn-marker-core.js           PLAYERとYouTube共通の「区間・ループ・前後マーカー」判定（QNMarkerCore。秒数だけを扱う純粋関数）
-  player-bars.js              シークバー(QNBars)：1本=5〜60秒の行を曲末まで縦に並べる仮想スクロール、波形描画、再生位置追従、歯車/秒数ポップアップ
+  player-bars.js              シークバー(QNBars)：1本=3秒〜4分(3/5/10/15/20/25/30/45/60/120/180/240)の行を曲末まで縦に並べる仮想スクロール、波形描画、再生位置追従、歯車/秒数ポップアップ
   player-core.js              中核の状態（audio, pins, playlist）、IndexedDB(qnaudio_playlist_db)、beginSeek()、hexToRgba()
   player-ui-shared.js         loadFile / updateBars（毎フレームのループ判定）/ togglePlay / キーボードショートカット
   player-id3.js               ID3v2タグ（Title/Artist）
@@ -85,7 +85,7 @@ favicon/  md/  pricing*.html  QUICK_START.md
 | テキストメモ | localStorage | `mp3_text_<ファイル名>` |
 | ループ設定 | localStorage | `mp3player_loop_mode` / `mp3player_loop_enabled` / `mp3player_loop_preroll_seconds`（0〜5秒）／`mp3player_repeat_mode` |
 | マーカーメモのプリセット色／カスタムプリセット | localStorage | `qn_marker_preset_colors_v1`（`{名前:色キー|null}`、初期値`MARKER_PRESET_COLOR_DEFAULTS`）／`qn_marker_custom_presets_v1`（`[{label,color}]`最大30）。PLAYERとYouTubeで共用（`getAllMarkerPresetLabels()`） |
-| シークバー1本の秒数 | localStorage | `qn_bar_sec`（5/10/15/30/60、既定5） |
+| シークバー1本の秒数 | localStorage | `qn_bar_sec`（3/5/10/15/20/25/30/45/60/120/180/240、既定5） |
 | シークバー追従ON/OFF | localStorage | `qn_bar_follow`（"0"でOFF、既定ON） |
 | 波形の形 | localStorage | `qn_bar_wave`（`mirror`既定\|`bottom`） |
 | 手動スクロール後の追従停止秒数 | localStorage | `qn_bar_follow_pause`（1〜30、既定6） |

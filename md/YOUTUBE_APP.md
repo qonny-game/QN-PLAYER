@@ -236,7 +236,7 @@ YouTube本家準拠：Space/K 再生⇄一時停止、J/L ±10秒、←/→ ±5�
 ## Text・行の開始時刻・Bar length(v4.8.0)
 - Textパネル(サイドバー4つ目): 動画ID単位のメモ。`localStorage qn_yt_texts` = {videoId: 本文}(最大2万字)。Library未保存の動画でも書ける。FABはFullのみ(全画面は`#qnYtTextFs`、PLAYERの`.text-fullscreen-overlay`のCSSと文字サイズ設定`mp3player_text_fullscreen_fontsize`を共用)。Backupのexport/importは`text`を含む(同期=Firebaseには含めない)。
 - 各行の左に`.qn-yt-track-time`(行の開始時刻。PLの`.vbar-time`と同じ見た目)。シーク領域の左paddingは`--qn-yt-tpad`(46px)で、マーカー層も同じ分だけ内側に寄せる。押すとその行頭へシーク。
-- Bar length: 5/10/15/20/25/30/45/60秒(Fitは廃止)。
+- Bar length: 3/5/10/15/20/25/30/45/60(1min)/120(2min)/180(3min)/240(4min)秒。スライダー横のFit(v4.15.0〜)=動画全体が今の行数(Autoなら画面に入る数)に収まる最小の長さを選ぶ(`fitRowSec`)。
 - SPのFAB帯: Follow(PL/VIDEO)とSeek barスイッチ(VIDEO)は`spHide:true`で非表示(Settingsには残る)。
 
 SP幅(≤900px)ではFAB行(`.qn-yt-stage-fab`)をJS(matchMedia)で`.qn-yt-controls`の先頭へ移し、下段バー/ドックと一緒にstickyで下端固定する。PC幅は元のステージ内に戻す。パネルを開いている間は非表示。
