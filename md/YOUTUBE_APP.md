@@ -66,7 +66,7 @@ PC幅はステージの下端に吸着、SP幅はアイコンバー直上に固�
 下段バーの◢付きボタンを長押しすると設定ポップアップ（PLAYERと共通の`QNQuickPop`。VIDEO側は`qn-app-youtube.js`末尾で`QNQuickPop.add(selector, fn)`により登録）。Play=Speed（値タップで1x）／前・次Marker=マーカー一覧ジャンプ／A・B=±0.1秒微調整＋±1s＋Clear（動画読み込み後のみ）／＋Marker=プリセットを選んで追加／前・次Track=Library一覧ジャンプ／Loop=プリロール秒／−10s・+10s=スキップ秒。対象を増やす時は`style-quickpop.css`の◢セレクタも揃える。
 
 ### シークバーの行数（v4.1.0〜）
-Settings > Seek bar > Rows（Off/1〜6、既定3、`qn_yt_segs`）。`setSegs`が行を作り直して再描画する。Off=`.qn-yt-noseek`でシークバーを隠す（内部の行数は1のまま。0除算回避）。PC幅はプレイヤーが残り高さを使うので自動で広がる。
+Settings > Seek bar > Rows（Off/Auto/3〜12、既定3、`qn_yt_segs`）。`setSegs`が行を作り直して再描画する。Off=`.qn-yt-noseek`でシークバーを隠す（内部の行数は1のまま。0除算回避）。PC幅はプレイヤーが残り高さを使うので自動で広がる。
 
 ### ステージのURL入力（v4.2.0〜）
 ステージ右下のFAB行（`.qn-yt-stage-fab`）にURL欄+Save。Libraryを開かずに保存でき、中身は`saveFromInputs`を流用。既に登録済みの動画は手入力タイトルを保ったまま。結果は`ytToast`で通知。

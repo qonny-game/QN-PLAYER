@@ -14,14 +14,14 @@
   // YouTube由来タイトルの端末ローカル短期キャッシュ {videoId:{title,fetchedAt}}。28日で削除(規約30日に余裕を持たせる)。Backup/同期に含めない
   var TITLE_CACHE_KEY = "qn_yt_title_cache";
   var TITLE_TTL_MS = 28 * 24 * 60 * 60 * 1000;
-  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, -1];
+  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, -1]; // 0=Off, -1=Auto。旧1/2行は3に読み替え(v4.15.1)
   // SEGS_SETTING=0はシークバー非表示(内部の行数SEGSは1のまま。計算の0除算を避ける)。-1=Auto(画面の余りの高さに合わせて行数を決める。autoRows)
-  var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
+  var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); if (v === 1 || v === 2) return 3; return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
   var SEGS = Math.max(1, SEGS_SETTING);
   // 表示する行数=SEGS(1〜8/Auto)。1行の秒数ROWSEC(5〜60秒): 全長/秒数の行を作り、SEGS行ぶんの窓でスクロール(PLのBar length/Rowsと同じ考え方)
   var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_OPTIONS = [3, 5, 10, 15, 20, 25, 30, 45, 60, 120, 180, 240];
   var ROWSEC = (function () { try { var v = parseInt(localStorage.getItem(ROWSEC_KEY), 10); return ROWSEC_OPTIONS.indexOf(v) >= 0 ? v : 30; } catch (e) { return 30; } })();
-  var SEGS_LAST_KEY = "qn_yt_segs_last", SEGS_LAST = (function () { try { var v = parseInt(localStorage.getItem(SEGS_LAST_KEY), 10); return (v >= 1 && v <= 8) || v === -1 ? v : (SEGS_SETTING || 3); } catch (e) { return 3; } })();
+  var SEGS_LAST_KEY = "qn_yt_segs_last", SEGS_LAST = (function () { try { var v = parseInt(localStorage.getItem(SEGS_LAST_KEY), 10); return (v >= 3 && v <= 12) || v === -1 ? v : (SEGS_SETTING || 3); } catch (e) { return 3; } })();
   var FOLLOW_KEY = "qn_yt_follow", FPAUSE_KEY = "qn_yt_follow_pause", FPAUSE_MIN = 1, FPAUSE_MAX = 30;
   var followOn = (function () { try { return localStorage.getItem(FOLLOW_KEY) !== "0"; } catch (e) { return true; } })();
   var followPause = (function () { try { var v = parseInt(localStorage.getItem(FPAUSE_KEY), 10); return v >= FPAUSE_MIN && v <= FPAUSE_MAX ? v : 6; } catch (e) { return 6; } })();
@@ -766,7 +766,7 @@
       segStrip = QNSettingsUI.inline([
         { label: "Seek bar", type: "switch", spHide: true, get: function () { return SEGS_SETTING !== 0; }, set: function (on) { setSegs(on ? SEGS_LAST : 0); } },
         { label: "Bar length", type: "slider", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt, action: { label: "Fit", title: "Fit the whole video on screen", run: fitRowSec } },
-        { label: "Rows", type: "slider", values: function () { return [1, 2, 3, 4, 5, 6, 7, 8, -1]; }, fmt: function (v) { return v === -1 ? "Auto" : String(v); }, get: function () { return SEGS_SETTING !== 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING !== 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
+        { label: "Rows", type: "slider", values: function () { return [-1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; }, fmt: function (v) { return v === -1 ? "Auto" : String(v); }, get: function () { return SEGS_SETTING !== 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING !== 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
         { label: "Follow", type: "switch", spHide: true, get: function () { return followOn; }, set: setFollow }
       ]);
       var mixcard = root.querySelector(".qn-yt-mixcard");

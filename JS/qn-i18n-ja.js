@@ -150,9 +150,6 @@
     // ---- 設定パネル ----
     "Seek bar": "シークバー",
     "Bar length": "バーの長さ",
-    "Fit": "全体",
-    "Fit the whole track on screen": "曲全体を画面に収める",
-    "Fit the whole video on screen": "動画全体を画面に収める",
     "1 bar = seconds": "1本あたりの秒数",
     "Bars on screen": "表示するバーの本数",
     "Rows shown at once": "一度に表示する行数",

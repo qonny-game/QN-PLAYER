@@ -265,7 +265,7 @@
 
   // 日本語表示でも英語のまま残す要素(アイコンボタンのラベル・パネル見出し)と、ユーザーデータ(曲名・マーカーメモ等)
   var KEEP_SEL = ".top-controls-btn-label, .pcv2-icon-item, #pcV2SpDock, .pcv2-panel-header-title, #pcV2PanelFab, .pcv2-fab-addgroup, .pcv2-fab, " +
-    ".playlist-act-btn, .pin-act-btn, .playlist-del-tile, .pin-del-tile, .qn-yt-bbtn, .qn-pt-bbtn, .qn-tn-bbtn, .qn-tn-bstep-mid, .qn-yt-seekpop-btn, " +
+    ".qn-set-fit, .qn-set-slider-val, .playlist-act-btn, .pin-act-btn, .playlist-del-tile, .pin-del-tile, .qn-yt-bbtn, .qn-pt-bbtn, .qn-tn-bbtn, .qn-tn-bstep-mid, .qn-yt-seekpop-btn, " +
     ".pcv2-anchor-tab, .mobile-tab-btn, .qn-flyout-item, .qn-yt-fab-folder, .panel-fab-btn, .qn-mic-pill, #splashLogo, .av-toggle-btn-label, " +
     "#noteTextFullscreenBtn, .pcv2-bar-page, .qn-yt-panel-header, .qn-tn-panel-header, .qn-pt-panel-header";
   var DATA_SEL = ".pin-memo-preset-chip:not(.qn-qp-act), .pin-memo, .pin-memo-text, .playlist-editable-display, .playlist-editable-field, " +

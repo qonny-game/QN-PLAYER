@@ -8,7 +8,7 @@ const QNBars = (function () {
   const fmtSec = (v) => v >= 60 ? (v / 60) + "min" : v + "s"; // 60s以上は分表記(保存値は秒)
   const STORE_KEY = "qn_bar_sec";
   const ROWS_KEY = "qn_bar_rows";
-  const ROWS_OPTIONS = [0, 3, 4, 5, 6, 8];   // 0=自動(CSSの既定寸法)。1画面に並べる本数
+  const ROWS_OPTIONS = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];   // 0=自動(CSSの既定寸法)。1画面に並べる本数
   const GAP_RATIO = 28 / 44;
   const DEFAULT_SEC = 5;
   const BUFFER_ROWS = 2;
