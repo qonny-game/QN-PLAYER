@@ -808,8 +808,8 @@
   // ---------- 分割シークバー: 行の長さrowLen()秒。Fit=全長/SEGS、秒数指定=全長/秒数行(SEGS行ぶんの窓でスクロール) ----------
   var segStrip = null;
   function rowSecFmt(v) { return v >= 60 ? (v % 60 ? Math.floor(v / 60) + "m" + (v % 60) + "s" : (v / 60) + "min") : v + "s"; }
-  // 上限=動画長/「Rows Autoで画面に入る行数」(一番俯瞰できる秒数)。動画が決まるまでは240
-  function rowSecMax() { return duration ? Math.max(2, Math.ceil(duration / Math.max(1, autoRows()) - 1e-6)) : 240; }
+  // 上限=動画長/現在の行数(Rows指定ならその本数、Autoなら画面に入る本数)=その行数で全体が収まる秒数。動画が決まるまでは240
+  function rowSecMax() { return duration ? Math.max(2, Math.ceil(duration / Math.max(1, SEGS) - 1e-6)) : 240; }
   function rowSecValues() {
     var mx = rowSecMax(), a = [];
     for (var i = 1; i <= mx; i++) a.push(i);
@@ -831,6 +831,8 @@
     var next = n > 0 ? n : (n === -1 ? autoRows() : 1);
     if (next === SEGS) return;
     SEGS = next;
+    var mxs = rowSecMax(); if (ROWSEC > mxs) ROWSEC = mxs; // 行数が増えて上限が縮んだら丸める
+    if (segStrip) segStrip.sync();
     ensureRows(true);
   }
   // Auto: シークバーの上端から、(設定帯+下段バー)の手前までの高さに入る行数(2〜12)。PLのRows=Autoと同じ発想
@@ -852,7 +854,7 @@
   function recalcAuto() {
     if (SEGS_SETTING !== -1) return;
     var n = autoRows();
-    if (n !== SEGS) { SEGS = n; ensureRows(true); if (segStrip) segStrip.sync(); }
+    if (n !== SEGS) { SEGS = n; var mxa = rowSecMax(); if (ROWSEC > mxa) ROWSEC = mxa; ensureRows(true); if (segStrip) segStrip.sync(); }
   }
   function setRowSec(v) {
     v = Math.round(v);

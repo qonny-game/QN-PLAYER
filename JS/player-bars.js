@@ -504,6 +504,8 @@ const QNBars = (function () {
     rowsVisible = n;
     try { localStorage.setItem(ROWS_KEY, String(n)); } catch (e) {}
     geomDirty = true;
+    if (dur) { const mx = Math.max(1, maxSec()); if (sec > mx) setSec(mx); } // 行数が増えて上限が縮んだら、今のバー長を上限へ丸める
+    notifyRange();
     draw(true);
     if (dur && scrollEl.clientHeight) scrollEl.scrollTop = Math.max(0, playheadScrollTarget(audio.currentTime || 0));
     resumeFollow();
@@ -526,7 +528,7 @@ const QNBars = (function () {
     }
   }
 
-  // Rows=Auto(CSS既定の寸法)で画面に入る行数。Rows指定中でも既定寸法で数える(上限=一番俯瞰できる秒数の基準)
+  // Rows=Auto(CSS既定の寸法)で画面に入る行数。Rows指定中でも既定寸法で数える
   function autoVis() {
     if (!scrollEl || !scrollEl.clientHeight) return 0;
     const h0 = containerEl.style.getPropertyValue("--qn-bar-h"), g0 = containerEl.style.getPropertyValue("--qn-bar-gap");
@@ -541,7 +543,7 @@ const QNBars = (function () {
   }
   function maxSec() {
     if (!dur) return 240;
-    const v = autoVis();
+    const v = rowsVisible > 0 ? rowsVisible : autoVis(); // Rows指定ならその本数、Autoなら画面に入る本数
     return v ? Math.max(2, Math.ceil(dur / v - 1e-6)) : 240;
   }
   // スライダー/ステッパーの値(1秒刻み、1〜maxSec)。現在値が範囲外なら末尾に足して表示を崩さない
