@@ -521,7 +521,7 @@
     const waveFabRow = el('<div id="pcV2WaveFabRow"></div>');
     // Audio/Marker/再生の左に、シークバーの常用設定を常時表示(設定パネルのSeek bar項目と同じ値。変更は相互に同期)。狭い幅では折り返して上の段になる
     const waveBarStrip = QNSettingsUI.inline([
-      { label: "Bar length", type: "slider", values: () => QNBars.OPTIONS, get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: QNBars.fmtSec, action: { label: "Fit", title: "Fit the whole track on screen", run: () => QNBars.fit() } },
+      { label: "Bar length", type: "slider", values: () => QNBars.secValues(), get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: QNBars.fmtSec, action: { label: "Fit", title: "Fit the whole track on screen", run: () => QNBars.fit() } },
       { label: "Rows", type: "slider", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
       { label: "Follow", type: "switch", spHide: true, get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) }
     ], () => syncSettingsBody());
@@ -984,7 +984,7 @@
     if (settingsBody) return settingsBody;
     const preCtl = document.getElementById("loopPreRollControl");
     const rowsBar = [
-      { label: "Bar length", hint: "1 bar = seconds", type: "stepper", values: () => QNBars.OPTIONS, get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: QNBars.fmtSec },
+      { label: "Bar length", hint: "1 bar = seconds", type: "stepper", values: () => QNBars.secValues(), get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: QNBars.fmtSec },
       { label: "Bars on screen", hint: "Rows shown at once", type: "stepper", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
       { label: "Wave shape", hint: "Mirror is symmetric around the center", type: "stepper", values: () => ["mirror", "bottom"], get: () => QNBars.getWaveShape(), set: v => QNBars.setWaveShape(v), fmt: v => v === "mirror" ? "Mirror" : "Bottom" },
       { label: "Follow playhead", hint: "Auto-scroll while playing", type: "switch", get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) },

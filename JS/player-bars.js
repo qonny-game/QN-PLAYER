@@ -4,8 +4,9 @@
 // 行が作られたら decorateBarRow(el,row)(player-markers.js)が線/A-B/区間ハイライトを付ける。
 
 const QNBars = (function () {
-  const OPTIONS = [3, 5, 10, 15, 20, 25, 30, 45, 60, 120, 180, 240];
-  const fmtSec = (v) => v >= 60 ? (v / 60) + "min" : v + "s"; // 60s以上は分表記(保存値は秒)
+  // バー長は1秒刻みの整数。上限=曲長/「Rows Autoで画面に収まる行数」(=一番俯瞰で見られる秒数)。曲が決まるまでは240
+  const SEC_MAX_LIMIT = 3600;
+  const fmtSec = (v) => v >= 60 ? (v % 60 ? Math.floor(v / 60) + "m" + (v % 60) + "s" : (v / 60) + "min") : v + "s"; // 60s以上は分表記(保存値は秒)
   const STORE_KEY = "qn_bar_sec";
   const ROWS_KEY = "qn_bar_rows";
   const ROWS_OPTIONS = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];   // 0=自動(CSSの既定寸法)。1画面に並べる本数
@@ -60,7 +61,7 @@ const QNBars = (function () {
   function readSec() {
     try {
       const v = parseInt(localStorage.getItem(STORE_KEY), 10);
-      if (OPTIONS.indexOf(v) >= 0) return v;
+      if (v >= 1 && v <= SEC_MAX_LIMIT) return v;
     } catch (e) {}
     return DEFAULT_SEC;
   }
@@ -263,7 +264,9 @@ const QNBars = (function () {
     const v = (isFinite(d) && d > 0) ? d : 0;
     if (v !== dur) {
       dur = v;
+      if (dur) { const mx = Math.max(1, maxSec()); if (sec > mx) sec = mx; } // 短い曲では俯瞰上限を超えない(保存値は書き換えない)
       rebuild();
+      notifyRange();
     }
   }
 
@@ -507,7 +510,8 @@ const QNBars = (function () {
   }
 
   function setSec(n) {
-    if (OPTIONS.indexOf(n) < 0 || n === sec) return;
+    n = Math.round(n);
+    if (!(n >= 1) || n > Math.max(1, maxSec()) || n === sec) return;
     sec = n;
     try { localStorage.setItem(STORE_KEY, String(n)); } catch (e) {}
     syncDur();
@@ -522,15 +526,40 @@ const QNBars = (function () {
     }
   }
 
-  // Fit: 曲全体が今の画面に収まる最小のバー長を選ぶ(Rows指定があればその本数、Autoなら画面の高さに入る本数)。長すぎて最大でも収まらない時は最大
+  // Rows=Auto(CSS既定の寸法)で画面に入る行数。Rows指定中でも既定寸法で数える(上限=一番俯瞰できる秒数の基準)
+  function autoVis() {
+    if (!scrollEl || !scrollEl.clientHeight) return 0;
+    const h0 = containerEl.style.getPropertyValue("--qn-bar-h"), g0 = containerEl.style.getPropertyValue("--qn-bar-gap");
+    containerEl.style.removeProperty("--qn-bar-h");
+    containerEl.style.removeProperty("--qn-bar-gap");
+    const cs = getComputedStyle(containerEl);
+    const num = (name, def) => { const v = parseFloat(cs.getPropertyValue(name)); return isFinite(v) ? v : def; };
+    const bh = num("--qn-bar-h", 44), gp = num("--qn-bar-gap", 28), pt = num("--qn-bar-pad-top", 26), pb = num("--qn-bar-pad-bottom", 12);
+    if (h0) containerEl.style.setProperty("--qn-bar-h", h0);
+    if (g0) containerEl.style.setProperty("--qn-bar-gap", g0);
+    return Math.max(1, Math.floor((scrollEl.clientHeight - pt - pb + gp) / (bh + gp)));
+  }
+  function maxSec() {
+    if (!dur) return 240;
+    const v = autoVis();
+    return v ? Math.max(2, Math.ceil(dur / v - 1e-6)) : 240;
+  }
+  // スライダー/ステッパーの値(1秒刻み、1〜maxSec)。現在値が範囲外なら末尾に足して表示を崩さない
+  function secValues() {
+    const mx = Math.max(1, maxSec()), a = [];
+    for (let i = 1; i <= mx; i++) a.push(i);
+    if (sec > mx) a.push(sec);
+    return a;
+  }
+  function notifyRange() { if (typeof window.qnBarStripSync === "function") window.qnBarStripSync(); }
+
+  // Fit: 曲全体が今の画面に収まる最小のバー長(Rows指定があればその本数、Autoなら画面に入る本数)
   function fit() {
     syncDur();
     if (!dur) return;
     if (geomDirty) measure();
     const vis = rowsVisible > 0 ? rowsVisible : Math.max(1, Math.floor((g.viewH - g.padTop - g.padBottom + g.gap) / g.pitch));
-    let pick = OPTIONS[OPTIONS.length - 1];
-    for (let i = 0; i < OPTIONS.length; i++) { if (Math.ceil(dur / OPTIONS[i]) <= vis) { pick = OPTIONS[i]; break; } }
-    setSec(pick);
+    setSec(Math.max(1, Math.min(maxSec(), Math.ceil(dur / vis - 1e-6))));
     scrollEl.scrollTop = 0;
   }
 
@@ -615,7 +644,7 @@ const QNBars = (function () {
       new ResizeObserver(() => {
         geomDirty = true;
         if (roRaf) return;
-        roRaf = requestAnimationFrame(() => { roRaf = 0; draw(true); });
+        roRaf = requestAnimationFrame(() => { roRaf = 0; draw(true); notifyRange(); });
       }).observe(scrollEl);
     }
     window.addEventListener("resize", () => { geomDirty = true; });
@@ -626,7 +655,7 @@ const QNBars = (function () {
   }
 
   return {
-    OPTIONS,
+    secValues,
     fmtSec,
     fit,
     getSec,

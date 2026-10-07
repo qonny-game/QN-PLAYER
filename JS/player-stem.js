@@ -8,25 +8,41 @@
   "use strict";
 
   var ORT_BASE = window.QN_STEM_ORT_BASE || "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
-  var MODEL_URL = window.QN_STEM_MODEL_URL || "https://huggingface.co/timcsy/demucs-web-onnx/resolve/main/htdemucs_embedded.onnx";
-  var MODEL_MB = 172;
-  var MAX_SEC = 720;
+  // モード "4"=htdemucs(drums/bass/other/vocals) / "6"=htdemucs_6s(+guitar/piano)。6はStemSplitio/htdemucs-6s-onnxのfp16重み版(MIT)
+  var MODEL_URLS = {
+    "4": window.QN_STEM_MODEL_URL || "https://huggingface.co/timcsy/demucs-web-onnx/resolve/main/htdemucs_embedded.onnx",
+    "6": window.QN_STEM_MODEL_URL_6 || "https://huggingface.co/StemSplitio/htdemucs-6s-onnx/resolve/main/htdemucs_6s_fp16weights.onnx"
+  };
+  var MODEL_MBS = { "4": 172, "6": 136 };
+  var MAX_SECS = { "4": 720, "6": 600 }; // 6は出力が6本ぶんでメモリを食うので短め
+  var MODE_KEY = "qn_stem_mode";
   var DB_NAME = "qn_stem_db", STORE = "stems", KEEP_MAX = 6;
-  var PARTS = [
+  var PARTS4 = [
     { id: "vocals", label: "Vocals" },
     { id: "drums", label: "Drums" },
     { id: "bass", label: "Bass" },
     { id: "other", label: "Other" }
   ];
+  var PARTS6 = [
+    { id: "vocals", label: "Vocals" },
+    { id: "guitar", label: "Guitar" },
+    { id: "piano", label: "Piano" },
+    { id: "drums", label: "Drums" },
+    { id: "bass", label: "Bass" },
+    { id: "other", label: "Other" }
+  ];
+  function parts() { return st.mode === "6" ? PARTS6 : PARTS4; }
+  function ckey() { return st.key + (st.mode === "6" ? "|6" : ""); } // 保存キー(4パートは従来のまま)
 
   var st = {
     key: "", name: "",
+    mode: (function () { try { return localStorage.getItem("qn_stem_mode") === "6" ? "6" : "4"; } catch (e) { return "4"; } })(),
     phase: "idle",          // idle | decoding | working | ready | error
     stage: "", ep: "", msg: "",
     prog: 0, dl: null, seg: 0, segTotal: 0, t0: 0,
     blobs: null, cached: false,
     active: false, els: null, urls: null,
-    vol: { vocals: 1, drums: 1, bass: 1, other: 1 },
+    vol: { vocals: 1, drums: 1, bass: 1, other: 1, guitar: 1, piano: 1 },
     mute: {}, solo: {}
   };
   var gpuOk = null; // null=確認中 / true / false(requestAdapterで実際に取れるか)
@@ -74,8 +90,8 @@
   // ---------- 再生(stem 4本 + 録音トラックを、マスターaudioへ追従) ----------
   function applyVol() {
     if (st.els) {
-      var anySolo = PARTS.some(function (p) { return st.solo[p.id]; });
-      PARTS.forEach(function (p) {
+      var anySolo = parts().some(function (p) { return st.solo[p.id]; });
+      parts().forEach(function (p) {
         var on = anySolo ? !!st.solo[p.id] : !st.mute[p.id];
         st.els[p.id].volume = on ? Math.max(0, Math.min(1, st.vol[p.id])) : 0;
       });
@@ -97,7 +113,7 @@
   function followAll(hard) {
     var m = A();
     if (!m) return;
-    if (st.els) PARTS.forEach(function (p) { syncEl(st.els[p.id], m.currentTime, m.playbackRate, hard, m); });
+    if (st.els) parts().forEach(function (p) { syncEl(st.els[p.id], m.currentTime, m.playbackRate, hard, m); });
     rec.tracks.forEach(function (t) {
       if (!t.el) return;
       // 録音は実時間(録音時のrate)で収録されているので、曲位置→録音内位置へ換算。offset(ms)は遅れて録れた分だけ前へ詰める
@@ -111,7 +127,7 @@
     var m = A();
     if (!m || !st.blobs || st.active) return;
     st.urls = {}; st.els = {};
-    PARTS.forEach(function (p) {
+    parts().forEach(function (p) {
       var u = URL.createObjectURL(st.blobs[p.id]);
       var e = new Audio();
       e.preload = "auto"; e.src = u;
@@ -126,8 +142,8 @@
   function disable() {
     var m = A();
     if (m) m.muted = false;
-    if (st.els) PARTS.forEach(function (p) { try { st.els[p.id].pause(); st.els[p.id].removeAttribute("src"); st.els[p.id].load(); } catch (x) {} });
-    if (st.urls) PARTS.forEach(function (p) { URL.revokeObjectURL(st.urls[p.id]); });
+    if (st.els) parts().forEach(function (p) { try { st.els[p.id].pause(); st.els[p.id].removeAttribute("src"); st.els[p.id].load(); } catch (x) {} });
+    if (st.urls) parts().forEach(function (p) { URL.revokeObjectURL(st.urls[p.id]); });
     st.els = st.urls = null; st.active = false;
   }
 
@@ -255,13 +271,13 @@
   function start() {
     var tr = curTrack();
     if (!tr || !tr.file) return;
-    var key = keyOf(tr.file);
+    var key = keyOf(tr.file), mode = st.mode;
     st.key = key; st.name = tr.name || tr.file.name || "";
     st.phase = "decoding"; st.msg = ""; st.prog = 0; st.dl = null; st.seg = 0; st.segTotal = 0; st.t0 = Date.now();
     render();
     decode(tr.file).then(function (d) {
       if (st.key !== key || st.phase !== "decoding") return;
-      if (d.dur > MAX_SEC) throw new Error("This track is too long (limit: " + Math.round(MAX_SEC / 60) + " min)");
+      if (d.dur > MAX_SECS[st.mode]) throw new Error("This track is too long (limit: " + Math.round(MAX_SECS[st.mode] / 60) + " min)");
       st.phase = "working"; st.stage = "download"; st.t0 = Date.now(); render();
       worker = new Worker("JS/player-stem-worker.js", { type: "module" });
       worker.onmessage = function (e) {
@@ -274,12 +290,12 @@
         else if (d2.type === "done") {
           worker.terminate(); worker = null;
           st.blobs = d2.stems; st.ep = d2.ep; st.phase = "ready"; st.cached = true;
-          cachePut({ key: key, name: st.name, ts: Date.now(), stems: d2.stems });
+          cachePut({ key: key + (mode === "6" ? "|6" : ""), name: st.name, ts: Date.now(), stems: d2.stems });
         }
         render();
       };
       worker.onerror = function (e) { if (worker) worker.terminate(); worker = null; st.phase = "error"; st.msg = (e && e.message) || "Worker failed"; render(); };
-      worker.postMessage({ ortBase: ORT_BASE, modelUrl: MODEL_URL, left: d.l, right: d.r, useGpu: true }, [d.l.buffer, d.r.buffer]);
+      worker.postMessage({ ortBase: ORT_BASE, modelUrl: MODEL_URLS[mode], mode: mode, left: d.l, right: d.r, useGpu: true }, [d.l.buffer, d.r.buffer]);
     }).catch(function (err) {
       if (st.key !== key) return;
       st.phase = "error"; st.msg = (err && err.message) || "Could not decode this file"; render();
@@ -296,9 +312,23 @@
     st.key = key; st.name = tr ? (tr.name || (tr.file && tr.file.name) || "") : "";
     st.blobs = null; st.cached = false; st.phase = "idle"; st.msg = ""; st.solo = {}; st.mute = {};
     if (key) recLoad(key);
-    if (key) cacheGet(key).then(function (rec) {
-      if (rec && st.key === key && st.phase === "idle") { st.blobs = rec.stems; st.cached = true; st.phase = "ready"; render(); }
+    loadStems();
+    render();
+  }
+  function loadStems() {
+    var key = st.key, ck = ckey();
+    if (!key) return;
+    cacheGet(ck).then(function (rec) {
+      if (rec && st.key === key && ckey() === ck && st.phase === "idle") { st.blobs = rec.stems; st.cached = true; st.phase = "ready"; render(); }
     });
+  }
+  function setMode(m) {
+    if (m === st.mode || st.phase === "working" || st.phase === "decoding") return;
+    if (st.active) disable();
+    st.mode = m;
+    try { localStorage.setItem(MODE_KEY, m); } catch (e) {}
+    st.blobs = null; st.cached = false; st.phase = "idle"; st.msg = ""; st.solo = {}; st.mute = {};
+    loadStems();
     render();
   }
   function wire() {
@@ -329,13 +359,22 @@
     head.appendChild(h("span", "", st.name || tr.name || tr.file.name));
     root.appendChild(head);
 
+    if (st.phase === "idle" || st.phase === "error" || st.phase === "ready") {
+      var seg = h("div", "qn-stem-seg");
+      [["4", "4 parts"], ["6", "6 parts"]].forEach(function (o) {
+        var sb = h("button", "qn-stem-segbtn" + (st.mode === o[0] ? " is-on" : ""), o[1]); sb.type = "button";
+        sb.addEventListener("click", function () { setMode(o[0]); });
+        seg.appendChild(sb);
+      });
+      root.appendChild(seg);
+    }
     if (st.phase === "idle" || st.phase === "error") {
       if (st.phase === "error") root.appendChild(h("p", "qn-stem-err", st.msg));
       var gpu = gpuOk !== false;
       root.appendChild(h("p", "qn-stem-note", gpu
-        ? "Runs in this browser (WebGPU). The first run downloads a model of about " + MODEL_MB + " MB."
-        : "WebGPU is not available here, so processing runs on the CPU and can take a very long time. The first run downloads a model of about " + MODEL_MB + " MB."));
-      var b = h("button", "qn-stem-btn is-primary", "Separate into 4 parts");
+        ? "Runs in this browser (WebGPU). The first run downloads a model of about " + MODEL_MBS[st.mode] + " MB."
+        : "WebGPU is not available here, so processing runs on the CPU and can take a very long time. The first run downloads a model of about " + MODEL_MBS[st.mode] + " MB."));
+      var b = h("button", "qn-stem-btn is-primary", st.mode === "6" ? "Separate into 6 parts" : "Separate into 4 parts");
       b.type = "button";
       b.addEventListener("click", start);
       root.appendChild(b);
@@ -345,7 +384,7 @@
       var label = st.stage === "download" ? "Downloading model" : st.stage === "load" ? "Loading model" : st.stage === "encode" ? "Preparing parts" : "Separating";
       var pct = 0, info = "";
       if (st.stage === "download" && st.dl) {
-        var tot = st.dl.total || MODEL_MB * 1048576;
+        var tot = st.dl.total || MODEL_MBS[st.mode] * 1048576;
         pct = Math.min(1, st.dl.loaded / tot);
         info = st.dl.cached ? "Using the saved model" : Math.round(st.dl.loaded / 1048576) + " / " + Math.round(tot / 1048576) + " MB";
       } else if (st.stage === "separate") {
@@ -363,7 +402,7 @@
       tickTimer = setInterval(render, 1000);
     } else if (st.phase === "ready") {
       var row = h("div", "qn-set-row");
-      var lab = h("div", "qn-set-label"); lab.appendChild(h("span", "", "Stem mode")); lab.appendChild(h("small", "", "Play the four parts instead of the original"));
+      var lab = h("div", "qn-set-label"); lab.appendChild(h("span", "", "Stem mode")); lab.appendChild(h("small", "", "Play the separated parts instead of the original"));
       var ctl = h("div", "qn-set-ctl");
       var sw = h("button", "qn-set-switch" + (st.active ? " is-on" : "")); sw.type = "button"; sw.appendChild(h("span"));
       sw.addEventListener("click", function () { if (st.active) disable(); else enable(); render(); });
@@ -371,7 +410,7 @@
       root.appendChild(row);
 
       var mix = h("div", "qn-stem-mix" + (st.active ? "" : " is-off"));
-      PARTS.forEach(function (p) {
+      parts().forEach(function (p) {
         var r = h("div", "qn-stem-part");
         r.appendChild(h("span", "qn-stem-name", p.label));
         var mb = h("button", "qn-stem-ms" + (st.mute[p.id] ? " is-on" : ""), "M"); mb.type = "button"; mb.title = "Mute";
@@ -390,7 +429,7 @@
       var del = h("button", "qn-stem-btn", "Delete saved parts"); del.type = "button";
       del.addEventListener("click", function () {
         if (st.active) disable();
-        var k = st.key; st.blobs = null; st.cached = false; st.phase = "idle";
+        var k = ckey(); st.blobs = null; st.cached = false; st.phase = "idle";
         cacheDel(k).then(render);
       });
       root.appendChild(del);

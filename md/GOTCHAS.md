@@ -197,3 +197,7 @@
 - **Stem(v4.16.0)**: 分離はmodule worker(`player-stem-worker.js`)で実行しメインスレッドを止めない。ONNX Runtimeはシングルスレッドのみ(マルチスレッドにはSharedArrayBuffer=COOP/COEPが必要でYouTube埋め込み等が壊れる)。Stemモード中はマスター`audio`をmutedにして4本の別`<audio>`をcurrentTime/playbackRate/再生状態へ追従させる(EQ/Key=SoundTouch経路は効かない)。YouTube(音声取得不可)・SP幅は非対応。モデルURL/ORT配布元は`window.QN_STEM_MODEL_URL`/`QN_STEM_ORT_BASE`で差し替え可(既定はHugging Face/jsDelivr)。
 
 - **録音トラック(v4.17.0)**: 録音はMediaRecorder→デコード→16bit mono WAV化して保持(MediaRecorderのwebmはduration/シークが不安定なため)。再生位置=(曲位置−startPos)/録音時rate+offset(ms)、再生rate=マスターrate/録音時rate。Stem/録音の保存キーは`名前|サイズ`(File.lastModifiedはライブラリ復元のたびに変わるので使わない)。
+
+- **Bar length(v4.18.0)**: 値は1秒刻みの整数で、候補配列は固定せず`QNBars.secValues()`/`rowSecValues()`が曲長から作る(上限=曲長÷Rows Autoの行数。Rows指定中もCSS既定寸法で数える`autoVis`)。曲/ウィンドウ/Rowsが変わったらスライダーの再同期(`qnBarStripSync`/`segStrip.sync`)が必要。短い曲では現在値を上限へ丸める(保存値は書き換えない)。
+
+- **Stem 6パート(v4.19.0)**: モデルは`StemSplitio/htdemucs-6s-onnx`のfp16重み版(`window.QN_STEM_MODEL_URL_6`で差替可)。入力mix[1,2,343980]→出力stems[1,6,2,N]でSTFT内蔵、分離ループはワーカー内`separate6`。WASMはgraphOptimizationLevelが"basic"以上だとメモリ確保に失敗するため"disabled"必須(WebGPUは"basic"で試し、失敗したらWASMへ)。6パートの保存キーは`名前|サイズ|6`。上限は10分(出力6本でメモリを食う)。

@@ -112,3 +112,5 @@
 - 4.15.1 Rows(行数)をAuto/3〜12に拡張(PLAYER/YouTube共通。YouTubeの旧1・2行は3に読み替え)。バーの設定帯の「Auto」「Fit」は日本語表示でも英語のまま。
 - 4.16.0 Stemパネルを追加(PC専用・サイドバーのStemアイコン)。再生中のローカル曲をブラウザ内(Demucs/ONNX Runtime Web, WebGPU優先・無ければWASM)で4パート(Vocals/Drums/Bass/Other)に分離し、パート別の音量・ミュート・ソロで再生。結果は曲ごとにIndexedDBへ保存(player-stem.js/player-stem-worker.js/JS/stem/)。
 - 4.17.0 Stemパネルに録音トラック(Rec 1〜4)を追加。マイクで曲を聴きながら録音、トラック別の音量・ミュート・遅延補正(-500〜+500ms)。曲ごとにIndexedDBへ保存。Stem/録音の曲キーを名前|サイズに変更(ライブラリ復元で変わらないように)。
+- 4.18.0 Bar lengthを1秒刻みに変更。スライダー上限=曲(動画)長÷「Rows Autoで画面に入る行数」(一番俯瞰できる秒数)で自動決定。PLAYER/YouTube共通。
+- 4.19.0 Stemに6パート(Vocals/Guitar/Piano/Drums/Bass/Other)を追加。パネル上部の4 parts/6 partsで切替(モデルはhtdemucs_6sのfp16重み版 約136MB、結果は4/6別に保存)。

@@ -19,8 +19,8 @@
   var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); if (v === 1 || v === 2) return 3; return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
   var SEGS = Math.max(1, SEGS_SETTING);
   // 表示する行数=SEGS(1〜8/Auto)。1行の秒数ROWSEC(5〜60秒): 全長/秒数の行を作り、SEGS行ぶんの窓でスクロール(PLのBar length/Rowsと同じ考え方)
-  var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_OPTIONS = [3, 5, 10, 15, 20, 25, 30, 45, 60, 120, 180, 240];
-  var ROWSEC = (function () { try { var v = parseInt(localStorage.getItem(ROWSEC_KEY), 10); return ROWSEC_OPTIONS.indexOf(v) >= 0 ? v : 30; } catch (e) { return 30; } })();
+  var ROWSEC_KEY = "qn_yt_rowsec", ROWSEC_MAX_LIMIT = 3600; // バー長は1秒刻みの整数(1〜rowSecMax())
+  var ROWSEC = (function () { try { var v = parseInt(localStorage.getItem(ROWSEC_KEY), 10); return v >= 1 && v <= ROWSEC_MAX_LIMIT ? v : 30; } catch (e) { return 30; } })();
   var SEGS_LAST_KEY = "qn_yt_segs_last", SEGS_LAST = (function () { try { var v = parseInt(localStorage.getItem(SEGS_LAST_KEY), 10); return (v >= 3 && v <= 12) || v === -1 ? v : (SEGS_SETTING || 3); } catch (e) { return 3; } })();
   var FOLLOW_KEY = "qn_yt_follow", FPAUSE_KEY = "qn_yt_follow_pause", FPAUSE_MIN = 1, FPAUSE_MAX = 30;
   var followOn = (function () { try { return localStorage.getItem(FOLLOW_KEY) !== "0"; } catch (e) { return true; } })();
@@ -765,7 +765,7 @@
     if (window.QNSettingsUI && QNSettingsUI.inline) {
       segStrip = QNSettingsUI.inline([
         { label: "Seek bar", type: "switch", spHide: true, get: function () { return SEGS_SETTING !== 0; }, set: function (on) { setSegs(on ? SEGS_LAST : 0); } },
-        { label: "Bar length", type: "slider", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt, action: { label: "Fit", title: "Fit the whole video on screen", run: fitRowSec } },
+        { label: "Bar length", type: "slider", values: rowSecValues, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt, action: { label: "Fit", title: "Fit the whole video on screen", run: fitRowSec } },
         { label: "Rows", type: "slider", values: function () { return [-1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; }, fmt: function (v) { return v === -1 ? "Auto" : String(v); }, get: function () { return SEGS_SETTING !== 0 ? SEGS_SETTING : SEGS_LAST; }, set: function (v) { if (SEGS_SETTING !== 0) setSegs(v); else { SEGS_LAST = v; try { localStorage.setItem(SEGS_LAST_KEY, String(v)); } catch (e) {} } } },
         { label: "Follow", type: "switch", spHide: true, get: function () { return followOn; }, set: setFollow }
       ]);
@@ -807,7 +807,15 @@
 
   // ---------- 分割シークバー: 行の長さrowLen()秒。Fit=全長/SEGS、秒数指定=全長/秒数行(SEGS行ぶんの窓でスクロール) ----------
   var segStrip = null;
-  function rowSecFmt(v) { return v >= 60 ? (v / 60) + "min" : v + "s"; }
+  function rowSecFmt(v) { return v >= 60 ? (v % 60 ? Math.floor(v / 60) + "m" + (v % 60) + "s" : (v / 60) + "min") : v + "s"; }
+  // 上限=動画長/「Rows Autoで画面に入る行数」(一番俯瞰できる秒数)。動画が決まるまでは240
+  function rowSecMax() { return duration ? Math.max(2, Math.ceil(duration / Math.max(1, autoRows()) - 1e-6)) : 240; }
+  function rowSecValues() {
+    var mx = rowSecMax(), a = [];
+    for (var i = 1; i <= mx; i++) a.push(i);
+    if (ROWSEC > mx) a.push(ROWSEC);
+    return a;
+  }
   function rowLen() { return ROWSEC; }
   function rowTotal() {
     if (!duration) return SEGS;
@@ -844,10 +852,11 @@
   function recalcAuto() {
     if (SEGS_SETTING !== -1) return;
     var n = autoRows();
-    if (n !== SEGS) { SEGS = n; ensureRows(true); }
+    if (n !== SEGS) { SEGS = n; ensureRows(true); if (segStrip) segStrip.sync(); }
   }
   function setRowSec(v) {
-    if (ROWSEC_OPTIONS.indexOf(v) < 0 || v === ROWSEC) return;
+    v = Math.round(v);
+    if (!(v >= 1) || v > rowSecMax() || v === ROWSEC) return;
     ROWSEC = v;
     try { localStorage.setItem(ROWSEC_KEY, String(v)); } catch (e) {}
     if (segStrip) segStrip.sync();
@@ -856,9 +865,8 @@
   // Fit: 動画全体が今の行数(Rows。Autoなら画面に入る数)に収まる最小のバー長を選ぶ。収まらない時は最大
   function fitRowSec() {
     if (!duration || SEGS_SETTING === 0) return;
-    var vis = Math.max(1, SEGS), pick = ROWSEC_OPTIONS[ROWSEC_OPTIONS.length - 1];
-    for (var i = 0; i < ROWSEC_OPTIONS.length; i++) if (Math.ceil(duration / ROWSEC_OPTIONS[i] - 1e-6) <= vis) { pick = ROWSEC_OPTIONS[i]; break; }
-    setRowSec(pick);
+    var vis = Math.max(1, SEGS);
+    setRowSec(Math.max(1, Math.min(rowSecMax(), Math.ceil(duration / vis - 1e-6))));
     if (refs.seekTracks) refs.seekTracks.scrollTop = 0;
   }
   function setFollow(on) {
@@ -1062,6 +1070,8 @@
     var d = player.getDuration();
     if (d && d !== duration) {
       duration = d;
+      var mxs = rowSecMax(); if (ROWSEC > mxs) ROWSEC = mxs; // 短い動画では俯瞰上限を超えない(保存値は書き換えない)
+      if (segStrip) segStrip.sync();
       if (refs.durTime) refs.durTime.textContent = fmt(d);
       ensureRows(false);
       renderMarkers();
@@ -2509,7 +2519,7 @@
     ];
     return [{ title: "Seek bar", rows: [
       { label: "Rows", hint: "Auto fills the free height; Off hides the bar", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : v === -1 ? "Auto" : String(v); } },
-      { label: "Bar length", hint: "Seconds per row", type: "stepper", values: function () { return ROWSEC_OPTIONS; }, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
+      { label: "Bar length", hint: "Seconds per row", type: "stepper", values: rowSecValues, get: function () { return ROWSEC; }, set: setRowSec, fmt: rowSecFmt },
       { label: "Follow playhead", hint: "Auto-scroll while playing", type: "switch", get: function () { return followOn; }, set: setFollow },
       { label: "Pause after scrolling", hint: "Seconds before follow resumes", type: "stepper",
         values: function () { var a = []; for (var i = FPAUSE_MIN; i <= FPAUSE_MAX; i++) a.push(i); return a; },

@@ -24,6 +24,9 @@
 }
 .qn-stem-ms.is-on { background: #6b2b2b; border-color: #a04040; color: #fff; }
 .qn-stem-ms.is-solo { background: var(--accent-primary); border-color: var(--accent-primary); }
+.qn-stem-seg { display: flex; gap: 4px; padding: 3px; align-self: flex-start; background: #0e0e13; border: 1px solid var(--border-subtle); border-radius: var(--radius-popup, 8px); }
+.qn-stem-segbtn { min-height: 28px; padding: 0 14px; border: none; border-radius: 6px; background: transparent; color: var(--icon-muted); font-size: var(--fs-body); cursor: pointer; }
+.qn-stem-segbtn.is-on { background: var(--accent-primary); color: #fff; }
 .qn-stem-sec { margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--border-subtle); font-size: var(--fs-heading); font-weight: 600; color: var(--icon-muted); }
 .qn-rec { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-popup, 8px); background: #0e0e13; }
 .qn-rec.is-rec { border-color: #a04040; }

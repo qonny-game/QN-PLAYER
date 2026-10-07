@@ -56,6 +56,52 @@ function toWav(l, r) {
   return new Blob([out], { type: "audio/wav" });
 }
 
+// 6パート(htdemucs_6s): 入力mix[1,2,N]→出力stems[1,6,2,N]。STFT/iSTFTはモデル内蔵。区間(N=343980, 重なり25%)をoverlap-addでつなぐ
+const SEG = 343980, TRACKS6 = ["drums", "bass", "other", "vocals", "guitar", "piano"];
+async function separate6(ort, model, d) {
+  const create = (eps, lvl) => ort.InferenceSession.create(model.slice(0), { executionProviders: eps, graphOptimizationLevel: lvl }); // wasmはbasic以上だとメモリ確保に失敗した(要disabled)
+  let session = null, ep = "wasm";
+  if (d.useGpu && self.navigator && self.navigator.gpu) {
+    try { session = await create(["webgpu"], "basic"); ep = "webgpu"; } catch (err) { session = null; }
+  }
+  if (!session) { session = await create(["wasm"], "disabled"); ep = "wasm"; }
+  post({ type: "status", stage: "separate", ep });
+  const total = d.left.length, stride = Math.floor(SEG * 0.75);
+  const nSeg = Math.max(1, Math.ceil((total - SEG) / stride) + 1);
+  const out = TRACKS6.map(() => [new Float32Array(total), new Float32Array(total)]);
+  const wsum = new Float32Array(total);
+  let idx = 0;
+  for (let start = 0; start < total; start += stride) {
+    const len = Math.min(SEG, total - start);
+    const x = new Float32Array(2 * SEG);
+    x.set(d.left.subarray(start, start + len), 0);
+    x.set(d.right.subarray(start, start + len), SEG);
+    const feed = { [session.inputNames[0]]: new ort.Tensor("float32", x, [1, 2, SEG]) };
+    let r;
+    try { r = await session.run(feed); }
+    catch (err) {
+      if (ep !== "webgpu" || idx > 0) throw err; // WebGPUが実行時に失敗したらCPUへ切替えて最初の区間からやり直す
+      session = await create(["wasm"], "disabled"); ep = "wasm";
+      post({ type: "status", stage: "separate", ep });
+      r = await session.run(feed);
+    }
+    const o = r[session.outputNames[0]].data;
+    const win = new Float32Array(len);
+    for (let i = 0; i < len; i++) win[i] = Math.min(Math.min(i / (stride * 0.5), 1), Math.min((len - i) / (stride * 0.5), 1));
+    for (let k = 0; k < 6; k++) for (let c = 0; c < 2; c++) {
+      const dst = out[k][c], base = (k * 2 + c) * SEG;
+      for (let i = 0; i < len; i++) dst[start + i] += o[base + i] * win[i];
+    }
+    for (let i = 0; i < len; i++) wsum[start + i] += win[i];
+    idx++;
+    post({ type: "progress", p: idx / nSeg, seg: idx, total: nSeg });
+  }
+  for (let k = 0; k < 6; k++) for (let c = 0; c < 2; c++) { const a = out[k][c]; for (let i = 0; i < total; i++) if (wsum[i] > 0) a[i] /= wsum[i]; }
+  const res = {};
+  TRACKS6.forEach((n, k) => { res[n] = { left: out[k][0], right: out[k][1] }; });
+  return { res, ep };
+}
+
 self.onmessage = async (e) => {
   const d = e.data;
   try {
@@ -65,6 +111,14 @@ self.onmessage = async (e) => {
     post({ type: "status", stage: "download" });
     const model = await getModel(d.modelUrl);
     post({ type: "status", stage: "load" });
+    if (d.mode === "6") {
+      const r6 = await separate6(ort, model, d);
+      post({ type: "status", stage: "encode" });
+      const stems6 = {};
+      for (const k of TRACKS6) stems6[k] = toWav(r6.res[k].left, r6.res[k].right);
+      post({ type: "done", ep: r6.ep, stems: stems6 });
+      return;
+    }
     let proc = null, ep = "wasm";
     if (d.useGpu && self.navigator && self.navigator.gpu) {
       try {
