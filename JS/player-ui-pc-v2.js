@@ -411,13 +411,26 @@
       if (loopSrc && typeof MutationObserver === "function") new MutationObserver(syncLoop).observe(loopSrc, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true, characterData: true });
       syncLoop();
       // More: 既存の下段バーの開閉
+      // 【v4.22.0】Moreは5秒間 操作(パネル内・ドック)がなければ自動で閉じる
+      let moreIdle = null;
+      const MORE_IDLE_MS = 5000;
+      const armMoreIdle = () => {
+        clearTimeout(moreIdle);
+        if (!root.classList.contains("qn-sp-more-open")) return;
+        moreIdle = setTimeout(() => setMore(false), MORE_IDLE_MS);
+      };
       const setMore = (open) => {
         root.classList.toggle("qn-sp-more-open", open);
+        armMoreIdle();
         more.classList.toggle("is-open", open);
         try { localStorage.setItem(SP_MORE_KEY, open ? "1" : "0"); } catch (e) {}
         if (document.getElementById("pcV2Layout")?.classList.contains("pcv2-panel-open")) updatePcv2BottomBarsHeightVar();
       };
       more.addEventListener("click", () => { if (typeof hapticTap === "function") hapticTap(); setMore(!root.classList.contains("qn-sp-more-open")); });
+      ["pointerdown", "input", "keydown", "wheel", "touchmove"].forEach(ev => {
+        dock.addEventListener(ev, armMoreIdle, { passive: true });
+        root.addEventListener(ev, (e) => { if (e.target.closest && e.target.closest("#pcV2MorePanel")) armMoreIdle(); }, { passive: true, capture: true });
+      });
       let saved = false; try { saved = localStorage.getItem(SP_MORE_KEY) === "1"; } catch (e) {}
       setMore(saved);
       return dock;

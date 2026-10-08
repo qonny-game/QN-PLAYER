@@ -119,3 +119,4 @@
 - 4.20.1 Stem 6パートのWebGPU対応: WebGPU時はWebGPU用モデル(約285MB)、CPU時は軽いモデル(約136MB)を使う。WebGPU/CPUに落ちた理由をパネルに表示。
 - 4.21.0 PC版サイドバー: Controlを下段(Settingsの上)へ移動。上段は曲固有のLibrary/Markers/Text/Stem、下段はプレイヤー設定のControl/Settings。
 - 4.21.1 SP: Moreを波形の上に重ねて開く(波形を縮めない)。
+- 4.22.0 SP: Moreは5秒間操作(パネル内・ドック)がなければ自動で閉じる。
