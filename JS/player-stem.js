@@ -13,7 +13,10 @@
     "4": window.QN_STEM_MODEL_URL || "https://huggingface.co/timcsy/demucs-web-onnx/resolve/main/htdemucs_embedded.onnx",
     "6": window.QN_STEM_MODEL_URL_6 || "https://huggingface.co/StemSplitio/htdemucs-6s-onnx/resolve/main/htdemucs_6s_fp16weights.onnx"
   };
+  // 6パートのWebGPU用(WebGPUで動かない演算を除いたfp32版、約285MB。CPU用は上の軽いfp16重み版)
+  var MODEL_URL_6_GPU = window.QN_STEM_MODEL_URL_6_GPU || "https://huggingface.co/kramp/htdemucs-6s-webgpu-onnx/resolve/main/htdemucs_6s.onnx";
   var MODEL_MBS = { "4": 172, "6": 136 };
+  function modelMB() { return st.mode === "6" && gpuOk !== false ? 285 : MODEL_MBS[st.mode]; }
   var MAX_SECS = { "4": 720, "6": 600 }; // 6は出力が6本ぶんでメモリを食うので短め
   var MODE_KEY = "qn_stem_mode";
   var VOL_UNITY = 0.7, BOOST = 3; // スライダー70%=原音、100%=3倍(約+9.5dB)。ブースト分はWeb Audio(GainNode)＋ソフトリミッターで出す
@@ -306,7 +309,7 @@
     if (!tr || !tr.file) return;
     var key = keyOf(tr.file), mode = st.mode;
     st.key = key; st.name = tr.name || tr.file.name || "";
-    st.phase = "decoding"; st.msg = ""; st.prog = 0; st.dl = null; st.seg = 0; st.segTotal = 0; st.t0 = Date.now();
+    st.phase = "decoding"; st.msg = ""; st.note = ""; st.prog = 0; st.dl = null; st.seg = 0; st.segTotal = 0; st.t0 = Date.now();
     render();
     decode(tr.file).then(function (d) {
       if (st.key !== key || st.phase !== "decoding") return;
@@ -317,7 +320,7 @@
         var d2 = e.data;
         if (st.key !== key) return;
         if (d2.type === "download") st.dl = d2;
-        else if (d2.type === "status") { st.stage = d2.stage; if (d2.ep) st.ep = d2.ep; if (d2.stage === "separate") st.t0 = Date.now(); }
+        else if (d2.type === "status") { st.stage = d2.stage; if (d2.ep) st.ep = d2.ep; st.note = d2.note || st.note; if (d2.stage === "separate") st.t0 = Date.now(); }
         else if (d2.type === "progress") { st.prog = d2.p; st.seg = d2.seg; st.segTotal = d2.total; }
         else if (d2.type === "error") { worker.terminate(); worker = null; st.phase = "error"; st.msg = d2.message; }
         else if (d2.type === "done") {
@@ -328,7 +331,7 @@
         render();
       };
       worker.onerror = function (e) { if (worker) worker.terminate(); worker = null; st.phase = "error"; st.msg = (e && e.message) || "Worker failed"; render(); };
-      worker.postMessage({ ortBase: ORT_BASE, modelUrl: MODEL_URLS[mode], mode: mode, left: d.l, right: d.r, useGpu: true }, [d.l.buffer, d.r.buffer]);
+      worker.postMessage({ ortBase: ORT_BASE, modelUrl: MODEL_URLS[mode], modelUrlGpu: mode === "6" ? MODEL_URL_6_GPU : MODEL_URLS[mode], mode: mode, left: d.l, right: d.r, useGpu: true }, [d.l.buffer, d.r.buffer]);
     }).catch(function (err) {
       if (st.key !== key) return;
       st.phase = "error"; st.msg = (err && err.message) || "Could not decode this file"; render();
@@ -405,8 +408,8 @@
       if (st.phase === "error") root.appendChild(h("p", "qn-stem-err", st.msg));
       var gpu = gpuOk !== false;
       root.appendChild(h("p", "qn-stem-note", gpu
-        ? "Runs in this browser (WebGPU). The first run downloads a model of about " + MODEL_MBS[st.mode] + " MB."
-        : "WebGPU is not available here, so processing runs on the CPU and can take a very long time. The first run downloads a model of about " + MODEL_MBS[st.mode] + " MB."));
+        ? "Runs in this browser (WebGPU). The first run downloads a model of about " + modelMB() + " MB."
+        : "WebGPU is not available here, so processing runs on the CPU and can take a very long time. The first run downloads a model of about " + modelMB() + " MB."));
       var b = h("button", "qn-stem-btn is-primary", st.mode === "6" ? "Separate into 6 parts" : "Separate into 4 parts");
       b.type = "button";
       b.addEventListener("click", start);
@@ -417,7 +420,7 @@
       var label = st.stage === "download" ? "Downloading model" : st.stage === "load" ? "Loading model" : st.stage === "encode" ? "Preparing parts" : "Separating";
       var pct = 0, info = "";
       if (st.stage === "download" && st.dl) {
-        var tot = st.dl.total || MODEL_MBS[st.mode] * 1048576;
+        var tot = st.dl.total || modelMB() * 1048576;
         pct = Math.min(1, st.dl.loaded / tot);
         info = st.dl.cached ? "Using the saved model" : Math.round(st.dl.loaded / 1048576) + " / " + Math.round(tot / 1048576) + " MB";
       } else if (st.stage === "separate") {
@@ -430,6 +433,7 @@
       var bar = h("div", "qn-stem-bar"), fill = h("i"); fill.style.width = Math.round(pct * 100) + "%"; bar.appendChild(fill);
       root.appendChild(bar);
       root.appendChild(h("p", "qn-stem-note", info));
+      if (st.note) root.appendChild(h("p", "qn-stem-err", st.note + ". Using the CPU instead."));
       var c = h("button", "qn-stem-btn", "Cancel"); c.type = "button"; c.addEventListener("click", stop);
       root.appendChild(c);
       tickTimer = setInterval(render, 1000);

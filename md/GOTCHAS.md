@@ -203,3 +203,5 @@
 - **Stem 6パート(v4.19.0)**: モデルは`StemSplitio/htdemucs-6s-onnx`のfp16重み版(`window.QN_STEM_MODEL_URL_6`で差替可)。入力mix[1,2,343980]→出力stems[1,6,2,N]でSTFT内蔵、分離ループはワーカー内`separate6`。WASMはgraphOptimizationLevelが"basic"以上だとメモリ確保に失敗するため"disabled"必須(WebGPUは"basic"で試し、失敗したらWASMへ)。6パートの保存キーは`名前|サイズ|6`。上限は10分(出力6本でメモリを食う)。
 
 - **Stem音量(v4.20.0)**: スライダー値は位置(0〜1)で、70%=ゲイン1.0、100%=3倍(`VOL_UNITY`/`BOOST`)。各`<audio>`は`createMediaElementSource`→GainNode→ソフトリミッター(WaveShaper)→出力のバス(player-stem.js専用のAudioContext)を通す。`<audio>.volume`は使わない(1.0上限)。AudioContextはplayイベントでresumeする。録音トラックの保存音量は`v2:true`付き(無い旧データは70%に戻す)。Stemモード中はマスターaudioをmutedにするため、本体のVolume表示が「Mute」になる。
+
+- **Stem 6パートのモデル(v4.20.1)**: WebGPU用=`kramp/htdemucs-6s-webgpu-onnx`(fp32 約285MB、WebGPUで動かない演算を除去済み)、CPU用=`StemSplitio/htdemucs-6s-onnx`のfp16重み版(約136MB)。StemSplit版はWebGPUで動かなかったため分けた(`window.QN_STEM_MODEL_URL_6_GPU`/`_6`で差替可)。WebGPU失敗時はワーカーがCPU用を取り直してWASMで続行し、理由を`status.note`でパネルに出す。

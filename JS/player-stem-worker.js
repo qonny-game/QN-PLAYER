@@ -57,15 +57,28 @@ function toWav(l, r) {
 }
 
 // 6パート(htdemucs_6s): 入力mix[1,2,N]→出力stems[1,6,2,N]。STFT/iSTFTはモデル内蔵。区間(N=343980, 重なり25%)をoverlap-addでつなぐ
+// モデルは2種類: WebGPU用(kramp版 fp32、WebGPUで動かない演算を除いたもの) / CPU用(StemSplit版 fp16重み、軽い)。WebGPUが使えない/失敗したらCPU用を取り直してWASMで続ける
 const SEG = 343980, TRACKS6 = ["drums", "bass", "other", "vocals", "guitar", "piano"];
-async function separate6(ort, model, d) {
-  const create = (eps, lvl) => ort.InferenceSession.create(model.slice(0), { executionProviders: eps, graphOptimizationLevel: lvl }); // wasmはbasic以上だとメモリ確保に失敗した(要disabled)
-  let session = null, ep = "wasm";
+const errText = (err) => String((err && err.message) || err).slice(0, 160);
+async function separate6(ort, d) {
+  const create = (model, eps, lvl) => ort.InferenceSession.create(model.slice(0), { executionProviders: eps, graphOptimizationLevel: lvl }); // wasmはbasic以上だとメモリ確保に失敗した(要disabled)
+  const cpuSession = async () => {
+    post({ type: "status", stage: "download" });
+    const m = await getModel(d.modelUrl);
+    post({ type: "status", stage: "load" });
+    return await create(m, ["wasm"], "disabled");
+  };
+  let session = null, ep = "wasm", note = "";
   if (d.useGpu && self.navigator && self.navigator.gpu) {
-    try { session = await create(["webgpu"], "basic"); ep = "webgpu"; } catch (err) { session = null; }
-  }
-  if (!session) { session = await create(["wasm"], "disabled"); ep = "wasm"; }
-  post({ type: "status", stage: "separate", ep });
+    try {
+      post({ type: "status", stage: "download" });
+      const m = await getModel(d.modelUrlGpu || d.modelUrl);
+      post({ type: "status", stage: "load" });
+      session = await create(m, ["webgpu"], "basic"); ep = "webgpu";
+    } catch (err) { session = null; note = "WebGPU failed: " + errText(err); }
+  } else if (d.useGpu) note = "WebGPU is not available";
+  if (!session) session = await cpuSession();
+  post({ type: "status", stage: "separate", ep, note });
   const total = d.left.length, stride = Math.floor(SEG * 0.75);
   const nSeg = Math.max(1, Math.ceil((total - SEG) / stride) + 1);
   const out = TRACKS6.map(() => [new Float32Array(total), new Float32Array(total)]);
@@ -81,8 +94,8 @@ async function separate6(ort, model, d) {
     try { r = await session.run(feed); }
     catch (err) {
       if (ep !== "webgpu" || idx > 0) throw err; // WebGPUが実行時に失敗したらCPUへ切替えて最初の区間からやり直す
-      session = await create(["wasm"], "disabled"); ep = "wasm";
-      post({ type: "status", stage: "separate", ep });
+      session = await cpuSession(); ep = "wasm"; note = "WebGPU failed: " + errText(err);
+      post({ type: "status", stage: "separate", ep, note });
       r = await session.run(feed);
     }
     const o = r[session.outputNames[0]].data;
@@ -108,30 +121,30 @@ self.onmessage = async (e) => {
     const ort = await import(d.ortBase + "ort.min.mjs");
     ort.env.wasm.wasmPaths = d.ortBase;
     ort.env.wasm.numThreads = 1; // マルチスレッドはSharedArrayBuffer(COOP/COEP)が要る。YouTube埋め込み等を壊すので使わない
-    post({ type: "status", stage: "download" });
-    const model = await getModel(d.modelUrl);
-    post({ type: "status", stage: "load" });
     if (d.mode === "6") {
-      const r6 = await separate6(ort, model, d);
+      const r6 = await separate6(ort, d);
       post({ type: "status", stage: "encode" });
       const stems6 = {};
       for (const k of TRACKS6) stems6[k] = toWav(r6.res[k].left, r6.res[k].right);
       post({ type: "done", ep: r6.ep, stems: stems6 });
       return;
     }
-    let proc = null, ep = "wasm";
+    post({ type: "status", stage: "download" });
+    const model = await getModel(d.modelUrl);
+    post({ type: "status", stage: "load" });
+    let proc = null, ep = "wasm", note = "";
     if (d.useGpu && self.navigator && self.navigator.gpu) {
       try {
         proc = new DemucsProcessor({ ort, sessionOptions: { executionProviders: ["webgpu"] } });
         await proc.loadModel(model.slice(0));
         ep = "webgpu";
-      } catch (err) { proc = null; }
-    }
+      } catch (err) { proc = null; note = "WebGPU failed: " + errText(err); }
+    } else if (d.useGpu) note = "WebGPU is not available";
     if (!proc) {
       proc = new DemucsProcessor({ ort, sessionOptions: { executionProviders: ["wasm"] } });
       await proc.loadModel(model);
     }
-    post({ type: "status", stage: "separate", ep });
+    post({ type: "status", stage: "separate", ep, note });
     proc.onProgress = (p) => post({ type: "progress", p: p.progress, seg: p.currentSegment, total: p.totalSegments });
     const res = await proc.separate(d.left, d.right);
     post({ type: "status", stage: "encode" });

@@ -9,7 +9,7 @@
 | ヘッダー／ロゴ | `#appHeader`（「QNPLAYER vX.X.X」） | ページ最上部 |
 | ライブラリ | Playlistパネル（`#playlistBox`） | サイドメニューでは「Library」 |
 | 下部コントロール／コントロールバー | `#pcV2BottomBar` | PC幅＝右カラム下端（波形の真下）。幅が足りなければ横スクロール／SP幅＝アイコンバー直上の横スクロール列 |
-| サイドバー／サイドメニュー／アイコンバー | `#pcV2IconBar` | Library/Markers/Text/Control/Backup/Import/Keyboard/Color等 |
+| サイドバー／サイドメニュー／アイコンバー | `#pcV2IconBar` | Library/Markers/Text/Stem(上段)・Control/Settings(下段)/Backup/Import/Keyboard/Color等 |
 | 波形エリア／シークバー | `#pcV2WaveArea` / `#vbarContainer` | 曲名・シークバー（縦スクロールの行）・マーカーラベルを含む |
 | アンカータブ（PLAY/MARKER） | `.pcv2-anchor-tab`（SP幅のみ） | 下段バーの横スクロール位置へジャンプ |
 | ロゴ兼アプリ切替（V付き） | `#qnAppLogoBtn` | ヘッダー左。押すと直下に`#qnAppFlyout`（QNPLAYER/QNVIDEO/QNTUNER/QNPITCH）が開く |

@@ -33,8 +33,10 @@
       icon: '<path d="M5 4v3h5.5v12h3V7H19V4z"/>'
     },
     {
+      // 【v4.21.0】Controlはプレイヤー全体の設定(曲固有ではない)なので下段(Settingsの上)へ。上段は曲固有のLibrary/Markers/Text/Stem
       id: "control",
       label: "Control",
+      bottom: true,
       panelType: "tab",
       tabName: "control",
       icon: '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>'
@@ -679,9 +681,11 @@
     const top = document.getElementById("topControls");
     if (!more) return;
     if (isSp) {
-      // More内は 設定帯(Bar length/Rows) → ミキサー(Volume/Speed/Key)の順
-      if (mixer && mixer.parentElement !== more) more.appendChild(mixer);
-      if (strip && (strip.parentElement !== more || more.firstChild !== strip)) more.insertBefore(strip, more.firstChild);
+      // More内は 設定帯(Bar length/Rows) → ミキサー(Volume/Speed/Key)の順。中身は.pcv2-more-innerに入れる(外枠は高さ0で波形の上に重ねるため)
+      let inner = more.querySelector(".pcv2-more-inner");
+      if (!inner) { inner = document.createElement("div"); inner.className = "pcv2-more-inner"; more.appendChild(inner); }
+      if (mixer && mixer.parentElement !== inner) inner.appendChild(mixer);
+      if (strip && (strip.parentElement !== inner || inner.firstChild !== strip)) inner.insertBefore(strip, inner.firstChild);
     } else {
       if (strip && fabRow && strip.parentElement !== fabRow) fabRow.insertBefore(strip, fabRow.firstChild);
       if (mixer && top && mixer.parentElement !== top) {

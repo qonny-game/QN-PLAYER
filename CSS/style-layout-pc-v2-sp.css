@@ -502,8 +502,10 @@ html {
 #pcV2MorePanel, #pcV2WaveHeadBtns, #pcV2WaveFabRow .pcv2-fab-ab { display: none; } /* PC幅では出さない(.panel-fab-btnのdisplay:flexに勝つためidを付ける) */
 @media screen and (max-width: 900px) {
   /* DOM順は波形→MorePanel→下段バー→ドック→アイコンバー(JS: syncBottomBarPosition)。orderも合わせる */
-  #pcV2MorePanel { order: 2; flex-shrink: 0; background: #0a0a0c; border-top: 1px solid var(--border-subtle); padding: 8px 14px; }
+  /* 【v4.21.1】Moreは波形を縮めず、ドックの上に重ねて開く(外枠は高さ0・中身を上方向へ張り出す) */
+  #pcV2MorePanel { order: 2; flex-shrink: 0; height: 0; padding: 0; position: relative; z-index: 105; }
   #pcV2Root.qn-sp-more-open #pcV2MorePanel { display: block; }
+  #pcV2MorePanel .pcv2-more-inner { position: absolute; left: 0; right: 0; bottom: 0; background: #0a0a0c; border-top: 1px solid var(--border-subtle); padding: 8px 14px; }
   #pcV2SpDock { order: 3; }
   /* 下段バーの中身は全て他へ移した(再生/マーカー系はドック、トラック/リピートはヘッダー、A/BはAudioの隣、-10s/+10sは廃止)。操作元のボタンはDOMに残す(ドック等が.click()で中継するため) */
   #pcV2BottomBar, #pcV2Root.qn-sp-more-open #pcV2BottomBar { display: none !important; }

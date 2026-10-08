@@ -116,3 +116,6 @@
 - 4.19.0 Stemに6パート(Vocals/Guitar/Piano/Drums/Bass/Other)を追加。パネル上部の4 parts/6 partsで切替(モデルはhtdemucs_6sのfp16重み版 約136MB、結果は4/6別に保存)。
 - 4.19.1 Bar lengthの上限を行数連動に変更(3行なら3行で全体が収まる秒数、6行なら6行で収まる秒数。Autoは画面に入る行数)。PLAYER/YouTube共通。
 - 4.20.0 Stemのパートごとに波形を1行表示(クリックでシーク、再生位置線つき)。音量スライダーを0〜100表示にし、70=原音レベル・100=3倍ブーストへ(Web Audioのゲイン+ソフトリミッター)。録音トラックの音量も同じ仕様。
+- 4.20.1 Stem 6パートのWebGPU対応: WebGPU時はWebGPU用モデル(約285MB)、CPU時は軽いモデル(約136MB)を使う。WebGPU/CPUに落ちた理由をパネルに表示。
+- 4.21.0 PC版サイドバー: Controlを下段(Settingsの上)へ移動。上段は曲固有のLibrary/Markers/Text/Stem、下段はプレイヤー設定のControl/Settings。
+- 4.21.1 SP: Moreを波形の上に重ねて開く(波形を縮めない)。

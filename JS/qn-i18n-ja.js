@@ -26,6 +26,7 @@
     "Cancel": "キャンセル",
     "Could not decode this file": "このファイルをデコードできませんでした",
     "4 parts": "4パート",
+    "WebGPU is not available. Using the CPU instead.": "WebGPUが使えません。代わりにCPUで処理します",
     "6 parts": "6パート",
     "Separate into 6 parts": "6パートに分離",
     "Record": "録音",
@@ -366,6 +367,7 @@
     [/^Auto Next: (.+)$/g, "Auto Next: $1"],
     [/^Runs in this browser \(WebGPU\)\. The first run downloads a model of about (\d+) MB\.$/g, "ブラウザ内(WebGPU)で実行します。初回は約$1 MBのモデルをダウンロードします"],
     [/^WebGPU is not available here, so processing runs on the CPU and can take a very long time\. The first run downloads a model of about (\d+) MB\.$/g, "この環境ではWebGPUが使えないためCPUで処理します。非常に時間がかかることがあります。初回は約$1 MBのモデルをダウンロードします"],
+    [/^WebGPU failed: (.+)\. Using the CPU instead\.$/g, "WebGPUでエラー: $1。代わりにCPUで処理します"],
     [/^This track is too long \(limit: (\d+) min\)$/g, "この曲は長すぎます(上限$1分)"],
     [/^(\d+(?:\.\d+)?) MB$/g, "$1 MB"]
   ]);
