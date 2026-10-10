@@ -34,7 +34,7 @@
 - 一覧の行の中に一時的なUI（プリセット・入力補助）を足して行の高さを変えない。ポップアップ（body直下・fixed）にする。
 - markers/playlist共通セレクタのCSSを変える時は、両パネルのタップ判定の違い（markers＝`.del-btn`、playlist＝`.playlist-del-zone`、`.pin-del-zone`）を壊していないか確認する。
 - 汎用セレクタ（`.playlistItem button`等）より優先させたい時は、親クラスを前置して詳細度を上げる。**既存ルールを`grep`で探してから足す**（CSSの別の場所の既存ルールが原因のことが多い）。
-- 共通の器`.export-modal-*`はExport/EQ/Backup/Import全部で流用。新しいモーダルはまずこれを使えないか確認する（名前は`export`だが用途はExportに限らない）。
+- 共通の器`.export-modal-*`はEQ/解約/Backup/Importで流用（Exportは撤去済み）。新しいモーダルはまずこれを使えないか確認する（名前は`export`だが用途はExportに限らない）。
 
 ## 5. PC v2の仕組み
 - **EDITモード中の削除・選択は`player-ui-pc-v2.js`の`attachSelectionHandlers()`がキャプチャ段階で先に奪う。** `player-playlist.js`等の`delBtn.onclick`を直しても発火しない。
@@ -87,7 +87,7 @@
 - 波形は1行1本のPath2Dを色の区間ごとにclipして塗る(マーカー色/再生済み)。バー個別のfillRectに戻さない。
 
 ## 設定パネルの部品ルール(v3.43.0)
-- 設定の選択肢は`.qn-stepper`(‹ 値 ›)だけを使う。ボタン列(セグメント)や別デザインの＋/−を新設しない。項目を足す時は`SETTING_DEFS`に{values,get,set,fmt}を足し、`settingsStepper(kind)`で置く。
+- 設定の選択肢は`.qn-stepper`(‹ 値 ›)だけを使う。ボタン列(セグメント)や別デザインの＋/−を新設しない。項目を足す時は`QNSettingsUI.build()`の行定義（type:"stepper"、{values,get,set,fmt}）で置く（`qn-settings-ui.js`冒頭に書式）。
 - `#loopPreRollControl`はindex.htmlで`.qn-stepper`のマークアップ。`#loopPreRollValue`は`textNode + .qn-stepper-unit`構造(player-controls.jsが`firstChild.textContent`を書き換える)なので構造を変えない。
 
 ## 設定UIの共通化(v3.44.0)
@@ -105,7 +105,7 @@
 - skipは`savePins`(localStorage)/トラックバックアップ(`skip`)/同期(`k`)に含める。新しいマーカー項目を足す時はこの3箇所とplayer-sync.jsの復元側を揃える。YouTubeアプリのマーカーは未対応。
 
 ## SPのアイコンバーとアプリ切替(v3.47.0)
-- アプリ切替はヘッダーのロゴ`#qnAppLogoBtn`(index.htmlにある。PC/SP共通。v3.50.0〜サイドバーのバッジ`#qnAppBadge`とSPの`#qnAppSwitchBtn`は撤去済み)。フライアウトはロゴの真下に出るドロップダウン(`positionFlyout()`がロゴの矩形基準。z-index 450=サイドバー400より上。幕は透明)。**開いている間は`shiftHostForFlyout()`が`#qnAppHost`をtransformで下へずらす**(YouTubeプレイヤーを覆わない規約対応。はみ出す下側はclip-pathで切る。空いた上側は`#qnAppShiftCover`で塞ぎ裏のPLAYERを見せない)。フライアウトの高さや位置を変えたらこのずらし量も確認。外側タップ判定の除外に`#qnAppLogoBtn`を含めること。表示名はqn-apps.jsの`BRAND`(YouTubeアプリは規約上グレーになりうるので名前に「YouTube」を入れない)。
+- アプリ切替はヘッダーのロゴ`#qnAppLogoBtn`(index.htmlにある。PC/SP共通。サイドバーのバッジやSP専用の切替ボタンは無い)。フライアウトはロゴの真下に出るドロップダウン(`positionFlyout()`がロゴの矩形基準。z-index 450=サイドバー400より上。幕は透明)。**開いている間は`shiftHostForFlyout()`が`#qnAppHost`をtransformで下へずらす**(YouTubeプレイヤーを覆わない規約対応。はみ出す下側はclip-pathで切る。空いた上側は`#qnAppShiftCover`で塞ぎ裏のPLAYERを見せない)。フライアウトの高さや位置を変えたらこのずらし量も確認。外側タップ判定の除外に`#qnAppLogoBtn`を含めること。表示名はqn-apps.jsの`BRAND`(YouTubeアプリは規約上グレーになりうるので名前に「YouTube」を入れない)。
 - SPのアイコンバーは`overflow-x:hidden`+各タブ`flex:1 1 0`(v3.48.0でSeekbarタブ撤去=5タブ)。ラベル(span)は`.active`/`.qn-app-active`以外を`visibility:hidden`(`display:none`にすると選択でバーの高さが変わる)。タブを増やす時は幅(6〜7個まで)を確認。
 - SPヘッダーのバージョン表記(`#appVersion`)はCSSで非表示。確認は設定の最下段(`QNSettingsUI.versionLine()`)。
 
@@ -119,7 +119,7 @@
 - 並びは`.pin-act-cell`内でSKIP→HIDE→編集、その右の`.pin-del-zone`が削除選択タイル(中に`.del-btn`+`.pin-del-tile`。`.del-btn`はEDIT中は非表示で`pcv2-selected`の持ち主、タイルは兄弟結合子`.del-btn.pcv2-selected + .pin-del-tile`で赤になる)。選択のクリックは従来通り`.pin-del-zone`をキャプチャで拾う。
 - SKIP/HIDEは背景なし+`border-left`の区切り線。ON(`.is-on`)はsvg/spanをopacity .35。編集/削除タイルだけ背景付き。
 - スワイプトレイ(player-swipe.jsのmarkers)は編集+削除のみ。`mskip`/`hide`のトレイ用スタイルは未使用(QN_ROW_ACT自体はボタン用に使用)。
-- FAB(Markers): `#pcV2DeleteSelectedBtn`は作らず、同じ位置に`#pcV2MarkersCancelBtn`。`#pcV2MarkersEditBtn`は編集中に選択0=OK/1以上=Delete(`syncMarkersEditBtn`、`syncSelectionButtons`から呼ぶ)。Playlist側のFABは従来通り。
+- FAB(Markers): `#pcV2DeleteSelectedBtn`は作らず、同じ位置に`#pcV2MarkersCancelBtn`。`#pcV2MarkersEditBtn`は編集中に選択0=OK/1以上=Delete(`syncSelectionButtons`が切り替える)。Playlist側のFABは従来通り。
 - v3.52.1: 行ボタンは50px正方形(行のmin-height 50px=ボタン高)。`.pinItem`のcolumn-gap 8pxは編集EDIT時に`.pin-act-cell{margin-right:-8px}`で打ち消し、タイル同士を密着。
 
 ## 文言ルールとLibraryの行(v3.53.0)
@@ -190,7 +190,7 @@
 
 - **SP(v4.11.0〜): 下段バー`#pcV2BottomBar`は常に非表示(display:none)だが、操作元のボタン(#prevTrackBtn/#setABtn等)はDOMに残す。** ドック・波形ヘッダー(`#pcV2WaveHeadBtns`)・A/B(`#pcV2FabSetA/B`)は`.click()`で中継するミラー。ボタンの新設/撤去はミラー側と`player-quickpop.js`のTARGETSも見ること。設定帯(`.qn-wave-bar-strip`)はSPで`#pcV2MorePanel`、PCで`#pcV2WaveFabRow`(syncMoreExtras)。
 
-- repeatMode は "off"|"one"|"folder"|"all" の4値(v4.11.2〜)。Auto Next範囲の別設定(`qn_autonext_scope`/getAutoNextScope)は参照されなくなった(残置のみ)。folder=今の曲と同じフォルダ内を折り返し、all=全体を折り返し、off=全体を順送りで端で停止。SPヘッドのミラーボタンは本体ボタンの`svg`に加え`.repeat-one-badge`もコピーすること(でないと"1"/"F"が出ない)。
+- repeatMode は "off"|"one"|"folder"|"all" の4値(v4.11.2〜)。Auto Next範囲の別設定は無い(範囲はrepeatModeで決まる。旧キー`qn_autonext_scope`は読まない)。folder=今の曲と同じフォルダ内を折り返し、all=全体を折り返し、off=全体を順送りで端で停止。SPヘッドのミラーボタンは本体ボタンの`svg`に加え`.repeat-one-badge`もコピーすること(でないと"1"/"F"が出ない)。
 
 - **Speedの時間伸縮はSoundTouchに任せる**(v4.14.1〜 `updatePlaybackRate`)。audio要素は`preservesPitch=false`で速度だけ変え、SoundTouchは`pitch=1`+`playbackRate=速度`(ライブラリ本来の使い方)。以前は`preservesPitch=true`+`pitch=速度`で相殺していたが、iOS(WebKit)はWeb Audio経由だとブラウザ側の伸縮が効かず、遅くした分の音が足りない=隙間(スライサーのようなプツプツ)になった。Chromeでは再現しないので実機確認。戻す手段は`?stretch=native`。
 

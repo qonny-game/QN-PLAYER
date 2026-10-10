@@ -465,9 +465,6 @@
 }
 
 
-#pcV2PanelBody #exportCancelBtn {
-  display: none;
-}
 
 
 :is(#pcV2PanelBody, .qn-yt-sec-backup, .qn-pt-sec-backup, .qn-yt-sec-import, .qn-pt-sec-import) .export-run-btn {
@@ -491,68 +488,20 @@
 }
 
 
-#pcV2PanelBody .export-range-options,
-#pcV2PanelBody .export-format-options,
-#pcV2PanelBody .export-effect-options {
-  display: flex;
-  gap: 0;
-  flex-wrap: nowrap;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-}
 
 
-#pcV2PanelBody .export-radio-row,
-#pcV2PanelBody .export-checkbox-row {
-  flex: 1;
-  justify-content: center;
-  padding: 9px 4px;
-  background: none;
-  border: none;
-  border-radius: 0;
-  border-right: 1px solid var(--border-subtle);
-  color: var(--icon-muted);
-  font-size: var(--fs-small);
-}
 
 
-#pcV2PanelBody .export-radio-row:last-child,
-#pcV2PanelBody .export-checkbox-row:last-child {
-  border-right: none;
-}
 
 
-#pcV2PanelBody .export-radio-row:hover,
-#pcV2PanelBody .export-checkbox-row:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: var(--border-subtle);
-}
 
 
-#pcV2PanelBody .export-radio-row:has(input:checked),
-#pcV2PanelBody .export-checkbox-row:has(input:checked) {
-  background: var(--accent-primary);
-  color: var(--text-pure-white);
-  font-weight: 600;
-}
 
 
-#pcV2PanelBody .export-radio-row input,
-#pcV2PanelBody .export-checkbox-row input {
-  display: none;
-}
 
 
-#pcV2PanelBody:has(#exportRangeAll:checked) #exportMarkerRangeSelects {
-  display: none;
-}
 
 
-#pcV2PanelBody .export-marker-select {
-  background: none;
-  border: 1px solid var(--border-subtle);
-}
 
 
 #pcV2PanelBody .export-filename-input {

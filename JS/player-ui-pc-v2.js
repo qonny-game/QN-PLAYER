@@ -1083,12 +1083,6 @@
       }
     }
 
-    // 【v3.24.0】Library見出しに置いたAuto Nextスコープボタンを、ヘッダーを消す前に退避(innerHTML=""で破棄されるため)
-    const scopeBtnEl = document.getElementById("playlistScopeBtn");
-    if (scopeBtnEl && textControlsHolder && panelHeader.contains(scopeBtnEl)) {
-      textControlsHolder.appendChild(scopeBtnEl);
-    }
-
     // 【v2.15.1】前回の中身は#pcV2PanelStash(非表示の退避場所)へ移す。innerHTML=""で切り離すと#pinList/#playlistBox/#noteTextArea等がdocumentから消え、曲切替時の更新が空振りして前の曲が表示される(GOTCHAS.md)
     stashPanelContents(panelBody);
     panelBody.innerHTML = "";
@@ -1136,9 +1130,7 @@
         if (playlistBody) panelBody.appendChild(playlistBody);
         attachDisableGuard("playlist");
         panelBody.appendChild(buildPanelFab(panelId));
-        if (scopeBtnEl) panelHeader.appendChild(scopeBtnEl);
         placeLibraryAddGroup();
-        if (typeof syncAutoNextScopeButton === "function") syncAutoNextScopeButton();
       } else if (panelId === "text") {
         if (textBody) panelBody.appendChild(textBody);
         setupTextPanelHeaderControls();

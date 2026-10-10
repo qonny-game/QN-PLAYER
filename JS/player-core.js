@@ -234,7 +234,6 @@ async function loadAllPlaylistTracks() {
 // playlist[]は常に「フォルダ順にグループ化」した状態を保つ(normalizePlaylistGrouping)。→ 行のdata-index=配列indexのまま、選択/削除/ドラッグ/Auto Nextの既存ロジックがindexベースで動く。未分類は末尾グループ。
 // 曲ごとのfolderはqn_playlist_meta_v1(localStorageのみ。IndexedDBの音声レコードは書かない=GOTCHAS)
 const FOLDERS_KEY = "qn_folders_v1";
-const AUTONEXT_SCOPE_KEY = "qn_autonext_scope";
 let playlistFolders = readPlaylistFolders();
 
 function readPlaylistFolders() {
@@ -380,21 +379,6 @@ function moveTracksToFolder(indices, folderId) {
   normalizePlaylistGrouping();
   if (current) currentPlaylistIndex = playlist.indexOf(current);
   persistPlaylistOrder();
-}
-
-// Auto Nextの範囲: "folder"=今の曲と同じフォルダ内だけ / "all"=ライブラリ全体。フォルダが無い間は結果が同じ
-function getAutoNextScope() {
-  try {
-    return localStorage.getItem(AUTONEXT_SCOPE_KEY) === "all" ? "all" : "folder";
-  } catch (e) {
-    return "folder";
-  }
-}
-
-function setAutoNextScope(scope) {
-  try {
-    localStorage.setItem(AUTONEXT_SCOPE_KEY, scope === "all" ? "all" : "folder");
-  } catch (e) {}
 }
 
 // playlistの並びをsavedAtへ反映(連番)。Blobに触れず軽量更新のみ。savePlaylistTrack()で全曲書き直すと重くフリーズする

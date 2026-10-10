@@ -366,7 +366,6 @@ function renderPlaylist() {
   if (window.QNLibSync) window.QNLibSync.decorateLibrary(box, editMode);
   renderNowPlaying();
 
-  syncAutoNextScopeButton();
   setupPlaylistDragReorder(box);
   setupFolderDragReorder(box);
   if (typeof window.playlistReapplySelection === "function") window.playlistReapplySelection();
@@ -489,31 +488,6 @@ function addPlaylistFolderInteractive() {
   if (field && typeof field.startEdit === "function") field.startEdit();
   return folder;
 }
-
-// Auto Nextの範囲ボタン(Libraryの見出し行)。フォルダが1つも無い間は隠す
-function syncAutoNextScopeButton() {
-  const btn = document.getElementById("playlistScopeBtn");
-  if (!btn) return;
-  const has = playlistFolders.length > 0;
-  btn.hidden = !has;
-  if (!has) return;
-  const scope = getAutoNextScope();
-  const label = scope === "folder" ? "NEXT: FOLDER" : "NEXT: ALL";
-  const txt = btn.querySelector(".playlist-scope-label");
-  if (txt && txt.textContent !== label) txt.textContent = label;
-  btn.dataset.scope = scope;
-  btn.title = scope === "folder" ? "Auto Next: 同じフォルダ内だけ（タップで全体に切替）" : "Auto Next: ライブラリ全体（タップでフォルダ内に切替）";
-}
-
-(function setupAutoNextScopeButton() {
-  const btn = document.getElementById("playlistScopeBtn");
-  if (!btn) return;
-  btn.addEventListener("click", () => {
-    hapticTap();
-    setAutoNextScope(getAutoNextScope() === "folder" ? "all" : "folder");
-    syncAutoNextScopeButton();
-  });
-})();
 
 // 曲の移動先ピッカー(EDIT時のMOVEボタンから)。anchorの上に小さなメニュー。onPick(folderId|null)
 function showFolderPicker(anchor, onPick) {

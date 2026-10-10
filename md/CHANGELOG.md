@@ -120,3 +120,6 @@
 - 4.21.0 PC版サイドバー: Controlを下段(Settingsの上)へ移動。上段は曲固有のLibrary/Markers/Text/Stem、下段はプレイヤー設定のControl/Settings。
 - 4.21.1 SP: Moreを波形の上に重ねて開く(波形を縮めない)。
 - 4.22.0 SP: Moreは5秒間操作(パネル内・ドック)がなければ自動で閉じる。
+- 4.22.1 お掃除。旧Export機能の残りCSS(`.export-format-*`/`.export-marker-*`/`.export-checkbox-row`/`.export-radio-row`ほか)、旧ミキサーの`.pcv2-mix-btn`/`.pcv2-mix-keyrow`、`.av-toggle-btn`、`.qn-yt-mix-head/-label`、`.skip-off`、Auto Nextスコープボタン一式(`syncAutoNextScopeButton`・`getAutoNextScope`ほかJS、`.playlist-scope-btn`)を削除(見た目の差分0)。ガイドを現状に合わせて更新(バー長=1秒刻み・Fit、Rows=自動/3〜12、Stemと録音の節、サイドメニューの並び、SPのMore、保存先表にStem)。利用規約・プライバシーポリシーにStem/録音/マイク、Hugging Face・jsDelivrへの通信、YouTube APIキーの端末内保存を追記(最終改定2026-10-10)。mdの食い違いを修正(ファイルマップ・読み込み順・保存キー・SYNC・削除済みIDの記述)、`md/USER_DOCS.md`(ガイド・規約・料金の更新ルール)と`md/tools/`(掃除用スクリプト)を追加。
+- 4.22.2 開発用の道具を追加(`md/tools/`: `release.py`=確認・版上げ・パッチZIP/完全版ZIPを一括、`qnbrowser.py`=ブラウザ確認の共通土台、`compare_snap.py`、`i18n_check.py`、`smoke.py`/`snap.py`/`md_audit.py`を改良)。使い方は`md/TOOLS.md`。アプリ本体の変更なし。
+- 4.22.3 `smoke.py`を拡張(PC 1920・SP 360を追加、tuner/pitch/youtube/playerのアプリ切替も確認)。全項目でエラー0、アプリ本体の変更なし。

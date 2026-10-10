@@ -5,7 +5,7 @@
 
 ---
 
-## JS/player-ui-pc-v2.js（約2300行。IIFE 2つ：本体 ＋ 末尾の旧PC用処理）
+## JS/player-ui-pc-v2.js（約1600行。IIFE 2つ：本体 ＋ 末尾の旧PC用処理）
 
 ### 骨組み・初期化（起動時に1回）
 - `build()` — DOM骨組み全体（アイコンバー`ICON_ITEMS`・パネル・波形エリア・下段バー・PLAY/MARKERアンカータブ）を組み立て、`.app-container`直後に挿入。**新しいサイドメニュー項目・下段バーのボタンを足す起点。**
@@ -21,7 +21,7 @@
 ### パネル開閉・切替
 - `handleIconClick(item)` — アイコン押下の分岐（`"action"`=Add File、`"close"`、他は`openPanelOverlay`）。
 - `openPanelOverlay(panelId)` / `closePanelOverlay()` — パネルの開閉（SP幅はオーバーレイ）。
-- `switchPanel(panelId)` — **最大の関数。** パネル中身をControl/Markers/Library/Text/Export/Backup/Import/Keyboard/Colorへ切替。新しいパネル種別はここに分岐を足す。Backup/Importは`qnBackupMount`で借りる（`build()`は部品を`qnBackupParts()`で取得）。
+- `switchPanel(panelId)` — **最大の関数。** パネル中身をControl/Markers/Library/Text/Stem/Backup/Import/Transfer/Settings/Keyboard/Colorへ切替。新しいパネル種別はここに分岐を足す。Backup/Importは`qnBackupMount`で借りる（`build()`は部品を`qnBackupParts()`で取得）。
 - `getPanelStash()` / `stashPanelContents(panelBody)` — 切替時、使い回す実体を`#pcV2PanelStash`へ退避（パネルに新しい実体を足したら対象に加える）。
 - `buildPanelFab(panelId)` — 右下FAB（ADD AUDIO/ADD MARKER/EDIT/Delete）。
 
@@ -31,7 +31,7 @@
 - `clearSelectionVisuals` / `deleteSelectedItems`（フェード演出）/ `performDelete`（実データ削除。IndexedDBも消す）
 
 ### 下段バーのエフェクトボタン・その他連携
-- `appendEqDivider` / `toggleBottomBarEffect` / `syncBottomBarEffectButton` / `syncAllBottomBarEffectButtons` / `setupControlPanelEffectSync` — Controlパネルのトグルと下段バーのSpeed/Key/EQボタンの同期。
+- `appendEqDivider` — 下段バーのEQ区切り。
 - `setupTextPanelHeaderControls()` — Textパネルのヘッダー操作。
 - `qnSectionSelector` / `tryClaimQnSections` / `renderQnMenuSectionPanel` — `player-theme.js`のKeyboard/Colorセクションをパネルとして表示。
 - `activate()` — PC v2構築(`build()`)＋`body.pc-v2-active`付与。常時有効で、旧レイアウトへ戻す処理は無い。

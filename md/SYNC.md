@@ -1,6 +1,6 @@
 # QNPLAYER 同期（Firebase）
 
-現状：**YouTubeのLibraryだけ・自分のUIDだけ**。QNPLAYER本体のデータ同期は未実装（`qnplayer-sync-plan.md`のステップ4）。
+現状：このファイル前半＝YouTubeのLibrary同期（`SYNC_UIDS`のUIDのみ）。本体のLibrary同期とP2P転送は後半の各節（v3.28.0〜、`player-sync.js` / `player-p2p.js`）。
 
 ## 構成
 - ログインは既存の`JS/player-auth.js`（Firebase Auth Googleログイン）。Firestoreも同じ`db`。

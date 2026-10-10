@@ -34,7 +34,7 @@
 </ul>
 
 <h2 id="seekbar">波形シークバー</h2>
-<p>曲を 1 行 3 秒〜4 分に区切って、縦に並べています。行の左には、その行の開始時刻が出ます。</p>
+<p>曲を 1 行ずつに区切って、縦に並べています。行の左には、その行の開始時刻が出ます。</p>
 <div class="g-fig-row"><figure class="g-fig"><img src="img/pc-seekpop.webp" alt="タップした位置の操作ポップアップ" loading="lazy"><figcaption>タップした位置の操作ポップアップ</figcaption></figure><figure class="g-fig"><img src="img/pc-markerpop.webp" alt="マーカーの線をタップしたポップアップ" loading="lazy"><figcaption>マーカーの線をタップしたポップアップ</figcaption></figure></div>
 <ul>
   <li><strong>タップ</strong>：その位置から再生します。同時に、ポップアップが開きます。</li>
@@ -43,7 +43,7 @@
   <li>マーカーの線をタップすると、Start、End、Loop、Marker（削除）、Color、Skip、Hide のポップアップが開きます。</li>
   <li>マーカーと A・B の旗は、ドラッグして動かせます。</li>
   <li>スマートフォンでは、<strong>長押し</strong>でマーカーを追加、<strong>横スワイプ</strong>でスクラブ、再生中の<strong>ダブルタップ</strong>でその位置で停止します。</li>
-  <li>表示の調整は、Settings の「シークバー」で行います。バーの長さ（1 本の秒数）は 5、10、15、20、25、30、45、60 秒から、波形の形はミラーか下揃えから選びます。再生位置への追従を切ると、再生しても画面は自動でスクロールしません。自分でスクロールしたあとは、設定した秒数だけ追従を止めます。</li>
+  <li>表示の調整は、Settings の「シークバー」で行います。バーの長さ（1 本の秒数）は 1 秒刻みのスライダーで、波形の形はミラーか下揃えから選びます。バーの長さの横の「Fit」を押すと、曲全体が画面の行数に収まる最小の長さになります。再生位置への追従を切ると、再生しても画面は自動でスクロールしません。自分でスクロールしたあとは、設定した秒数だけ追従を止めます。</li>
 </ul>
 
 <h2 id="markers">マーカー</h2>
@@ -109,6 +109,26 @@
 <ul>
   <li>曲ごとに、歌詞やメモを書けます。<strong>Edit</strong> を押して入力し、<strong>OK</strong> で確定します。</li>
   <li><strong>Full</strong> で全画面表示になり、文字の大きさを変えられます。</li>
+</ul>
+
+<h2 id="stem">Stem（パート分離・録音）</h2>
+<div class="g-note"><span class="g-note-title">お知らせ</span>Stem は、今のところパソコン専用です。スマートフォンの画面幅では使えません。QNVIDEO（YouTube）の動画にも使えません。</div>
+<p>再生中の曲を、ボーカルやドラムなどのパートに分けて、パートごとに音量を変えたり、消したりして練習できます。処理はブラウザの中で行い、音声は外部に送信されません。</p>
+<ul>
+  <li>サイドメニューの <strong>Stem</strong> を開き、Library で曲を選んでから、<strong>4 parts</strong> または <strong>6 parts</strong> を選んで分離を始めます。4 パートは Vocals・Drums・Bass・Other、6 パートはこれに Guitar と Piano が加わります。</li>
+  <li>初回だけ、分離に使うモデルのデータ（数百 MB 程度）をダウンロードします。ブラウザに保存されるので、2 回目以降は再ダウンロードしません。通信量にご注意ください。</li>
+  <li>処理時間は、お使いの端末によって大きく変わります。WebGPU に対応した環境では速く、対応していない環境では CPU で処理するため遅くなります。長い曲は処理できないことがあります（目安：4 パートは 12 分、6 パートは 10 分まで）。</li>
+  <li>分離した結果は、曲ごとにブラウザ内に保存されます。<strong>Delete saved parts</strong> で消せます。</li>
+  <li><strong>Stem mode</strong> をオンにすると、元の音源の代わりに、分離したパートが再生されます。パートごとに、<strong>Volume</strong>、<strong>Mute</strong>、<strong>Solo</strong> を使えます。パートごとの波形をクリックすると、その位置へ移動します。</li>
+  <li>Volume は 0〜100 で、70 が元の音量です。100 にすると、元の約 3 倍まで大きくできます。</li>
+  <li>Stem mode のあいだ、EQ と Key は効きません。Speed、シーク、ループ、マーカーは、いつもどおり使えます。</li>
+</ul>
+<h3>録音（Rec 1〜4）</h3>
+<ul>
+  <li>曲を再生しながら、マイクで録音できます。<strong>Record</strong> で始め、<strong>Stop</strong> で止めます。録音は 4 本まで残せます。初回はブラウザからマイクの許可を求められます。</li>
+  <li>スピーカーの音を拾わないよう、ヘッドホンを使ってください。</li>
+  <li>録音が曲より遅れる、または早いときは、トラックごとの <strong>Delay</strong>（−500〜+500 ms）で合わせます。録り直すときは <strong>Re-record</strong> です。</li>
+  <li>録音も、曲ごとにブラウザ内に保存されます。</li>
 </ul>
 
     <div class="g-pager"><a class="prev" href="screen.html"><small>前のページ</small>画面の見かた</a><a class="next" href="data.html"><small>次のページ</small>保存・バックアップ・同期</a></div>

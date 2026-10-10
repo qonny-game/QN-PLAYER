@@ -541,10 +541,7 @@ html {
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-mute .pcv2-mix-ico-off, #pcV2MorePanel #pcV2BarMixer .pcv2-mix-mute.is-muted .pcv2-mix-ico-on { display: none; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-mute.is-muted .pcv2-mix-ico-off { display: block; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-mute.is-muted { color: var(--accent-primary, #3b82f6); }
-  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-keyrow { display: flex; align-items: center; justify-content: space-between; height: 36px; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-keyval { min-width: 32px; text-align: center; font-size: 15px; }
-  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-btn { width: 40px; height: 34px; padding: 0; border: 1px solid var(--border-subtle); border-radius: 8px; background: none; color: var(--icon-muted); font-size: 17px; line-height: 1; }
-  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-btn:active { transform: scale(0.94); }
 }
 
 /* Library: Audio/Folderはパネルタイトルの右(ヘッダー内)に横並びで小さく(PC/SP共通。v4.11.1) */
@@ -565,9 +562,7 @@ html {
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--text-bright, #fff); border: none; box-shadow: none; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--text-bright, #fff); border: none; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-item[data-mix="key"] { width: 112px; }
-  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-btn { width: 32px; height: 30px; font-size: 16px; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-keyval { min-width: 28px; font-size: 14px; }
-  #pcV2MorePanel #pcV2BarMixer .pcv2-mix-keyrow { height: 30px; }
   .pcv2-head-btn { position: relative; }
   .pcv2-head-btn .repeat-one-badge { top: 4px; right: 4px; left: auto; transform: none; width: 13px; height: 13px; font-size: 9px; }
   .pcv2-head-btn .repeat-folder-badge { font-size: 8px; }
@@ -589,10 +584,8 @@ html {
 #pcV2Layout #pcV2BarMixer .pcv2-mix-head { display: flex; align-items: baseline; justify-content: flex-start; gap: 6px; }
 #pcV2Layout #pcV2BarMixer .pcv2-mix-label { font-size: var(--fs-small); color: var(--icon-muted); white-space: nowrap; }
 #pcV2Layout #pcV2BarMixer .pcv2-mix-val, #pcV2Layout #pcV2BarMixer .pcv2-mix-keyval { font-size: var(--fs-small); font-weight: 700; color: var(--text-bright); min-width: 0; text-align: left; font-variant-numeric: tabular-nums; }
-#pcV2Layout #pcV2BarMixer .pcv2-mix-keyrow { justify-content: space-between; }
 
 /* v4.11.3: Keyもスライダー(Volume/Speedと同一外観)。SPはSpeedと半分ずつ */
-#pcV2Layout #pcV2BarMixer .pcv2-mix-keyrow, #pcV2Layout #pcV2BarMixer .pcv2-mix-btn { display: none; }
 #pcV2BarMixer .pcv2-mix-key .pcv2-mix-range { width: 100%; }
 @media (max-width: 900px) {
   #pcV2MorePanel #pcV2BarMixer { grid-template-columns: 1fr 1fr; }

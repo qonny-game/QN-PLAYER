@@ -337,10 +337,6 @@ body.dragover #dropOverlay {
   flex-shrink: 0;
 }
 
-.playlistItem .playlist-skip-toggle.skip-off {
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
-}
 
 /* DELETE選択中はPLAY/SKIPトグルを押せない(押すと選択がリセットされるため。disabled属性はplayer-ui-pc-v2.js/player-playlist.jsが切替) */
 .playlistItem .playlist-skip-toggle:disabled {
@@ -348,7 +344,7 @@ body.dragover #dropOverlay {
   cursor: not-allowed;
 }
 
-/* ---------- 【v3.24.0】フォルダ見出し(.playlistFolderHeader)・Auto Nextスコープボタン・移動ピッカー ---------- */
+/* ---------- 【v3.24.0】フォルダ見出し(.playlistFolderHeader)・移動ピッカー ---------- */
 .playlistFolderHeader {
   display: flex;
   align-items: center;
@@ -434,10 +430,6 @@ body.dragover #dropOverlay {
 }
 .playlistItem.drop-target-row { background: var(--bg-hover-subtle); }
 
-/* Libraryヘッダー右のAuto Nextスコープ(.mini-reset-btnを流用) */
-.playlist-scope-btn { gap: 6px; }
-.playlist-scope-btn[hidden] { display: none; }
-.playlist-scope-btn svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
 
 .playlist-folder-picker {
   position: fixed;
