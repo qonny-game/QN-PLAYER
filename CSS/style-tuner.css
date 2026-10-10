@@ -267,18 +267,21 @@
 .qn-tn-meter[data-state="far"] .qn-tn-needle line { stroke: var(--danger, #ef4444); }
 .qn-tn-meter[data-state="far"] .qn-tn-needle circle { fill: var(--danger, #ef4444); }
 
-.qn-tn-gm { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; max-width: 360px; }
+.qn-tn-gm { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; max-width: 960px; }
 .qn-tn-gm-note {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 56px;
+  font-size: clamp(72px, 16vh, 140px);
   font-weight: 700;
   line-height: 1;
-  min-height: 62px;
+  min-height: clamp(80px, 17vh, 150px);
   color: var(--text-bright);
 }
-.qn-tn-gm-meter { display: flex; align-items: flex-end; gap: 6px; height: 60px; }
-.qn-tn-dot { width: 8px; height: 24px; border-radius: 4px; background: rgba(255, 255, 255, 0.1); }
-.qn-tn-dot.center { width: 10px; height: 60px; background: rgba(255, 255, 255, 0.16); }
+/* 81本(1.25¢刻み)。幅いっぱいに均等割り。5¢ごと(.q)・10¢ごと(.m)は背を高く */
+.qn-tn-gm-meter { display: flex; align-items: flex-end; gap: 2px; width: 100%; height: clamp(72px, 14vh, 120px); }
+.qn-tn-dot { flex: 1 1 0; min-width: 1px; height: 36%; border-radius: 2px; background: rgba(255, 255, 255, 0.1); }
+.qn-tn-dot.q { height: 52%; }
+.qn-tn-dot.m { height: 68%; }
+.qn-tn-dot.center { flex: 2 1 0; height: 100%; background: rgba(255, 255, 255, 0.16); }
 .qn-tn-dot.active { background: var(--danger, #ef4444); }
 .qn-tn-gm-freq { font-size: var(--fs-heading); font-weight: 500; color: var(--icon-muted); }
 .qn-tn-gm[data-state="just"] .qn-tn-dot.active { background: var(--qn-tn-just); box-shadow: 0 0 12px var(--qn-tn-just-glow); }

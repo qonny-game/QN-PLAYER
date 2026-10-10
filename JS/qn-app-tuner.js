@@ -175,7 +175,8 @@
     }).join("");
   }
 
-  var GM_STEP_CENTS = 5, GM_STEPS = 10;
+  // Guitar Meter: ±50¢を1.25¢刻み(片側40・計81本)。5¢ごとの本は背が高い(.q)、10¢ごと(.m)はさらに高い
+  var GM_STEP_CENTS = 1.25, GM_STEPS = 40;
   var displayStyles = {
     gauge: {
       label: "Gauge", barLabel: "Gauge",
@@ -221,7 +222,7 @@
       label: "Guitar Meter", barLabel: "Meter",
       render: function (box) {
         var dots = "";
-        for (var i = -GM_STEPS; i <= GM_STEPS; i++) dots += '<div class="qn-tn-dot' + (i === 0 ? " center" : "") + '" data-step="' + i + '"></div>';
+        for (var i = -GM_STEPS; i <= GM_STEPS; i++) dots += '<div class="qn-tn-dot' + (i === 0 ? " center" : (i % 8 === 0 ? " m" : (i % 4 === 0 ? " q" : ""))) + '" data-step="' + i + '"></div>';
         box.innerHTML =
           '<div class="qn-tn-gm" data-d="wrap">' +
             '<div class="qn-tn-gm-note" data-d="note">—</div>' +
