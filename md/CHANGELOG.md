@@ -125,3 +125,6 @@
 - 4.22.3 `smoke.py`を拡張(PC 1920・SP 360を追加、tuner/pitch/youtube/playerのアプリ切替も確認)。全項目でエラー0、アプリ本体の変更なし。
 - 4.23.0 YouTubeのLibraryでフォルダを見出しのつまみのドラッグで並び替え可能に(`attachFolderReorder`)。PITCHのFiltersとTUNERのSensitivity/Smoothingを設定パネルと同じ「項目名＋説明」の表示に統一(`QNSettingsUI`に連続値バー`type:"range"`を追加、TUNERは「‹ 値 ›」、各項目に説明を追加)。前/次マーカーの長押しで前/次のトラックへ(ポップアップ無しの即実行。`QNQuickPop`定義が`{action}`を返せる)。シークバー上のタイトルを上下スワイプで前/次のトラック(`QNApps.vSwipe`)。Repeatと前/次マーカーの右下◢を削除。SPのシークバー上のタイトルをLibraryの再生中の曲名と同じ見た目にし、Libraryと同じ曲名を表示。Speed/Keyのバーはダブルクリック/ダブルタップで初期値(`bindDoubleReset`)。PITCH/TUNERのマイクONは確認済み(問題なし)。ガイドとTips・mdを更新。
 - 4.24.0 シークバー上の曲名をLibraryの1行と同一表示に（PCはSKIP/PIN/EDIT追加）
+- 4.24.1 ツール整備(qa.py追加、監査系の引数省略対応)
+- 4.24.2 TUNER: 表示保持を感度から独立(約1.5秒)、感度は最小音量に
+- 4.25.0 TUNER: Hold設定(推奨マーク付き)、再生スピード下限0.25

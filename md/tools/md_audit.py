@@ -1,7 +1,7 @@
 # 使い方: python3 -I md_audit.py <ルート>  — mdが挙げるファイル名/関数名/idがコードに残っているか。
 # CHANGELOGは履歴なので対象外。CLEANUP.mdの履歴(§7)は消えた名前が出て正常。指摘があれば終了コード1
 import re,glob,os,sys
-root=sys.argv[1]
+root=sys.argv[1] if len(sys.argv)>1 else "."
 code=''
 for f in glob.glob(root+'/JS/**/*.js',recursive=True)+glob.glob(root+'/CSS/*.css')+[root+'/index.html']:
     if f.endswith('jszip.min.js'): continue

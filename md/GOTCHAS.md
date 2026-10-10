@@ -166,7 +166,7 @@
 - 英語のソース文言を足したら`qn-i18n-ja.js`に日本語を足す(辞書に無い英語はそのまま出る)。アイコンボタンのラベル/パネル見出しは足さない(KEEP_SEL)。
 - ユーザーデータと同じクラスのボタンを作る時は`DATA_SEL`に当たらないか注意(例: プリセットチップ)。
 - 【v3.61.0】設定のステッパー(`QNSettingsUI`)は端でループする(矢印は無効化しない)。Quickpopの連続値(±)はループさせない。
-- 【v3.61.0】Speedは0.50/0.75/1.00/1.25/1.50の±0.02で吸着(`handleSpeedRangeInput`が入口。PCバーミキサーも同じ関数を通す)。Controlパネルの効果ON/OFFは`.glow-switch`、OFF時のバーは`.is-effect-off`(無彩色)。KeyはレンジのみでKey用の自作フィルバーは廃止。
+- 【v3.61.0】Speedは0.25/0.50/0.75/1.00/1.25/1.50(下限0.25は4.24.3〜)の±0.02で吸着(`handleSpeedRangeInput`が入口。PCバーミキサーも同じ関数を通す)。Controlパネルの効果ON/OFFは`.glow-switch`、OFF時のバーは`.is-effect-off`(無彩色)。KeyはレンジのみでKey用の自作フィルバーは廃止。
 - 【v3.61.0】Backup: YouTubeは曲単位で選ばず「YouTube各種データ」(`#trackBackupIncludeYoutube`)で全件出力。ラベルは「PLAYER音声データ」「ユーザー設定データ」。
 - VIDEOのLibrary/Markersの行・選択タイル・FAB(Cancel/OK→Delete)はPLAYERの部品を共用。`style-markers.css`/`style-pcv2-panels.css`の`#pcV2PanelBody …`ルールは`:is(PLAYER側, .qn-yt側)`で両方に効く形。PLAYER側だけ直したつもりで消さない・VIDEO専用の行CSSを新設しない。
 - 波形の行(.vbar)に動的に付ける要素(線・A/B旗・区間ハイライト・スキップ斜線)を増やしたら、player-bars.jsのstripRow(行を回収する時の掃除)にもクラスを足す。足し忘れると、行が使い回された時に古い要素が別の時刻の行に残る(SKIP斜線で実際に発生)。

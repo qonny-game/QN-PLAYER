@@ -1,6 +1,6 @@
 # 使い方: python3 -I css_audit.py <ルート>  — CSSのクラス/idでHTML・JSに参照が無いものを列挙（*付きは動的組み立ての可能性。消す前に目視）
 import re,sys,os,glob,collections
-root=sys.argv[1]
+root=sys.argv[1] if len(sys.argv)>1 else "."
 css_files=sorted(glob.glob(root+'/CSS/*.css'))
 code=''
 for f in glob.glob(root+'/JS/**/*.js',recursive=True)+[root+'/index.html']:

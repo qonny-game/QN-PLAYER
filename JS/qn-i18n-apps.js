@@ -9,6 +9,9 @@
     "検出": "Detection",
     "スコア": "Score",
     "マイク入力": "Mic input",
+    "表示": "Display",
+    "推奨": "Recommended",
+    "音が消えたあと、表示を残す時間。長いほどゆっくり消えます": "How long the reading stays after the sound stops. Longer fades more slowly",
     "この時間内に急に跳んだ音程を、ノイズとして飛ばします": "Skips pitch that jumps suddenly within this time, treating it as noise",
     "急な音程変化がこの大きさ以上なら、ノイズとみなします": "A sudden pitch change at least this large is treated as noise",
     "一瞬だけ跳ねる音程を取り除きます": "Removes pitch that spikes for only an instant",
@@ -163,6 +166,7 @@
     [/Markerは既にあります /g, "Marker already exists at "],
     [/ ・ /g, " · "],
     [/^(\d+) 半音$/g, "$1 semitones"],
+    [/^(\d+\.\d) 秒$/g, "$1 s"],
     [/(\d+)秒戻る \(J\)/g, "Back $1s (J)"],
     [/(\d+)秒進む \(L\)/g, "Forward $1s (L)"]
   ]);

@@ -9,7 +9,8 @@
 | `snap.py` ＋ `compare_snap.py` | 全要素の計算済みスタイルを書き出し、前後で比較（見た目を変えない作業の確認） |
 | `i18n_check.py` | 英語表示にして、日本語が残っている文言とページエラーを洗い出す |
 | `qnbrowser.py` | ブラウザ確認の共通土台（サーバー起動・PC/SP・無料版解除・言語指定・テスト音声生成・外部遮断・エラー収集・スクショ）。新しい確認スクリプトはこれを使って書く |
-| `css_audit.py` / `js_unused.py` / `md_audit.py` | お掃除用。未使用のCSS／未参照の関数／mdが挙げる名前がコードに残っているか（`CLEANUP.md`） |
+| `qa.py` | 出荷前の一括チェック（smoke・i18n・md_audit・js_unused・css_audit・release check を順に実行して末尾をまとめて表示）。長いので背景実行推奨 |
+| `css_audit.py` / `js_unused.py` / `md_audit.py` | お掃除用。引数なしならカレントがルート。未使用のCSS／未参照の関数／mdが挙げる名前がコードに残っているか（`CLEANUP.md`） |
 
 ## 標準の流れ
 1. 作業する（コード・必要なmdを直す）。

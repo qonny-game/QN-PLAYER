@@ -1,5 +1,5 @@
 // qn-settings-ui.js — 設定パネルの共通部品(PLAYER本体=player-ui-pc-v2.js / アプリ=qn-apps.jsの「Settings」が共用)。見た目はCSS/style-settings.css。
-// 使い方: const ui = QNSettingsUI.build([{ title, rows:[ {label,hint,type:"stepper",values(),get(),set(v),fmt(v)} | {label,hint,type:"switch",get(),set(on)} | {label,hint,type:"node",node} | {label,hint,type:"range",min,max,step,dec,unit,get(),set(v)}(連続値のバー。項目名・説明は上、バーと値は下の段) | {label,type:"note"}(説明文だけ。操作部なし) ] }]); host.appendChild(ui.el); 値が変わりうる時 ui.sync()。
+// 使い方: const ui = QNSettingsUI.build([{ title, rows:[ {label,hint,type:"stepper",values(),get(),set(v),fmt(v)} | {label,hint,type:"switch",get(),set(on)} | {label,hint,type:"node",node} | {label,hint,type:"range",min,max,step,dec,unit,get(),set(v),mark,markLabel}(連続値のバー。markで既定値に縦線とmarkLabelを表示、ダブルクリック/ダブルタップでmarkへ戻す。項目名・説明は上、バーと値は下の段) | {label,type:"note"}(説明文だけ。操作部なし) ] }]); host.appendChild(ui.el); 値が変わりうる時 ui.sync()。
 // 行には disabledWhen():boolean を付けられる(trueの間は薄く操作不可)。階層に入る一覧は QNSettingsUI.list([{id,label,icon}], onPick)。
 // ルール(GOTCHAS.md): 複数選択肢は必ず「‹ 値 ›」(stepper)、ON/OFFだけswitch。独自のボタン列やデザインを新設しない。依存なし(hapticTapがあれば使う)。
 window.QNSettingsUI = (function () {
@@ -61,6 +61,11 @@ window.QNSettingsUI = (function () {
     var inp = ctl.querySelector("input");
     ctl.querySelector(".qn-set-range-val").textContent = (d.dec ? Number(v).toFixed(d.dec) : String(v)) + (d.unit || "");
     inp.style.setProperty("--p", d.max > d.min ? ((v - d.min) / (d.max - d.min) * 100) + "%" : "0%");
+    var mk = ctl.querySelector(".qn-set-range-mark");
+    if (mk) {
+      mk.style.setProperty("--m", d.max > d.min ? ((d.mark - d.min) / (d.max - d.min)) : 0);
+      mk.classList.toggle("is-on", Math.abs(v - d.mark) < (d.step || 1) / 2);
+    }
   }
 
   // ボタンが行の操作部なら値を変えてtrueを返す(build/inline共通)
@@ -105,7 +110,13 @@ window.QNSettingsUI = (function () {
         else if (r.type === "switch") { info.ctl = make('<button type="button" class="qn-set-switch" role="switch" aria-checked="false"><span></span></button>'); ctl.appendChild(info.ctl); }
         else if (r.type === "range") {
           rowEl.classList.add("is-range");
-          info.ctl = make('<div class="qn-set-range-wrap"><input type="range" class="qn-set-range" aria-label=""><span class="qn-set-range-val"></span></div>');
+          info.ctl = make('<div class="qn-set-range-wrap"><div class="qn-set-range-box"><input type="range" class="qn-set-range" aria-label=""></div><span class="qn-set-range-val"></span></div>');
+          if (typeof r.mark === "number") {
+            var mk = make('<span class="qn-set-range-mark"><i></i><b></b></span>');
+            mk.querySelector("b").textContent = r.markLabel || "";
+            info.ctl.querySelector(".qn-set-range-box").appendChild(mk);
+            if (typeof bindDoubleReset === "function") bindDoubleReset(info.ctl.querySelector("input"), function () { r.set(r.mark); sync(); if (sections.onChange) sections.onChange(); });
+          }
           info.ctl.querySelector("input").setAttribute("aria-label", r.label);
           rowEl.appendChild(info.ctl);
           ctl.remove();

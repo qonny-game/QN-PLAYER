@@ -24,7 +24,14 @@
 .qn-set-row.is-range { flex-wrap: wrap; align-items: stretch; row-gap: 12px; }
 .qn-set-row.is-range .qn-set-label { flex: 1 1 100%; }
 .qn-set-range-wrap { display: flex; align-items: center; gap: 14px; flex: 1 1 100%; min-width: 0; padding-bottom: 4px; }
-.qn-set-range-wrap .qn-set-range { flex: 1; min-width: 0; width: auto; }
+.qn-set-range-box { flex: 1; min-width: 0; position: relative; padding-bottom: 0; }
+.qn-set-range-wrap .qn-set-range { display: block; width: 100%; }
+.qn-set-range-box:has(.qn-set-range-mark) { padding-bottom: 16px; }
+.qn-set-range-mark { position: absolute; top: 0; left: calc(8px + (100% - 16px) * var(--m, 0)); width: 0; height: 100%; pointer-events: none; }
+.qn-set-range-mark i { position: absolute; top: 2px; left: -1px; width: 2px; height: 14px; border-radius: 1px; background: var(--text-muted, #8a8a99); opacity: .9; }
+.qn-set-range-mark b { position: absolute; bottom: 0; left: 0; transform: translateX(-50%); font-size: var(--fs-micro, 10px); font-weight: 600; color: var(--text-muted, #8a8a99); white-space: nowrap; }
+.qn-set-range-mark.is-on i, .qn-set-range-mark.is-on b { color: var(--accent-primary); background: var(--accent-primary); }
+.qn-set-range-mark.is-on b { background: none; }
 .qn-set-range-val { width: 88px; flex: none; text-align: right; font-size: var(--fs-small); font-weight: 700; color: var(--text-bright); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .qn-set-switch {
   position: relative;

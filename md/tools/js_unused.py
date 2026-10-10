@@ -1,6 +1,6 @@
 # 使い方: python3 -I js_unused.py <ルート>  — 宣言のみで他に参照が無いJS関数を列挙
 import re,sys,glob,os
-root=sys.argv[1]
+root=sys.argv[1] if len(sys.argv)>1 else "."
 files=[f for f in sorted(glob.glob(root+'/JS/**/*.js',recursive=True)) if not f.endswith('jszip.min.js')]
 allcode={f:open(f,encoding='utf-8').read() for f in files}
 allcode[root+'/index.html']=open(root+'/index.html',encoding='utf-8').read()

@@ -4,9 +4,9 @@ const speedDisplay = document.getElementById("speedDisplay");
 const controlSpeedRange = document.getElementById("controlSpeedRange");
 const controlSpeedDisplay = document.getElementById("controlSpeedDisplay");
 const spStatusSpeedValue = document.getElementById("spStatusSpeedValue");
-const SPEED_MIN = 0.5;
+const SPEED_MIN = 0.25;
 const SPEED_MAX = 1.5;
-const SPEED_SNAPS = [0.5, 0.75, 1, 1.25, 1.5];
+const SPEED_SNAPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 const SPEED_SNAP_RANGE = 0.02;
 
 function syncSpeedDisplays() {
@@ -45,7 +45,7 @@ function handleSpeedRangeInput(e) {
   setupAudioGraph().catch(err => console.warn("setupAudioGraph failed:", err));
 
   let rawSpeed = parseFloat(e.target.value);
-  // 0.50/0.75/1.00/1.25/1.50の近くでカチッとはまる(PCバーのミキサーも同じ入口)
+  // 0.25/0.50/0.75/1.00/1.25/1.50の近くでカチッとはまる(PCバーのミキサーも同じ入口)
   for (let i = 0; i < SPEED_SNAPS.length; i++) {
     if (Math.abs(rawSpeed - SPEED_SNAPS[i]) <= SPEED_SNAP_RANGE) { rawSpeed = SPEED_SNAPS[i]; break; }
   }
@@ -133,7 +133,7 @@ function getAutoSpeedStepPercent() {
 
 function getAutoSpeedLimitRatio() {
   const p = parseFloat(autoSpeedLimitInputs[0].value);
-  const clamped = Number.isFinite(p) ? Math.max(50, Math.min(150, p)) : 150;
+  const clamped = Number.isFinite(p) ? Math.max(25, Math.min(150, p)) : 150;
   return clamped / 100;
 }
 

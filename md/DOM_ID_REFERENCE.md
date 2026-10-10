@@ -33,7 +33,7 @@ grep -o 'id="[a-zA-Z0-9]*"' JS/player-ui-pc-v2.js | sed 's/id="//;s/"//' | sort 
 - PITCH：idは使わず**`data-pt="..."`で参照**（`recBtn`/`playBtn`/`saveBtn`/`clearBtn`=下段バー、`note`/`cents`/`hint`=読み出し、`scroll`/`content`/`keys`/`canvas`/`volCanvas`=ロール、`pb*`=再生情報行、`recBox`/`recEmpty`/`fabEdit`/`fabDel`=Recordings、`saveName`/`saveOk`/`saveCancel`=Save、`filtersBox`=Filters、`bkHost`/`imHost`=共通Backup/Importの差し込み先、`kbdBox`=Keyboard）。Filtersの入力は`data-f="<設定キー>"`(range)／`data-ft`(トグル)／`data-fv`(値表示)。`.qn-pt[data-panel="filters|recordings|save|backup|import|keyboard|none"]`が開いているパネル、`data-edit`=Recordings編集中、`.qn-pt-collapsed`=パネル格納。
 - TUNER：idは使わず**`data-tn="..."`で参照**（`micBtn`/`toneStopBtn`/`displayBtn`/`sensDown`/`sensUp`/`smoothDown`/`smoothUp`=下段バー、`presetTabs`/`tuningTabs`/`stringList`/`toneNow*`=Tone、`sensBox`=Sensitivity(QNSettingsUIの行を入れる器)、`displayChoices`=Display、`kbdBox`=Keyboard、`prompt`/`display`/`micError`=ステージ）。`.qn-tn[data-panel="tone|sens|display|keyboard|none"]`が開いているパネル、`.qn-tn-collapsed`がパネル格納、メーター内部は`data-d`（`.qn-tn-meter`/`.qn-tn-gm`の`data-state`=just/close/far）。
 
-- 設定UIの共通部品は`JS/qn-settings-ui.js`、CSSは`CSS/style-settings.css`。行の種類: stepper / switch / node / note / range(連続値のバー。PITCHのFiltersで使用)。
+- 設定UIの共通部品は`JS/qn-settings-ui.js`、CSSは`CSS/style-settings.css`。行の種類: stepper / switch / node / note / range(連続値のバー。PITCHのFiltersとTUNERのHoldで使用。`mark`で既定値に縦線＋「推奨」、ダブルクリックで既定へ)。
 
 - SPメインドック`#pcV2SpDock`(`#pcV2DockPrevMarker` `#pcV2DockLoop` `#pcV2DockPlay` `#pcV2DockAdd` `#pcV2DockNextMarker` `#pcV2DockMore`)。PC幅は非表示。ポップアップ`.qn-pl-seekpop`に`[data-pop="L"]`(Loop)。
 

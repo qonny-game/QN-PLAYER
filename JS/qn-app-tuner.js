@@ -6,7 +6,7 @@
   "use strict";
 
   var core = window.QNPitchCore;
-  var KEY_DISPLAY = "qn_tuner_display", KEY_SENS = "qn_tuner_sens", KEY_SMOOTH = "qn_tuner_smooth", COLLAPSE_KEY = "qn_tuner_panel_collapsed";
+  var KEY_DISPLAY = "qn_tuner_display", KEY_SENS = "qn_tuner_sens", KEY_SMOOTH = "qn_tuner_smooth", KEY_HOLD = "qn_tuner_hold", COLLAPSE_KEY = "qn_tuner_panel_collapsed";
 
   var TUNER_ICON = '<path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>';
   var ICON = {
@@ -61,6 +61,10 @@
   var shown = false;
   var preset = "guitar", tuning = "regular";
   var sens = loadNum(KEY_SENS, 100), smooth = loadNum(KEY_SMOOTH, 100);
+  var HOLD_DEFAULT = 1.5, hold = loadHold();
+  function loadHold() {
+    try { var v = parseFloat(localStorage.getItem(KEY_HOLD)); return isNaN(v) ? HOLD_DEFAULT : Math.max(0.3, Math.min(5, v)); } catch (e) { return HOLD_DEFAULT; }
+  }
   var displayId = loadStr(KEY_DISPLAY, "gauge");
   var micSession = null, micRunning = false, micStarting = false;
   var silenceFrames = 0, smoothedFreq = null;
@@ -266,14 +270,16 @@
   }
 
   // ---------- マイク ----------
-  function holdFrames() { return Math.round(3 + (100 - sens) / 100 * 12); }
+  // 表示を残す時間はHold設定(既定1.5秒。33msフレーム換算)。感度は「拾う最小音量」だけを決める
+  function holdFrames() { return Math.round(hold * 1000 / 33); }
+  function minRms() { return 0.02 - (sens / 100) * 0.017; } // 0%:0.02 → 100%:0.003
   function smoothFactor() {
     var f = 0.1 + (smooth / 100) * 0.5;
     return 1 - (1 - f) * (1 - f);
   }
   function onMicFrame(res) {
     var freq = res.freq;
-    window.QNApps.setMicLevel(refs.micPill, res.rms < 0.005 ? 0 : Math.min(5, 1 + Math.floor(res.rms * 15)));
+    window.QNApps.setMicLevel(refs.micPill, res.rms < 0.002 ? 0 : Math.min(5, 1 + Math.floor(res.rms * 15)));
     if (freq === -1 || freq < 30 || freq > 2000) {
       silenceFrames++;
       if (silenceFrames === holdFrames()) resetReadout();
@@ -301,7 +307,7 @@
     if (micRunning || micStarting) return;
     micStarting = true;
     refs.micError.textContent = "";
-    var session = core.createAnalysisSession({ fftSize: 2048, onFrame: onMicFrame });
+    var session = core.createAnalysisSession({ fftSize: 2048, onFrame: onMicFrame, getMinRms: minRms });
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("nomedia");
       await session.startFromMic();
@@ -449,6 +455,9 @@
         get: function () { return nearestStep(sens); }, set: function (v) { setSens(v); }, fmt: function (v) { return v + "%"; } },
       { label: "Smoothing", hint: "表示の揺れをどこまでならすか。上げるほど滑らかに追従します", type: "stepper", values: function () { return PCT_STEPS; },
         get: function () { return nearestStep(smooth); }, set: function (v) { setSmooth(v); }, fmt: function (v) { return v + "%"; } }
+    ] }, { title: "表示", rows: [
+      { label: "Hold", hint: "音が消えたあと、表示を残す時間。長いほどゆっくり消えます", type: "range", min: 0.3, max: 5, step: 0.1, dec: 1, unit: " 秒",
+        mark: HOLD_DEFAULT, markLabel: "推奨", get: function () { return hold; }, set: function (v) { setHold(v); } }
     ] }]);
     refs.sensBox.appendChild(sensUI.el);
   }
@@ -457,6 +466,7 @@
     if (sensUI) sensUI.sync();
   }
   function setSens(v) { sens = Math.max(0, Math.min(100, v)); saveVal(KEY_SENS, sens); syncSliders(); }
+  function setHold(v) { hold = Math.max(0.3, Math.min(5, Math.round(v * 10) / 10)); try { localStorage.setItem(KEY_HOLD, String(hold)); } catch (e) {} syncSliders(); }
   function setSmooth(v) { smooth = Math.max(0, Math.min(100, v)); saveVal(KEY_SMOOTH, smooth); syncSliders(); }
 
   // ---------- Displayパネル(プレビュー付き選択カード) ----------
