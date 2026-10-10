@@ -296,6 +296,8 @@
         // 無料版などで拒否された場合は実際の値へ戻す
         barKey.value = currentKeySemitones;
       });
+      bindDoubleReset(barSpeed, () => { if (typeof hapticTap === "function") hapticTap(); setSpeed(1); }); // ダブルクリック/ダブルタップで1.00x・0
+      bindDoubleReset(barKey, () => { if (typeof hapticTap === "function") hapticTap(); setKeySemitones(0); });
       mixer.querySelector('[data-mix="key"] .pcv2-mix-label').addEventListener("click", () => setKeySemitones(0));
       mixer.querySelector('[data-mixval="key"]').addEventListener("click", () => setKeySemitones(0));
       // 塗り側トラック用の--p(スライダー位置%)。thumbの左側をアクセント色にする
@@ -1028,7 +1030,9 @@
     const rowsTips = [
       { type: "note", label: "Press and hold a button marked ◢ to open the settings that fit it." },
       { type: "note", label: "Seek bar: tap to play from that position, hold to add a marker, swipe sideways to scrub, double tap while playing to stop." },
-      { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." }
+      { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." },
+      { type: "note", label: "Press and hold Prev or Next Marker, or swipe the title above the seek bar up or down, to go to the previous or next track (swipe: mobile)." },
+      { type: "note", label: "Double click (mobile: double tap) the Speed or Key bar to reset it." }
     ];
     const settingsSections = [{ title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "General", rows: rowsLang }, { title: "Tips", rows: rowsTips }];
     settingsSections.onChange = () => { if (window.qnBarStripSync) window.qnBarStripSync(); };

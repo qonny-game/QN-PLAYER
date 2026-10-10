@@ -35,7 +35,7 @@
 - **Repeat**（v4.14.0〜。旧Auto Nextの切替は廃止し次動画への自動再生は標準搭載）：PLと同じ Off→One→Folder→All（`qn_yt_repeat`、バッジ1/F）。動画終了時 Off=Libraryの次へ進み最後で止まる／One=同じ動画をもう一度／Folder=今のフォルダ内を折り返す／All=全体を折り返す。SKIPは飛ばす。前/次Trackも同じ範囲(Folder/Allは折り返し)。判定は`neighborItem()`の1箇所。
 
 ### Libraryのフォルダ（v3.31.0〜）
-PLのLibraryと同じ操作。FOLDERで作成→名前入力、見出しクリックで開閉(端末ごと・同期しない)、EDITで改名/▲▼並び替え/✕削除(2タップ、中の動画は未分類へ)、動画を選んでMoveで移動、つかみのドラッグでも別フォルダへ移動可(見出しにドロップ=その先頭)。データは`qn_yt_folders`=`{list:[{id,name}],at}`と各item.folder。Auto Next/Track前後はフォルダ順の表示順で進む。同期はドキュメントに`folders`/`foldersAt`(一覧は新しい方を丸ごと採用)を追加、動画の所属は`folder`(動画のupdatedAtで合体)。
+PLのLibraryと同じ操作。FOLDERで作成→名前入力、見出しクリックで開閉(端末ごと・同期しない)、EDITで改名/▲▼並び替え/✕削除(2タップ、中の動画は未分類へ)、見出し左のつまみ(`.playlist-folder-grip`、PLと同じ)のドラッグでもフォルダを並び替え(`attachFolderReorder`。つかむと動画行を`folder-drag-hidden`で畳み、離した位置=他の見出しの中心を越えた数に確定。未分類は末尾固定でつまみ無し)、動画を選んでMoveで移動、つかみのドラッグでも別フォルダへ移動可(見出しにドロップ=その先頭)。データは`qn_yt_folders`=`{list:[{id,name}],at}`と各item.folder。Auto Next/Track前後はフォルダ順の表示順で進む。同期はドキュメントに`folders`/`foldersAt`(一覧は新しい方を丸ごと採用)を追加、動画の所属は`folder`(動画のupdatedAtで合体)。
 
 ### Playlists（v3.31.0〜）
 YouTube Data API v3(`playlists`/`playlistItems`、最大500件)で公開/限定公開の再生リストを取得して一覧表示。APIキーは`window.QN_YT_API_KEY`(index.html)か、パネルの「API Key」から入れた端末のlocalStorage(`qn_yt_api_key`)。結果は**メモリのみ**(保存しない)。行クリックで再生(Libraryに無くても可)、チェック→Add to Libraryで追加(フォルダがあれば移動先ピッカー)。追加した動画はvideoIdと、28日キャッシュ経由のタイトルだけ保存。URL+APIキー方式では非公開リスト・Mix(RD)・高評価/後で見るは取れない。**My Playlists**(v3.31.1〜)はログイン中アカウントに`youtube.readonly`の確認ポップアップ(`QN_AUTH.getYtToken`=`reauthenticateWithPopup`)を出し、アクセストークン(メモリのみ・約1時間)で自分の再生リスト一覧(`playlists?mine=true`)と高評価(`LL`)を取得。APIキー不要。要件: Google CloudでYouTube Data API v3の有効化、OAuth同意画面でテストユーザー登録(未審査の間)。
@@ -63,7 +63,7 @@ PLAYERの`#pcV2BottomBar`と同じ「アイコン＋ラベル」のフラット�
 PC幅はステージの下端に吸着、SP幅はアイコンバー直上に固定して横スクロール。パネルを開いている間はSP幅では隠す。再生ボタンは`updatePlayBtn`がPlay/Pause表示を差し替える。
 
 ### 長押しクイック設定（v4.1.0〜）
-下段バーの◢付きボタンを長押しすると設定ポップアップ（PLAYERと共通の`QNQuickPop`。VIDEO側は`qn-app-youtube.js`末尾で`QNQuickPop.add(selector, fn)`により登録）。Play=Speed（値タップで1x）／前・次Marker=マーカー一覧ジャンプ／A・B=±0.1秒微調整＋±1s＋Clear（動画読み込み後のみ）／＋Marker=プリセットを選んで追加／前・次Track=Library一覧ジャンプ／Loop=プリロール秒／−10s・+10s=スキップ秒。対象を増やす時は`style-quickpop.css`の◢セレクタも揃える。
+下段バーの◢付きボタンを長押しすると設定ポップアップ（PLAYERと共通の`QNQuickPop`。VIDEO側は`qn-app-youtube.js`末尾で`QNQuickPop.add(selector, fn)`により登録）。Play=Speed（値タップで1x）／前・次Marker=前・次の動画へ(ポップアップ無しの即実行。`QNQuickPop.add`の定義が`{action}`を返す。v4.23.0〜)／A・B=±0.1秒微調整＋±1s＋Clear（動画読み込み後のみ）／＋Marker=プリセットを選んで追加／前・次Track=Library一覧ジャンプ／Loop=プリロール秒／−10s・+10s=スキップ秒。対象を増やす時は`style-quickpop.css`の◢セレクタも揃える。
 
 ### シークバーの行数（v4.1.0〜）
 Settings > Seek bar > Rows（Off/Auto/3〜12、既定3、`qn_yt_segs`）。`setSegs`が行を作り直して再描画する。Off=`.qn-yt-noseek`でシークバーを隠す（内部の行数は1のまま。0除算回避）。PC幅はプレイヤーが残り高さを使うので自動で広がる。

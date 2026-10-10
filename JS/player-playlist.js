@@ -334,6 +334,7 @@ function renderPlaylist() {
   const box = document.getElementById("playlistBox");
   const info = document.getElementById("playlistInfo");
   if (info) info.textContent = `${playlist.length} track${playlist.length === 1 ? "" : "s"}`;
+  refreshAppTitle();
   if (!box) return;
 
   const editMode = typeof isPlaylistEditMode === "function" && isPlaylistEditMode();

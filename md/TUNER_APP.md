@@ -9,7 +9,7 @@
 - **入口**：ヘッダーのロゴ(V付き)→TUNER。サイドバーは上段「Tone / Sensitivity / Display」、下段「Keyboard / Color」。Backup/Importは無し（保存するのは軽い設定だけ）。
 - **メイン画面**：マイクOFF中は案内文、ON中はメーター。表示は **Gauge** と **Guitar Meter**（Displayパネル or 下段バーの表示ボタン or `D`で切替）。ズレは3段階の色分け（±5¢=ジャスト緑／±20¢=もう少し琥珀／それ以外=`--danger`）。しきい値は`tuningState()`とCSSの`data-state`で一致させる。
 - **Tone**：Preset（Guitar/Bass/Ukulele/Wind）、Guitar/BassはRegular/Half Down/Whole Down/Drop D/Drop C#/Drop C。弦行を押すと発信音（triangle）、もう一度で停止。Now Playingカードに音名・周波数とSTOP。
-- **Sensitivity**：感度（無音とみなすまでの保持フレーム）とスムージング（周波数の追従）。下段バーの±10%ステッパーと連動。
+- **Sensitivity**：感度（無音とみなすまでの保持フレーム）とスムージング（周波数の追従）。表示はSettingsと同じ「項目名＋説明＋‹ 値 ›」(`QNSettingsUI.build`の`type:"stepper"`、10%刻み。保存済みの中途半端な値は表示だけ最寄りの10%に丸める)。下段バーの±10%ステッパーと連動(`syncSliders`が両方を更新)。
 - **下段バー**（`#pcV2BottomBar`と同デザイン・同寸法）：Mic｜Stop Tone｜表示切替｜Sens ± / Smooth ±。SP幅は横スクロール、パネルを開くとステージごと隠れてパネルが全面。
 - **ショートカット**（表示中のみ）：Space/M=Mic、D=表示切替、1〜9=Toneの弦を鳴らす、Esc=発信音停止。
 - **PC幅**：サイドアイコン再押下でパネル格納（`qn_tuner_panel_collapsed`）。

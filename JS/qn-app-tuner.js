@@ -84,10 +84,6 @@
     el._s = s;
     if (s) el.setAttribute("data-state", s); else el.removeAttribute("data-state");
   }
-  function setRangeProgress(input) {
-    var min = parseFloat(input.min) || 0, max = parseFloat(input.max) || 100;
-    input.style.setProperty("--range-progress", String(max > min ? ((input.value - min) / (max - min)) * 100 : 0));
-  }
 
   // ---------- 下段バー(PLAYERの#pcV2BottomBarと同デザイン) ----------
   function bbtn(ref, cls, icon, label, title) {
@@ -138,12 +134,7 @@
               '<div class="qn-tn-strings" data-tn="stringList"></div>' +
             '</div>' +
           '</div></section>' +
-          '<section class="qn-tn-sec qn-tn-sec-sens"><div class="control-list">' +
-            '<div class="control-card"><label>Sensitivity <span class="qn-tn-white" data-tn="sensLabel">100</span>%</label>' +
-              '<input type="range" data-tn="sensRange" min="0" max="100" step="1" value="100"></div>' +
-            '<div class="control-card"><label>Smoothing <span class="qn-tn-white" data-tn="smoothLabel">100</span>%</label>' +
-              '<input type="range" data-tn="smoothRange" min="0" max="100" step="1" value="100"></div>' +
-          '</div></section>' +
+          '<section class="qn-tn-sec qn-tn-sec-sens"><div data-tn="sensBox"></div></section>' +
           '<section class="qn-tn-sec qn-tn-sec-display"><div class="qn-tn-dchoices" data-tn="displayChoices"></div></section>' +
           '<section class="qn-tn-sec qn-tn-sec-keyboard"><div data-tn="kbdBox"></div></section>' +
         '</div>' +
@@ -447,11 +438,23 @@
   }
 
   // ---------- 感度・スムージング ----------
+  // 項目名と説明は設定パネル(QNSettingsUI)と同じ表示。値は「‹ 値 ›」(10%刻み。下段バーの−/+と同じ刻み)
+  var sensUI = null;
+  var PCT_STEPS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  function nearestStep(v) { return Math.max(0, Math.min(100, Math.round(v / 10) * 10)); }
+  function buildSensPanel() {
+    if (!window.QNSettingsUI || !refs.sensBox) return;
+    sensUI = QNSettingsUI.build([{ title: "マイク入力", rows: [
+      { label: "Sensitivity", hint: "小さい音をどこまで拾うか。上げるほど弱い音にも反応します", type: "stepper", values: function () { return PCT_STEPS; },
+        get: function () { return nearestStep(sens); }, set: function (v) { setSens(v); }, fmt: function (v) { return v + "%"; } },
+      { label: "Smoothing", hint: "表示の揺れをどこまでならすか。上げるほど滑らかに追従します", type: "stepper", values: function () { return PCT_STEPS; },
+        get: function () { return nearestStep(smooth); }, set: function (v) { setSmooth(v); }, fmt: function (v) { return v + "%"; } }
+    ] }]);
+    refs.sensBox.appendChild(sensUI.el);
+  }
   function syncSliders() {
-    refs.sensRange.value = sens; refs.smoothRange.value = smooth;
-    setRangeProgress(refs.sensRange); setRangeProgress(refs.smoothRange);
-    refs.sensLabel.textContent = sens; refs.smoothLabel.textContent = smooth;
     setText(refs.sensVal, sens + "%"); setText(refs.smoothVal, smooth + "%");
+    if (sensUI) sensUI.sync();
   }
   function setSens(v) { sens = Math.max(0, Math.min(100, v)); saveVal(KEY_SENS, sens); syncSliders(); }
   function setSmooth(v) { smooth = Math.max(0, Math.min(100, v)); saveVal(KEY_SMOOTH, smooth); syncSliders(); }
@@ -605,8 +608,6 @@
       haptic();
       setDisplay(b.getAttribute("data-style"));
     });
-    refs.sensRange.addEventListener("input", function () { setSens(parseInt(refs.sensRange.value, 10)); });
-    refs.smoothRange.addEventListener("input", function () { setSmooth(parseInt(refs.smoothRange.value, 10)); });
     refs.sensDown.addEventListener("click", function () { haptic(); setSens(sens - 10); });
     refs.sensUp.addEventListener("click", function () { haptic(); setSens(sens + 10); });
     refs.smoothDown.addEventListener("click", function () { haptic(); setSmooth(smooth - 10); });
@@ -622,6 +623,7 @@
     bindEvents();
     renderPresetTabs(); renderTuningTabs(); renderStringList();
     renderDisplayChoices();
+    buildSensPanel();
     syncSliders();
     renderMainDisplay();
     showToneNow(null, 0);

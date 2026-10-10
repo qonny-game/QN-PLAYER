@@ -63,6 +63,7 @@ function handleSpeedRangeInput(e) {
   }, 90);
 }
 if (controlSpeedRange) controlSpeedRange.oninput = handleSpeedRangeInput;
+bindDoubleReset(controlSpeedRange, () => { hapticTap(); setSpeed(1); }); // ダブルクリック/ダブルタップで1.00x
 
 // 速度±ボタンの刻み(%)。設定パネルで変更(localStorage qn_speed_step_pct)。キーボードCtrl+←→の1%は別
 const SPEED_STEP_OPTIONS = [1, 2, 5, 10];
@@ -290,6 +291,7 @@ if (controlKeyUpBtn) controlKeyUpBtn.onclick = () => setKeySemitones(currentKeyS
 if (controlKeyDownBtn) controlKeyDownBtn.onclick = () => setKeySemitones(currentKeySemitones - 1);
 
 if (controlKeyRange) controlKeyRange.oninput = () => { setKeySemitones(parseInt(controlKeyRange.value, 10)); renderKeyDisplay(); };
+bindDoubleReset(controlKeyRange, () => { hapticTap(); setKeySemitones(0); renderKeyDisplay(); }); // ダブルクリック/ダブルタップで0
 
 const controlKeyResetBtn = document.getElementById("controlKeyResetBtn");
 if (controlKeyResetBtn) controlKeyResetBtn.onclick = () => setKeySemitones(0);

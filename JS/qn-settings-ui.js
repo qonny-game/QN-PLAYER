@@ -1,5 +1,5 @@
 // qn-settings-ui.js — 設定パネルの共通部品(PLAYER本体=player-ui-pc-v2.js / アプリ=qn-apps.jsの「Settings」が共用)。見た目はCSS/style-settings.css。
-// 使い方: const ui = QNSettingsUI.build([{ title, rows:[ {label,hint,type:"stepper",values(),get(),set(v),fmt(v)} | {label,hint,type:"switch",get(),set(on)} | {label,hint,type:"node",node} | {label,type:"note"}(説明文だけ。操作部なし) ] }]); host.appendChild(ui.el); 値が変わりうる時 ui.sync()。
+// 使い方: const ui = QNSettingsUI.build([{ title, rows:[ {label,hint,type:"stepper",values(),get(),set(v),fmt(v)} | {label,hint,type:"switch",get(),set(on)} | {label,hint,type:"node",node} | {label,hint,type:"range",min,max,step,dec,unit,get(),set(v)}(連続値のバー。項目名・説明は上、バーと値は下の段) | {label,type:"note"}(説明文だけ。操作部なし) ] }]); host.appendChild(ui.el); 値が変わりうる時 ui.sync()。
 // 行には disabledWhen():boolean を付けられる(trueの間は薄く操作不可)。階層に入る一覧は QNSettingsUI.list([{id,label,icon}], onPick)。
 // ルール(GOTCHAS.md): 複数選択肢は必ず「‹ 値 ›」(stepper)、ON/OFFだけswitch。独自のボタン列やデザインを新設しない。依存なし(hapticTapがあれば使う)。
 window.QNSettingsUI = (function () {
@@ -43,12 +43,24 @@ window.QNSettingsUI = (function () {
       if (document.activeElement !== inp || +inp.value !== sc) inp.value = String(sc);
       i.ctl.querySelector(".qn-set-slider-val").textContent = d.fmt ? d.fmt(sv[sc]) : String(sv[sc]);
       inp.style.setProperty("--p", sv.length > 1 ? (sc / (sv.length - 1) * 100) + "%" : "0%");
+    } else if (d.type === "range") {
+      var rv = d.get(), rin = i.ctl.querySelector("input");
+      rin.min = String(d.min); rin.max = String(d.max); rin.step = String(d.step);
+      if (+rin.value !== rv) rin.value = String(rv);
+      rangeView(i.ctl, d, rv);
     } else if (d.type === "switch") {
       var on = !!d.get();
       i.ctl.classList.toggle("is-on", on);
       i.ctl.setAttribute("aria-checked", on ? "true" : "false");
     }
     if (d.disabledWhen) i.row.classList.toggle("is-disabled", !!d.disabledWhen());
+  }
+
+  // 連続値バーの見た目(値の表示とつまみ位置の塗り)
+  function rangeView(ctl, d, v) {
+    var inp = ctl.querySelector("input");
+    ctl.querySelector(".qn-set-range-val").textContent = (d.dec ? Number(v).toFixed(d.dec) : String(v)) + (d.unit || "");
+    inp.style.setProperty("--p", d.max > d.min ? ((v - d.min) / (d.max - d.min) * 100) + "%" : "0%");
   }
 
   // ボタンが行の操作部なら値を変えてtrueを返す(build/inline共通)
@@ -91,6 +103,13 @@ window.QNSettingsUI = (function () {
         var info = { def: r, row: rowEl };
         if (r.type === "stepper") { info.ctl = stepper(); ctl.appendChild(info.ctl); }
         else if (r.type === "switch") { info.ctl = make('<button type="button" class="qn-set-switch" role="switch" aria-checked="false"><span></span></button>'); ctl.appendChild(info.ctl); }
+        else if (r.type === "range") {
+          rowEl.classList.add("is-range");
+          info.ctl = make('<div class="qn-set-range-wrap"><input type="range" class="qn-set-range" aria-label=""><span class="qn-set-range-val"></span></div>');
+          info.ctl.querySelector("input").setAttribute("aria-label", r.label);
+          rowEl.appendChild(info.ctl);
+          ctl.remove();
+        }
         else if (r.type === "node" && r.node) ctl.appendChild(r.node);
         rowsInfo.push(info);
         secEl.appendChild(rowEl);
@@ -103,6 +122,20 @@ window.QNSettingsUI = (function () {
     root.addEventListener("click", function (e) {
       var btn = e.target.closest ? e.target.closest("button") : null;
       if (!btn || !applyClick(rowsInfo, btn)) return;
+      sync();
+      if (sections.onChange) sections.onChange();
+    });
+    // 連続値バー: つまみを動かすたびに値を反映(行の表示はsyncで揃える)
+    root.addEventListener("input", function (e) {
+      var inp = e.target;
+      if (!inp || !inp.classList || !inp.classList.contains("qn-set-range")) return;
+      for (var k = 0; k < rowsInfo.length; k++) {
+        var i = rowsInfo[k];
+        if (!i.ctl || !i.ctl.contains(inp) || i.def.type !== "range") continue;
+        var v = parseFloat(inp.value);
+        if (!isNaN(v)) i.def.set(v);
+        break;
+      }
       sync();
       if (sections.onChange) sections.onChange();
     });

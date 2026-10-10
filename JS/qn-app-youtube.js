@@ -706,6 +706,8 @@
     for (var i = 0; i < nodes.length; i++) refs[nodes[i].getAttribute("data-yt")] = nodes[i];
 
     window.addEventListener("resize", applyCollapse);
+    // タイトルを上下にスワイプ=次/前の動画(PLのシークバー上タイトルと同じ。タッチのみ)
+    if (window.QNApps && QNApps.vSwipe) QNApps.vSwipe(refs.fetchedTitle, function () { gotoNeighbor(1); }, function () { gotoNeighbor(-1); });
     buildTracks();
     refs.seekTracks.addEventListener("scroll", onSeekScroll, { passive: true });
     window.addEventListener("resize", function () { recalcAuto(); });
@@ -1579,6 +1581,7 @@
       setRateIdx(v);
     });
     refs.mixSpeedReset.addEventListener("click", function () { resetRate(); });
+    if (typeof bindDoubleReset === "function") bindDoubleReset(refs.mixSpeed, function () { resetRate(); }); // ダブルクリック/ダブルタップで1x
     refs.mixSpeedVal.addEventListener("click", function () { resetRate(); });
     renderSpeed();
 
@@ -1994,6 +1997,68 @@
     }
   }
 
+  // フォルダの並べ替え(見出しのつまみをドラッグ)。つかむと動画行を畳み、つかんだ見出しが指に付いてくる。離した位置(他の見出しの中心を越えた数)に確定
+  function findScroller(el) {
+    for (var n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+      var oy = getComputedStyle(n).overflowY;
+      if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight) return n;
+    }
+    return document.scrollingElement || document.documentElement;
+  }
+  function attachFolderReorder(grip, head, fid) {
+    var startY = 0, scroller = null, scrollStart = 0, heads = null, center0 = 0, targetIdx = -1, others = null;
+    function clearMarks() {
+      var m = refs.itemList.querySelectorAll(".playlistFolderHeader.drop-before,.playlistFolderHeader.drop-after");
+      for (var i = 0; i < m.length; i++) m[i].classList.remove("drop-before", "drop-after");
+    }
+    grip.addEventListener("pointerdown", function (e) {
+      e.preventDefault(); e.stopPropagation();
+      scroller = findScroller(refs.itemList);
+      var oldTop = head.getBoundingClientRect().top;
+      var rows = refs.itemList.querySelectorAll(".playlistItem");
+      for (var i = 0; i < rows.length; i++) rows[i].classList.add("folder-drag-hidden");
+      scroller.scrollTop += head.getBoundingClientRect().top - oldTop; // 畳んでも、つかんだ見出しが指の下から動かないよう補正
+      scrollStart = scroller.scrollTop;
+      heads = Array.prototype.filter.call(refs.itemList.querySelectorAll(".playlistFolderHeader"), function (h) { return h.dataset.folderId; });
+      others = heads.filter(function (h) { return h !== head; });
+      var r = head.getBoundingClientRect();
+      center0 = r.top + r.height / 2;
+      startY = e.clientY; targetIdx = heads.indexOf(head);
+      grip.setPointerCapture(e.pointerId);
+      head.classList.add("dragging");
+      if (typeof hapticTap === "function") { try { hapticTap(); } catch (x) {} }
+    });
+    grip.addEventListener("pointermove", function (e) {
+      if (!grip.hasPointerCapture(e.pointerId)) return;
+      var dy = e.clientY - startY + (scroller.scrollTop - scrollStart);
+      head.style.transform = "translateY(" + dy + "px)";
+      var c = center0 + dy, idx = 0;
+      others.forEach(function (h) { var b = h.getBoundingClientRect(); if (b.top + b.height / 2 < c) idx++; });
+      clearMarks();
+      targetIdx = idx;
+      if (others.length) {
+        if (idx < others.length) others[idx].classList.add("drop-before"); else others[others.length - 1].classList.add("drop-after");
+      }
+    });
+    function finish(e, commit) {
+      if (!grip.hasPointerCapture(e.pointerId)) return;
+      grip.releasePointerCapture(e.pointerId);
+      head.classList.remove("dragging"); head.style.transform = "";
+      clearMarks();
+      if (commit && targetIdx >= 0) {
+        var order = others.map(function (h) { return h.dataset.folderId; });
+        order.splice(targetIdx, 0, fid);
+        var byId = {};
+        ytFolders.list.forEach(function (f) { byId[f.id] = f; });
+        var changed = order.some(function (id, k) { return ytFolders.list[k] && ytFolders.list[k].id !== id; });
+        if (changed) { ytFolders.list = order.map(function (id) { return byId[id]; }).filter(Boolean); saveItems(); }
+      }
+      renderList();
+    }
+    grip.addEventListener("pointerup", function (e) { finish(e, true); });
+    grip.addEventListener("pointercancel", function (e) { finish(e, false); });
+  }
+
   // フォルダ見出し(folder=nullは未分類)。通常: クリックで開閉+ホバー鉛筆で改名。EDIT: 名前は常時入力、▲▼で順序、✕で削除(2タップ確認。中の動画は未分類へ)
   function buildFolderHead(folder, count, fi, edit) {
     var head = document.createElement("div");
@@ -2001,6 +2066,15 @@
     if (!folder) head.classList.add("is-loose");
     if (folder && collapsedMap[folder.id] && !edit) head.classList.add("is-collapsed");
     head.dataset.folderId = folder ? folder.id : "";
+    // 並べ替えのつまみ(PLAYERと同じ。未分類は末尾固定でつまみ無し)。ドラッグ中は動画行を畳んで見出しだけの一覧にする
+    if (folder) {
+      var grip = document.createElement("span");
+      grip.className = "playlist-folder-grip";
+      grip.title = "ドラッグでフォルダを並び替え";
+      grip.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+      head.appendChild(grip);
+      attachFolderReorder(grip, head, folder.id);
+    }
     var chev = document.createElement("span");
     chev.className = "playlist-folder-chev";
     chev.innerHTML = folder ? '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"/></svg>';
@@ -2052,7 +2126,7 @@
     }
     if (folder && !edit) {
       head.addEventListener("click", function (e) {
-        if (e.target.closest("button, input")) return;
+        if (e.target.closest("button, input, .playlist-folder-grip")) return;
         if (collapsedMap[folder.id]) delete collapsedMap[folder.id]; else collapsedMap[folder.id] = true;
         saveCollapsed();
         renderList();
@@ -2517,7 +2591,9 @@
     var tips = [
       { type: "note", label: "Press and hold a button marked ◢ to open the settings that fit it." },
       { type: "note", label: "Seek bar: tap to play from that position and choose A, B or Marker. Drag a marker or flag to move it." },
-      { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." }
+      { type: "note", label: "Library and Markers rows: swipe sideways to show edit and delete buttons (mobile)." },
+      { type: "note", label: "Press and hold Prev or Next Marker, or swipe the title up or down, to go to the previous or next video (swipe: mobile)." },
+      { type: "note", label: "Double click (mobile: double tap) the Speed bar to reset it." }
     ];
     return [{ title: "Seek bar", rows: [
       { label: "Rows", hint: "Auto fills the free height; Off hides the bar", type: "stepper", values: function () { return SEGS_OPTIONS; }, get: function () { return SEGS_SETTING; }, set: setSegs, fmt: function (v) { return v === 0 ? "Off" : v === -1 ? "Auto" : String(v); } },
@@ -3532,17 +3608,10 @@
         return host;
       } };
     });
-    Q.add(at("prevMarkerBtn") + "," + at("nextMarkerBtn"), function () {
-      return { title: "Jump to marker", build: function (ctx) {
-        var ms = current ? current.markers.slice().sort(function (a, b) { return a.time - b.time; }) : [];
-        var cur = ready() ? currentPos() : -1, nearest = -1;
-        ms.forEach(function (m, i) { if (m.time <= cur + 0.05) nearest = i; });
-        var items = ms.map(function (m, i) {
-          return { label: (i + 1) + " - " + (m.label || fmt(m.time)), sub: m.label ? fmt(m.time) : "", dim: m.enabled === false, on: i === nearest,
-            color: markerColorHex(m), run: function () { if (ready()) userSeek(m.time); } };
-        });
-        return Q.listBody(items, ctx, "No markers yet");
-      } };
+    // 前/次マーカー長押し: 前/次の動画へ(ポップアップ無しで即実行)
+    Q.add(at("prevMarkerBtn") + "," + at("nextMarkerBtn"), function (el) {
+      var prev = el.getAttribute("data-yt") === "prevMarkerBtn" || el.getAttribute("data-dock") === "dockPrev";
+      return { action: function () { gotoNeighbor(prev ? -1 : 1); } };
     });
     Q.add(at("setABtn") + "," + at("setBBtn"), function (el) {
       var kind = /^(setBBtn|abB)$/.test(el.getAttribute("data-yt")) ? "B" : "A", key = kind === "A" ? "loopA" : "loopB";

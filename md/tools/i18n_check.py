@@ -45,6 +45,14 @@ with QNBrowser(root) as qb:
         try:
             qb.open_app(pg, app)
             grab("アプリ " + app)
+            for lab in qb.icon_labels(pg):  # アプリ内の各パネル(Filters / Sensitivity など)も開いて確認
+                if not lab or lab in ("Settings", "Keyboard", "Color"):
+                    continue
+                try:
+                    qb.open_panel(pg, lab, wait_ms=400)
+                    grab("アプリ " + app + " / " + lab)
+                except Exception:
+                    pass
         except Exception as e:
             print("アプリを開けず:", app, str(e)[:60])
     errs = qb.errors(pg)

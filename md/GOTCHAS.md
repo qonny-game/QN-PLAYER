@@ -130,6 +130,7 @@
 
 ## 長押しクイック設定(v3.54.0)
 - `player-quickpop.js`が`document`のpointerdown(capture)委譲で拾う。対象は`TARGETS`(セレクタ→定義名)に1行足すだけ。行の定義は設定パネルと同じ`{label,hint,type,values,get,set,fmt}`で、見た目は`QNSettingsUI.build`の流用(新しい独自UIを作らない)。
+- 長押しの定義は`{title,rows|build}`(ポップアップ)か`{action}`(ポップアップ無しの即実行)を返す。前/次Markerは後者で前/次トラックへ(v4.23.0〜。◢は付けない=◢は「設定が開く」目印。Repeatは長押し無しなので◢無し)。
 - 長押し450ms/10px動いたら中止。成立後に指を離した時のclickは`swallow`で握りつぶす(ボタン本来の操作を発火させない)。対象には`user-select:none`と`contextmenu`抑止(iOSの選択/メニュー対策)。
 - 送り秒数は`window.QNSkip`(player-ui-pc-v2.jsのクロージャ内skipSecの公開口)。QNBarsはグローバルのconst(`window.QNBars`ではない)。
 - 再生中の見た目は停止中と同じ色(ドック/FAB/#playToggleとも緑のグラデ禁止)。
@@ -142,6 +143,9 @@
 - **Transferはモーダルにしない。** Backup/Importと同じ下層パネル(`QNP2P.mount`)。見た目はstyle-pcv2-panels.cssのBackup用`:is()`リスト(`#pcV2PanelBody.pcv2-panel-transfer`/`.qn-pt-sec-backup`)を共用。入れ物`.qn-p2p-host`は`display:contents`で、パネルを離れるとDOMから外れる(進行中のセッションは続き、戻ると`S.screen()`で復元)。Transferの表示可否は`syncSettingsBody()`が開くたびに判定する(ログイン完了が設定の構築より後になることがあるため、構築時に決めない)。
 
 ## v3.55.0
+- シークバー上のタイトル(`#appTitle`/YouTubeの`.qn-yt-fetched-title`)は`QNApps.vSwipe`(qn-apps.js。タッチ/ペンのみ)で上スワイプ=次・下スワイプ=前のトラック。スワイプ後のclickは握りつぶす(タイトルタップ=Libraryを開くが誤動作しないように)。要素は`touch-action:none`になる。
+- Speed/Keyのバーのダブルクリック/ダブルタップ=初期値は`bindDoubleReset`(player-ui-shared.js、グローバル関数。YouTubeも使う)。バーを足したら同じ関数で束ねる。
+- 設定の連続値バーは`QNSettingsUI.build`の`type:"range"`(min/max/step/dec/unit/get/set)。「複数選択肢はstepper」の例外で、細かい調整が要る数値だけに使う。
 - 長押し対象には右下◢(style-quickpop.cssの::after)。`player-quickpop.js`のTARGETSとCSSセレクタを必ず揃える。(v4.0.2で時刻ラベル/時間表示の長押しは撤去。Bar length/Rows/Followは波形右下の帯`#pcV2WaveFabRow`に常時表示)
 - SPの下段バーは`#topControls`幅200%・各`.pcv2-ctrl-group`が50%(=1画面)のスナップ2ページ。矢印は`#topControls`直下のsticky(`.pcv2-bar-page`)。`is-page-1`クラスはscrollで付け替え。PC幅は矢印非表示・従来配置。
 - Marker Memoのデフォルト項目は`MARKER_LABEL_PRESETS`(id=元の名前)+上書き`qn_marker_preset_labels_v1`。色(`qn_marker_preset_colors_v1`)もidキー。表示名は`markerPresetDisplay(id)`を通す(直接MARKER_LABEL_PRESETSを表示に使わない)。

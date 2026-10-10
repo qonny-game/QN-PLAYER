@@ -940,3 +940,21 @@ function hapticWarning() {
   }
   if (targets.length > 0) requestAnimationFrame(tick);
 })();
+
+// スライダーのダブルクリック/ダブルタップで初期値へ戻す(Speed=1.00x、Key=0)。PLAYER・YouTubeの両方が使う。
+// マウスはdblclick、タッチ/ペンは350ms以内・近い位置の2連続タップ(ドラッグ操作は数えない)。resetFnは各アプリの既存のリセット処理を渡す
+function bindDoubleReset(input, resetFn) {
+  if (!input || input._qnDblReset) return;
+  input._qnDblReset = true;
+  let lastT = 0, lastX = 0, lastY = 0, downX = 0, downY = 0, moved = false;
+  input.addEventListener("dblclick", (e) => { e.preventDefault(); lastT = 0; resetFn(); });
+  input.addEventListener("pointerdown", (e) => { downX = e.clientX; downY = e.clientY; moved = false; });
+  input.addEventListener("pointermove", (e) => { if (Math.abs(e.clientX - downX) > 8 || Math.abs(e.clientY - downY) > 8) moved = true; });
+  input.addEventListener("pointerup", (e) => {
+    if (e.pointerType === "mouse") return;
+    if (moved) { lastT = 0; return; }
+    const now = Date.now();
+    if (now - lastT < 350 && Math.hypot(e.clientX - lastX, e.clientY - lastY) < 24) { lastT = 0; resetFn(); }
+    else { lastT = now; lastX = e.clientX; lastY = e.clientY; }
+  });
+}

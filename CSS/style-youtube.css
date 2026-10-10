@@ -689,6 +689,7 @@
 .qn-yt-fab-folder { display: none; }
 .qn-yt[data-panel="library"]:not([data-edit]) .qn-yt-fab-folder { display: flex; }
 .qn-yt[data-edit="library"] .panel-fab-move-btn { display: flex; }
+.qn-yt .playlistFolderHeader.drop-before { box-shadow: inset 0 2px 0 var(--accent-primary); }
 .qn-yt .playlistFolderHeader.drop-after { box-shadow: inset 0 -2px 0 var(--accent-primary); }
 
 .qn-yt-chapter { padding: 16px 16px 8px 20px; }
@@ -1317,7 +1318,7 @@
 
   .qn-yt-custom { margin-top: 6px; }
   .qn-yt-titlerow { display: flex; align-items: center; gap: 4px; margin: 0 0 2px; }
-  .qn-yt-titlerow .qn-yt-fetched-title { flex: 1 1 auto; min-width: 0; margin: 0; }
+  .qn-yt-titlerow .qn-yt-fetched-title { flex: 1 1 auto; min-width: 0; margin: 0; font-size: var(--fs-body); font-weight: 700; color: var(--accent-primary); } /* LibraryのPLAYING行と同じ曲名の見た目 */
   .qn-yt-headbtns { display: flex; align-items: center; gap: 2px; margin-left: auto; flex: 0 0 auto; }
   .qn-yt-headbtns .pcv2-head-btn { position: relative; }
 

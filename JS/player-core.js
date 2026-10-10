@@ -452,6 +452,19 @@ let currentFileName = "No file loaded";
 function setAppTitle(name) {
   currentFileName = name;
   updateMediaSessionMetadata(name);
+  renderAppTitle(name);
+}
+
+// 表示だけ更新(保存キーのcurrentFileNameは触らない)。Libraryで曲名を直した/タグの曲名がある時は、Libraryと同じ曲名を出す
+function refreshAppTitle() {
+  const t = currentPlaylistIndex >= 0 ? playlist[currentPlaylistIndex] : null;
+  const text = t && t.title && currentFileName !== "No file loaded" ? t.title : currentFileName;
+  const cur = document.getElementById("appTitleText");
+  if (cur && cur.textContent === text) return; // 同じなら作り直さない(マーキーの再生を乱さない)
+  renderAppTitle(text);
+}
+
+function renderAppTitle(name) {
   const appTitle = document.getElementById("appTitle");
   const appTitleText = document.getElementById("appTitleText");
   if (!appTitle || !appTitleText) return;

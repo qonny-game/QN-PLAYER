@@ -675,6 +675,30 @@
   // SP幅のリスト行: 横にスワイプすると右に□アイコンボタン(編集/SKIP(HIDE)/削除)が出る。opts={rowSel, disabled():bool, actions(row):[{kind:"edit|skip|hide|del", on:bool(skip/hide: 今の状態=無効か), run(row)}]}。削除は2タップ確認。行が再描画されると自然に閉じる
   // アイコン・ラベルはplayer-markers.jsのwindow.QN_ROW_ACT(PLAYERのマーカー行のボタンと共通)
   var SW_ICON = window.QN_ROW_ACT.icons;
+  // 縦スワイプ(タッチ/ペンのみ): 上へ=onUp、下へ=onDown。スワイプ後に出るclickは無効にする(タイトルのタップ動作が誤って動かないように)。
+  // 例: シークバーのタイトルを上下にスワイプ=前/次のトラック。要素はtouch-action:noneにする(縦スクロールに奪われない)
+  function vSwipe(el, onUp, onDown) {
+    if (!el || el._qnVSwipe) return;
+    el._qnVSwipe = true;
+    el.style.touchAction = "none";
+    var sx = 0, sy = 0, id = null, done = false, swallowClick = false;
+    el.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse") return;
+      id = e.pointerId; sx = e.clientX; sy = e.clientY; done = false;
+    });
+    el.addEventListener("pointermove", function (e) {
+      if (e.pointerId !== id || done) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (Math.abs(dy) < 28 || Math.abs(dy) < Math.abs(dx) * 1.5) return;
+      done = true; swallowClick = true;
+      setTimeout(function () { swallowClick = false; }, 400);
+      if (typeof hapticTap === "function") { try { hapticTap(); } catch (x) {} }
+      if (dy < 0) { if (onUp) onUp(); } else if (onDown) onDown();
+    });
+    ["pointerup", "pointercancel"].forEach(function (n) { el.addEventListener(n, function (e) { if (e.pointerId === id) id = null; }); });
+    el.addEventListener("click", function (e) { if (swallowClick) { e.stopImmediatePropagation(); e.preventDefault(); swallowClick = false; } }, true);
+  }
+
   function swipeRows(container, opts) {
     if (!container || container._qnSwipe) return;
     container._qnSwipe = true;
@@ -779,6 +803,7 @@
 
   window.QNApps = {
     swipeRows: swipeRows,
+    vSwipe: vSwipe,
     sheetDrag: sheetDrag,
     register: register,
     open: open,
