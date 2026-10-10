@@ -201,10 +201,16 @@
 .qn-tn-prompt p { margin: 0; font-size: var(--fs-body); color: var(--icon-muted); line-height: 1.6; }
 .qn-tn-prompt .qn-tn-error { font-size: var(--fs-small); color: var(--danger, #ef4444); min-height: 18px; }
 .qn-tn-display { margin: auto; width: 100%; display: flex; justify-content: center; }
+.qn-tn-prompt { margin-bottom: 0; }
+/* メーター直下の大きなMIC ON/OFFボタン(下段バーのMicと同じ状態) */
+.qn-tn-bigmic { flex: none; align-self: center; margin: 12px 0 4px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-width: 220px; height: 60px; padding: 0 28px; border-radius: 30px; border: 1px solid var(--border-subtle, #2a2a34); background: transparent; color: var(--text-bright); font-family: var(--font-display, 'Instrument Sans'), sans-serif; font-size: var(--fs-heading); font-weight: 700; letter-spacing: 1px; cursor: pointer; }
+.qn-tn-bigmic svg { width: 26px; height: 26px; fill: currentColor; }
+.qn-tn-bigmic.is-active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+@media (hover: hover) and (pointer: fine) { .qn-tn-bigmic:not(.is-active):hover { background: rgba(255, 255, 255, 0.06); } }
 
 /* メーター: 3段階色分け(data-state=just/close/far)。しきい値はJSのtuningState()と一致させる */
-.qn-tn-meter { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; max-width: 520px; }
-.qn-tn-gauge { position: relative; width: 100%; max-width: 480px; }
+.qn-tn-meter { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; max-width: 760px; }
+.qn-tn-gauge { position: relative; width: 100%; max-width: 700px; }
 .qn-tn-gauge-svg { width: 100%; height: auto; overflow: visible; }
 .qn-tn-g-track { fill: none; stroke: rgba(255, 255, 255, 0.08); stroke-width: 12; stroke-linecap: round; }
 .qn-tn-g-flat, .qn-tn-g-sharp { fill: none; stroke: var(--danger, #ef4444); stroke-width: 12; stroke-linecap: round; opacity: 0.4; }
@@ -230,10 +236,10 @@
 .qn-tn-reading { text-align: center; }
 .qn-tn-note {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 68px;
+  font-size: 88px;
   font-weight: 700;
   line-height: 1;
-  min-height: 74px;
+  min-height: 96px;
   color: var(--text-bright);
 }
 .qn-tn-freq { margin-top: 8px; font-size: 17px; font-weight: 500; color: var(--icon-muted); }
@@ -382,7 +388,8 @@
   .qn-tn-bstep-btn { width: 30px; height: 44px; font-size: 22px; }
   .qn-tn-bspacer { flex: 0 0 12px; }
   .qn-tn-bdiv { margin: 0 10px; }
-  .qn-tn-note { font-size: 56px; min-height: 62px; }
+  .qn-tn-note { font-size: 64px; min-height: 70px; }
+  .qn-tn-bigmic { min-width: 200px; height: 56px; }
 }
 
 .qn-tn-stage > .qn-mic-pill { position: absolute; top: 16px; right: 20px; z-index: 1; }

@@ -68,7 +68,8 @@
     "メイン表示の切り替え (D)": "Switch main display (D)",
     "マイク感度": "Mic sensitivity",
     "スムージング": "Smoothing",
-    "下のMicボタンを押すと、リアルタイムに音程を表示します": "Press Mic below to show pitch in real time",
+    "マイクをONにすると、リアルタイムに音程を表示します": "Turn the mic on to show pitch in real time",
+    "TUNERを開いたときに、マイクを自動でONにします": "Turns the mic on automatically when TUNER opens",
     "半円メーターの針で音程のズレを表示": "Shows pitch deviation with a semicircle needle",
     "左右のメモリでセント単位のズレを表示": "Shows deviation in cents on left/right scales",
     "1〜9は、Toneパネルで選んでいるプリセットの弦を上から順に鳴らします。": "Keys 1-9 play the strings of the preset selected in the Tone panel, from the top.",
@@ -166,7 +167,7 @@
     [/Markerは既にあります /g, "Marker already exists at "],
     [/ ・ /g, " · "],
     [/^(\d+) 半音$/g, "$1 semitones"],
-    [/^(\d+\.\d) 秒$/g, "$1 s"],
+    [/^(\d+\.\d+) 秒$/g, "$1 s"],
     [/(\d+)秒戻る \(J\)/g, "Back $1s (J)"],
     [/(\d+)秒進む \(L\)/g, "Forward $1s (L)"]
   ]);

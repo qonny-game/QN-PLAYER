@@ -104,6 +104,8 @@
       rafId = requestAnimationFrame(tick);
     }
 
+    function state() { return ctx ? ctx.state : "closed"; }
+
     function stop() {
       running = false;
       if (rafId) cancelAnimationFrame(rafId);
@@ -114,7 +116,7 @@
     }
 
     // streamは録音(MediaRecorder)と共有する用。getUserMediaを二重に開かない
-    return { startFromMic: startFromMic, stop: stop, get stream() { return stream; } };
+    return { startFromMic: startFromMic, stop: stop, state: state, get stream() { return stream; } };
   }
 
   window.QNPitchCore = {
