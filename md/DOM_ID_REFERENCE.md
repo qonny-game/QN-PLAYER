@@ -21,6 +21,7 @@ grep -o 'id="[a-zA-Z0-9]*"' JS/player-ui-pc-v2.js | sed 's/id="//;s/"//' | sort 
 | `note*` | Textタブ（`player-text.js`） |
 | `splash*` | 起動スプラッシュ |
 | `vbarContainer` > `vbarScroll` > `vbarRows` | シークバー(`player-bars.js`のQNBars)。行`.vbar[data-row]`は仮想スクロールで動的生成・再利用（固定のbar1〜6は無い）。行の中身は`canvas.vwave`・`.vbar-time`＋装飾(`.vbar-line`/`.vbar-ab-pt`/`.segmentHighlight*`)。歯車は`#qnBarGearBtn`（`#pcV2WaveHead`内、押すと設定パネル`#pcV2SettingsBody`を開く。v3.37.0〜。設定の行は`QNSettingsUI`が組み立て、`#loopPreRollControl`（下部バーから移設）もここに載る。アイコンバー最下段に`[data-panel-id=settings]`、設定内の`.qn-set-list-item`（Backup/Import/Color/Keyboard/Transfer）から下層ビュー、戻るは`.pcv2-panel-back`。アイコンバーの`[data-panel-id=color|keyboard]`はPLAYER表示中CSSで非表示、アプリ表示中も`[data-panel-id=settings]`が最下段に残り、qn-apps.jsの`#qnColorPop`が設定一覧になる）。波形エリア右下`#pcV2WaveFabRow`にAdd Audio/Add Markerボタン。時刻表示`.time-controls-row`は`#pcV2WaveHead`内の歯車の左（`#pcV2TimeRow`は常時非表示の空コンテナ） |
+| `pcV2HeadRow` | シークバー上の曲名行。`renderHeadRow()`(player-playlist.js)がLibraryと同じ行を描く。曲あり時`#pcV2WaveHead.has-track`で`#appTitle`は非表示 |
 | `appHeader` `appLogo` `appTitle`(`appTitleInner`>`appTitleText`) | ヘッダー／曲名。`#appTitle`はPC v2構築時に`#pcV2WaveArea`内へ移動 |
 
 ## 動的id（`player-ui-pc-v2.js`の`build()`が生成。`index.html`には無い）

@@ -5,6 +5,7 @@
   function bind() {
     if (!window.QNApps || typeof window.QNApps.swipeRows !== "function") return;
     // シークバー上のタイトル: 上へスワイプ=次のトラック、下へ=前のトラック(タッチのみ)
+    window.QNApps.vSwipe(document.getElementById("pcV2HeadRow"), function () { playNextTrack(); }, function () { playPrevTrack(); });
     window.QNApps.vSwipe(document.getElementById("appTitle"), function () { playNextTrack(); }, function () { playPrevTrack(); });
     var box = document.getElementById("playlistBox");
     var pinListEl = document.getElementById("pinList");

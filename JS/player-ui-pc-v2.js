@@ -473,6 +473,16 @@
 
 
     const waveHead = el('<div id="pcV2WaveHead"></div>');
+    // 再生中の曲の行(Libraryと同じ。中身はrenderHeadRow=player-playlist.js)。タップでLibraryを開く(ボタン・入力欄は除く)
+    const headRow = el('<div id="pcV2HeadRow"></div>');
+    headRow.addEventListener("click", (e) => {
+      if (e.target.closest("button, input, textarea")) return;
+      const layoutEl = document.getElementById("pcV2Layout");
+      const open = isSpWidthNow() ? !!(layoutEl && layoutEl.classList.contains("pcv2-panel-open")) : !panelCollapsed;
+      if (open && currentPanel === "playlist" && !settingsSub) return;
+      openPanelOverlay("playlist");
+    });
+    waveHead.appendChild(headRow);
     if (appTitle) {
       waveHead.appendChild(appTitle);
       // 【v4.11.2】ファイル名タップでLibraryを開く(既にLibraryが開いていれば何もしない)
@@ -505,6 +515,7 @@
     });
     waveHead.appendChild(headBtns);
     waveArea.appendChild(waveHead);
+    if (typeof renderHeadRow === "function") renderHeadRow();
     if (vbarContainer) waveArea.appendChild(vbarContainer);
     // waveHead確定後に時刻行の置き場所を確定(先のsyncTimeRowPosition()初回はwaveHead未生成で空振り)
     syncTimeRowPosition();

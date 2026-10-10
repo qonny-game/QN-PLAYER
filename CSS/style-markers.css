@@ -478,7 +478,7 @@
 
 /* ---------- PLAYER Libraryの行ボタン(v3.53.0): Markersと同じルール ----------
    Skip=背景なし・区切り線・ON中は薄暗く。編集モードのDelete=選択タイル(選択=赤)。正方形(行の高さ=58px−下線1px=57px)で隙間なし */
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-cell {
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-cell {
   display: flex;
   align-items: center;
   align-self: center;
@@ -486,7 +486,7 @@
   flex-shrink: 0;
 }
 :is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .playlist-act-cell { margin-right: -8px; }
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-btn {
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -509,16 +509,16 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-btn svg { width: 20px; height: 20px; fill: currentColor; }
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-btn span { color: inherit; font-size: 9px; line-height: 1; }
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-btn.is-on svg,
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-btn.is-on span { opacity: 0.35; }
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-btn:hover { background: rgba(255, 255, 255, 0.06); }
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-btn:active { background: rgba(255, 255, 255, 0.12); }
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlist-act-btn:disabled { opacity: 0.35; cursor: not-allowed; background: transparent; }
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-btn svg { width: 20px; height: 20px; fill: currentColor; }
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-btn span { color: inherit; font-size: 9px; line-height: 1; }
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-btn.is-on svg,
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-btn.is-on span { opacity: 0.35; }
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-btn:hover { background: rgba(255, 255, 255, 0.06); }
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-btn:active { background: rgba(255, 255, 255, 0.12); }
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-btn:disabled { opacity: 0.35; cursor: not-allowed; background: transparent; }
 /* スキップ中の曲: 行全体を薄くせず、つまみ/サムネ/タイトル/時間だけ薄くする(Skipボタンは常に読める) */
 :is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlistItem.disabled { opacity: 1; }
-:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox) .playlistItem.disabled > :not(.playlist-act-cell):not(.playlist-del-zone) { opacity: 0.4; }
+:is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlistItem.disabled > :not(.playlist-act-cell):not(.playlist-del-zone) { opacity: 0.4; }
 /* 編集モードの削除選択タイル */
 :is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .playlistItem .playlist-del-zone {
   flex-direction: column;

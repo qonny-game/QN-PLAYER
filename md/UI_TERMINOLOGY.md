@@ -5,7 +5,7 @@
 ## 画面の場所
 | 呼び方 | 実体 | 備考 |
 |---|---|---|
-| 曲名／曲名・アーティスト | `#appTitle` | 波形エリア(`#pcV2WaveArea`)内。ヘッダーのロゴとは別物 |
+| 曲名／曲名・アーティスト | `#pcV2HeadRow`（曲未選択時のみ`#appTitle`） | 波形エリア内。Libraryの1行(`buildPlaylistRow`)そのもの＋PCはSKIP/PIN/EDIT。ヘッダーのロゴとは別物 |
 | ヘッダー／ロゴ | `#appHeader`（「QNPLAYER vX.X.X」） | ページ最上部 |
 | ライブラリ | Playlistパネル（`#playlistBox`） | サイドメニューでは「Library」 |
 | 下部コントロール／コントロールバー | `#pcV2BottomBar` | PC幅＝右カラム下端（波形の真下）。幅が足りなければ横スクロール／SP幅＝アイコンバー直上の横スクロール列 |

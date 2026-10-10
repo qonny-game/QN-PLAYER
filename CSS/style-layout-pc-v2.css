@@ -194,6 +194,16 @@ body.pc-v2-active > .app-container {
   flex-shrink: 0;
   white-space: nowrap;
 }
+/* 曲があるとき: ヘッダーの左はLibraryと同じ行(#pcV2HeadRow。renderHeadRowが.playlistItemを入れる)。曲名(#appTitle)は曲が無い時だけ。時刻は行の右、PC幅はSKIP/PIN/EDITが続く */
+#pcV2WaveHead.has-track { align-items: center; }
+#pcV2WaveHead.has-track #appTitle { display: none; }
+#pcV2HeadRow { flex: 1 1 auto; min-width: 0; }
+#pcV2HeadRow:empty { display: none; }
+#pcV2HeadRow .playlistItem { display: flex; align-items: center; gap: 12px; padding: 0; min-height: 0; border-bottom: none; cursor: default; }
+#pcV2HeadRow .playlist-info-block { flex: 1 1 auto; min-width: 0; }
+#pcV2HeadRow .playlist-duration { display: none; }
+#pcV2HeadRow .playlist-act-cell { margin: 0; }
+#pcV2HeadRow .playlist-head-edit { color: var(--icon-muted); }
 #pcV2WaveHead #timeDisplay .time-val { font-size: 14px; }
 #pcV2WaveHead #timeDisplay .time-dur { font-size: 13px; }
 

@@ -330,11 +330,44 @@ function renderNowPlaying() {
   if (track) host.appendChild(buildPlaylistRow(track, currentPlaylistIndex, false, true));
 }
 
+// シークバー上(#pcV2WaveHead)の「再生中の曲」: Libraryと全く同じ行(サムネ・曲名・アーティスト)を出す。曲が無い時は従来の#appTitle("No file loaded")。
+// PC幅だけ SKIP / PIN / EDIT のボタンも並べる(SP幅はCSSで非表示)。時刻は#timeDisplay(同じ行の右に並べる)。再描画はrenderPlaylistから(曲の変更・曲名編集・ピン・SKIPの後)
+function renderHeadRow() {
+  const host = document.getElementById("pcV2HeadRow");
+  if (!host) return;
+  const track = currentPlaylistIndex >= 0 ? playlist[currentPlaylistIndex] : null;
+  const head = document.getElementById("pcV2WaveHead");
+  if (head) head.classList.toggle("has-track", !!track);
+  host.innerHTML = "";
+  if (!track) return;
+  const idx = currentPlaylistIndex;
+  const row = buildPlaylistRow(track, idx, false, true);
+  // PC幅: SKIP(Libraryの行と同じ部品) / PIN(行のピンボタンをそのまま表示) / EDIT(曲名の編集を開始)
+  const actCell = document.createElement("div");
+  actCell.className = "playlist-act-cell";
+  const skipBtn = document.createElement("button");
+  skipBtn.type = "button";
+  skipBtn.className = "playlist-act-btn is-mskip" + (track.enabled ? "" : " is-on");
+  skipBtn.innerHTML = window.QN_ROW_ACT.html("mskip", !track.enabled);
+  skipBtn.title = track.enabled ? "Included in auto-advance (click to skip)" : "Skipped during auto-advance (click to include)";
+  skipBtn.onclick = (e) => { e.stopPropagation(); track.enabled = !track.enabled; renderPlaylist(); persistPlaylistOrder(); };
+  actCell.appendChild(skipBtn);
+  row.appendChild(actCell);
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "playlist-favorite-btn playlist-head-edit";
+  editBtn.title = "Edit title";
+  editBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+  editBtn.onclick = (e) => { e.stopPropagation(); const f = row.querySelector(".playlist-title"); if (f && f.startEdit) f.startEdit(); };
+  row.appendChild(editBtn);
+  host.appendChild(row);
+}
+
 function renderPlaylist() {
   const box = document.getElementById("playlistBox");
   const info = document.getElementById("playlistInfo");
   if (info) info.textContent = `${playlist.length} track${playlist.length === 1 ? "" : "s"}`;
-  refreshAppTitle();
+  renderHeadRow();
   if (!box) return;
 
   const editMode = typeof isPlaylistEditMode === "function" && isPlaylistEditMode();
@@ -366,6 +399,7 @@ function renderPlaylist() {
   // 本体Library同期(player-sync.js): 「未インポート」セクションと同期ステータス行
   if (window.QNLibSync) window.QNLibSync.decorateLibrary(box, editMode);
   renderNowPlaying();
+  renderHeadRow();
 
   setupPlaylistDragReorder(box);
   setupFolderDragReorder(box);
