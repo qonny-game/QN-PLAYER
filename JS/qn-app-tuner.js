@@ -272,14 +272,16 @@
   // ---------- マイク ----------
   // 表示を残す時間はHold設定(既定1.5秒。33msフレーム換算)。感度は「拾う最小音量」だけを決める
   function holdFrames() { return Math.round(hold * 1000 / 33); }
-  function minRms() { return 0.02 - (sens / 100) * 0.017; } // 0%:0.02 → 100%:0.003
+  // 感度0%:RMS0.01 → 100%:0.0004(対数で補間)。小さい音は周期性チェック(MIN_CLARITY)で雑音を弾く
+  var MIN_CLARITY = 0.6;
+  function minRms() { return 0.01 * Math.pow(0.04, sens / 100); }
   function smoothFactor() {
     var f = 0.1 + (smooth / 100) * 0.5;
     return 1 - (1 - f) * (1 - f);
   }
   function onMicFrame(res) {
     var freq = res.freq;
-    window.QNApps.setMicLevel(refs.micPill, res.rms < 0.002 ? 0 : Math.min(5, 1 + Math.floor(res.rms * 15)));
+    window.QNApps.setMicLevel(refs.micPill, res.rms < 0.0006 ? 0 : Math.min(5, 1 + Math.floor(res.rms * 15)));
     if (freq === -1 || freq < 30 || freq > 2000) {
       silenceFrames++;
       if (silenceFrames === holdFrames()) resetReadout();
@@ -307,7 +309,7 @@
     if (micRunning || micStarting) return;
     micStarting = true;
     refs.micError.textContent = "";
-    var session = core.createAnalysisSession({ fftSize: 2048, onFrame: onMicFrame, getMinRms: minRms });
+    var session = core.createAnalysisSession({ fftSize: 2048, onFrame: onMicFrame, getMinRms: minRms, minClarity: MIN_CLARITY });
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("nomedia");
       await session.startFromMic();

@@ -210,5 +210,8 @@
 
 - **Stem 6パートのモデル(v4.20.1)**: WebGPU用=`kramp/htdemucs-6s-webgpu-onnx`(fp32 約285MB、WebGPUで動かない演算を除去済み)、CPU用=`StemSplitio/htdemucs-6s-onnx`のfp16重み版(約136MB)。StemSplit版はWebGPUで動かなかったため分けた(`window.QN_STEM_MODEL_URL_6_GPU`/`_6`で差替可)。WebGPU失敗時はワーカーがCPU用を取り直してWASMで続行し、理由を`status.note`でパネルに出す。
 
+## TUNERの無音判定(v4.25.1)
+`autoCorrelate(buf,sr,corr,minRms,minClarity)`。minRmsだけを下げると雑音を音程として拾うので、TUNERは周期性チェック(minClarity)とセットで使う。PITCHは従来どおり引数なし(RMS0.01・周期性チェックなし)。Holdは「検出できなくなってから表示を残す時間」で、検出できている間は常に追従する。
+
 ## シークバー上の曲名行(v4.24.0)
 `#pcV2HeadRow`は`renderHeadRow()`がLibraryの`buildPlaylistRow`を再利用して描く。`renderPlaylist()`と`renderNowPlaying()`の後で再描画される。見た目はlibraryのCSS(`.playlistItem`等)を流用し、PCのみSKIP/PIN/EDIT表示、SP(≤900px)は`#pcV2WaveHead #pcV2HeadRow`配下のボタンを非表示。時間は現在/総時間のライブ表示を残している。
