@@ -36,3 +36,4 @@ Preset/Tuningは保存しない（起動時はGuitar/Regular）。
 - **大きなMICボタン**：メーター直下`[data-tn="bigMic"]`(MIC ON/OFF)。下段バーのMicと同じ`toggleMic`。
 - **メーター拡大**：ゲージ最大700px、音名88px(SPは64px)。
 - **設定UI**：Sensitivity/Smoothingも連続バー(5%刻み、下段バーの±10と連動)。**Hold**は0.10〜1.00秒・推奨0.30秒(範囲外の保存値は既定に戻す)。
+- **v4.26.1**：Gaugeの目盛りを±50¢のまま4倍(10¢刻み→2.5¢刻み、41本。20¢=major/10¢=mid/他=minor)。ゲージ幅は`min(100%, 960px, (100vh−440px)×1.8)`で画面の高さに合わせて最大化(MICボタンまで1画面に収める)。音名は`clamp(56px,10vh,80px)`。Guitar Meter(丸の段表示)は変更なし。

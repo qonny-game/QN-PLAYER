@@ -209,13 +209,15 @@
 @media (hover: hover) and (pointer: fine) { .qn-tn-bigmic:not(.is-active):hover { background: rgba(255, 255, 255, 0.06); } }
 
 /* メーター: 3段階色分け(data-state=just/close/far)。しきい値はJSのtuningState()と一致させる */
-.qn-tn-meter { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; max-width: 760px; }
-.qn-tn-gauge { position: relative; width: 100%; max-width: 700px; }
+.qn-tn-meter { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 1000px; }
+/* ゲージ幅: 画面幅いっぱい、ただし縦に収まる大きさまで(音名・MICボタン分を引いた高さ×1.75) */
+.qn-tn-gauge { position: relative; width: min(100%, 960px, calc((100vh - 440px) * 1.8)); min-width: 280px; }
 .qn-tn-gauge-svg { width: 100%; height: auto; overflow: visible; }
 .qn-tn-g-track { fill: none; stroke: rgba(255, 255, 255, 0.08); stroke-width: 12; stroke-linecap: round; }
 .qn-tn-g-flat, .qn-tn-g-sharp { fill: none; stroke: var(--danger, #ef4444); stroke-width: 12; stroke-linecap: round; opacity: 0.4; }
 .qn-tn-g-in { fill: none; stroke: var(--qn-tn-just); stroke-width: 12; stroke-linecap: round; }
 .qn-tn-tick { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1.5; stroke-linecap: round; }
+.qn-tn-tick.minor { stroke: rgba(255, 255, 255, 0.14); stroke-width: 1; }
 .qn-tn-tick.major { stroke: rgba(255, 255, 255, 0.34); stroke-width: 2.5; }
 .qn-tn-tick.zero { stroke: var(--qn-tn-just); stroke-width: 3.5; }
 .qn-tn-needle { transform-origin: 150px 150px; transition: transform 0.08s var(--ease-snap, ease); }
@@ -236,10 +238,10 @@
 .qn-tn-reading { text-align: center; }
 .qn-tn-note {
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;
-  font-size: 88px;
+  font-size: clamp(56px, 10vh, 80px);
   font-weight: 700;
   line-height: 1;
-  min-height: 96px;
+  min-height: clamp(62px, 11vh, 86px);
   color: var(--text-bright);
 }
 .qn-tn-freq { margin-top: 8px; font-size: 17px; font-weight: 500; color: var(--icon-muted); }

@@ -164,12 +164,12 @@
   }
 
   var GAUGE_TICKS = [];
-  for (var tc = -50; tc <= 50; tc += 10) GAUGE_TICKS.push(tc);
+  for (var tc = -50; tc <= 50; tc += 2.5) GAUGE_TICKS.push(tc); // ±50¢を2.5¢刻み(41本)。20¢ごと=major、10¢ごと=mid、他=minor
   function gaugeTicksSvg() {
     return GAUGE_TICKS.map(function (c) {
       var rad = ((c / 50) * 90 - 90) * Math.PI / 180;
-      var major = c % 20 === 0, rIn = major ? 108 : 116;
-      var cls = c === 0 ? "qn-tn-tick zero" : (major ? "qn-tn-tick major" : "qn-tn-tick");
+      var major = c % 20 === 0, mid = c % 10 === 0, rIn = major ? 108 : (mid ? 114 : 120);
+      var cls = c === 0 ? "qn-tn-tick zero" : (major ? "qn-tn-tick major" : (mid ? "qn-tn-tick" : "qn-tn-tick minor"));
       return '<line class="' + cls + '" x1="' + (150 + 130 * Math.cos(rad)).toFixed(1) + '" y1="' + (150 + 130 * Math.sin(rad)).toFixed(1) +
         '" x2="' + (150 + rIn * Math.cos(rad)).toFixed(1) + '" y2="' + (150 + rIn * Math.sin(rad)).toFixed(1) + '"/>';
     }).join("");
