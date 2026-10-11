@@ -4,10 +4,17 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from qnbrowser import QNBrowser
 
-root = sys.argv[1] if len(sys.argv) > 1 else "."
+args = [a for a in sys.argv[1:] if not a.startswith("--")]
+root = args[0] if args else "."
+only = None
+for a in sys.argv[1:]:
+    if a.startswith("--only="):
+        only = a.split("=", 1)[1].split(",")   # 例: --only=PC,SP-S （並列実行用）
 bad = 0
 with QNBrowser(root) as qb:
     for name, (w, h) in {"PC": (1280, 800), "PC-L": (1920, 1080), "SP": (390, 844), "SP-S": (360, 740)}.items():
+        if only and name not in only:
+            continue
         pg = qb.new_page(width=w, height=h)
         qb.goto(pg)
         qb.add_track(pg)

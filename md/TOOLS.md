@@ -9,13 +9,15 @@
 | `snap.py` ＋ `compare_snap.py` | 全要素の計算済みスタイルを書き出し、前後で比較（見た目を変えない作業の確認） |
 | `i18n_check.py` | 英語表示にして、日本語が残っている文言とページエラーを洗い出す |
 | `qnbrowser.py` | ブラウザ確認の共通土台（サーバー起動・PC/SP・無料版解除・言語指定・テスト音声生成・外部遮断・エラー収集・スクショ）。新しい確認スクリプトはこれを使って書く |
-| `qa.py` | 出荷前の一括チェック（smoke・i18n・md_audit・js_unused・css_audit・release check を順に実行して末尾をまとめて表示）。長いので背景実行推奨 |
+| `qa.py` | **出荷前チェックの一括実行**（smoke4画面＋i18n＋md_audit＋js_unused＋css_audit＋release checkを並列で）。結果は1項目1行、NGだけ詳細。`--quick`=smokeをPC/SP-Sだけ・約20秒（作業の途中確認用）。`--ship 版 "一言"`=全部OKならそのまま`release.py ship`→パッチZIPの中身をツリーと照合。全チェックは約2分(2コア)なので、ツール呼び出しのtimeoutは300秒にする |
+| `try.py` | **画面の動作確認を1コマンドで**（その場でPlaywrightスクリプトを書かない）。`--app tuner --mic --size pc sp --panel X --click css --mic-set tone=0.001,noise=0.002 --eval "js" --shot 名前`。PC/SP複数サイズを一度に、eval結果・ページエラー・スクショ(/tmp/qnshots/)を出力。`--mic`は擬似マイク(qnbrowser.pyの擬似マイク定義) |
+| `where.py` | **用語・ID・文言がどのmd/guide/コードにあるか**を一覧（mdとguideは該当行、コードは件数）。名前やUIを変えた時の、直すべきドキュメントの拾い漏れ防止 |
 | `css_audit.py` / `js_unused.py` / `md_audit.py` | お掃除用。引数なしならカレントがルート。未使用のCSS／未参照の関数／mdが挙げる名前がコードに残っているか（`CLEANUP.md`） |
 
 ## 標準の流れ
-1. 作業する（コード・必要なmdを直す）。
-2. 動作を確認する：`smoke.py <ルート>`、見た目を変えない作業は `snap.py` を前後で出して `compare_snap.py`。
-3. `release.py ship <新しい版> "<CHANGELOGの一言>"` → 出力された `QNPLAYER_v<版>_patch.zip` を渡す。
+1. 作業する（コード・必要なmdを直す）。名前やUIを変えたら `where.py <語>` でmd/guideの直し漏れを拾う。
+2. 動作を確認する：新しい挙動は `try.py`（スクショ付き）、途中の健全性は `qa.py --quick`、見た目を変えない作業は `snap.py` を前後で出して `compare_snap.py`。
+3. `qa.py --ship <新しい版> "<CHANGELOGの一言>"`（全チェック→ship→ZIP照合を一気に）→ 出力された `QNPLAYER_v<版>_patch.zip` を渡す。
 4. 完全版を頼まれたら `release.py full`。
 
 ## 基準（前回渡した版）の仕組み

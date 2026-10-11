@@ -132,3 +132,4 @@
 - 4.26.0 TUNER: MIC自動ON・大きなMICボタン・メーター拡大・Sens/Smoothingをバー化・Hold 0.1〜1秒(推奨0.3)
 - 4.26.1 TUNER: ゲージ拡大・目盛り4倍(2.5¢刻み)
 - 4.26.2 TUNER: Guitar Meter拡大・目盛り4倍(1.25¢刻み81本)
+- 4.26.3 ツール整備(qa並列・--ship、try.py、where.py、擬似マイク)

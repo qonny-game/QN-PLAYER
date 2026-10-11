@@ -22,6 +22,22 @@ import wave
 import math
 
 
+# マイクの代わりになる擬似入力(getUserMediaを差し替える)。new_page(mic=True)で有効。
+# ページ内で window.__mic = {freq, tone, noise} を書き換えると音を変えられる(qb.mic(pg, tone=..., noise=..., freq=...))
+MIC_MOCK_JS = """
+navigator.mediaDevices.getUserMedia = async function () {
+  const c = new (window.AudioContext || webkitAudioContext)(); window.__ac = c;
+  const o = c.createOscillator(); o.frequency.value = 110; const g = c.createGain(); g.gain.value = 0.3;
+  const len = c.sampleRate * 2, nb = c.createBuffer(1, len, c.sampleRate), d0 = nb.getChannelData(0);
+  for (let i = 0; i < len; i++) d0[i] = Math.random() * 2 - 1;
+  const ns = c.createBufferSource(); ns.buffer = nb; ns.loop = true; const ng = c.createGain(); ng.gain.value = 0;
+  const d = c.createMediaStreamDestination(); o.connect(g); g.connect(d); ns.connect(ng); ng.connect(d); o.start(); ns.start();
+  window.__mic = { set freq(v) { o.frequency.value = v; }, set tone(v) { g.gain.value = v; }, set noise(v) { ng.gain.value = v; } };
+  return d.stream;
+};
+"""
+
+
 class _Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -61,7 +77,7 @@ class QNBrowser:
 
     # ---- ページ ----
     def new_page(self, width=1280, height=800, unlock=True, lang=None, storage=None,
-                 block_external=True, init_script=None, accept_downloads=True):
+                 block_external=True, init_script=None, accept_downloads=True, mic=False):
         """storage: 起動前に入れるlocalStorageの辞書。unlock=Trueで無料版の制限を外す。lang: 'ja'|'en'|'auto'"""
         ctx = self.browser.new_context(viewport={"width": width, "height": height},
                                        accept_downloads=accept_downloads)
@@ -72,6 +88,8 @@ class QNBrowser:
             items["qn_lang"] = lang
         js = "try{" + "".join("localStorage.setItem(%r,%r);" % (k, str(v)) for k, v in items.items()) + "}catch(e){}"
         ctx.add_init_script(js)
+        if mic:
+            ctx.add_init_script(MIC_MOCK_JS)
         if init_script:
             ctx.add_init_script(init_script)
         pg = ctx.new_page()
@@ -83,6 +101,13 @@ class QNBrowser:
             pg.route("**/*", lambda r: r.continue_() if r.request.url.startswith(self.base_url) else r.abort())
         self._pages.append(pg)
         return pg
+
+    def mic(self, pg, tone=None, noise=None, freq=None, wait_ms=1200):
+        """擬似マイクの音を変える(tone=音量0〜1 / noise=雑音量 / freq=Hz)。new_page(mic=True)が前提"""
+        for k, v in (("freq", freq), ("tone", tone), ("noise", noise)):
+            if v is not None:
+                pg.evaluate("(v)=>{window.__mic.%s=v}" % k, v)
+        pg.wait_for_timeout(wait_ms)
 
     def goto(self, pg, path="index.html", wait_ms=3000):
         pg.goto(self.base_url + path, wait_until="load")
