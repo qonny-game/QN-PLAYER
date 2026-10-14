@@ -35,7 +35,7 @@
     {
       // 【v4.44.0】曲ごとに保存されるコード/拍の設定(キー・拍子・小節頭・拍のテンポ・再解析)。全曲共通の設定はSettings側
       id: "chords",
-      label: "Chords",
+      label: (!window.qnFeature || window.qnFeature("chords")) ? "Chords" : "Beats", // コードを隠している間は、拍・小節の設定だけのパネル
       panelType: "chords",
       icon: '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>'
     },
@@ -102,7 +102,7 @@
       panelType: "settings",
       icon: '<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>'
     }
-  ].filter(item => !window.qnFeature || window.qnFeature(item.id));
+  ].filter(item => !window.qnFeature || (item.id === "chords" ? (window.qnFeature("chords") || window.qnFeature("beats")) : window.qnFeature(item.id)));
 
 
   function el(html) {
@@ -291,6 +291,44 @@
         '</div>');
       topControls.appendChild(el('<div class="pcv2-ctrl-divider pcv2-mixer-divider"></div>'));
       topControls.appendChild(mixer);
+      // 【v4.63.0】PC幅: Volume/Speed/Keyはアイコン(+値)だけを並べ、押すとバーがその上に出る(2段にしない)。SP幅はCSSで従来どおり(アイコン非表示・スロットはdisplay:contents)
+      const MIX_ICONS = {
+        vol: '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>',
+        speed: '<path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/>',
+        key: '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>'
+      };
+      const MIX_NAMES = { vol: "Volume", speed: "Speed", key: "Key" };
+      const mixSlots = {};
+      Array.from(mixer.querySelectorAll(".pcv2-mix-item")).forEach(item => {
+        const k = item.getAttribute("data-mix");
+        const slot = el('<div class="pcv2-mix-slot" data-mixslot="' + k + '"></div>');
+        const btn = el('<button type="button" class="pcv2-mix-ibtn" aria-haspopup="true" aria-expanded="false" aria-label="' + MIX_NAMES[k] + '" title="' + MIX_NAMES[k] + '"><svg viewBox="0 0 24 24">' + MIX_ICONS[k] + '</svg><span></span></button>');
+        mixer.insertBefore(slot, item); slot.appendChild(btn); slot.appendChild(item);
+        mixSlots[k] = { slot, btn, item, label: btn.querySelector("span") };
+      });
+      let openMix = null;
+      const positionMix = (m) => {
+        const r = m.btn.getBoundingClientRect(), w = 210;
+        m.item.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + "px";
+        m.item.style.bottom = (innerHeight - r.top + 8) + "px";
+      };
+      const closeMix = () => {
+        if (!openMix) return;
+        openMix.slot.classList.remove("is-open"); openMix.btn.setAttribute("aria-expanded", "false"); openMix = null;
+        document.removeEventListener("pointerdown", onMixOutside, true); document.removeEventListener("keydown", onMixKey, true); window.removeEventListener("resize", closeMix);
+      };
+      const onMixOutside = (e) => { if (openMix && !openMix.slot.contains(e.target)) closeMix(); };
+      const onMixKey = (e) => { if (e.key === "Escape") closeMix(); };
+      Object.keys(mixSlots).forEach(k => mixSlots[k].btn.addEventListener("click", () => {
+        const m = mixSlots[k], was = openMix === m;
+        closeMix();
+        if (was) return;
+        if (typeof hapticTap === "function") hapticTap();
+        openMix = m; m.slot.classList.add("is-open"); m.btn.setAttribute("aria-expanded", "true");
+        positionMix(m);
+        document.addEventListener("pointerdown", onMixOutside, true); document.addEventListener("keydown", onMixKey, true); window.addEventListener("resize", closeMix);
+        window.pcv2SyncBarMixer && window.pcv2SyncBarMixer(true);
+      }));
       const barVol = mixer.querySelector("#pcV2BarVol"), barSpeed = mixer.querySelector("#pcV2BarSpeed");
       const barMute = mixer.querySelector("#pcV2BarMute");
       barMute.addEventListener("click", () => { audio.muted = !audio.muted; if (typeof hapticTap === "function") hapticTap(); window.pcv2SyncBarMixer(true); });
@@ -340,6 +378,15 @@
         barMute.title = audio.muted ? "Unmute" : "Mute";
         mixer.querySelector('[data-mixval="speed"]').textContent = currentSpeed.toFixed(2) + "x";
         mixer.querySelector('[data-mixval="key"]').textContent = (currentKeySemitones > 0 ? "+" : "") + currentKeySemitones;
+        // アイコン下の値と「初期値から変えている」印(アクセント色)
+        if (mixSlots.vol) {
+          mixSlots.vol.label.textContent = audio.muted ? "Mute" : Math.round(audio.volume * 100) + "%";
+          mixSlots.speed.label.textContent = currentSpeed.toFixed(2) + "x";
+          mixSlots.key.label.textContent = (currentKeySemitones > 0 ? "+" : "") + currentKeySemitones;
+          mixSlots.vol.slot.classList.toggle("is-mod", !!audio.muted);
+          mixSlots.speed.slot.classList.toggle("is-mod", Math.abs(currentSpeed - 1) > 0.001);
+          mixSlots.key.slot.classList.toggle("is-mod", currentKeySemitones !== 0);
+        }
       };
       window.pcv2SyncBarMixer();
 
@@ -601,7 +648,11 @@
     };
     const togClick = makeToggle("pcV2FabClick", "Grid click on / off", '<path d="M9.5 3h5l3.5 17H6L9.5 3zm1.7 2L8.6 18h6.8L12.8 5h-1.6z"/><path d="M11.6 15.5l3-9 .95.3-3 9z"/>', () => QNChords.getClick(), on => QNChords.setClick(on));
     const togSnap = makeToggle("pcV2FabSnap", "Marker snap to bars and beats on / off", '<path d="M3 7v6c0 4.97 4.03 9 9 9s9-4.03 9-9V7h-6v6c0 1.66-1.34 3-3 3s-3-1.34-3-3V7H3zm0-2h6v2H3V5zm12 0h6v2h-6V5z"/>', () => QNPinSnap.get("bar") && QNPinSnap.get("beat"), on => { QNPinSnap.set("bar", on); QNPinSnap.set("beat", on); });
-    const hasChords = qnFeature("chords"); // コード機能を隠す時は、クリック音/吸着のボタンも出さない
+    // SP: B の右に歌詞のON/OFF(Textパネルの「Show under bar」と同じ値)
+    const togLy = makeToggle("pcV2FabLyrics", "Lyrics under the bar on / off", '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/>', () => window.QNLyrics && QNLyrics.getShow(), on => { if (window.QNLyrics) QNLyrics.setShow(on); });
+    waveFabBtns.appendChild(togLy);
+    document.addEventListener("qn-lyrics-change", () => togLy.__sync());
+    const hasChords = qnFeature("beats"); // 拍・小節の機能を隠す時は、クリック音/吸着のボタンも出さない
     if (hasChords) { waveFabBtns.appendChild(togClick); waveFabBtns.appendChild(togSnap); }
     const syncTogs = () => { if (hasChords) { togClick.__sync(); togSnap.__sync(); } };
     const stripSync = waveBarStrip.sync;
@@ -1100,9 +1151,10 @@
         values: () => { const a = []; for (let i = QNBars.PAUSE_MIN; i <= QNBars.PAUSE_MAX; i++) a.push(i); return a; },
         get: () => QNBars.getPause(), set: v => QNBars.setPause(v), fmt: v => v + "s", disabledWhen: () => !QNBars.getFollow() }
     ];
-    // コード機能を隠す時(qn-features.js)は、コード/拍の解析に頼る行を除く
-    const CHORD_ROWS = ["View", "Chord detail", "Chord key", "Re-analyze chords", "Chord candidates", "Chord beat snap", "Grid", "Grid click", "Click offset", "Marker snap to bars", "Marker snap to beats", "Grid follows markers", "Beats per bar", "Bar start", "Bar start point", "Beat tempo"];
-    rowsBar.forEach(r => { if (CHORD_ROWS.indexOf(r.label) >= 0) r.feat = "chords"; });
+    // コード/拍の機能を隠す時(qn-features.js)は、それぞれの行を除く
+    const CHORD_ROWS = ["View", "Chord detail", "Chord key", "Chord candidates", "Chord beat snap"]; // コード表示に関わる行(chords)
+    const BEAT_ROWS = ["Re-analyze chords", "Grid", "Grid click", "Click offset", "Marker snap to bars", "Marker snap to beats", "Grid follows markers", "Beats per bar", "Bar start", "Bar start point", "Beat tempo"]; // 拍・小節に関わる行(beats)
+    rowsBar.forEach(r => { if (CHORD_ROWS.indexOf(r.label) >= 0) r.feat = "chords"; else if (BEAT_ROWS.indexOf(r.label) >= 0) r.feat = "beats"; });
     rowsBar = qnFeatRows(rowsBar);
     // 曲ごとに保存される項目はChordsパネルへ(ensureChordsBody)。表示順はこの並び
     const SONG_LABELS = ["Re-analyze chords", "Chord key", "Beats per bar", "Bar start", "Bar start point", "Beat tempo"];

@@ -3,7 +3,7 @@
 // 歌詞の行 = 空行でなく先頭が「#」でない行。「#」の行は見出し/コメント扱いで時刻を付けない。上限: メモ10000字・歌詞300行・1行120字(表示)
 (function () {
   "use strict";
-  var NOTE_MAX = 10000, LINE_MAX = 300, SHOW_KEY = "qn_lyrics_show", TAP_LAG = 0.15;
+  var NOTE_MAX = 10000, LINE_MAX = 300, SHOW_KEY = "qn_lyrics_show", WIDE_KEY = "qn_lyrics_wide", TAP_LAG = 0.15;
   var VIEW_CLASS = "qn-ly-view";
 
   var lines = [];        // {s:文字, ly:歌詞の行か, t:秒|null}
@@ -18,6 +18,12 @@
   function key() { return "mp3_lyt_" + name(); }
   function toast(t) { if (window.QNApps && typeof window.QNApps.toast === "function") window.QNApps.toast(t); }
   function showPref() { try { return localStorage.getItem(SHOW_KEY) !== "0"; } catch (e) { return true; } }
+  function widePref() { try { return localStorage.getItem(WIDE_KEY) === "1"; } catch (e) { return false; } }
+  var ver = 0, wideVer = -1, elWide = null, wideEls = [], elExp = null;
+  function changed() { try { document.dispatchEvent(new CustomEvent("qn-lyrics-change")); } catch (e) {} }
+  function setShow(on) { try { localStorage.setItem(SHOW_KEY, on ? "1" : "0"); } catch (e) {} if (elShow) elShow.firstChild.checked = !!on; lastActive = -2; tick(true); syncTimer(); changed(); }
+  function setWide(on) { try { localStorage.setItem(WIDE_KEY, on ? "1" : "0"); } catch (e) {} if (elWideSw) elWideSw.firstChild.checked = !!on; lastActive = -2; tick(true); changed(); }
+  var elWideSw = null;
   function fmt(t) {
     if (t == null) return "--";
     var m = Math.floor(t / 60), s = t - m * 60;
@@ -80,13 +86,14 @@
 
     elBox = document.createElement("div"); elBox.id = "qnLyBox";
     elBar = document.createElement("div"); elBar.className = "qn-ly-bar";
-    elShow = mkSwitch("Show under bar", showPref(), function (on) { try { localStorage.setItem(SHOW_KEY, on ? "1" : "0"); } catch (e) {} lastActive = -2; tick(true); });
+    elShow = mkSwitch("Show under bar", showPref(), function (on) { setShow(on); });
+    elWideSw = mkSwitch("Large area", widePref(), function (on) { setWide(on); });
     var bSync = mkBtn("Sync", function () { toggleSync(); }); bSync.id = "qnLySyncBtn";
     var bClr = mkBtn("Clear times", function () {
       if (!timedCount()) return;
       lines.forEach(function (l) { l.t = null; }); ptr = 0; save(); render(); lastActive = -2; tick(true);
     });
-    elBar.appendChild(elShow); elBar.appendChild(bSync); elBar.appendChild(bClr);
+    elBar.appendChild(elShow); elBar.appendChild(elWideSw); elBar.appendChild(bSync); elBar.appendChild(bClr);
     elList = document.createElement("div"); elList.id = "qnLyList";
     elTap = document.createElement("div"); elTap.className = "qn-ly-tapbar"; elTap.hidden = true;
     var tap = mkBtn("Tap", function () { stamp(); }); tap.className = "qn-ly-tap";
@@ -134,6 +141,7 @@
     save(); render(); lastActive = -2; tick(true);
   }
   function render() {
+    ver++;
     if (!elList) return;
     elList.textContent = "";
     var frag = document.createDocumentFragment();
@@ -178,8 +186,34 @@
       var d = document.createElement("div"); d.className = "qn-lyd-line"; d.setAttribute("data-r", ROLES[k]); elDisp.appendChild(d); return d;
     });
     roleOf = [0, 1, 2, 3, 4];
+    elWide = document.createElement("div"); elWide.className = "qn-lyd-wide"; elDisp.appendChild(elWide);
+    elWide.addEventListener("click", function (e) {
+      var r = e.target.closest(".qn-lyd-row"); if (!r) return;
+      var t = +r.dataset.t; if (isNaN(t) || typeof audio === "undefined" || !audio.duration) return;
+      audio.currentTime = t; if (audio.paused) audio.play();
+    });
+    elExp = document.createElement("button"); elExp.type = "button"; elExp.className = "qn-lyd-exp";
+    elExp.addEventListener("click", function () { setWide(!widePref()); });
+    elDisp.appendChild(elExp);
     vb.parentNode.insertBefore(elDisp, vb.nextSibling);
     return elDisp;
+  }
+  // 広い表示: 全行を同じ大きさで並べ、現在行を中央へスクロール(行のタップでその時刻へ)
+  function paintWide(a, snap) {
+    if (wideVer !== ver) {
+      wideVer = ver; elWide.textContent = ""; wideEls = [];
+      lyIdx.forEach(function (i) {
+        var r = document.createElement("div"), l = lines[i];
+        r.className = "qn-lyd-row"; r.textContent = l.s; if (l.t != null) r.dataset.t = l.t; else r.classList.add("is-untimed");
+        elWide.appendChild(r); wideEls.push(r);
+      });
+    }
+    wideEls.forEach(function (r, k) { r.classList.toggle("is-cur", k === a); r.classList.toggle("is-past", k < a); });
+    var el = wideEls[Math.max(a, 0)]; if (!el) return;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches && document.documentElement.getAttribute("data-qn-motion") !== "on";
+    var top = el.offsetTop - (elWide.clientHeight - el.offsetHeight) / 2;
+    if (a < 0) top = 0;
+    if (elWide.scrollTo) elWide.scrollTo({ top: Math.max(0, top), behavior: snap || reduce ? "auto" : "smooth" }); else elWide.scrollTop = Math.max(0, top);
   }
   function activeLine(cur) {
     var best = -1, bt = -1;
@@ -195,10 +229,16 @@
     if (!show) { if (!d.hidden) { d.hidden = true; lastActive = -2; } return; }
     var cur = typeof audio !== "undefined" ? audio.currentTime : 0;
     var a = activeLine(cur);
+    var wide = widePref();
+    if (d.classList.contains("is-wide") !== wide || wideVer !== ver) force = true;
     var prevA = lastActive;
-    if (a === lastActive && !d.hidden) return;
+    if (a === lastActive && !d.hidden && !force) return;
     lastActive = a;
     d.hidden = false;
+    d.classList.toggle("is-wide", wide);
+    elExp.title = wide ? "Smaller lyrics area" : "Larger lyrics area"; elExp.setAttribute("aria-label", elExp.title);
+    elExp.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="' + (wide ? "M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" : "M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z") + '"/></svg>';
+    if (wide) { paintWide(a, prevA < -1 || force); return; }
     var at = function (k) { return k >= 0 && k < lyIdx.length ? lines[lyIdx[k]].s : ""; };
     var step = prevA >= -1 && !force ? a - prevA : 0; // 1行ずつ進んだ/戻った時だけ動かす。シーク・曲の切替・編集は一気に差し替える
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches && document.documentElement.getAttribute("data-qn-motion") !== "on"; // Settings > Animations=On なら、OSが動きを減らす設定でも動かす
@@ -237,7 +277,7 @@
     try { if (ok.length) localStorage.setItem("mp3_lyt_" + n, JSON.stringify(ok)); else localStorage.removeItem("mp3_lyt_" + n); } catch (e) {}
   }
 
-  window.QNLyrics = { load: load, setEditing: setEditing, exportFor: exportFor, importFor: importFor, NOTE_MAX: NOTE_MAX };
+  window.QNLyrics = { getShow: showPref, setShow: setShow, getWide: widePref, setWide: setWide, load: load, setEditing: setEditing, exportFor: exportFor, importFor: importFor, NOTE_MAX: NOTE_MAX };
 
   function init() {
     build(); ensureDisp(); load(); syncTimer();

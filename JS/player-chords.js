@@ -37,7 +37,7 @@ var QNChords = (function () {
     const am = localStorage.getItem("qn_grid_anchor");
     if (am === "off" || am === "locked" || am === "all") anchorMode = am;
   } catch (e) {}
-  const ENABLED = !window.qnFeature || window.qnFeature("chords"); // 隠す時(qn-features.js)は解析を一切しない。保存済みの設定が残っていても無効にする
+  const ENABLED = !window.qnFeature || window.qnFeature("chords") || window.qnFeature("beats"); // 隠す時(qn-features.js)は解析を一切しない。保存済みの設定が残っていても無効にする
   if (!ENABLED) { gridMode = "off"; gridClick = false; }
 
   let gen = 0;               // 曲が変わるたびに増やす。古いWorkerの返事を捨てる印

@@ -34,6 +34,7 @@
 | `e2e_features.py` | `python3 -I md/tools/e2e_features.py`。機能の表示ON/OFF(`JS/qn-features.js`)の確認。既定でTab/Stem/Rec/Chordsが画面・設定・裏処理・ガイドから消えること、`qn_dev_features="all"`で戻ることをPC/SPで見る。機能の出し分けを足した/変えた時に回す |
 | `e2e_motion.py` | Animations設定(`QNMotion`)の確認。OSが「動きを減らす」でも、Onなら サイドバーの動きが出る/Autoなら出ない。 |
 | `ux_audit.py` | `python3 -I md/tools/ux_audit.py [--wav ファイル] [--out フォルダ]`。UX見直しの下ごしらえ: PC(1440)/SP(390)の全パネル撮影+はみ出し・32px未満のタップ領域・名前の無いボタン・下段バーが各幅(1280/1366/1440/1920)で収まるか。手順は`md/UX_REVIEW.md` |
+| `e2e_lyrics_wide.py` | v4.65.0 歌詞の広い表示(波形と1:1・全行同じ文字サイズ・現在行が中央・SPのON/OFFアイコンがBの右)。`QN_WAV=../guitar_test.wav python3 -I md/tools/e2e_lyrics_wide.py [幅]` |
 | `e2e_lyrics.py` / `e2e_sidemotion.py` / `e2e_v460.py` | v4.60.0の動作確認(要guitar_test.wav。実行はプロジェクトのルートから`cp`して使う)。歌詞のスクロール(`data-r`の回り方・途中の位置)、サイドバーのモーション(パネル切替で1回だけ動く・SPでは出ない)、速度/Keyバーのダブルクリックで位置が戻る、背景がColorに有る、マーカーのカギが数字の左 |
 | `e2e_tab_sources.py` | `python3 -I md/tools/e2e_tab_sources.py [bass vocals guitar mix]`。Tabのソース切替の通し確認。合成した分離結果をStemのキャッシュに入れ、未分離メッセージ→解析→ベースのTAB/ヴォーカルの五線紙のノートを出す。スクショは/tmp/qnshots/tabsrc_*.png。合成音なので音程の確認用 |
 | `tab_core_check.js` | `node md/tools/tab_core_check.js <ルート>`。`JS/qn-tab-core.js`(Tabの弦フレット割り当て・倍音除去)の確認。DOMなし |

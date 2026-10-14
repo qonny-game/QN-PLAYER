@@ -1,6 +1,6 @@
 # 隠した機能を公開する手順 (RELEASE_FEATURES.md)
 
-v4.59.0で、**tab / stem / rec / chords** を公開版で非表示にした（スイッチは `JS/qn-features.js` の `F`）。隠している間も、コードと保存データはそのまま残る。このファイルは「また出す」ための手順書。仕組みの詳細は `GOTCHAS.md`「機能の表示ON/OFF」。
+v4.59.0で、**tab / stem / rec / chords** を公開版で非表示にした(v4.64.0で拍・小節だけ `beats` として分離して復活)（スイッチは `JS/qn-features.js` の `F`）。隠している間も、コードと保存データはそのまま残る。このファイルは「また出す」ための手順書。仕組みの詳細は `GOTCHAS.md`「機能の表示ON/OFF」。
 
 ## 1. 機能ごとの中身と依存
 | 名前 | 隠れるもの | 注意 |
@@ -8,7 +8,8 @@ v4.59.0で、**tab / stem / rec / chords** を公開版で非表示にした（�
 | `tab` | Tabパネル(TAB/五線譜・Basic Pitch解析・譜面ビュー) | 解析元のパートは `stem` に依存。`stem`がOFFだとMixだけ |
 | `stem` | Stem分離(パネル・FAB・保存済みstem) | PC専用。モデルの初回ダウンロードあり(利用規約/プライバシーに記載が要る) |
 | `rec` | 録音(Rec) | マイク権限を使う。iOSはaudioSession切替(v4.55.1)あり |
-| `chords` | コード表示・拍/小節解析・Grid click・マーカーの小節/拍吸着・Grid follows markers | 拍解析に頼る機能をまとめた名前。SP/PCのFAB(メトロノーム/吸着)もこれに連動 |
+| `chords` | コード表示(View/Chord detail/Chord key/Chord candidates/Chord beat snap) | 隠したまま。出す時は `F.chords=true` |
+| `beats` | 拍・小節の線、Grid click、マーカーの小節/拍吸着、Grid follows markers、Beats per bar/Bar start/Beat tempo、SP/PCのFAB(メトロノーム/吸着) | v4.64.0で復活(既定ON)。パネルのアイコン名は chords OFF時は「Beats」。`player-chords.js` は chords か beats のどちらかがONなら動く |
 
 ## 2. 公開する手順（1機能ずつ、または全部）
 1. `JS/qn-features.js` の `var F = { tab: false, ... }` を、出したい機能だけ `true` にする。

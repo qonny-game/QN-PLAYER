@@ -311,6 +311,7 @@
     "Dragging or nudging a marker jumps to the nearest beat (bar starts included)": "マーカーをドラッグ・微調整すると、最も近い拍（小節頭を含む）に吸着する",
     "Click on each bar start (high) and beat (low) while playing, to check the grid by ear. Needs a one-time analysis": "再生中、小節の頭（高い音）と拍（低い音）の位置でクリック音を鳴らす。グリッドを耳で確認する用（初回のみ解析が必要）",
     "Bars": "小節",
+    "Beats": "拍・小節",
     "Locked": "ロック中のみ",
     "Bars + beats": "小節＋拍",
     "Beats per bar": "1小節の拍数",

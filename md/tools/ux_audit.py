@@ -15,7 +15,7 @@ out = os.path.abspath(a.out); os.makedirs(out, exist_ok=True)
 
 JS_SMALL = """()=>{const o=[];document.querySelectorAll('button,[role=button],input[type=range],.pcv2-icon-item,a').forEach(e=>{const r=e.getBoundingClientRect();if(!r.width||!r.height)return;const c=getComputedStyle(e);if(c.visibility==='hidden'||c.display==='none')return;if(r.width<32||r.height<32)o.push((e.id||e.className||e.tagName).toString().slice(0,34)+' '+Math.round(r.width)+'x'+Math.round(r.height))});return [...new Set(o)].slice(0,30)}"""
 JS_NONAME = """()=>[...document.querySelectorAll('button,[role=button]')].filter(e=>e.getBoundingClientRect().width>0&&!(e.getAttribute('aria-label')||e.title||e.textContent.trim())).map(e=>(e.id||e.className).toString().slice(0,34))"""
-JS_BAR = """()=>{const b=document.getElementById('pcV2BottomBar');if(!b)return null;const k=document.getElementById('pcV2BarKey');const q=k?k.getBoundingClientRect():{right:0,width:0};return {keyInView:q.width>0&&q.right<=innerWidth,barScrollsX:b.scrollWidth>b.clientWidth+1,barH:Math.round(b.getBoundingClientRect().height)}}"""
+JS_BAR = """()=>{const b=document.getElementById('pcV2BottomBar');if(!b)return null;const k=document.querySelector('[data-mixslot=key] .pcv2-mix-ibtn');const q=k?k.getBoundingClientRect():{right:0,width:0};return {keyInView:q.width>0&&q.right<=innerWidth,barScrollsX:b.scrollWidth>b.clientWidth+1,barH:Math.round(b.getBoundingClientRect().height)}}"""
 JS_OVER = """()=>({docScrollsX:document.documentElement.scrollWidth>innerWidth+1})"""
 
 with QNBrowser(".") as qb:

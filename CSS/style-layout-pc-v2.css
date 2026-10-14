@@ -770,25 +770,45 @@ body.pc-v2-active #qnMenuMount {
 }
 
 
-/* ---------- PC: 下段バーが狭い時は2段に折り返す(v4.61.0) ----------
-   これまでは横スクロール(スクロールバー非表示)で、Volume/Speed/Keyが画面外に隠れていた。
-   バーの幅(右カラム=画面幅-サイドバー-パネル)で判定するので、パネルを閉じた時・広い画面では1段のまま。
-   スライダーは当たり判定を縦に広げる(見た目の線は4pxのまま) */
-@media screen and (min-width: 901px) {
-  #pcV2BottomBar { container-type: inline-size; container-name: qnbar; }
-  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-range { height: 26px; }
-  @container qnbar (max-width: 1099px) {
-    #pcV2BottomBar { overflow-x: hidden; }
-    #pcV2BottomBar #topControls { flex-wrap: wrap; justify-content: center; row-gap: 6px; margin: 0 auto; width: 100%; }
-    #pcV2BottomBar #topControls > .pcv2-ctrl-divider { display: none; }
-    #pcV2BottomBar #pcV2BarMixer { flex: 1 1 100%; justify-content: center; gap: 28px; padding-top: 2px; border-top: 1px solid var(--border-subtle); padding-top: 8px; }
-    #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item { width: 150px; }
-    #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item[data-mix="vol"] { width: 190px; }
-    #pcV2BottomBar #pcV2BarMixer .pcv2-mix-key { width: 150px; }
-  }
-}
-
 /* v4.61.2: ホバー中はアイテムがアクセント色で塗られるので、縦線(同じアクセント色)が背景に溶けて見えなかった。ホバー中の縦線は塗りの上で見える色にする */
 @media (hover: hover) and (min-width: 901px) {
   #pcV2IconBar .pcv2-icon-item.active:hover::before { background: var(--sidebar-on-accent, #fff); }
+}
+
+
+/* ---------- PC: Volume / Speed / Key はアイコンを押すとバーが出る(v4.63.0) ----------
+   下段バーを1段のまま保つ(幅が足りなくても折り返さない)。バー(.pcv2-mix-item)は押したアイコンの上にポップアップ。
+   位置はJS(positionMix)がfixedで決める(下段バーのoverflowで切れないように)。SP幅は従来どおりMore内に並ぶ(スロットはdisplay:contents、アイコンは非表示) */
+.pcv2-mix-slot { display: contents; }
+.pcv2-mix-ibtn { display: none; }
+@media screen and (min-width: 901px) {
+  #pcV2BottomBar #pcV2BarMixer { gap: 0; align-items: center; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-slot { display: block; position: relative; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-ibtn {
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    min-width: 44px; min-height: 59px; padding: 8px 2px; box-sizing: border-box;
+    background: none; border: none; border-radius: 10px; color: var(--icon-muted); cursor: pointer;
+    font-family: var(--font-display, 'Instrument Sans'), sans-serif;
+    transition: color 120ms ease, background 120ms ease;
+  }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-ibtn:hover { color: var(--text-bright); background: rgba(var(--ov), 0.05); }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-ibtn svg { width: 20px; height: 20px; margin: 6px auto; fill: currentColor; display: block; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-ibtn span { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; line-height: normal; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-slot.is-mod .pcv2-mix-ibtn { color: var(--accent-primary); }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-slot.is-open .pcv2-mix-ibtn { color: var(--accent-primary); background: rgba(var(--ov), 0.06); }
+  /* バー本体: 普段は隠す。開いたらアイコンの上へ(fixed) */
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-slot > .pcv2-mix-item { display: none; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-slot.is-open > .pcv2-mix-item {
+    display: flex; flex-direction: column; gap: 6px; position: fixed; z-index: 140;
+    width: 210px; box-sizing: border-box; padding: 12px 14px;
+    background: var(--bg-0e0e13, var(--bg-0a0a0c)); border: 1px solid var(--border-subtle); border-radius: var(--radius-popup, 12px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    animation: qnMixPop 160ms cubic-bezier(.2, .8, .2, 1);
+  }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-slot.is-open > .pcv2-mix-item .pcv2-mix-range { height: 26px; }
+}
+@keyframes qnMixPop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-qn-motion="on"]) #pcV2BarMixer .pcv2-mix-item { animation: none !important; } }
+@media screen and (min-width: 901px) and (max-width: 1600px) {
+  #pcV2BottomBar .pcv2-ctrl-divider { margin: 0 6px; }
 }

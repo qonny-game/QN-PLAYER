@@ -34,7 +34,12 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-feature]"), function (el) {
       if (!off(el)) return;
       el.style.display = "none";
-      if (el.tagName === "H2") { for (var n = el.nextElementSibling; n && n.tagName !== "H2"; n = n.nextElementSibling) n.style.display = "none"; }
+      // h2は次のh2の手前まで、h3は次のh2/h3の手前まで、一緒に隠す
+      if (el.tagName === "H2" || el.tagName === "H3") { for (var n = el.nextElementSibling; n && n.tagName !== "H2" && !(el.tagName === "H3" && n.tagName === "H3"); n = n.nextElementSibling) n.style.display = "none"; }
+    });
+    // data-feature-not="名前": その機能がONの間は隠す(OFFの時だけ出す説明用)
+    Array.prototype.forEach.call(document.querySelectorAll("[data-feature-not]"), function (el) {
+      if ((el.getAttribute("data-feature-not") || "").split(/\s+/).some(function (k) { return k && window.qnFeature(k); })) el.style.display = "none";
     });
   });
 })();

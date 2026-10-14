@@ -122,7 +122,7 @@ let draggingABKind = null;
 // ---- Marker snap (drag / nudge): bar heads and beats of the analysed grid. Off by default ----
 const PINSNAP_KEYS = { bar: "qn_pin_snap_bar", beat: "qn_pin_snap_beat" };
 const pinSnapOn = { bar: false, beat: false };
-try { if (!window.qnFeature || window.qnFeature("chords")) { pinSnapOn.bar = localStorage.getItem(PINSNAP_KEYS.bar) === "1"; pinSnapOn.beat = localStorage.getItem(PINSNAP_KEYS.beat) === "1"; } } catch (e) {} // コード機能を隠す時は吸着しない(拍の解析が無いため)
+try { if (!window.qnFeature || window.qnFeature("beats")) { pinSnapOn.bar = localStorage.getItem(PINSNAP_KEYS.bar) === "1"; pinSnapOn.beat = localStorage.getItem(PINSNAP_KEYS.beat) === "1"; } } catch (e) {} // コード機能を隠す時は吸着しない(拍の解析が無いため)
 window.QNPinSnap = {
   get: k => pinSnapOn[k],
   set: (k, on) => { pinSnapOn[k] = !!on; try { localStorage.setItem(PINSNAP_KEYS[k], on ? "1" : "0"); } catch (e) {} if (on && window.QNChords && QNChords.ensure) QNChords.ensure(); }

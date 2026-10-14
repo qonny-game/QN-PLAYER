@@ -6,11 +6,13 @@ with QNBrowser(".") as qb:
     pg = qb.new_page(width=1280, height=800); qb.goto(pg); qb.add_track(pg, wp)
     # 1 速度バー ダブルタップ(フォーカス中)リセット
     pg.evaluate("setSpeed(1.5)"); pg.wait_for_timeout(300)
+    pg.locator("[data-mixslot=speed] .pcv2-mix-ibtn").click(); pg.wait_for_timeout(250)
     bs = pg.locator("#pcV2BarSpeed"); bs.focus()
     print("speed before", bs.input_value())
     bs.dblclick(); pg.wait_for_timeout(400)
     print("speed after dblclick", bs.input_value(), pg.evaluate("currentSpeed"))
     pg.evaluate("setKeySemitones(3)"); pg.wait_for_timeout(300)
+    pg.locator("[data-mixslot=key] .pcv2-mix-ibtn").click(); pg.wait_for_timeout(250)
     bk = pg.locator("#pcV2BarKey"); bk.focus(); bk.dblclick(); pg.wait_for_timeout(400)
     print("key after", bk.input_value(), pg.evaluate("currentKeySemitones"))
     # 3 背景
@@ -31,7 +33,7 @@ with QNBrowser(".") as qb:
     # v4.61.0: 下段バーの折り返し(PC 1280)・SPのA/B・キー
     for W in (1280, 1366, 1440):
         p2 = qb.new_page(width=W, height=800); qb.goto(p2)
-        print("bar", W, p2.evaluate("(()=>{const q=document.getElementById('pcV2BarKey').getBoundingClientRect(); const b=document.getElementById('pcV2BottomBar'); return {keyInView:q.right<=innerWidth&&q.width>0, barScrollsX:b.scrollWidth>b.clientWidth+1}})()"))
+        print("bar", W, p2.evaluate("(()=>{const q=document.querySelector('[data-mixslot=key] .pcv2-mix-ibtn').getBoundingClientRect(); const b=document.getElementById('pcV2BottomBar'); return {keyBtnInView:q.right<=innerWidth&&q.width>0, barScrollsX:b.scrollWidth>b.clientWidth+1, barH:Math.round(b.getBoundingClientRect().height)}})()"))
     sp = qb.new_page(width=390, height=844); qb.goto(sp); qb.add_track(sp, wp)
     print("SP A/B visible", sp.evaluate("['pcV2FabSetA','pcV2FabSetB'].map(i=>document.getElementById(i).getBoundingClientRect().width>0)"))
     print("SP icon labels visible", sp.evaluate("[...document.querySelectorAll('#pcV2IconBar .pcv2-icon-item > span')].map(e=>getComputedStyle(e).visibility)"))

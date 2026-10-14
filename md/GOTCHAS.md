@@ -254,7 +254,7 @@
 - 公開版は **tab / stem / rec / chords をOFF**。`window.QN_FEATURES`(既定は同ファイルのF)と`qnFeature(名前)`で判定。登録の無い名前は常にtrue。
 - OFFの時に隠す/止めるもの: アイコンバーの項目(`ICON_ITEMS`をidで絞る)、設定の行(`feat:"chords"`などを付けた行を`qnFeatRows`で除く。Chords系の行は`CHORD_ROWS`の名前で付与)、Tabの設定セクション、波形エリアの調整帯のView/Edit、クリック音・吸着のボタン、`player-tab.js`/`player-stem.js`(両方OFFの時)は丸ごと何も作らない、`player-chords.js`は`offer`/`ensure`を何もせず保存済みのGrid・クリック音もOFF扱い、`player-bars.js`は保存済みのView(chord/degree)を無視、`player-markers.js`は保存済みの吸着を無視。
 - 新しい画面・設定・ボタンがこれら4つの機能に依存するなら、同じように`qnFeature`で出し分ける。chordsは**拍/小節の解析に頼る機能すべて**(Grid click・マーカー吸着・Grid follows markersを含む)。
-- 動作確認・開発用: コンソールで `localStorage.qn_dev_features = "tab,stem,rec,chords"`(または`"all"`)→再読み込み。戻す: `localStorage.removeItem("qn_dev_features")`。
+- 動作確認・開発用: コンソールで `localStorage.qn_dev_features = "tab,stem,rec,chords"`(または`"all"`)→再読み込み。 `"-beats"` のように - を付けるとその機能だけ隠せる(拍・小節なしの旧公開版の確認用)。`beats`は拍・小節系、`chords`はコード表示系(v4.64.0で分離)。戻す: `localStorage.removeItem("qn_dev_features")`。
 - ガイド(`guide/*.html`)は要素に`data-feature="名前 名前…"`を付けると、挙げた機能が全部OFFの間は隠れる(`guide/guide.js`。h2に付けると次のh2の手前まで)。各ガイドは`../JS/qn-features.js`を読む。新しく機能の説明を書く時は、隠す対象ならこの印を付ける。
 - 確認: `md/tools/e2e_features.py`(PC/SP、既定とdev=all、ガイドも)。
 - **公開する手順は `md/RELEASE_FEATURES.md`。**
@@ -266,7 +266,7 @@
 
 ## UI見直しで直した落とし穴(v4.61.0)
 - **CSSの詳細度で片方の幅が消える**: v4.56.0でPC用に`#pcV2WaveFabRow .pcv2-fab-ab:not(.pcv2-fab-tg){display:none}`をメディアクエリの外に書いたら、詳細度が上がってSP用の表示ルール(`@media (max-width:900px)`内)に勝ち、**SPのA/Bが消えた**(v4.56.0〜4.60.0)。PC専用の非表示は必ず`@media (min-width:901px)`の中に書く。表示/非表示を変えたらPC・SP両方で確認(`e2e_v460.py`)。
-- **PCの下段バー**は幅(=画面幅−サイドバー−パネル)が約1100px未満になると、container query(`#pcV2BottomBar`が`qnbar`コンテナ)で2段に折り返す(Volume/Speed/Keyが下の段)。以前は横スクロール(バー非表示)でSpeed/Keyが画面外だった。1段の時の幅は`topControls`の実幅で約950px。
+- **PCの下段バー**は1段のまま(2段にしない)。v4.61.0で2段折り返しにしたが、v4.63.0で取りやめ、Volume/Speed/Keyはアイコン(+値)だけにして、押すとバーが上に出る方式にした(下の節)。
 - **ダブルタップのリセット後にスライダーが戻らない**: `pcv2SyncBarMixer`は「フォーカス中のスライダーは触らない」ので、リセットの直後に`snapBars()`で位置を直接戻している。
 - キーボード: `,` `.`=設定のスキップ秒(`#pcV2SkipBackBtn/FwdBtn`を押す)、`[` `]`=A点/B点(`#setABtn/#setBBtn`)、Shift+←→=5秒。SP幅では`-10s/+10s`は意図的に廃止(`style-layout-pc-v2-sp.css`の注記)。
 - SPのアイコンバーのラベルは常時表示(`#pcV2IconBarBottom`は`flex:2`で、Control/Settingsの2つぶんの幅)。
@@ -277,3 +277,16 @@
 ## 動きの設定(v4.62.0, QNMotion)
 - 歌詞のスクロールとPCサイドバーの動きは、OSの`prefers-reduced-motion: reduce`で止まる(Windowsは「アニメーション効果」オフで有効になる。気づかずオフのことが多い)。**「動きが出ない」と言われたら、まずこれを疑う。**
 - Settings > General > Animations(`window.QNMotion`、保存キー`qn_motion`=auto|on)で`on`にすると、`<html data-qn-motion="on">`が付き、上の2つはOSの設定に関係なく動く。CSSは`:root:not([data-qn-motion="on"])`で止める書き方。新しく動きを足す時も、この書き方にそろえる。確認は`md/tools/e2e_motion.py`。
+
+## PCの Volume/Speed/Key はアイコンで開くバー(v4.63.0)
+- PC幅の`#pcV2BarMixer`は、各項目を`.pcv2-mix-slot`で包み、`.pcv2-mix-ibtn`(アイコン+値)を足した。`.pcv2-mix-item`(バー本体)は普段`display:none`、`.is-open`でアイコンの上に**position:fixed**で出す(位置はJSの`positionMix`。下段バーが`overflow`を持つので、absoluteだと切れる)。**下段バーに`container-type`を付けない**(fixedの子の基準が下段バーになってしまう)。
+- SP幅は`.pcv2-mix-slot{display:contents}`・アイコン非表示で、従来どおりMore内にバーが並ぶ(DOMは同じ要素)。
+- 閉じる: バーの外を押す / Esc / 同じアイコンをもう一度 / ウィンドウのリサイズ。初期値から変えている項目(速度≠1、Key≠0、ミュート)はアイコンがアクセント色(`.is-mod`)。値の同期は従来の`pcv2SyncBarMixer`が兼ねる(アイコンの下の値もここで更新)。
+- 1280px+パネル表示でも1段に収まる(`e2e_v460.py`で確認)。それより狭いと従来どおり横スクロール。
+
+
+## 歌詞の広い表示(v4.65.0)
+- `#pcV2Lyrics.is-wide`(`qn_lyrics_wide`=1)は `flex:1 1 0` で `#vbarContainer` と高さを分け合う(≒1:1)。中身は `.qn-lyd-wide`(全行の縦リスト、現在行を `scrollTo` で中央へ)。通常表示の5本(`.qn-lyd-line`)は広い時は非表示。
+- 文字サイズは前後の行も現在行と同じ(`--lyd-sm: var(--lyd-cur)`)。現在行は太さと色だけで区別。
+- ON/OFFは `QNLyrics.getShow/setShow`、広さは `getWide/setWide`。変更時に `qn-lyrics-change` を発火し、Bの右の `#pcV2FabLyrics`(PC幅でも出る)が同期する。
+- 行リストの作り直しは `render()` が増やす `ver` で判定(`paintWide`)。
