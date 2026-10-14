@@ -133,3 +133,48 @@
 - 4.26.1 TUNER: ゲージ拡大・目盛り4倍(2.5¢刻み)
 - 4.26.2 TUNER: Guitar Meter拡大・目盛り4倍(1.25¢刻み81本)
 - 4.26.3 ツール整備(qa並列・--ship、try.py、where.py、擬似マイク)
+- 4.27.0 シークバーにコードモード(プロトタイプ)。View(Wave/Chord)切替、コード解析(qn-chord-core/worker/player-chords)、マーカー・色・ラベルは波形と同様に表示
+- 4.28.0 コードモード拡張: テンション(Full)・オンベース・候補表示・ディグリー名・Key操作に連動、手動修正(Edit)と解析結果/修正の保存(qn_chords_*)
+- 4.29.0 コード編集: 区間の境目をドラッグして長さを調整、ブロック上下の余白タップで再生位置を移動、Play from here
+- 4.30.0 拍・小節の検出と、シークバー背景の薄い縦線(Grid)。拍子・小節頭・テンポの手動補正、境目ドラッグの拍吸着
+- 4.31.0 コードの切り替わりを拍に合わせ、裏拍で入るコード(シンコペ)を検出して三角で表示。Chord beat snap設定
+- 4.32.0 コード編集を拍・小節に対応: 境目ドラッグの拍/裏拍吸着、Apply to whole bar、Split at bars
+- 4.33.0 小節頭を拍と拍の間でも手動指定(Bar start point)、コードの再解析ボタン、境目ドラッグが行をまたげる・タッチで縦スクロールしない
+- 4.34.0 スマホ: View(Wave/Chord/Degree)とEditスイッチを+Audioの右へ
+- 4.35.0 スマホ: A/Bボタンをアイコンだけにして、Audio・View・Editと同じ段に収める
+- 4.35.1 修正: スマホでView/Editが押せない(移した項目のタップが効かない)
+- 4.36.0 拍の等間隔化・小節頭の半小節ずれ修正・コード切替を粘り強く(旧解析結果は再解析)
+- 4.37.0 コードモードの拍: 遅いテンポ(120BPM未満)で8分の周期が強い曲は倍で取る(上限240BPM)・テンポを曲全体で精密化。保存v3(旧い拍・コードは再解析)。
+- 4.38.0 Settings>Grid click: 再生中、縦線の位置で小節頭(高)・拍(低)のクリック音を鳴らす(グリッド確認用、ON/OFFのみ)。
+- 4.38.1 Grid click: 再生時計の対応を8msごとの測定で取り直し(シーク・再生開始のたびにずれる不具合の修正)。クリックをSoundTouchの入口へ入れて曲との遅延差を解消。
+- 4.39.0 Exact seek: decode to WAV on first seek so seeking is sample-accurate
+- 4.40.0 Bar-head lines darker, marker snap to bars/beats, marker lock
+- 4.41.0 Grid follows markers (locked/all), tempo 3:2 confusion fix
+- 4.42.0 Click offset and Exact seek switch (per-device)
+- 4.42.1 Exact seek: prepare WAV right after load
+- 4.43.0 Odd bars and per-marker beats per bar, click timing trim
+- 4.44.0 Chords side panel for per-track chord/beat settings
+- 4.45.0 Settings hierarchy (General), marker list lock, View tap-cycle, Edit hidden on Wave, 2-row marker popup, removed +Audio/+Marker
+- 4.46.0 Light backgrounds (gray/beige) via colour tokens, guide/terms/privacy refresh for chords/grid/lock/settings
+- 4.47.0 Time stretch engine setting (Auto uses browser stretching when key is unchanged, fixes sliced slow playback on phones)
+- 4.48.0 Chord boundaries follow beats/bar heads, SP click/snap toggles, white text on accent buttons in light modes
+- 4.49.0 Cleanup: stale comments/docs, md updates for light modes, chord placement, time stretch, tools
+- 4.49.1 Release tool allows md/tools/*.js (chord_pos.js)
+- 4.50.0 Guide screenshots re-shot with demo data (md/tools/guide_shots.py), Chords panel image added
+- 4.50.1 Marker labels on the waveform are no longer translated (Solo stayed katakana)
+- 4.51.0 Lyrics under the seek bar: tap-sync line times on the Text memo, local only, 10000-char memo limit
+- 4.52.0 Stem recording: multiple clips per track (newer recording replaces overlap), clip move/delete, show a recording's waveform on the seek bar, 10-min limit per song, WAV export
+- 4.52.1 PITCH/TUNER mic errors now say the actual cause (permission, in use, unsupported browser, error name)
+- 4.53.0 Rec is now its own panel (works without Stem, also on phone width); Stem stays PC only
+- 4.53.1 iPhoneで別アプリ切替(画面下スワイプ)から戻った時に、Speed/Keyを入れ直して音程のずれを防止(原因はiOSのAudioContext一時停止→再開と推定)
+- 4.53.2 マーカーのメモ(Solo等)がtitle属性だけカタカナ翻訳される不具合を修正
+- 4.54.0 Tabパネルを追加(再生中のローカル曲をBasic Pitchでブラウザ内採譜しギターTABを流す。弦フレット自動割り当て+Editで修正。SPでも使える)。詳細はTAB_MODE.md
+- 4.54.1 Tab: WebGLの解析がWorkerで止まる不具合を修正(WebGLはメインスレッドで実行)。TUNER/PITCH: マイクが開けない時の原因表示を詳しくした
+- 4.54.2 TUNER/PITCH: マイクを開けない時の表示に失敗した段階(getUserMedia/analyser)を追加
+- 4.54.3 Tab: GPUの進捗が30秒動かない/失敗した時に自動でCPUへ切り替え。進捗%と処理方式の表示を追加
+- 4.55.0 省電力: 停止中の常時rAF/タイマーを撤去(再生中・イベント時だけ動作)、Tabの描画間引き、波形dpr上限2、Settings>Playbackに「Keep screen on」、power_check.py追加
+- 4.55.1 iPhoneでTUNER/PITCH/Recのマイクが開けない不具合を修正(audioSessionをマイク使用中だけplay-and-recordにする)
+- 4.56.0 PCの波形右下にクリック音(メトロノーム)と吸着のON/OFFボタンを追加
+- 4.57.0 Tabにソース切替を追加(Bass 4弦TAB / Guitar TAB / Vocals 五線紙。Stemで分けたパートを採譜)
+- 4.58.0 Tabを開いている間、解析済みのパートの譜面を波形エリアに並べて表示(PC幅)
+- 4.59.0 公開用に Tab / Stem / Rec / コード機能を非表示にするスイッチを追加(既定でOFF。ガイドの該当説明も隠す)

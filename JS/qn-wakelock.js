@@ -8,8 +8,12 @@
   var sentinel = null;
   var pending = false;
 
+  // 【v4.55.0】Settings>Playbackの「Keep screen on」。オフならPLAYERの再生中でも画面は自動で消えてよい(電池を節約)。YouTube等の他の理由は影響しない
+  var KEEP_KEY = "qn_keep_screen_on";
+  function keepOn() { try { return localStorage.getItem(KEEP_KEY) !== "0"; } catch (e) { return true; } }
+
   function wanted() {
-    for (var k in reasons) if (reasons[k]) return true;
+    for (var k in reasons) if (reasons[k] && !(k === "player" && !keepOn())) return true;
     return false;
   }
 
@@ -66,10 +70,41 @@
       if (ctx && ctx.state !== "running") ctx.resume().catch(function () {});
     } catch (e) {}
   }
-  document.addEventListener("visibilitychange", keepAudioAlive);
+  // 復帰時(別アプリから戻る/ホームバースワイプ等): iOSはAudioContextを一瞬止めて再開するため、SoundTouchの速度/キーを入れ直して音程のずれを防ぐ
+  function reapplyRate() {
+    try { if (document.visibilityState === "visible" && typeof updatePlaybackRate === "function") updatePlaybackRate(); } catch (e) {}
+  }
+  function onBack() {
+    keepAudioAlive();
+    reapplyRate();
+    setTimeout(reapplyRate, 300);
+  }
+  document.addEventListener("visibilitychange", onBack);
   window.addEventListener("pagehide", keepAudioAlive);
-  window.addEventListener("pageshow", keepAudioAlive);
+  window.addEventListener("pageshow", onBack);
+  window.addEventListener("focus", onBack);
+  try {
+    var ac = window.__qnAudioCtx;
+    if (ac && ac.addEventListener) ac.addEventListener("statechange", function () { if (ac.state === "running") reapplyRate(); });
+  } catch (e) {}
 
-  window.QNWake = { set: set };
+  // 【v4.55.1】マイク使用中だけaudioSessionを"play-and-record"にする(iOSは"playback"のままだとgetUserMediaが"AudioSession category is not compatible with audio capture"で失敗する)。使い終わったら"playback"へ戻す。複数の使用元の数を数え、0になった時だけ戻す
+  var micCount = 0;
+  function micOn() {
+    micCount++;
+    try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch (e) {}
+  }
+  function micOff() {
+    if (micCount > 0) micCount--;
+    if (micCount === 0) { try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {} }
+  }
+
+  window.QNWake = {
+    micOn: micOn,
+    micOff: micOff,
+    set: set,
+    isKeepOn: keepOn,
+    setKeepOn: function (on) { try { localStorage.setItem(KEEP_KEY, on ? "1" : "0"); } catch (e) {} sync(); }
+  };
   if (!hookAudio()) document.addEventListener("DOMContentLoaded", hookAudio);
 })();

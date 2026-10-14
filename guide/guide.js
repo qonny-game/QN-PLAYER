@@ -26,4 +26,15 @@
     big.alt = img.alt || "";
     box.classList.add("is-open");
   });
+
+  // 【v4.59.0】隠している機能(JS/qn-features.js)の説明を隠す。data-feature="名前 名前…" の要素は、挙げた機能のどれか1つでもONなら出す。h2に付けた時は、次のh2の手前までを一緒に隠す
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof window.qnFeature !== "function") return;
+    var off = function (el) { return !(el.getAttribute("data-feature") || "").split(/\s+/).some(function (k) { return k && window.qnFeature(k); }); };
+    Array.prototype.forEach.call(document.querySelectorAll("[data-feature]"), function (el) {
+      if (!off(el)) return;
+      el.style.display = "none";
+      if (el.tagName === "H2") { for (var n = el.nextElementSibling; n && n.tagName !== "H2"; n = n.nextElementSibling) n.style.display = "none"; }
+    });
+  });
 })();

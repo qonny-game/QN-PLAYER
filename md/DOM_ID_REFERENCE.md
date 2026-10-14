@@ -25,7 +25,7 @@ grep -o 'id="[a-zA-Z0-9]*"' JS/player-ui-pc-v2.js | sed 's/id="//;s/"//' | sort 
 | `appHeader` `appLogo` `appTitle`(`appTitleInner`>`appTitleText`) | ヘッダー／曲名。`#appTitle`はPC v2構築時に`#pcV2WaveArea`内へ移動 |
 
 ## 動的id（`player-ui-pc-v2.js`の`build()`が生成。`index.html`には無い）
-`pcV2Root` `pcV2Layout`（PC=3カラム、SP=縦積み。格納中は`.pcv2-collapsed`）／`pcV2IconBar`（`…ScrollHint` `…Spacer` `…Bottom`）／`pcV2Panel`（`…Header` `…Body` `…Fab`）・`pcV2PanelStash`（非表示中の中身の退避場所）／`pcV2WaveArea` `pcV2WaveHead` `pcV2WaveFabRow` `pcV2WaveAddAudioBtn` `pcV2WaveAddMarkerBtn`／`pcV2TimeRow`（SP幅のみ）／`pcV2BottomBar`（`…GroupPlay` `…GroupMarker` `…AnchorTabs`）／`pcV2SkipBackBtn` `pcV2SkipFwdBtn`／`pcV2DeleteSelectedBtn`。
+`pcV2Root` `pcV2Layout`（PC=3カラム、SP=縦積み。格納中は`.pcv2-collapsed`）／`pcV2IconBar`（`…ScrollHint` `…Spacer` `…Bottom`）／`pcV2Panel`（`…Header` `…Body` `…Fab`）・`pcV2PanelStash`（非表示中の中身の退避場所）／`pcV2WaveArea` `pcV2WaveHead` `pcV2WaveFabRow`／`pcV2TimeRow`（SP幅のみ）／`pcV2BottomBar`（`…GroupPlay` `…GroupMarker` `…AnchorTabs`）／`pcV2SkipBackBtn` `pcV2SkipFwdBtn`／`pcV2DeleteSelectedBtn`。
 
 ## アプリ枠・YouTube（`qn-apps.js` / `qn-app-youtube.js`）
 - `#qnAppLogoBtn`（ヘッダーのロゴ兼アプリ切替。中に`#appLogoQN` `#appLogoName` `.qn-logo-chev`。開いている間`.qn-badge-open`）／`#qnAppFlyout`（アプリ一覧ドロップダウン。body直下fixed）／`#qnAppScrim`／`#qnAppHost`（アプリ表示領域。中に`.qn-app-view[data-app-view=<id>]`）／`#qnAppToast`／`#qnColorPop`（アプリ中のColorパネル）／`body.qn-app-open`／`[data-qn-keep-visible]`（覆ってはいけない要素の印）。
@@ -40,3 +40,6 @@ grep -o 'id="[a-zA-Z0-9]*"' JS/player-ui-pc-v2.js | sed 's/id="//;s/"//' | sort 
 - マーカーのSkip：波形に`.segmentSkip`(斜線)、マーカー線`.vbar-line.is-skip`、ポップアップ`[data-pop="K"]`(Skip)。
 
 - 設定の最下段に`.qn-set-version`（バージョン表記）。
+- `.qn-view-item`（設定帯`.qn-set-inline`内のView(Wave/Chord)項目。PC幅はラベルを隠す。`style-settings.css`）。
+- `#qnChordEdit`（コード修正ポップアップ。`player-chord-edit.js`/`style-chords.css`。Editモードでコードのブロックをタップすると開く）／`.qn-edit-item`（設定帯のEdit項目）／`#vbarContainer.qn-chord-editing`（編集中）。
+- `.qn-chord-handle`（Editモードで区間の境目に出るつまみ。行に1つだけ差し込む動的要素。`style-chords.css`）／`#vbarContainer.qn-chord-resize`（境目の上＝↔カーソル）。

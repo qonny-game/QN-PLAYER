@@ -4,7 +4,7 @@ QN-PLAYER（QNシリーズのブラウザ完結型MP3プレイヤー）の設計
 修正依頼の前に該当節を見て、同じ調査・同じ失敗を繰り返さないようにする。
 
 **関連ファイル（`md/`）：** `QUICK_START.md`（最初に読む）／`GOTCHAS.md`（落とし穴）／`PC_V2_FILE_INDEX.md`（大きいファイルの目次）／
-`YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約ルール。最優先）／`TUNER_APP.md`（TUNERアプリの仕様）／`PITCH_APP.md`（PITCHアプリの仕様）／`SYNC.md`（Library同期・Transfer）／`I18N_HANDOFF.md`（和英切替）／`USER_DOCS.md`（ガイド・利用規約・プライバシー・料金ページの更新ルール）／`DOM_ID_REFERENCE.md`／`UI_TERMINOLOGY.md`／`CLEANUP.md`（お掃除ルール）／`TOOLS.md`（確認・納品の道具）／`CHANGELOG.md`
+`YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約ルール。最優先）／`TUNER_APP.md`（TUNERアプリの仕様）／`PITCH_APP.md`（PITCHアプリの仕様）／`CHORD_MODE.md`（シークバーのコード表示）／`SYNC.md`（Library同期・Transfer）／`I18N_HANDOFF.md`（和英切替）／`USER_DOCS.md`（ガイド・利用規約・プライバシー・料金ページの更新ルール）／`DOM_ID_REFERENCE.md`／`UI_TERMINOLOGY.md`／`CLEANUP.md`（お掃除ルール）／`TOOLS.md`（確認・納品の道具）／`CHANGELOG.md`
 
 ---
 
@@ -21,6 +21,12 @@ JS/
   player-bars.js              シークバー(QNBars)：1本=N秒(1秒刻み)の行を曲末まで縦に並べる仮想スクロール、波形描画、再生位置追従、歯車/秒数ポップアップ
   player-ui-shared.js         loadFile / updateBars（毎フレームのループ判定）/ togglePlay / キーボードショートカット
   player-normalize.js         自動ノーマライズ（曲ごとの音量差を揃える。既定OFF）
+  qn-chord-core.js            【v4.27.0 プロトタイプ】コード解析の計算(QNChordCore。chroma=STFT→12音クロマ / classify=テンプレート照合＋Viterbi / beats・bars=拍と小節(v4.30.0)。DOMなし。Nodeでも動く)
+  qn-chord-worker.js          上のchroma()をWorkerで実行(重いのでメインスレッド外)
+  player-chords.js            コード解析の窓口QNChords(offer/ensure/segments/setDetail/手動修正setChord・splitAt・mergeNext・reset/保存。コードモードの時だけ解析。CHORD_MODE.md)
+  player-chord-edit.js        コード修正ポップアップQNChordEdit(Editモードでブロックをタップ)
+  player-grid-click.js        Grid click(再生中、縦線の位置で小節頭=高音・拍=低音を鳴らす確認用。ON/OFFはSettings>Grid click、QNChords.getClick/setClick)
+  player-exact-seek.js        正確なシーク(QNExact。初回ジャンプで曲をWAVに変換してaudioのsrcを差し替える。Settings>Exact seek)
   player-id3.js               ID3v2タグ（Title/Artist）
   player-playlist.js          ライブラリ：追加/削除/並び替え/お気に入り/フォルダ見出し・Auto Next範囲
   player-track-backup.js      Backup/Import（本体・YouTube・PITCH共通の画面。qnBackupMount/qnBackupMountInto/qnBackupParts）
@@ -32,7 +38,10 @@ JS/
   player-controls.js          Speed/AutoSpeed/Key/Loop/プリロールのつまみ
   qn-settings-ui.js           設定パネルの共通部品（QNSettingsUI。PLAYERとアプリが共用）
   player-text.js              Textタブ
-  player-stem.js              Stemパネル(分離UI/4・6パート再生/録音トラック/IndexedDB保存)。player-stem-worker.js=Demucs実行ワーカー、JS/stem/=demucs-web(MIT)
+  player-lyrics.js            歌詞表示(Textメモの行に時刻→シークバー下に現在行。CSS/style-lyrics.css)
+  qn-features.js             機能の表示ON/OFF(`QN_FEATURES`/`qnFeature`)。公開版はtab/stem/rec/chordsをOFF。開発で出す時は`localStorage.qn_dev_features="all"`。詳細GOTCHAS「機能の表示ON/OFF」
+  player-tab.js               Tabパネル(`QNTab.mount`/`settingsRows`)。再生中のローカル曲をBasic Pitchで採譜しギターTABを描画。qn-tab-core.js=計算(DOMなし)、player-tab-worker.js=解析ワーカー、JS/basic-pitch/=Basic Pitch(Apache-2.0)。詳細`md/TAB_MODE.md`
+  player-stem.js              Stem(分離UI/4・6パート再生。PC専用)とRec(録音トラック=クリップ配列。SPでも使える)の2パネル。`QNStem.mount`/`mountRec`、保存はIndexedDB。起動時から`wire()`で録音の再生は曲に追従(パネルを開かなくても鳴る)。player-stem-worker.js=Demucs実行ワーカー、JS/stem/=demucs-web(MIT)
   player-ui-pc-v2.js          【最大】唯一のUI実装。DOM組み立て・パネル・下段バー・波形（IIFE）。目次はPC_V2_FILE_INDEX.md
   player-quickpop.js          下部コントロールの長押しクイック設定
   qn-wakelock.js              再生中の画面スリープ防止 QNWake.set(key,on)
@@ -47,6 +56,7 @@ JS/
   player-auth.js              Firebase Auth（module）
 CSS/
   style-core.css              :root トークン＋PC/SP共通デザイン
+  style-modes.css             背景モード(dark/gray/beige)。色トークン--bg-/--fg-/--bd-xxxxxxと--ov。直書きhexを増やさずこれを使う
   style-playlist / markers / control-eq / controls / text / auth / shareware / theme .css   機能ごと（名前でJSが分かる）
   style-export.css            共通モーダルの器（.export-modal*。名前はExport由来だがEQ・解約・Backup/Importが共用）
   style-layout-sp.css         SP(≤768px)の少量の上書き（ヘッダー・ロゴ・.export-modal）
@@ -61,13 +71,14 @@ CSS/
   style-youtube.css           YouTubeアプリ専用（.qn-yt*）
   style-tuner.css             TUNERアプリ専用（.qn-tn*）
   style-pitch.css             PITCHアプリ専用（.qn-pt*）
+  style-chords.css            コード修正ポップアップ(.qn-ce*)と編集中のシークバー(.qn-chord-editing)
 favicon/  guide/  md/  index.html  terms.html  privacy.html  pricing.html  pricing-en.html  QUICK_START.md  CNAME
 guide/                        アプリ内ガイド（静的HTML8枚＋guide.css/guide.js＋img/*.webp）。更新ルールはUSER_DOCS.md
 ```
 
 **読み込み順（`index.html`）。順序で上書きが決まる／グローバルでつながるので変えない：**
 - CSS：core → playlist → markers → control-eq → controls → export → text → layout-sp → layout-pc-v2 → **layout-pc-v2-sp** → pcv2-panels → **bars** → settings → stem → quickpop → auth → shareware → theme → apps → **youtube** → tuner → pitch
-- JS：qn-i18n → qn-i18n-apps → qn-i18n-ja → jszip.min → player-shareware → qn-marker-core → player-core → **player-bars** → player-ui-shared → player-normalize → player-id3 → player-playlist → player-track-backup → player-sync → player-p2p → player-markers → **player-marker-presets** → player-control-eq → player-controls → qn-settings-ui → player-text → player-stem → player-ui-pc-v2 → player-quickpop → qn-wakelock → qn-apps → player-swipe → qn-app-youtube → qn-pitch-core → qn-app-tuner → qn-pitch-filters → qn-app-pitch → player-theme → player-auth
+- JS：qn-i18n → qn-i18n-apps → qn-i18n-ja → jszip.min → player-shareware → qn-marker-core → player-core → **player-bars** → player-ui-shared → player-normalize → **qn-chord-core → player-chords → player-chord-edit → player-grid-click** → player-id3 → player-playlist → player-track-backup → player-sync → player-p2p → player-markers → **player-marker-presets** → player-control-eq → player-controls → qn-settings-ui → player-text → player-stem → qn-tab-core → player-tab → player-ui-pc-v2 → player-quickpop → qn-wakelock → qn-apps → player-swipe → qn-app-youtube → qn-pitch-core → qn-app-tuner → qn-pitch-filters → qn-app-pitch → player-theme → player-auth
 
 新しい関数を他ファイルから使う時は「呼ぶ側より前に定義されているか」を確認する。共通ヘルパーは`player-core.js`が定位置。
 `player-ui-pc-v2.js`と`qn-app-youtube.js`は、それぞれ1つのIIFEの中で多数の変数を共有している。**ファイル分割はしない**（変数の持ち方から作り直しになるため）。
@@ -96,11 +107,14 @@ guide/                        アプリ内ガイド（静的HTML8枚＋guide.css
 | マーカー | localStorage | `mp3_pins_<ファイル名>`（`pins`配列。曲切替時に`loadFile()`が同期で読む） |
 | A/B点 | localStorage | `mp3_ab_<ファイル名>`＝`{a,b}`（秒数だけ。マーカーに紐づかない） |
 | テキストメモ | localStorage | `mp3_text_<ファイル名>` |
+| 歌詞の行の時刻 | localStorage | `mp3_lyt_<ファイル名>`＝`[[行の文字,秒],...]`。同期対象外(player-syncが見るのは`mp3_pins_/ab_/text_`だけ)。バックアップは`lyricTimes`。上限=メモ10000字・歌詞300行 |
 | ループ設定 | localStorage | `mp3player_loop_mode` / `mp3player_loop_enabled` / `mp3player_loop_preroll_seconds`（0〜5秒）／`mp3player_repeat_mode` |
 | マーカーメモのプリセット色／カスタムプリセット | localStorage | `qn_marker_preset_colors_v1`（`{名前:色キー|null}`、初期値`MARKER_PRESET_COLOR_DEFAULTS`）／`qn_marker_custom_presets_v1`（`[{label,color}]`最大30）。PLAYERとYouTubeで共用（`getAllMarkerPresetLabels()`） |
 | シークバー1本の秒数 | localStorage | `qn_bar_sec`（1秒刻みの整数、既定5。上限＝曲長÷「Rows Autoで画面に入る行数」） |
 | シークバー追従ON/OFF | localStorage | `qn_bar_follow`（"0"でOFF、既定ON） |
 | 波形の形 | localStorage | `qn_bar_wave`（`mirror`既定\|`bottom`） |
+| シークバーの表示 | localStorage | `qn_bar_view`（`wave`既定\|`chord`\|`degree`）、`qn_chord_detail`（`basic`\|`extended`既定\|`full`）、`qn_chord_alts`（候補表示。既定ON）、`qn_chord_snap`（コード境目の拍合わせ。既定ON）、`qn_grid`（拍・小節の縦線 `off`\|`bar`\|`beat`既定）。曲ごとの解析結果は `qn_chords_<ファイル名>`（拍`beats`と手動補正`bt`も含む） |
+| コード解析・手動修正 | localStorage | `qn_chords_<ファイル名>`（解析結果＋手動修正。`player-chords.js`） |
 | 手動スクロール後の追従停止秒数 | localStorage | `qn_bar_follow_pause`（1〜30、既定6） |
 | シークバーの1画面の本数 | localStorage | `qn_bar_rows`（0=自動/3〜12、既定0） |
 | 送り戻しボタンの秒数 | localStorage | `qn_skip_sec`（5/10/15/30/60、既定10） |
@@ -113,6 +127,7 @@ guide/                        アプリ内ガイド（静的HTML8枚＋guide.css
 | PITCH | localStorage／IndexedDB | `qn_pitch_filters` `qn_pitch_rec_meta`(録音の改名) `qn_pitch_panel_collapsed`／IndexedDB `qn_pitch_db`(録音実体。レコードは再putしない)（詳細は`PITCH_APP.md`） |
 | YouTube | localStorage | `qn_yt_items` `qn_yt_rate` `qn_yt_repeat` `qn_yt_preroll`（詳細は`YOUTUBE_APP.md`§4） |
 | 本体Library同期 | localStorage | `qn_libsync_meta_v1`（`player-sync.js`。詳細は`SYNC.md`） |
+| Tab | localStorage／IndexedDB | `qn_tab_sens`・`qn_tab_minlen`・`qn_tab_overtone`・`qn_tab_zoom`・`qn_tab_follow`／IndexedDB `qn_tab_db`(解析結果と修正。キーは`名前\|サイズ`、最大60曲)。バックアップ・同期の対象外 |
 | Stem／録音 | localStorage／IndexedDB／Cache API | `qn_stem_mode`(4\|6)・`qn_rec_offset_ms`／IndexedDB `qn_stem_db`(分離結果・録音トラック。キーは`名前\|サイズ`、6パートは`\|6`付き)／モデルはCache API `qn-stem-model-v1`。バックアップ・同期の対象外 |
 | 自動ノーマライズ | localStorage | `qn_norm_on` `qn_norm_target` `qn_norm_lv_<ファイル名>`（`player-normalize.js`） |
 | テーマ／Glow／EQ自作プリセット／伸縮方式 | localStorage | `qn_theme` `qn_glow`／`qnplayer_eq_custom_presets`／`qn_stretch_engine`(st\|native。URLの`?stretch=`でも切替) |
@@ -176,3 +191,48 @@ guide/                        アプリ内ガイド（静的HTML8枚＋guide.css
 - **状態**：`qn_<アプリ名>_*`のlocalStorageキー。音声実体は持たない。`qn_last_app`で再読み込み時に復元（`ready:true`で自動対象）。
 - **画面スリープ防止**：再生中`QNWake.set("<アプリ名>",true)`、停止・非表示で`false`。
 - **表示中はPLAYER側を止める**：`body.qn-app-open`でaudio一時停止・下段バー非表示・ショートカット無効・曲追加D&D無効。
+
+## Exact seek (4.39.0, JS/player-exact-seek.js)
+- Chromium seeks in VBR MP3 land up to ~0.8 s off and the error persists. On the first seek of a track (duration <= 1500 s) the file is decoded to 44.1 kHz PCM, wrapped as a WAV blob and swapped into the same <audio> element at the indicated time (QNExact; loadFile calls QNExact.onLoad). Later seeks are exact (measured spread <= 1.5 ms). Tracks over 1500 s keep the original source.
+- Markers placed before this version may carry per-seek errors; re-place them if they look off.
+
+## Marker snap / lock (4.40.0, JS/player-markers.js)
+- Settings: "Marker snap to bars" / "Marker snap to beats" (localStorage qn_pin_snap_bar / qn_pin_snap_beat, default off, QNPinSnap.get/set). snapPinTime(t, dir) uses QNChords.grid() (times/bar); applies to marker drag and the popup nudge (nudge jumps to the next/previous snap point). Turning snap on triggers the grid analysis (needGrid() in player-chords.js). Not applied when adding a marker.
+- Lock: pin.locked (popup "Lock" button). Locked markers cannot be dragged, nudged or deleted (popup and list); tap/seek, color, hide and skip still work. Lock glyph under the marker number. Stored with the pin in localStorage; not part of cloud sync (cleanState).
+- Loader (loadTrackUserData) now keeps pin.skip and pin.locked (skip used to be dropped on reload).
+- Bar-head grid line alpha 0.24 -> 0.55, 1 px wider.
+
+## Grid follows markers (4.41.0)
+- Core: bars() = barsBase() + applyAnchors() when bt.anchors is given. Each anchor is a bar start; between two anchors the bar count is round(span / (beatsPerBar * local period)) and beats are spread evenly. Before the first / after the last anchor the neighbouring section's period is extended. Anchors closer than 0.75 bar are ignored. Fixes sections where beat tracking sat half a beat off or the tempo wobbled. The manual "Bar start point" (bt.anchor) is added to the anchor list when markers are used.
+- App: setting "Grid follows markers" (QNChords.getAnchorMode/setAnchorMode, localStorage qn_grid_anchor): off | locked (default; only pins with locked=true) | all (every enabled pin). savePins() calls QNChords.pinsChanged(), which rebuilds the grid only when the anchor set changed.
+- Tempo fix: the autocorrelation is now computed from half of the lowest lag, so the half-lag term exists for tempi above 120 BPM. METRO ESCAPE was read as 179 BPM (3:2 confusion with ~89 BPM, doubled); now ~134 BPM (true 133.3). Other test songs and the 13 synthetic songs are unchanged.
+- Known limit: METRO ESCAPE sections can still sit half a beat off automatically (syncopated 8ths); use locked markers there.
+
+## Phone sync controls (4.42.0)
+- Settings "Click offset" (QNClickOffset, localStorage qn_click_offset, ms, per device, added to the Grid click mapping; + = later) for output-latency differences (Bluetooth, phones). Settings "Exact seek" (QNExact.getEnabled/setEnabled, qn_exact_seek, default on) turns the WAV swap off per device (iOS may block play() after the async swap).
+- Not verifiable here: only desktop Chromium is available; phone behaviour needs the user's report.
+
+## Exact seek, eager prep (4.42.1)
+- The WAV is now prepared ~1.2 s after a track loads (not at the first jump), because decode+encode can take 10+ s on a phone and the jumps in that window were still inexact. A ready WAV is swapped in at once if paused, otherwise inside the next 'seeking' event. Encoding uses an Int16Array (much faster than per-sample DataView).
+
+## Odd bars and meter changes (4.43.0)
+- applyAnchors (qn-chord-core.js) takes anchors as seconds or {t, m}. Beats between two anchors = the number of DETECTED beats in the span (falls back to span/period rounded to whole bars when the count is >1.5 beats off). A remainder of <= half a bar is appended to the last bar (e.g. a 5-beat bar); a larger remainder makes a short bar (3 beats).
+- Marker popup "Beats" button sets pin.bpb (-, 2..7): beats per bar from that marker until the next marker that has its own value (inherits the previous one; the first uses the auto-detected meter). Only used while the marker is an anchor (Grid follows markers: locked / all). Kept by the loader; local only (not synced).
+- Grid click latency trim changed from +15 ms to -3 ms (measured click-vs-grid error now ~1 ms on desktop Chromium, was ~+19 ms).
+- Optional local beat refinement exists behind LOCALREF (default off): gain was marginal (mean beat-to-onset error 7.8 -> 7.1 ms on one song, worse on another).
+
+## Chords panel (4.44.0)
+- New left-bar panel "Chords" (id chords, panelType chords, JS/player-ui-pc-v2.js ensureChordsBody) for settings that are saved per track: Re-analyze, Chord key, Beats per bar, Bar start, Bar start point, Beat tempo, plus a "Detected" line (BPM / beats per bar / key). The rows are the same row objects as before, split out of rowsBar by label (SONG_LABELS); everything global (Chord detail, candidates, snap, Grid, Grid click, Click offset, Exact seek, marker snap, Grid follows markers, View...) stays in Settings. Rule: per-track state -> Chords panel, device/global preferences -> Settings.
+
+## UI tidy (4.45.0)
+- Settings root (#pcV2SettingsBody) is now a list: General / Backup / Import / Color / Keyboard / Transfer / Guide. General (panel id "general", handled in switchPanel like keyboard/color, body #pcV2GeneralBody = settingsUI.el) holds Seek bar, Playback, Language, Tips.
+- Wave strip: "+ Audio" / "+ Marker" buttons removed (SP syncMoreExtras puts View/Edit before the A/B mirrors). View is a tap-to-cycle button (QNSettingsUI row `tap: true`); Edit uses new row option `hiddenWhen()` and is hidden while View = Wave.
+- Marker list row has a Lock button (QN_ROW_ACT kind "lock", right of Hide). Marker popup (qn-pl-seekpop) is a 5-column grid (2 rows) and sits 26 px away from the marker row.
+
+## Light backgrounds & time stretch (4.46.0 / 4.47.0)
+- Background mode: QNBg (inline script in index.html head; localStorage qn_bg = dark|gray|beige; sets data-qn-bg on <html>). CSS/style-modes.css (generated once by a tokenizing script) defines --bg-xxxxxx / --fg-xxxxxx / --bd-xxxxxx tokens (dark = original hex) and light overrides; --ov = overlay base colour (white in dark) used as rgba(var(--ov), a). New CSS must use these tokens, not hex. Canvas colours in player-bars.js read --ov (ovc()).
+- Time stretch (qn_stretch_engine auto|native|st, Settings > General > Playback): auto = browser stretching (preservesPitch, SoundTouch passthrough rate/pitch 1) while key = 0 and not iOS; otherwise SoundTouch.
+
+## Chord boundary placement (4.48.0)
+- classify() grid now also takes `heads` (bar-head times, from player-chords headTimes() = bars() without segments + marker anchors). Viterbi switch cost: bar heads cheapest (SW_ON*HEAD_MUL), other beats SW_ON*BEAT_MUL, half-beats SW_MID, elsewhere SW_OFF; off-beat snap candidates (syncopation) need stronger onset evidence (SN_OFF 0.8). Defaults live in qn-chord-core.js (env-overridable in node for tuning). Measured on 4 cached songs: ~97% of boundaries on a beat, 68-78% on bar heads, ~3% off-beat; mean chord fit unchanged.
+- SP wave strip: after View/Edit/A/B come two toggles (#pcV2FabClick grid click, #pcV2FabSnap marker snap to bars+beats together), synced via window.qnBarStripSync.

@@ -181,7 +181,7 @@
 - `QNSettingsUI.inline`の`type:"slider"`はFAB帯専用(つまみ=values()の添字)。設定パネルの行は従来どおり「‹ 値 ›」(stepper)のまま。スライダーを設定行に使わない。
 
 ## 見た目の統一ルール(v4.7.0。新しい部品を足す前に確認)
-- 入力欄(input/select/textarea)=角丸は必ず`--radius-field`、背景`#1c1c24`、枠`--border-subtle`。ピル型の入力欄を作らない(ピルはボタン/スイッチ/チップだけ)。
+- 入力欄(input/select/textarea)=角丸は必ず`--radius-field`、背景`var(--bg-1c1c24)`、枠`--border-subtle`。ピル型の入力欄を作らない(ピルはボタン/スイッチ/チップだけ)。
 - ボタン=ピル型(`--radius-pill`)。欄の隣に置くボタンは欄と同じ高さ(Library=38px、ステージ帯=40px)。
 - FAB帯などの設定の並び: 同じ設定の「ラベル+値+操作部」は密着(近接)、別の設定とは区切り線+余白で離す。値を操作部の反対側に離して置かない。
 - スクロールする行の窓: バーの外に縦スクロール専用の余白を残し、押した瞬間にシークしない(`attachTrackSeek`のscrub判定)。
@@ -201,6 +201,7 @@
 - **Stem(v4.16.0)**: 分離はmodule worker(`player-stem-worker.js`)で実行しメインスレッドを止めない。ONNX Runtimeはシングルスレッドのみ(マルチスレッドにはSharedArrayBuffer=COOP/COEPが必要でYouTube埋め込み等が壊れる)。Stemモード中はマスター`audio`をmutedにして4本の別`<audio>`をcurrentTime/playbackRate/再生状態へ追従させる(EQ/Key=SoundTouch経路は効かない)。YouTube(音声取得不可)・SP幅は非対応。モデルURL/ORT配布元は`window.QN_STEM_MODEL_URL`/`QN_STEM_ORT_BASE`で差し替え可(既定はHugging Face/jsDelivr)。
 
 - **録音トラック(v4.17.0)**: 録音はMediaRecorder→デコード→16bit mono WAV化して保持(MediaRecorderのwebmはduration/シークが不安定なため)。再生位置=(曲位置−startPos)/録音時rate+offset(ms)、再生rate=マスターrate/録音時rate。Stem/録音の保存キーは`名前|サイズ`(File.lastModifiedはライブラリ復元のたびに変わるので使わない)。
+- **録音のクリップ化(v4.52.0)**: 1トラック=クリップ配列`{blob,startPos,rate,dur,el,url}`。曲上の範囲=[startPos, startPos+dur*rate]、`<audio>`は1クリップ1本(`syncEl`が自分の長さ外で止める)。新しい録音/動かしたクリップは`punch()`で重なる既存クリップを`sliceClip()`でWAVごと切り詰める(切った分の容量は残らない)。保存はIndexedDB `rec|曲キー`の`recs[].clips`(`v3:true`)。旧データ(`blob`直置き)は`wavDur()`で長さを出して1クリップに読み替える。合計は`REC_LIMIT_SEC`(600秒)。録音中のトラックは`applyVol`でゲイン0。シークバーの波形切替は`window.QNWaveOverride`(player-bars.jsの`srcPeaks()`が読む。**配列の参照が変わらないと行キャッシュが更新されない**ので、計算後は`new Float32Array`で差し替える)。書き出し=`exportMix`(OfflineAudioContext 44.1kHzステレオ、速度≠1の録音は伸縮しない)。
 
 - **Bar length(v4.18.0)**: 値は1秒刻みの整数で、候補配列は固定せず`QNBars.secValues()`/`rowSecValues()`が曲長から作る(上限=曲長÷現在の行数(Rows指定ならその本数、AutoならCSS既定寸法で数える`autoVis`)。Rowsを変えたら上限が変わるので現在値を丸めて再同期)。曲/ウィンドウ/Rowsが変わったらスライダーの再同期(`qnBarStripSync`/`segStrip.sync`)が必要。短い曲では現在値を上限へ丸める(保存値は書き換えない)。
 
@@ -215,3 +216,45 @@
 
 ## シークバー上の曲名行(v4.24.0)
 `#pcV2HeadRow`は`renderHeadRow()`がLibraryの`buildPlaylistRow`を再利用して描く。`renderPlaylist()`と`renderNowPlaying()`の後で再描画される。見た目はlibraryのCSS(`.playlistItem`等)を流用し、PCのみSKIP/PIN/EDIT表示、SP(≤900px)は`#pcV2WaveHead #pcV2HeadRow`配下のボタンを非表示。時間は現在/総時間のライブ表示を残している。
+
+## 色トークンと背景モード(v4.46.0)
+- 無彩色(背景・罫線・文字)は`var(--bg-xxxxxx)`/`--fg-`/`--bd-`と`rgba(var(--ov), a)`を使う(`CSS/style-modes.css`)。hexや`rgba(255,255,255,a)`を直書きするとライト背景で浮く。ダークの値は元のhexと同じ。
+- 白文字は「暗い面の文字」(ライトでは濃い文字になる)と「アクセント色ボタンの上の文字」(ライトでも白)が同じ`#fff`になりやすい。アクセント背景の上は`color:#fff`をそのボタンに明示する(例:`.panel-fab-btn`)。既存の`--text-pure-white`はライトで濃い色になる。
+- CSSコメント内に`*/`を書かない(例:`--bg-*/--fg-*`)。コメントが途中で終わり、そのあとの規則が丸ごと無効になる(全面が白くなった実例)。
+- canvas描画の白半透明は`player-bars.js`の`ovc(a)`(`--ov`を読む)。背景を切り替えると`qn-bg-change`で読み直す。
+- 設定行の`hiddenWhen()`は行を非表示にする(`disabledWhen`は薄くするだけ)。stepperの`tap:true`は「‹ ›」ではなく押すたびに次の値へ進むボタン(波形エリアの帯のView用)。
+## 速度変更の方式(v4.47.0)
+- 自動はキー変更なし＆iOS以外のとき、`audio.preservesPitch=true`のブラウザ標準伸縮を使い、SoundTouchは素通し(playbackRate=1, pitch=1)。スマホでSoundTouchの処理が間に合わず音がスライスされるのを避ける。キー変更中とiOS(標準だと隙間が空く)はSoundTouch。切替は`?stretch=auto|native|st`か Settings>一般>再生。
+
+## Tab(v4.54.0)
+- Basic Pitch 1.0.1の`evaluateModel`は**22050Hzモノラル**のFloat32Array/AudioBufferしか受けない(READMEと違い自動リサンプルしない)。デコードは`OfflineAudioContext(1,1,22050)`でメインスレッド、Workerへ転送。
+- TF.jsを軽量化したバンドルでは、`tfjs-core`のchained ops(register_all_chained_opsのモジュール)を明示的にimportしないと`t.slice is not a function`になる(`build_basic_pitch.py`に入っている)。
+- **TF.jsのWebGLバックエンドをWorkerで動かさない**(evaluateModelが進捗0のまま止まる)。WebGLはメインスレッド、CPU計算だけWorker(`player-tab.js`の`hasWebGL`)。
+- panelTypeの`"tab"`は既存の`.mobile-tab-panel`用。Tabパネルは`"guitartab"`。
+
+## 省電力(v4.55.0)
+- **常時回るrAF・setIntervalを新設しない。** 「何もしていない停止中」に毎秒動くコールバックが電池を食う(v4.54.xまでは停止中でも毎秒約220回)。ルール: 再生中だけ回す / イベント(play・pause・seeked・timeupdate等)で1回ずつ回す / 非表示(`document.hidden`)では止める。timer・rAFの登録・解除は`play/pause/visibilitychange`に合わせる(例: `kickUpdateBars` `syncBgLoopTimer` `armSync`(Stem) `syncTimer`(歌詞) `pcv2WaveKick`)。
+- 新しいループ/タイマーを足したら`python3 -I md/tools/power_check.py`で前後を比べる(停止中のコールバックが数回/秒以下であること)。
+- A-Bループ・スキップ区間・シーク中だけは折り返しの精度のため再生中にrAFを毎フレーム回す(`updateBarsNeedsFrames`)。それ以外の再生中は時刻表示だけなので100ms間隔。
+- `input[type=range]`のつまみ色(`--range-progress`)は、値の代入フック+inputイベント+1秒の保険で更新(`syncRangeProgressLoop`)。valueAsNumberやstepUpでの更新は即時には拾えない(最大1秒遅れ)。
+- 波形canvasのdprは2までに制限(`g.dpr`)。Settings>Playbackの「Keep screen on」(`qn_keep_screen_on`)をオフにするとPLAYERの再生中でもWake Lockを取らない(YouTube等は別)。
+
+## iOSのaudioSessionとマイク(v4.55.1)
+- `qn-wakelock.js`は起動時に`navigator.audioSession.type="playback"`にする(バックグラウンド再生用)。この状態でgetUserMediaすると、iOSは`InvalidStateError: AudioSession category is not compatible with audio capture.`で失敗する(v4.5x以前のTUNER/PITCH/Recのマイク不具合の原因)。
+- マイクを開く処理は必ず`QNWake.micOn()`(開く前)と`QNWake.micOff()`(停止・失敗時)で挟む。中で"play-and-record"と"playback"を切り替え、使用元の数を数えて0になった時だけ戻す。新しくgetUserMediaを足す時も同じにする。現在の呼び出し元: `qn-pitch-core.js`(TUNER/PITCH)、`player-stem.js`(Rec)。
+- ヘッドレスChromiumにはaudioSessionが無く実機では確認できない。`md/tools/e2e_audiosession.py`が擬似audioSessionで切り替えだけ確認する。実機iOSでの確認は別。
+
+## Tabのソース切替(v4.57.0)
+- Tabの保存キーは`曲|パート`。`st.key`は保存キー、曲そのものは`keyOf(file)`。ジョブ(`job.key`)も保存キーなので、ソースを切り替えても別ソースの解析は止まらず走り続ける(完了するとそのキーに保存される)。
+- Bass/Guitar/Vocalsは`QNStem.getPart`が頼り。Stemの保存キー形式(`name|size`、6パートは`|6`)を変える時はTab側も見る。StemはPC専用なので、スマホではMix以外は未分離扱いになる。
+- 五線紙(`kind:"staff"`)はTABと描画経路が別(`drawStaffBody`)。高さは`viewH(rec)`で決め、`setRec`→`resize`で更新する。弦の数やキャンバス高さを固定値で書かない。
+- 大きな譜面表示(v4.58.0): 描画関数は`R`(いま描くrec)と`cx/cw/ch`を前提にする。`st.rec`を直接読む描画コードを足さない(パネルの小さな表示とPC幅の大きな表示の両方で使う)。結果は`st.recs[src]`と`st.rec`が**同じオブジェクト**でなければ編集が譜面に反映されない(読み込みは`loadAll`に一本化している)。
+
+## 機能の表示ON/OFF(v4.59.0, JS/qn-features.js)
+- 公開版は **tab / stem / rec / chords をOFF**。`window.QN_FEATURES`(既定は同ファイルのF)と`qnFeature(名前)`で判定。登録の無い名前は常にtrue。
+- OFFの時に隠す/止めるもの: アイコンバーの項目(`ICON_ITEMS`をidで絞る)、設定の行(`feat:"chords"`などを付けた行を`qnFeatRows`で除く。Chords系の行は`CHORD_ROWS`の名前で付与)、Tabの設定セクション、波形エリアの調整帯のView/Edit、クリック音・吸着のボタン、`player-tab.js`/`player-stem.js`(両方OFFの時)は丸ごと何も作らない、`player-chords.js`は`offer`/`ensure`を何もせず保存済みのGrid・クリック音もOFF扱い、`player-bars.js`は保存済みのView(chord/degree)を無視、`player-markers.js`は保存済みの吸着を無視。
+- 新しい画面・設定・ボタンがこれら4つの機能に依存するなら、同じように`qnFeature`で出し分ける。chordsは**拍/小節の解析に頼る機能すべて**(Grid click・マーカー吸着・Grid follows markersを含む)。
+- 動作確認・開発用: コンソールで `localStorage.qn_dev_features = "tab,stem,rec,chords"`(または`"all"`)→再読み込み。戻す: `localStorage.removeItem("qn_dev_features")`。
+- ガイド(`guide/*.html`)は要素に`data-feature="名前 名前…"`を付けると、挙げた機能が全部OFFの間は隠れる(`guide/guide.js`。h2に付けると次のh2の手前まで)。各ガイドは`../JS/qn-features.js`を読む。新しく機能の説明を書く時は、隠す対象ならこの印を付ける。
+- 確認: `md/tools/e2e_features.py`(PC/SP、既定とdev=all、ガイドも)。
+- 隠していても残るもの: 規約・プライバシー(`terms.html`/`privacy.html`)のStem等の記述、ガイドのスクリーンショット(`pc-overview`など)、IndexedDB/localStorageに既にある録音・Tab・コードのデータ(消さない。機能を戻せば使える)。

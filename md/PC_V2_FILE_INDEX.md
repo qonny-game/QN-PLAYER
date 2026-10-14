@@ -21,7 +21,7 @@
 ### パネル開閉・切替
 - `handleIconClick(item)` — アイコン押下の分岐（`"action"`=Add File、`"close"`、他は`openPanelOverlay`）。
 - `openPanelOverlay(panelId)` / `closePanelOverlay()` — パネルの開閉（SP幅はオーバーレイ）。
-- `switchPanel(panelId)` — **最大の関数。** パネル中身をControl/Markers/Library/Text/Stem/Backup/Import/Transfer/Settings/Keyboard/Colorへ切替。新しいパネル種別はここに分岐を足す。Backup/Importは`qnBackupMount`で借りる（`build()`は部品を`qnBackupParts()`で取得）。
+- `switchPanel(panelId)` — **最大の関数。** パネル中身をgeneral(Settings直下の一覧から入る。`generalBody`)/chords(曲ごとの設定)/Control/Markers/Library/Text/Stem/Backup/Import/Transfer/Settings/Keyboard/Colorへ切替。新しいパネル種別はここに分岐を足す。Backup/Importは`qnBackupMount`で借りる（`build()`は部品を`qnBackupParts()`で取得）。
 - `getPanelStash()` / `stashPanelContents(panelBody)` — 切替時、使い回す実体を`#pcV2PanelStash`へ退避（パネルに新しい実体を足したら対象に加える）。
 - `buildPanelFab(panelId)` — 右下FAB（ADD AUDIO/ADD MARKER/EDIT/Delete）。
 
@@ -103,6 +103,7 @@
 
 ## JS/player-bars.js（QNBars）
 `grep -n "// ----------"`で見出し。`measure/ensureRows/addRow/releaseRow`（寸法・仮想スクロール・行の再利用）、`rowOf/pctInRow/timeFromPoint/timeInRow`（時刻⇔行。行番号は0始まり）、`rowPeaks/paintRow/draw`（波形、行ごとの署名で再描画を最小化）、`followTick/ensureVisible`（再生位置追従）、`setSec/createGearButton/openPop`（秒数設定）、`startEdgeScroll`（ドラッグ中の端スクロール）。行ができたら`decorateBarRow`（player-markers.js）が線・A/B・区間を付ける。
+- 【v4.27.0】表示モード(`getViewMode/setViewMode`、`qn_bar_view`)。`paintRow`はコードモードで解析済みなら`paintChordRow`(コード区間の角丸ブロック＋コード名)、解析待ちは波形を薄く表示。色塗りは`fillPath`(再生済み/未再生/マーカー色。波形と共通)。線・ラベル・A/B・区間ハイライトは行DOMなのでモードに関係なく同じ。仕様はCHORD_MODE.md。
 
 - v3.37.0: `ICON_ITEMS`に`settings`(hidden、歯車から`openPanelOverlay("settings")`)。`ensureSettingsBody()/syncSettingsBody()`が設定パネルを作る(stashPanelContentsの退避対象に`settingsBody`)。Backup/Import/Transferの`ICON_ITEMS`はhidden:true(switchPanel/handleIconClickの参照用に残す)。`syncTimeRowPosition()`は常に波形ヘッダーの歯車の左へ。
 

@@ -68,7 +68,10 @@
     var fftSize = opts.fftSize || 2048;
     var onFrame = typeof opts.onFrame === "function" ? opts.onFrame : function () {};
     var ctx = null, stream = null, analyser = null, dataBuf = null, corrBuf = null;
-    var rafId = 0, lastAt = 0, running = false;
+    var rafId = 0, lastAt = 0, running = false, micHeld = false;
+    // iOS: audioSessionが"playback"のままだとマイクを開けない。使っている間だけ"play-and-record"にする(qn-wakelock.js)
+    function micHold() { if (!micHeld && window.QNWake && QNWake.micOn) { micHeld = true; QNWake.micOn(); } }
+    function micRelease() { if (micHeld) { micHeld = false; try { QNWake.micOff(); } catch (e) {} } }
 
     function tick(now) {
       if (!running) return;
@@ -84,6 +87,7 @@
       var Ctx = window.AudioContext || window.webkitAudioContext;
       ctx = new Ctx();
       if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
+      micHold();
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints || {
           audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
@@ -91,12 +95,27 @@
       } catch (err) {
         try { ctx.close(); } catch (e) {}
         ctx = null;
+        micRelease();
+        if (err && !err.step) err.step = "getUserMedia";
         throw err;
       }
-      var src = ctx.createMediaStreamSource(stream);
-      analyser = ctx.createAnalyser();
-      analyser.fftSize = fftSize;
-      src.connect(analyser);
+      var src;
+      try {
+        // 使える音声トラックが無い(端末側でマイクが切られた/他アプリが占有など)と、createMediaStreamSourceがInvalidStateErrorになる
+        var trk = stream.getAudioTracks();
+        if (!trk.length || trk[0].readyState !== "live") { var ne = new Error("no live audio track"); ne.name = "NotReadableError"; throw ne; }
+        src = ctx.createMediaStreamSource(stream);
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = fftSize;
+        src.connect(analyser);
+      } catch (err2) {
+        stream.getTracks().forEach(function (t) { t.stop(); }); stream = null;
+        try { ctx.close(); } catch (e) {}
+        ctx = null;
+        micRelease();
+        if (err2 && !err2.step) err2.step = "analyser";
+        throw err2;
+      }
       dataBuf = new Float32Array(analyser.fftSize);
       corrBuf = new Float32Array(analyser.fftSize);
       running = true;
@@ -113,13 +132,27 @@
       if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
       if (ctx) { try { ctx.close(); } catch (e) {} ctx = null; }
       analyser = null; dataBuf = null; corrBuf = null;
+      micRelease();
     }
 
     // streamは録音(MediaRecorder)と共有する用。getUserMediaを二重に開かない
     return { startFromMic: startFromMic, stop: stop, state: state, get stream() { return stream; } };
   }
 
+  // マイクを開けなかった時の表示文。原因ごとに分ける(iOSのChromeなどで何が起きたか分かるように、想定外はエラー名を添える)
+  function micErrorText(err) {
+    var name = err && err.name, msg = err && err.message;
+    if (msg === "nomedia") {
+      return window.isSecureContext === false ? "マイクを使えません（HTTPSで開いてください）" : "このブラウザではマイクを使えません（Safariで開くと使えることがあります）";
+    }
+    if (name === "NotFoundError" || name === "OverconstrainedError") return "マイクが見つかりません";
+    if (name === "NotAllowedError" || name === "SecurityError") return "マイクが許可されていません（端末の設定で、このブラウザのマイクを許可してください）";
+    if (name === "NotReadableError" || name === "AbortError") return "マイクを使えません（他のアプリが使用中の可能性があります）";
+    return "マイクを開始できませんでした（" + (name || "unknown") + (err && err.step ? " / " + err.step : "") + (msg ? ": " + msg : "") + "）";
+  }
+
   window.QNPitchCore = {
+    micErrorText: micErrorText,
     NOTE_NAMES: NOTE_NAMES, A4: A4,
     freqToMidi: freqToMidi, freqToNote: freqToNote, noteToFreq: noteToFreq, midiToNoteName: midiToNoteName,
     autoCorrelate: autoCorrelate, createAnalysisSession: createAnalysisSession

@@ -10,7 +10,7 @@
   try { panelCollapsed = localStorage.getItem(PANEL_COLLAPSED_KEY) === "1"; } catch (e) {}
 
   // アイコンバー項目。panelType: tab=既存.mobile-tab-panel表示 / eq=EQモーダル中身 / action=即実行(現在該当なし、ロジックのみ残す) / close=開いていれば閉じる(現在該当なし)。並び: Library→Markers→Text→Control→Backup→Import(v3.48.0でSP専用のSeekbarタブは撤去)
-  const ICON_ITEMS = [
+  const ICON_ITEMS = [ // 項目のidが機能名(tab/stem/rec/chords)と同じものは、qnFeature(id)がfalseなら下で除く(qn-features.js)
     {
       id: "playlist",
       label: "Library",
@@ -33,6 +33,13 @@
       icon: '<path d="M5 4v3h5.5v12h3V7H19V4z"/>'
     },
     {
+      // 【v4.44.0】曲ごとに保存されるコード/拍の設定(キー・拍子・小節頭・拍のテンポ・再解析)。全曲共通の設定はSettings側
+      id: "chords",
+      label: "Chords",
+      panelType: "chords",
+      icon: '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>'
+    },
+    {
       // 【v4.21.0】Controlはプレイヤー全体の設定(曲固有ではない)なので下段(Settingsの上)へ。上段は曲固有のLibrary/Markers/Text/Stem
       id: "control",
       label: "Control",
@@ -47,6 +54,20 @@
       label: "Stem",
       panelType: "stem",
       icon: '<path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>'
+    },
+    {
+      // 【v4.53.0】Rec(録音トラック)。Stemとは別パネルで、Stemを実行していなくても使える。SP幅でも使える。中身はplayer-stem.js(QNStem.mountRec)
+      id: "rec",
+      label: "Rec",
+      panelType: "rec",
+      icon: '<path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>'
+    },
+    {
+      // 【v4.54.0】Tab。再生中のローカル曲をBasic Pitchで採譜してギターTABを流す。SP幅でも使える。中身はplayer-tab.js(QNTab.mount)
+      id: "tab",
+      label: "Tab",
+      panelType: "guitartab",
+      icon: '<path d="M3 5h18v2H3V5zm0 4h18v2H3V9zm0 4h18v2H3v-2zm0 4h18v2H3v-2z"/>'
     },
     {
       id: "backup",
@@ -81,7 +102,7 @@
       panelType: "settings",
       icon: '<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>'
     }
-  ];
+  ].filter(item => !window.qnFeature || window.qnFeature(item.id));
 
 
   function el(html) {
@@ -526,48 +547,40 @@
     requestAnimationFrame(() => { const sb = ensureSettingsBody(); if (!sb.parentNode) getPanelStash().appendChild(sb); });
     syncTimeRowPosition();
 
-    const waveAddAudioBtn = el(
-      '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddAudioBtn" title="Add Audio">' +
-        '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-        '<span>Audio</span>' +
-      '</button>'
-    );
-    waveAddAudioBtn.addEventListener("click", () => {
-      const fileInputEl = document.getElementById("fileInput");
-      if (fileInputEl) fileInputEl.click();
-    });
-    // 【v2.13.6】ADD AUDIOの右にADD MARKER。横並び入れ物#pcV2WaveFabRowに入れ、右下固定は入れ物側
-    const waveAddMarkerBtn = el(
-      '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2WaveAddMarkerBtn" title="Add Marker">' +
-        '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' +
-        '<span>Marker</span>' +
-      '</button>'
-    );
-    waveAddMarkerBtn.addEventListener("click", () => {
-      if (typeof addCurrentPin === "function") addCurrentPin();
-    });
     const waveFabRow = el('<div id="pcV2WaveFabRow"></div>');
-    // Audio/Marker/再生の左に、シークバーの常用設定を常時表示(設定パネルのSeek bar項目と同じ値。変更は相互に同期)。狭い幅では折り返して上の段になる
-    const waveBarStrip = QNSettingsUI.inline([
+    // 再生の左に、シークバーの常用設定を常時表示(設定パネルのSeek bar項目と同じ値。変更は相互に同期)。狭い幅では折り返して上の段になる
+    const viewLabel = v => {
+      if (v === "wave") return "Wave";
+      const nm = v === "degree" ? "Degree" : "Chord";
+      if (typeof QNChords !== "undefined" && QNChords.phase() === "analyzing") return nm + " " + Math.round(QNChords.progress() * 100) + "%";
+      return nm;
+    };
+    const waveBarStrip = QNSettingsUI.inline(qnFeatRows([
+      // 【v4.27.0 プロトタイプ】シークバーの表示: 波形 / コード(解析中は進捗%)。Settingsパネルの同名項目と同期
+      { label: "View", feat: "chords", cls: "qn-view-item", type: "stepper", tap: true, values: () => ["wave", "chord", "degree"], get: () => QNBars.getViewMode(), set: v => QNBars.setViewMode(v), fmt: viewLabel },
+      { label: "Edit", feat: "chords", cls: "qn-edit-item", type: "switch", get: () => QNBars.getEditMode(), set: on => QNBars.setEditMode(on), hiddenWhen: () => QNBars.getViewMode() === "wave" },
       { label: "Bar length", type: "slider", values: () => QNBars.secValues(), get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: QNBars.fmtSec, action: { label: "Fit", title: "Fit the whole track on screen", run: () => QNBars.fit() } },
       { label: "Rows", type: "slider", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
       { label: "Follow", type: "switch", spHide: true, get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) }
-    ], () => syncSettingsBody());
+    ]), () => syncSettingsBody());
     window.qnBarStripSync = waveBarStrip.sync;
     waveBarStrip.el.classList.add("qn-wave-bar-strip"); // SP幅ではMore内(#pcV2MorePanel)へ移す(syncMoreExtras)。PC幅はここ
     waveFabRow.appendChild(waveBarStrip.el);
     const waveFabBtns = el('<div class="pcv2-wave-fab-btns"></div>');
     waveFabRow.appendChild(waveFabBtns);
-    waveFabBtns.appendChild(waveAddAudioBtn);
+    // SP幅ではView/Editの項目をここへ移す(syncMoreExtras)。項目は設定帯(root)の外になるので、clickは帯の処理へ渡す
+    waveFabBtns.addEventListener("click", e => { if (e.target.closest && e.target.closest(".qn-view-item, .qn-edit-item")) waveBarStrip.onClick(e); });
     // 【v4.11.0】SP: Audioの右にA/Bボタン(本体の#setABtn/#setBBtnへ中継+ラベル/点灯のミラー。長押しはquickpopの対象)。PC幅はCSSで非表示
     const makeAbMirror = (kind) => {
       const src = document.getElementById(kind === "A" ? "setABtn" : "setBBtn");
-      const b = el('<button type="button" class="panel-fab-btn pcv2-fab-ab" id="pcV2FabSet' + kind + '" title="' + (kind === "A" ? "現在位置をA点に（もう一度押すと解除）" : "現在位置をB点に（もう一度押すと解除）") + '"><span>' + kind + ' --</span></button>');
+      const b = el('<button type="button" class="panel-fab-btn pcv2-fab-ab" id="pcV2FabSet' + kind + '" title="' + (kind === "A" ? "現在位置をA点に（もう一度押すと解除）" : "現在位置をB点に（もう一度押すと解除）") + '" aria-label="' + kind + ' point"><svg viewBox="0 0 24 24"><text x="12" y="18" text-anchor="middle" font-size="17" font-weight="700" font-family="Instrument Sans, sans-serif" fill="currentColor">' + kind + '</text></svg><span class="pcv2-ab-t">' + kind + ' --</span></button>');
       b.addEventListener("click", () => { if (src) src.click(); });
       const sync = () => {
         if (!src) return;
         const l = src.querySelector(".top-controls-btn-label");
-        b.firstChild.textContent = l ? l.textContent : kind + " --";
+        const tx = l ? l.textContent : kind + " --";
+        b.querySelector(".pcv2-ab-t").textContent = tx;
+        b.setAttribute("aria-label", tx);
         b.classList.toggle("has-point", src.classList.contains("has-point"));
       };
       if (src && typeof MutationObserver === "function") new MutationObserver(sync).observe(src, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true, characterData: true });
@@ -576,7 +589,21 @@
     };
     waveFabBtns.appendChild(makeAbMirror("A"));
     waveFabBtns.appendChild(makeAbMirror("B"));
-    waveFabBtns.appendChild(waveAddMarkerBtn);
+    // SP: B の右にクリック音(拍・小節)と吸着(小節＋拍を同時)のON/OFF。Settingsの同名項目と同じ値(変更は相互に同期)。PC幅はCSSで非表示(.pcv2-fab-abと同じ)
+    const makeToggle = (id, title, icon, get, set) => {
+      const b = el('<button type="button" class="panel-fab-btn pcv2-fab-ab pcv2-fab-tg" id="' + id + '" title="' + title + '" aria-label="' + title + '"><svg viewBox="0 0 24 24">' + icon + '</svg></button>');
+      const sync = () => { const on = !!get(); b.classList.toggle("has-point", on); b.setAttribute("aria-pressed", on ? "true" : "false"); };
+      b.addEventListener("click", () => { if (typeof hapticTap === "function") { try { hapticTap(); } catch (e) {} } set(!get()); sync(); syncSettingsBody(); });
+      b.__sync = sync; sync();
+      return b;
+    };
+    const togClick = makeToggle("pcV2FabClick", "Grid click on / off", '<path d="M9.5 3h5l3.5 17H6L9.5 3zm1.7 2L8.6 18h6.8L12.8 5h-1.6z"/><path d="M11.6 15.5l3-9 .95.3-3 9z"/>', () => QNChords.getClick(), on => QNChords.setClick(on));
+    const togSnap = makeToggle("pcV2FabSnap", "Marker snap to bars and beats on / off", '<path d="M3 7v6c0 4.97 4.03 9 9 9s9-4.03 9-9V7h-6v6c0 1.66-1.34 3-3 3s-3-1.34-3-3V7H3zm0-2h6v2H3V5zm12 0h6v2h-6V5z"/>', () => QNPinSnap.get("bar") && QNPinSnap.get("beat"), on => { QNPinSnap.set("bar", on); QNPinSnap.set("beat", on); });
+    const hasChords = qnFeature("chords"); // コード機能を隠す時は、クリック音/吸着のボタンも出さない
+    if (hasChords) { waveFabBtns.appendChild(togClick); waveFabBtns.appendChild(togSnap); }
+    const syncTogs = () => { if (hasChords) { togClick.__sync(); togSnap.__sync(); } };
+    const stripSync = waveBarStrip.sync;
+    window.qnBarStripSync = () => { stripSync(); syncTogs(); };
     // 【v4.11.1】波形エリア右下の再生/停止ボタン(●)は撤去(再生はドック/下段バーのPlay)
     waveArea.appendChild(waveFabRow);
     requestAnimationFrame(() => syncBottomBarPosition()); // 設定帯(Bar length/Rows)を作った後でSPのMoreへ移す(初回のsyncBottomBarPositionは設定帯の生成より前に走るため)
@@ -712,7 +739,23 @@
       if (!inner) { inner = document.createElement("div"); inner.className = "pcv2-more-inner"; more.appendChild(inner); }
       if (mixer && mixer.parentElement !== inner) inner.appendChild(mixer);
       if (strip && (strip.parentElement !== inner || inner.firstChild !== strip)) inner.insertBefore(strip, inner.firstChild);
+      // View(Wave/Chord/Degree)とEditはA/Bの左へ(同じ要素を移すだけ。値の同期はそのまま)
+      const fabBtns = document.querySelector("#pcV2WaveFabRow .pcv2-wave-fab-btns");
+      if (strip && fabBtns) {
+        const ref = fabBtns.querySelector(".pcv2-fab-ab"); // A/Bボタンの手前(なければ末尾)
+        [".qn-view-item", ".qn-edit-item"].forEach(sel => {
+          const it = strip.querySelector(sel) || fabBtns.querySelector(sel);
+          if (!it) return;
+          if (it.parentElement !== fabBtns || it.previousSibling !== (ref ? ref.previousSibling : fabBtns.lastChild)) fabBtns.insertBefore(it, ref);
+        });
+      }
     } else {
+      if (strip) {
+        const fb = document.querySelector("#pcV2WaveFabRow .pcv2-wave-fab-btns");
+        const ed = fb && fb.querySelector(".qn-edit-item"), vw = fb && fb.querySelector(".qn-view-item");
+        if (ed) strip.insertBefore(ed, strip.firstChild);
+        if (vw) strip.insertBefore(vw, strip.firstChild);
+      }
       if (strip && fabRow && strip.parentElement !== fabRow) fabRow.insertBefore(strip, fabRow.firstChild);
       if (mixer && top && mixer.parentElement !== top) {
         const div = top.querySelector(".pcv2-mixer-divider");
@@ -996,7 +1039,7 @@
   function stashPanelContents(panelBody) {
     const stash = getPanelStash();
     const keep = [
-      settingsBody, controlBody, eqDividerEl, markersBody, playlistBody, textBody, eqBody,
+      settingsBody, generalBody, chordsBody, controlBody, eqDividerEl, markersBody, playlistBody, textBody, eqBody,
       backupBody, backupFooter, importBody, importFooter,
       pcv2QnSections.color, pcv2QnSections.keyboard
     ];
@@ -1009,25 +1052,68 @@
   // ---------- 設定パネル(v3.37.0 / v3.44.0で共通部品化) ----------
   // 部品はJS/qn-settings-ui.js(アプリのSettingsと共用)。中身は初回に1度だけ作り、パネルを離れる時はstashへ退避(stashPanelContents)。
   // プリロード操作は既存の#loopPreRollControl要素をそのまま移す(player-controls.jsのハンドラを生かす)。新しい項目はここのrowsに足すだけ。
-  let settingsUI = null;
+  let settingsUI = null, generalBody = null;
+  let songRows = [], chordsUI = null, chordsBody = null;
   function ensureSettingsBody() {
     if (settingsBody) return settingsBody;
     const preCtl = document.getElementById("loopPreRollControl");
-    const rowsBar = [
+    let rowsBar = [
       { label: "Bar length", hint: "1 bar = seconds", type: "stepper", values: () => QNBars.secValues(), get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: QNBars.fmtSec },
       { label: "Bars on screen", hint: "Rows shown at once", type: "stepper", values: () => QNBars.ROWS_OPTIONS, get: () => QNBars.getRows(), set: v => QNBars.setRows(v), fmt: v => v === 0 ? "Auto" : String(v) },
+      { label: "View", hint: "Wave, chord names (C Am7) or degree names (I vi7) on the seek bar", type: "stepper", values: () => ["wave", "chord", "degree"], get: () => QNBars.getViewMode(), set: v => QNBars.setViewMode(v), fmt: v => v === "wave" ? "Wave" : v === "chord" ? "Chord" : "Degree" },
+      { label: "Chord detail", hint: "Basic: major / minor. Extended: adds 7th, dim, sus4. Full: adds tensions (add9, 6, 9, m7b5...)", type: "stepper", values: () => QNChords.DETAILS, get: () => QNChords.getDetail(), set: v => QNChords.setDetail(v), fmt: v => v === "basic" ? "Basic" : v === "extended" ? "Extended" : "Full" },
+      { label: "Chord key", hint: "Key used for note spelling and degree names. Auto uses the detected key", type: "stepper", values: () => QNChords.KEYS, get: () => QNChords.getKeySel(), set: v => QNChords.setKeySel(v), fmt: v => QNChords.keyName(v) },
+      { label: "Re-analyze chords", hint: "Run the chord and beat analysis again for this track. Manual edits are kept", type: "node", node: (function () {
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "qn-ce-btn"; b.textContent = "Re-analyze";
+          b.addEventListener("click", () => { if (typeof hapticTap === "function") { try { hapticTap(); } catch (e) {} } QNChords.rerun(); });
+          return b;
+        })() },
+      { label: "Chord candidates", hint: "Show other likely chords under each chord", type: "switch", get: () => QNChords.getAlts(), set: on => QNChords.setAlts(on) },
+      { label: "Chord beat snap", hint: "Align chord changes to beats. A small triangle marks a chord that comes in on an off-beat (syncopation)", type: "switch", get: () => QNChords.getSnap(), set: on => QNChords.setSnap(on) },
+      { label: "Grid", hint: "Faint vertical lines for bars and beats behind the wave / chords. Needs a one-time analysis", type: "stepper", values: () => ["off", "bar", "beat"], get: () => QNChords.getGridMode(), set: v => QNChords.setGridMode(v), fmt: v => v === "off" ? "Off" : v === "bar" ? "Bars" : "Bars + beats" },
+      { label: "Grid click", hint: "Click on each bar start (high) and beat (low) while playing, to check the grid by ear. Needs a one-time analysis", type: "switch", get: () => QNChords.getClick(), set: on => QNChords.setClick(on) },
+      { label: "Click offset", hint: "Shifts the grid click in time on this device (ms). Raise it if the click sounds early, lower it if late. Useful for Bluetooth", type: "stepper", values: () => [-300, -250, -200, -150, -100, -80, -60, -40, -20, 0, 20, 40, 60, 80, 100, 150, 200, 250, 300], get: () => QNClickOffset.get(), set: v => QNClickOffset.set(v), fmt: v => (v > 0 ? "+" : "") + v + " ms" },
+      { label: "Exact seek", hint: "On the first jump in a track, converts it to WAV in memory so every jump lands exactly. Turn off if playback stops after jumping on this device", type: "switch", get: () => QNExact.getEnabled(), set: on => QNExact.setEnabled(on) },
+      { label: "Marker snap to bars", hint: "Dragging or nudging a marker jumps to the nearest bar start. Needs a one-time analysis", type: "switch", get: () => QNPinSnap.get("bar"), set: on => QNPinSnap.set("bar", on) },
+      { label: "Marker snap to beats", hint: "Dragging or nudging a marker jumps to the nearest beat (bar starts included)", type: "switch", get: () => QNPinSnap.get("beat"), set: on => QNPinSnap.set("beat", on) },
+      { label: "Grid follows markers", hint: "Re-fits the bar lines so that each chosen marker is a bar start. Locked: only locked markers. All: every shown marker. Use it to fix parts where the detected grid is off", type: "stepper", values: () => ["off", "locked", "all"], get: () => QNChords.getAnchorMode(), set: v => QNChords.setAnchorMode(v), fmt: v => v === "off" ? "Off" : v === "locked" ? "Locked" : "All" },
+      { label: "Beats per bar", hint: "Auto picks 3 or 4. Change it if the bar lines look wrong", type: "stepper", values: () => [0, 2, 3, 4, 5, 6, 7], get: () => QNChords.getBt("bpb"), set: v => QNChords.setBt("bpb", v), fmt: v => v === 0 ? "Auto" : String(v) },
+      { label: "Bar start", hint: "Shift which beat is the first of a bar", type: "stepper", values: () => [-3, -2, -1, 0, 1, 2, 3], get: () => QNChords.getBt("shift"), set: v => QNChords.setBt("shift", v), fmt: v => v > 0 ? "+" + v : String(v) },
+      { label: "Bar start point", hint: "Set the playhead as the start of a bar. Works between beats too (the grid then follows the detected tempo from that point)", type: "node", node: (function () {
+          const w = document.createElement("div");
+          w.style.cssText = "display:flex;gap:8px";
+          [["Set at playhead", () => QNChords.setAnchor(audio.currentTime)], ["Clear", () => QNChords.setAnchor(null)]].forEach(a => {
+            const b = document.createElement("button");
+            b.type = "button"; b.className = "qn-ce-btn"; b.textContent = a[0];
+            b.addEventListener("click", () => { if (typeof hapticTap === "function") { try { hapticTap(); } catch (e) {} } a[1](); });
+            w.appendChild(b);
+          });
+          return w;
+        })() },
+      { label: "Beat tempo", hint: "Half or double if the detected tempo is off by a factor of two", type: "stepper", values: () => [-1, 0, 1], get: () => QNChords.getBt("tempo"), set: v => QNChords.setBt("tempo", v), fmt: v => { if (v < 0) return "Half"; if (v > 0) return "Double"; const b = QNChords.bpm(); return b ? "Auto (" + Math.round(b) + ")" : "Auto"; } },
       { label: "Wave shape", hint: "Mirror is symmetric around the center", type: "stepper", values: () => ["mirror", "bottom"], get: () => QNBars.getWaveShape(), set: v => QNBars.setWaveShape(v), fmt: v => v === "mirror" ? "Mirror" : "Bottom" },
       { label: "Follow playhead", hint: "Auto-scroll while playing", type: "switch", get: () => QNBars.getFollow(), set: on => QNBars.setFollow(on) },
       { label: "Pause after scrolling", hint: "Seconds before follow resumes", type: "stepper",
         values: () => { const a = []; for (let i = QNBars.PAUSE_MIN; i <= QNBars.PAUSE_MAX; i++) a.push(i); return a; },
         get: () => QNBars.getPause(), set: v => QNBars.setPause(v), fmt: v => v + "s", disabledWhen: () => !QNBars.getFollow() }
     ];
+    // コード機能を隠す時(qn-features.js)は、コード/拍の解析に頼る行を除く
+    const CHORD_ROWS = ["View", "Chord detail", "Chord key", "Re-analyze chords", "Chord candidates", "Chord beat snap", "Grid", "Grid click", "Click offset", "Marker snap to bars", "Marker snap to beats", "Grid follows markers", "Beats per bar", "Bar start", "Bar start point", "Beat tempo"];
+    rowsBar.forEach(r => { if (CHORD_ROWS.indexOf(r.label) >= 0) r.feat = "chords"; });
+    rowsBar = qnFeatRows(rowsBar);
+    // 曲ごとに保存される項目はChordsパネルへ(ensureChordsBody)。表示順はこの並び
+    const SONG_LABELS = ["Re-analyze chords", "Chord key", "Beats per bar", "Bar start", "Bar start point", "Beat tempo"];
+    songRows = SONG_LABELS.map(l => rowsBar.find(r => r.label === l)).filter(Boolean);
+    rowsBar = rowsBar.filter(r => SONG_LABELS.indexOf(r.label) < 0);
     const rowsPlay = [
       { label: "Loop pre/post-roll", hint: "Seconds added around loop", type: "node", node: preCtl },
       { label: "Skip buttons", hint: "Seconds for back / forward", type: "stepper", values: () => SKIP_OPTIONS, get: () => skipSec, set: v => setSkipSec(v), fmt: v => v + "s" },
+      { label: "Keep screen on", hint: "Keep the screen awake while playing. Turn off to save battery; if playback stops when the screen turns off, turn it back on", type: "switch", get: () => !(window.QNWake && QNWake.isKeepOn && !QNWake.isKeepOn()), set: on => { if (window.QNWake && QNWake.setKeepOn) QNWake.setKeepOn(on); } },
       { label: "Auto normalize", hint: "Match volume across tracks", type: "switch", get: () => !!(window.QNNorm && QNNorm.isOn()), set: on => { if (window.QNNorm) QNNorm.setOn(on); } },
       { label: "Normalize level", hint: "Target loudness (higher = louder)", type: "stepper", values: () => (window.QNNorm ? QNNorm.TARGETS : [-18]),
         get: () => (window.QNNorm ? QNNorm.getTarget() : -18), set: v => { if (window.QNNorm) QNNorm.setTarget(v); }, fmt: v => v + " dB", disabledWhen: () => !(window.QNNorm && QNNorm.isOn()) },
+      { label: "Time stretch", hint: "How slow playback is processed. Auto uses the browser's own stretching while the key is unchanged (smoother on phones) and SoundTouch otherwise. Try another if slow playback sounds choppy", type: "stepper", values: () => ["auto", "native", "st"], get: () => getStretchEngine(), set: v => setStretchEngine(v), fmt: v => v === "auto" ? "Auto" : v === "native" ? "Browser" : "SoundTouch" },
       { label: "Speed step", hint: "For the speed − / ＋ buttons", type: "stepper", values: () => (typeof SPEED_STEP_OPTIONS !== "undefined" ? SPEED_STEP_OPTIONS : [1, 2, 5, 10]),
         get: () => (typeof getSpeedStepPct === "function" ? getSpeedStepPct() : 5), set: v => { if (typeof setSpeedStepPct === "function") setSpeedStepPct(v); }, fmt: v => v + "%" }
     ];
@@ -1045,12 +1131,18 @@
       { type: "note", label: "Press and hold Prev or Next Marker, or swipe the title above the seek bar up or down, to go to the previous or next track (swipe: mobile)." },
       { type: "note", label: "Double click (mobile: double tap) the Speed or Key bar to reset it." }
     ];
-    const settingsSections = [{ title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "General", rows: rowsLang }, { title: "Tips", rows: rowsTips }];
+    const rowsLook = [
+      { label: "Background", hint: "Dark, or a light look (gray / beige). The accent color is set in Color", type: "stepper", values: () => window.QNBg.OPTIONS, get: () => window.QNBg.get(), set: v => window.QNBg.set(v), fmt: v => v === "dark" ? "Dark" : v === "gray" ? "Light gray" : "Light beige" }
+    ];
+    const settingsSections = [{ title: "Appearance", rows: rowsLook }, { title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "Language", rows: rowsLang }, { title: "Tab", rows: window.QNTab && qnFeature("tab") ? window.QNTab.settingsRows() : [] }, { title: "Tips", rows: rowsTips }].filter(sec => sec.rows.length);
     settingsSections.onChange = () => { if (window.qnBarStripSync) window.qnBarStripSync(); };
+    // 階層: Settings直下は一覧(General / Backup / Import / Color ...)。General=Seek bar・Playback・Language・Tipsの中身(generalBody)
     settingsUI = QNSettingsUI.build(settingsSections);
-    const body = settingsUI.el;
-    body.id = "pcV2SettingsBody";
-    const more = QNSettingsUI.list(["backup", "import", "color", "keyboard", "transfer", "guide"], openSettingsSub);
+    generalBody = settingsUI.el;
+    generalBody.id = "pcV2GeneralBody";
+    getPanelStash().appendChild(generalBody);
+    const body = el('<div id="pcV2SettingsBody"></div>');
+    const more = QNSettingsUI.list(["general", "backup", "import", "color", "keyboard", "transfer", "guide"], openSettingsSub, "");
     const tr = more.querySelector('[data-panel-id="transfer"]');
     if (tr) tr.style.display = "none"; // 表示はsyncSettingsBody()が判定する
     body.appendChild(more);
@@ -1058,6 +1150,29 @@
     body.appendChild(QNSettingsUI.versionLine());
     settingsBody = body;
     return body;
+  }
+
+  // Chordsパネル(曲ごとの設定)。中身は初回に1度だけ作り、離れる時はstashへ退避
+  function ensureChordsBody() {
+    if (chordsBody) return chordsBody;
+    ensureSettingsBody();
+    const info = document.createElement("div");
+    info.className = "qn-chords-info";
+    const refreshInfo = () => {
+      const ph = QNChords.phase(), gd = QNChords.grid(), k = QNChords.key();
+      if (ph === "analyzing") info.textContent = "Analyzing...";
+      else if (ph !== "ready") info.textContent = "Not analyzed yet. Turn on the chord view or the grid to analyze";
+      else info.textContent = [QNChords.bpm() ? Math.round(QNChords.bpm()) + " BPM" : "", gd && gd.m ? gd.m + " beats/bar" : "", k && k.name ? "Key " + k.name : ""].filter(Boolean).join("  ·  ");
+    };
+    const infoRow = { type: "node", label: "Detected", hint: "Saved with this track", node: info };
+    const analysis = songRows.filter(r => r.label === "Re-analyze chords" || r.label === "Chord key");
+    const bars = songRows.filter(r => analysis.indexOf(r) < 0);
+    chordsUI = QNSettingsUI.build([{ title: "Analysis", rows: [infoRow].concat(analysis) }, { title: "Bar lines", rows: bars }]);
+    chordsUI.el.id = "pcV2ChordsBody";
+    chordsUI.refresh = refreshInfo;
+    QNChords.onChange(() => { if (chordsBody && chordsBody.isConnected && chordsBody.parentNode.id === "pcV2PanelBody") { chordsUI.sync(); refreshInfo(); } });
+    chordsBody = chordsUI.el;
+    return chordsBody;
   }
 
   function syncSettingsBody() {
@@ -1089,6 +1204,7 @@
     const panelBody = document.getElementById("pcV2PanelBody");
     const panelHeader = document.getElementById("pcV2PanelHeader");
     if (!panelBody || !panelHeader) return;
+    { const wa = document.getElementById("pcV2WaveArea"); if (wa) wa.classList.remove("pcv2-score-mode"); } // Tab(guitartab)のmountが必要なら付け直す(波形⇔譜面の切替)
 
     const textControlsHolder = document.getElementById("pcV2TextControlsHolder");
     if (textControlsHolder) {
@@ -1110,6 +1226,16 @@
     if (panelId !== "markers") panelBody.classList.remove("markers-edit-mode");
     if (panelId !== "playlist") panelBody.classList.remove("playlist-edit-mode");
 
+    if (panelId === "general") {
+      addSettingsBackBtn(panelHeader);
+      const gt = el('<span class="pcv2-panel-header-title"></span>');
+      gt.textContent = "General";
+      panelHeader.appendChild(gt);
+      ensureSettingsBody();
+      panelBody.appendChild(generalBody);
+      syncSettingsBody();
+      return;
+    }
     if (panelId === "keyboard" || panelId === "color") {
       addSettingsBackBtn(panelHeader);
       const titleSpan = el('<span class="pcv2-panel-header-title"></span>');
@@ -1154,6 +1280,14 @@
       if (typeof setMobileTab === "function") setMobileTab(panelId);
     } else if (item.panelType === "stem") {
       if (window.QNStem) window.QNStem.mount(panelBody);
+    } else if (item.panelType === "rec") {
+      if (window.QNStem) window.QNStem.mountRec(panelBody);
+    } else if (item.panelType === "guitartab") {
+      if (window.QNTab) window.QNTab.mount(panelBody);
+    } else if (item.panelType === "chords") {
+      panelBody.appendChild(ensureChordsBody());
+      chordsUI.sync(); chordsUI.refresh();
+      if (QNChords.phase() === "idle" && typeof QNChords.ensure === "function") QNChords.ensure();
     } else if (item.panelType === "settings") {
       panelBody.appendChild(ensureSettingsBody());
       syncSettingsBody();
@@ -1467,6 +1601,7 @@
     if (!panelHeader || !panelBody || !textarea) return;
 
     textarea.readOnly = !textEditModeOn;
+    if (window.QNLyrics) window.QNLyrics.setEditing(textEditModeOn);
 
     const fab = el('<div id="pcV2PanelFab"></div>');
 
@@ -1493,6 +1628,7 @@
       editBtn.classList.toggle("active", textEditModeOn);
       if (editBtnLabel) editBtnLabel.textContent = textEditModeOn ? "OK" : "Edit";
       if (fullscreenBtn) fullscreenBtn.style.display = textEditModeOn ? "none" : "flex";
+      if (window.QNLyrics) window.QNLyrics.setEditing(textEditModeOn);
       if (textEditModeOn) textarea.focus();
     });
     fab.appendChild(editBtn);
@@ -1551,26 +1687,33 @@
     activate();
   }
 
-  let pcv2WaveRafId = null;
-
-  // 【v2.13.4 負荷対策】毎フレーム全再描画がiOSで強制再読み込みの原因だった。波形/シークバーの描画本体はQNBars.draw()(player-bars.js。署名が同じ行はスキップ、見えている行だけ描画)。ここはPCV2_WAVE_INTERVAL_MS間隔に間引いた呼び出しと再描画の合図だけ。rAFループを増やさない
-  const PCV2_WAVE_INTERVAL_MS = 100;
-  let pcv2LastDrawAt = 0;
+  // 【v4.55.0 省電力】60fpsのrAFで毎フレーム起きて100msに1回だけ描く方式をやめ、タイマーで間隔を直接決める。再生中=100ms / 停止中=300ms(ピン・色・波形の変化を拾う保険) / 非表示=停止(戻った時に再開)
+  const PCV2_WAVE_PLAY_MS = 100;
+  const PCV2_WAVE_IDLE_MS = 300;
+  let pcv2WaveTimer = 0;
 
   function pcv2DrawWaveform(force) {
     QNBars.draw(!!force);
   }
 
-  function pcv2WaveLoop(now) {
-    pcv2WaveRafId = requestAnimationFrame(pcv2WaveLoop);
+  function pcv2WaveLoop() {
+    pcv2WaveTimer = 0;
     if (document.hidden) return;
-    if (!document.body.classList.contains("pc-v2-active")) return;
-    if (now - pcv2LastDrawAt < PCV2_WAVE_INTERVAL_MS) return;
-    pcv2LastDrawAt = now;
-    pcv2DrawWaveform(false);
-    if (window.pcv2SyncBarMixer) window.pcv2SyncBarMixer();
+    if (document.body.classList.contains("pc-v2-active")) {
+      pcv2DrawWaveform(false);
+      if (window.pcv2SyncBarMixer) window.pcv2SyncBarMixer();
+    }
+    const playing = typeof audio !== "undefined" && audio && !audio.paused;
+    pcv2WaveTimer = setTimeout(pcv2WaveLoop, playing ? PCV2_WAVE_PLAY_MS : PCV2_WAVE_IDLE_MS);
   }
-  pcv2WaveRafId = requestAnimationFrame(pcv2WaveLoop);
+  function pcv2WaveKick() {
+    if (pcv2WaveTimer) clearTimeout(pcv2WaveTimer);
+    pcv2WaveTimer = 0;
+    if (!document.hidden) pcv2WaveTimer = setTimeout(pcv2WaveLoop, 0);
+  }
+  document.addEventListener("visibilitychange", pcv2WaveKick);
+  if (typeof audio !== "undefined" && audio) ["play", "pause", "loadedmetadata"].forEach(ev => audio.addEventListener(ev, pcv2WaveKick));
+  pcv2WaveKick();
 
   window.addEventListener("resize", () => {
     QNBars.markGeomDirty();

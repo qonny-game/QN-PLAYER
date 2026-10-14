@@ -35,6 +35,8 @@ async function decodeWaveform(file, token) {
 
     // 自動ノーマライズ用の音量計測(player-normalize.js)。波形と同じデコード結果を使うので追加のデコードはない
     if (window.QNNorm) QNNorm.measure(file.name, audioBuffer, () => token !== waveformDecodeToken);
+    // コード解析用に波形と同じデコード結果を渡す(コードモードの時だけ解析が走る。player-chords.js)
+    if (window.QNChords) QNChords.offer(file.name + "|" + audioBuffer.duration.toFixed(1), audioBuffer);
 
     const channelCount = audioBuffer.numberOfChannels;
     const rawLength = audioBuffer.length;
@@ -144,7 +146,7 @@ function loadTrackUserData(fileName) {
   if (savedPins) {
     try {
       const raw = JSON.parse(savedPins);
-      pins = raw.map(p => typeof p === 'number' ? { t: p, enabled: true, memo: "", color: null } : { t: p.t, enabled: p.enabled !== false, memo: p.memo || "", color: p.color || null });
+      pins = raw.map(p => typeof p === 'number' ? { t: p, enabled: true, memo: "", color: null } : { t: p.t, enabled: p.enabled !== false, memo: p.memo || "", color: p.color || null, skip: p.skip ? true : undefined, locked: p.locked ? true : undefined, bpb: p.bpb >= 2 ? p.bpb : undefined });
     } catch (e) { pins = []; }
   } else {
     pins = [];
@@ -158,6 +160,7 @@ function loadTrackUserData(fileName) {
   if (noteTextAreaElForLoad) noteTextAreaElForLoad.value = noteTextForLoad;
   const noteTextAreaFsForLoad = document.getElementById("noteTextAreaFullscreen");
   if (noteTextAreaFsForLoad) noteTextAreaFsForLoad.value = noteTextForLoad;
+  if (window.QNLyrics) window.QNLyrics.load();
 }
 
 function loadFile(file) {
@@ -177,12 +180,14 @@ function loadFile(file) {
   currentObjectUrl = url;
   audio.src = url;
   audio.load();
+  if (window.QNExact) QNExact.onLoad(file);
   updatePlaybackRate();
 
   // setupAudioGraph()は曲読込時に呼ばない(常時Web Audio接続だとiOS Safariで長時間再生後にクラッシュ。Safari固有)。EQボタン等の実操作時のみ(setupAudioGraphOnDemand)
 
   waveformPeaks = null;
   waveformDecodeToken++;
+  if (window.QNChords) QNChords.reset();
   decodeWaveform(file, waveformDecodeToken);
   if (window.QNNorm) QNNorm.onLoad(file.name);
 
@@ -551,11 +556,39 @@ function backgroundLoopTick() {
   loopTick(audio.currentTime);
   prevTime = audio.currentTime;
 }
-setInterval(backgroundLoopTick, 100);
+// 【v4.55.0 省電力】100msタイマーは「非表示かつ再生中」の間だけ回す(以前は常時)。表示中はupdateBarsのrAFが折り返しを見る
+let bgLoopTimer = 0;
+function syncBgLoopTimer() {
+  const need = document.hidden && audio && !audio.paused && loopEnabled;
+  if (need && !bgLoopTimer) bgLoopTimer = setInterval(backgroundLoopTick, 100);
+  else if (!need && bgLoopTimer) { clearInterval(bgLoopTimer); bgLoopTimer = 0; }
+}
+["play", "playing", "pause", "ended"].forEach(ev => audio.addEventListener(ev, syncBgLoopTimer));
+document.addEventListener("visibilitychange", syncBgLoopTimer);
 audio.addEventListener("timeupdate", backgroundLoopTick);
 
+// 【v4.55.0 省電力】rAFは再生中(とシーク/ジャンプ中)だけ。停止中はイベント(seeked/timeupdate/pause等)で1回ずつ回す(以前は停止中も毎フレーム)
+// textContentは子ノードを作り直す(childList変更)ので、既存のテキストノードの値だけ書き換える(再生中は1秒に10回更新される時刻表示用)
+function setTextFast(el, t) { const n = el.firstChild; if (n && n.nodeType === 3 && !n.nextSibling) n.nodeValue = t; else el.textContent = t; }
+let updateBarsRaf = 0;
+function kickUpdateBars() { if (!updateBarsRaf) updateBarsRaf = requestAnimationFrame(updateBars); }
+let updateBarsTimer = 0;
+// ループ/スキップ区間が無い再生中は、折り返しの精度が要らず時刻表示だけなので100ms間隔(rAF 60回/秒→10回/秒)。ループ・スキップ・シーク中は毎フレーム
+function updateBarsNeedsFrames() {
+  if (loopEnabled || isSeeking || isJumping) return true;
+  try { return typeof getSkipRanges === "function" && getSkipRanges().length > 0; } catch (e) { return true; }
+}
 function updateBars() {
-  requestAnimationFrame(updateBars);
+  updateBarsRaf = 0;
+  try { updateBarsBody(); } finally {
+    if (!audio.paused || isSeeking || isJumping) {
+      if (updateBarsNeedsFrames()) kickUpdateBars();
+      else if (!updateBarsTimer) updateBarsTimer = setTimeout(() => { updateBarsTimer = 0; kickUpdateBars(); }, 100);
+    }
+  }
+}
+["play", "playing", "pause", "seeking", "seeked", "timeupdate", "loadedmetadata", "durationchange", "ratechange", "emptied"].forEach(ev => audio.addEventListener(ev, kickUpdateBars));
+function updateBarsBody() {
   if (!audio.duration) return;
 
   const dur = audio.duration;
@@ -569,11 +602,11 @@ function updateBars() {
       const ctText = formatTime(ct);
       const durText = formatTime(dur);
       if (ctText !== lastCurrentTimeText) {
-        updateBarsCurrentValEl.textContent = ctText;
+        setTextFast(updateBarsCurrentValEl, ctText);
         lastCurrentTimeText = ctText;
       }
       if (durText !== lastDurationText) {
-        updateBarsDurationValEl.textContent = durText;
+        setTextFast(updateBarsDurationValEl, durText);
         lastDurationText = durText;
       }
     }
@@ -920,25 +953,30 @@ function hapticWarning() {
 
 
 (function syncRangeProgressLoop() {
+  // 【v4.55.0 省電力】毎フレームrAFで全スライダーの値を見るのをやめ、inputイベント+valueの代入フック+低頻度の保険に変更
   const targets = Array.from(document.querySelectorAll(".control-card input[type=\"range\"], .eq-vslider"));
   const lastValues = new Map();
-  let lastTickAt = 0;
-  function tick(now) {
-    requestAnimationFrame(tick);
-    if (document.hidden || (now - lastTickAt) < 200) return;
-    lastTickAt = now;
-    targets.forEach(input => {
-      if (lastValues.get(input) !== input.value) {
-        lastValues.set(input, input.value);
-        const min = parseFloat(input.min) || 0;
-        const max = parseFloat(input.max) || 100;
-        const val = parseFloat(input.value);
-        const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
-        input.style.setProperty("--range-progress", String(pct));
-      }
-    });
+  function apply(input) {
+    if (lastValues.get(input) === input.value) return;
+    lastValues.set(input, input.value);
+    const min = parseFloat(input.min) || 0;
+    const max = parseFloat(input.max) || 100;
+    const val = parseFloat(input.value);
+    const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    input.style.setProperty("--range-progress", String(pct));
   }
-  if (targets.length > 0) requestAnimationFrame(tick);
+  if (!targets.length) return;
+  const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  targets.forEach(input => {
+    input.addEventListener("input", () => apply(input));
+    input.addEventListener("change", () => apply(input));
+    try {
+      Object.defineProperty(input, "value", { configurable: true, get() { return desc.get.call(this); }, set(v) { desc.set.call(this, v); apply(this); } });
+    } catch (e) {}
+    apply(input);
+  });
+  // min/max属性の変更など、上のフックで拾えない変化の保険(表示中だけ・1秒間隔)
+  setInterval(() => { if (!document.hidden) targets.forEach(apply); }, 1000);
 })();
 
 // スライダーのダブルクリック/ダブルタップで初期値へ戻す(Speed=1.00x、Key=0)。PLAYER・YouTubeの両方が使う。

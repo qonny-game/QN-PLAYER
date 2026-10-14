@@ -19,10 +19,12 @@
 | YouTubeアプリ | **`YOUTUBE_APP.md`（最優先。§2の規約ルール）** |
 | TUNERアプリ | `TUNER_APP.md` |
 | PITCHアプリ | `PITCH_APP.md` |
+| シークバーのコード表示（Chordモード） | `CHORD_MODE.md` |
 | 新しいアプリ（PITCH）／アプリ共通の見た目 | `AI_ASSISTANT_PROJECT_CONTEXT.md`§6、`PC_V2_FILE_INDEX.md`（qn-apps.js） |
 | マーカーメモのプリセット／Colorパネル | `JS/player-marker-presets.js` |
 | 保存されるデータ・キー | `AI_ASSISTANT_PROJECT_CONTEXT.md`§3 |
 | Library同期・Transfer（端末間） | `SYNC.md`、`GOTCHAS.md`§8 |
+| Tab（ギターTAB譜・Basic Pitch） | `TAB_MODE.md` |
 | Stem・録音トラック | `GOTCHAS.md`（末尾の「Stem」項）、`JS/player-stem.js`冒頭 |
 | 英語/日本語の切り替え・文言の追加 | `I18N_HANDOFF.md` |
 | **ガイド・利用規約・プライバシー・料金ページ** | **`USER_DOCS.md`（機能やデータの扱いを変えたら見直す）** |
@@ -40,6 +42,8 @@
 ## 3. いま未確認・要判断のこと（解決したら消す）
 実機で見てもらうもの：
 - v4.21.0〜4.22.0のUI変更（PC版サイドバーのControl下段移設、SPのMoreが波形に重なって開く／5秒で自動で閉じる）。
+- **省電力（v4.55.0）**: 停止中/再生中のコールバックを大きく減らした(`power_check.py`の前後比較)が、実機の電池・発熱の差は未測定。実機で、同じ曲を30分再生した前後の電池減り方と、停止中の放置(1時間)を比べて確認する。
+- **Tab（v4.54.0）**: 実曲での採譜精度、実機（PC/iPhone/Android）でのWebGL解析の速度、`qn-tab-core.js`のコスト重みの調整。ヘッドレスChromium(CPU)で合成音の検出と画面動作までは確認済み。
 - Stem（WebGPU／WASMそれぞれの実機での速度、6パートのモデル取得）と録音トラック。
 
 料金・規約まわりで食い違っているもの（ユーザー判断が要る。コードと文書の事実が合っていない）：
@@ -47,5 +51,6 @@
 - **Stripeの購入リンクがテスト用**：`player-shareware.js`の月額/年額ボタンが`buy.stripe.com/test_...`。本番リンクに替わっているか公開前に確認。
 - **`terms.html`第4条1項の「買い切り型のライセンス」**：料金ページに買い切りプランは無い。
 - **同期・Transferの「先行提供」**：範囲を広げたら、ガイド（`data.html`/`reference.html`）・規約第2条3項・プライバシー第2条3項の「一部のアカウント」を直す。
+- **Tabも無料版の制限が無い**（Stemと同じ。方針未決定）。制限するなら`SW_LIMITS`と`guide/plan.html`・`pricing.html`・`pricing-en.html`・`terms.html`第4条を同時に直す。
 - **Stemは無料版でも使える**（`isUnlocked`の判定が無い）。意図通りか確認。使えないようにするなら`guide/plan.html`・`pricing.html`の機能比較にも追記。
-- ガイドのスクリーンショットは、サイドメニューの並び（Stem追加・Control移動）やSPのMoreの変更前のものが残っている可能性がある（`USER_DOCS.md`§4）。
+- ガイドのスクリーンショットは、サイドメニューの並び（Stem追加・Control移動）やSPのMoreの変更前のものが残っている可能性がある（`USER_DOCS.md`§4）。（v4.54.0でTabアイコンが増え、サイドメニューが写っている画像が古い）

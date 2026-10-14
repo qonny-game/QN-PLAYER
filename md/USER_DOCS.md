@@ -31,6 +31,7 @@
 
 ## 4. スクリーンショット（`guide/img/*.webp`）
 - 画面の並びやアイコンが変わると古くなる。サイドメニューの並び、ドック、Moreが写っているもの（`pc-overview` `sp-overview-ann` `sp-more` `pc-settings*` `pc-flyout`など）は特に注意。
+- 撮り直しは `python3 -I md/tools/guide_shots.py /home/claude/src`（出力先は guide/img）。番号バッジ付きの2枚（pc-overview / sp-overview-ann）は、ガイドの番号表と合わせて撮る。スマホ版の sp-control / sp-markers / sp-more / sp-playlist / sp-settings / sp-text と pc-ab-set / pc-color / pc-keyboard / pc-loop-section は本文から参照されておらず未更新。
 - 文章だけ先に直し、画像の差し替えが必要なものは`QUICK_START.md`の「要判断」に書き残す。
 
 ## 5. 文体
@@ -55,3 +56,7 @@ for f in glob.glob('guide/*.html')+['terms.html','privacy.html']:
     p=P(); p.feed(open(f,encoding='utf-8').read()); print(f,p.st[:3],p.err[:2])
 PY
 ```
+
+## 7. 隠している機能の説明
+- 公開版で隠している機能(`JS/qn-features.js`。現在 tab / stem / rec / chords)の説明には、ガイドの要素に`data-feature="名前"`を付ける(節の`h2`、表の`tr`、箇条書きの`li`)。`guide/guide.js`が、その機能がOFFの間は隠す。
+- 機能を出す(Fをtrueにする)時は、ガイドのスクリーンショット(`pc-overview` `sp-overview-ann`など)と、`terms.html`/`privacy.html`のStem等の記述が実際と合っているかも見直す。隠している間も、規約・プライバシーの記述は残してある(隠している間に送信などは起きないので、記述が実際より広い状態)。

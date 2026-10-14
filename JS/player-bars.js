@@ -18,12 +18,23 @@ const QNBars = (function () {
   const WAVE_KEY = "qn_bar_wave";
   let waveShape = "mirror";
   try { if (localStorage.getItem(WAVE_KEY) === "bottom") waveShape = "bottom"; } catch (e) {}
+  // 【v4.27.0 プロトタイプ】表示モード: wave=波形 / chord=コード名(C Am7) / degree=ディグリー(I vi7)。コードは QNChords(player-chords.js)の区間を波形の代わりに描く
+  const VIEW_KEY = "qn_bar_view";
+  let viewMode = "wave";
+  try { const v = localStorage.getItem(VIEW_KEY); if ((v === "chord" || v === "degree") && (!window.qnFeature || window.qnFeature("chords"))) viewMode = v; } catch (e) {}
+  let fontCache = null;
+  let editMode = false;   // コード修正モード。ONの間、行のタップはシークでなくコード修正ポップアップ(player-chord-edit.js)を開く
   const PAUSE_KEY = "qn_bar_follow_pause";
   const PAUSE_DEFAULT = 6;
   const PAUSE_MIN = 1;
   const PAUSE_MAX = 30;
   const PROG_SCROLL_MS = 800;
-  const UNPLAYED = "rgba(255, 255, 255, 0.16)";
+  // 白半透明(未再生・グリッド線・文字)は背景モードの--ov(ダーク=白、ライト=濃いグレー)。モード切替で読み直す
+  let ovRgb = "255,255,255";
+  function readOv() { try { ovRgb = (getComputedStyle(document.documentElement).getPropertyValue("--ov") || "255,255,255").trim() || "255,255,255"; } catch (e) {} }
+  const ovc = a => "rgba(" + ovRgb + "," + a + ")";
+  document.addEventListener("qn-bg-change", () => { readOv(); geomDirty = true; try { draw(); } catch (e) {} });
+  readOv();
   const GEAR_SVG = '<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>';
 
   const containerEl = document.getElementById("vbarContainer");
@@ -139,7 +150,7 @@ const QNBars = (function () {
     g.padRight = num("--qn-bar-pad-right", 12);
     g.labelW = num("--qn-bar-label-w", 44);
     g.pitch = g.barH + g.gap;
-    g.dpr = window.devicePixelRatio || 1;
+    g.dpr = Math.min(2, window.devicePixelRatio || 1); // 【省電力】3倍密度の端末でも2倍まで(描画ピクセル数が約半分。波形は見た目がほぼ変わらない)
     g.viewH = scrollEl.clientHeight;
     g.barW = Math.max(40, scrollEl.clientWidth - g.labelW - g.padRight);
     const nb = Math.max(8, Math.floor(g.barW / BAR_STEP_CSS));
@@ -189,7 +200,7 @@ const QNBars = (function () {
   }
 
   function stripRow(el) {
-    el.querySelectorAll(".vbar-line, .vbar-ab-pt, .segmentHighlight, .segmentHighlight-preroll, .segmentSkip").forEach(n => n.remove());
+    el.querySelectorAll(".vbar-line, .vbar-ab-pt, .segmentHighlight, .segmentHighlight-preroll, .segmentSkip, .qn-chord-handle").forEach(n => n.remove());
   }
 
   function releaseRow(r) {
@@ -302,11 +313,18 @@ const QNBars = (function () {
     return Math.min(dur, t);
   }
 
+  // 波形の元。Stemの録音トラックを選んでいる間は、その録音の波形(window.QNWaveOverride。曲と同じ長さ・同じ刻みの配列)に差し替える
+  function srcPeaks() {
+    const o = window.QNWaveOverride && window.QNWaveOverride();
+    if (o) return o;
+    return (typeof waveformPeaks !== "undefined") ? waveformPeaks : null;
+  }
+
   // ---------- 描画 ----------
   function rowPeaks(r) {
     let v = peakCache.get(r);
     if (v) return v;
-    const peaks = waveformPeaks;
+    const peaks = srcPeaks();
     if (!peaks || !peaks.length || !dur) return null;
     const nB = g.nBars;
     const t0 = r * sec;
@@ -327,6 +345,29 @@ const QNBars = (function () {
     return v;
   }
 
+  // 小節線・拍線(薄い縦線)。波形/コードの下に敷く
+  function paintGrid(cx, r, W, H) {
+    if (typeof QNChords === "undefined") return;
+    const mode = QNChords.getGridMode();
+    if (mode === "off") return;
+    const gd = QNChords.grid();
+    if (!gd || !gd.times || !gd.times.length) return;
+    const ts = gd.times, bar = gd.bar;
+    const t0 = r * sec, t1 = Math.min(t0 + sec, dur || t0 + sec);
+    let lo = 0, hi = ts.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (ts[mid] < t0) lo = mid + 1; else hi = mid; }
+    const lw = Math.max(1, Math.round(g.dpr));
+    for (let pass = 0; pass < 2; pass++) {       // 0: 拍(薄い) 1: 小節頭(少し濃い)
+      if (pass === 0 && mode !== "beat") continue;
+      cx.fillStyle = pass ? ovc(0.55) : ovc(0.09);
+      for (let i = lo; i < ts.length && ts[i] < t1; i++) {
+        if ((bar[i] === 0) !== (pass === 1)) continue;
+        const x = Math.round((ts[i] - t0) / sec * W - lw / 2);
+        cx.fillRect(x, 0, pass ? lw + 1 : lw, H);
+      }
+    }
+  }
+
   // 連続した波形(隙間なし)。1行ぶんの輪郭を1本のPathにして、色が変わる区間(再生済み/未再生/マーカー色)ごとにclipして塗る
   function paintRow(el, r, played, accent) {
     const cv = el._cv;
@@ -334,6 +375,11 @@ const QNBars = (function () {
     const W = cv.width;
     const H = cv.height;
     cx.clearRect(0, 0, W, H);
+    paintGrid(cx, r, W, H);
+    if (viewMode !== "wave") {
+      const segs = chordSegs();
+      if (segs) { paintChordRow(el, r, played, accent, segs); return; }
+    }
     const vals = rowPeaks(r);
     if (!vals) return;
     const n = vals.length;
@@ -360,6 +406,18 @@ const QNBars = (function () {
       path.closePath();
     }
 
+    // コードモードの解析待ち中は波形を薄く出しておく
+    if (viewMode !== "wave") cx.globalAlpha = 0.3;
+    fillPath(el, r, played, accent, path, n);
+    cx.globalAlpha = 1;
+  }
+
+  // 行の輪郭(path)を、色が変わる区間(再生済み/未再生/マーカー色)ごとにclipして塗る。波形・コードで共通
+  function fillPath(el, r, played, accent, path, n) {
+    const cx = el._cx;
+    const H = el._cv.height;
+    const W = el._cv.width;
+    const step = W / g.nBars;
     const barDur = sec / g.nBars;
     const t0 = r * sec;
     const ms = markersList;
@@ -383,7 +441,7 @@ const QNBars = (function () {
       const f = ptr >= 0 ? ms[ptr] : null;
       const mc = (f && f.color && MARKER_COLOR_PALETTE[f.color]) || null;
       const isPlayed = i < played;
-      const fill = mc ? (isPlayed ? mc : rgbaFor(mc, 0.35)) : (isPlayed ? accent : UNPLAYED);
+      const fill = mc ? (isPlayed ? mc : rgbaFor(mc, 0.35)) : (isPlayed ? accent : ovc(0.16));
       if (fill !== runFill) {
         flush(i);
         runStart = i;
@@ -392,6 +450,175 @@ const QNBars = (function () {
     }
     flush(n);
   }
+
+  // ---------- コードモードの描画 ----------
+  // プレイヤーのKey操作(半音)。コード名(letter)だけ移調して表示する。ディグリーは変わらない
+  function keyShift() {
+    return (typeof keyEffectEnabled !== "undefined" && keyEffectEnabled && typeof currentKeySemitones !== "undefined") ? currentKeySemitones : 0;
+  }
+
+  function chordSegs() {
+    if (typeof QNChords === "undefined") return null;
+    const s = QNChords.segments();
+    return s && s.length ? s : null;
+  }
+
+  // 左右の丸み(rl/rr)を別々に指定できる角丸四角。行の端で切れている側は丸めない
+  function blockPath(path, x, y, w, h, rl, rr) {
+    rl = Math.min(rl, w / 2, h / 2);
+    rr = Math.min(rr, w / 2, h / 2);
+    path.moveTo(x + rl, y);
+    path.lineTo(x + w - rr, y);
+    if (rr) path.arcTo(x + w, y, x + w, y + rr, rr); else path.lineTo(x + w, y);
+    path.lineTo(x + w, y + h - rr);
+    if (rr) path.arcTo(x + w, y + h, x + w - rr, y + h, rr); else path.lineTo(x + w, y + h);
+    path.lineTo(x + rl, y + h);
+    if (rl) path.arcTo(x, y + h, x, y + h - rl, rl); else path.lineTo(x, y + h);
+    path.lineTo(x, y + rl);
+    if (rl) path.arcTo(x, y, x + rl, y, rl); else path.lineTo(x, y);
+    path.closePath();
+  }
+
+  function markerColorAt(t) {
+    let hex = null;
+    for (let i = 0; i < markersList.length && markersList[i].t <= t; i++) hex = (markersList[i].color && MARKER_COLOR_PALETTE[markersList[i].color]) || null;
+    return hex;
+  }
+
+  // 塗りの色が明るい時は黒、それ以外は白の文字にする(#rrggbbのみ判定。他の書式は白)
+  function textOn(fill) {
+    const m = /^#([0-9a-f]{6})$/i.exec(fill || "");
+    if (!m) return "#fff";
+    const v = parseInt(m[1], 16);
+    const lum = (0.299 * (v >> 16) + 0.587 * ((v >> 8) & 255) + 0.114 * (v & 255)) / 255;
+    return lum > 0.62 ? "#111" : "#fff";
+  }
+
+  // 境目ドラッグ: 拍と裏拍(拍の真ん中)のうち一番近い所に吸着。Altを押している間は自由(0.05秒刻み)
+  function snapBeat(t, free) {
+    if (!free && typeof QNChords !== "undefined" && QNChords.getGridMode() !== "off" && QNChords.grid()) return QNChords.snapTime(t);
+    return Math.round(t * 20) / 20;
+  }
+
+  function paintChordRow(el, r, played, accent, segs) {
+    const cx = el._cx;
+    const W = el._cv.width;
+    const H = el._cv.height;
+    const t0 = r * sec;
+    const t1 = t0 + sec;
+    const barDur = sec / g.nBars;
+    const n = Math.max(1, Math.min(g.nBars, Math.ceil((dur - t0) / barDur - 1e-9)));
+    const xOf = t => (t - t0) / sec * W;
+    const xEnd = Math.min(W, xOf(Math.min(dur, t1)));
+    const gap = Math.max(1, 1.5 * g.dpr);
+    const by = H * 0.14;
+    const bh = H * 0.72;
+    const rad = Math.min(6 * g.dpr, bh / 3);
+    let lo = 0;
+    let hi = segs.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (segs[m].t1 <= t0) lo = m + 1; else hi = m; }
+    const path = new Path2D();
+    const vis = [];
+    for (let i = lo; i < segs.length && segs[i].t0 < t1; i++) {
+      const s = segs[i];
+      const startsHere = s.t0 >= t0 - 1e-6;
+      const endsHere = s.t1 <= t1 + 1e-6;
+      const x0 = Math.max(0, xOf(s.t0)) + (startsHere ? gap / 2 : 0);
+      const x1 = Math.min(xEnd, xOf(s.t1)) - (endsHere ? gap / 2 : 0);
+      if (x1 - x0 < 1) continue;
+      if (s.name === "N") {                       // コード無し/無音は細い線だけ
+        const lh = Math.max(1, g.dpr);
+        path.rect(x0, H / 2 - lh / 2, x1 - x0, lh);
+        continue;
+      }
+      blockPath(path, x0, by, x1 - x0, bh, startsHere ? rad : 0, endsHere ? rad : 0);
+      vis.push({ s: s, x0: x0, x1: x1 });
+    }
+    cx.globalAlpha = 1;
+    fillPath(el, r, played, accent, path, n);
+    if (editMode) paintGrips(cx, segs, lo, t0, t1, xOf, xEnd, by, bh);
+
+    // コード名(と候補)。ブロックの塗り(再生済み=アクセント/マーカー色、未再生=薄い白)に合わせて文字色を決める
+    const mode = viewMode === "degree" ? "degree" : "letter";
+    const shift = mode === "letter" ? keyShift() : 0;
+    const twoLine = chordAlts() && bh >= 30 * g.dpr;           // 高さに余裕がある時だけ候補を2行目に出す
+    const fs = Math.min(bh * (twoLine ? 0.4 : 0.52), 20 * g.dpr);
+    if (fs < 9 * g.dpr) return;
+    const fs2 = Math.max(8 * g.dpr, fs * 0.62);
+    if (!fontCache) fontCache = getComputedStyle(document.body).fontFamily || "sans-serif";
+    const f1 = "600 " + fs + "px " + fontCache, f2 = "500 " + fs2 + "px " + fontCache;
+    cx.textAlign = "center";
+    cx.textBaseline = "middle";
+    for (let i = 0; i < vis.length; i++) {
+      const v = vis[i];
+      const avail = v.x1 - v.x0 - 8 * g.dpr;
+      const full = QNChords.label(v.s, mode, shift);
+      const tm = (Math.max(v.s.t0, t0) + Math.min(v.s.t1, t1)) / 2;
+      const bi = Math.min(n - 1, Math.floor((tm - t0) / barDur));
+      const mc = markerColorAt(tm);
+      const on = bi < played ? textOn(mc || accent) : ovc(0.88);
+      if (v.s.u && v.x1 - v.x0 > 12 * g.dpr) {                    // 手動で直したコードには左上に小さな点
+        cx.fillStyle = on;
+        cx.beginPath();
+        cx.arc(v.x0 + 6 * g.dpr, by + 6 * g.dpr, 2 * g.dpr, 0, 6.2832);
+        cx.fill();
+      }
+      if (v.s.sync && !v.s.u && v.s.t0 >= t0 && v.x1 - v.x0 > 14 * g.dpr) {   // 裏拍で入るコード(シンコペ)は左下に小さな三角
+        const qx = v.x0 + 3 * g.dpr, qy = by + bh - 4 * g.dpr, qs = 3.5 * g.dpr;
+        cx.fillStyle = on;
+        cx.globalAlpha = 0.75;
+        cx.beginPath();
+        cx.moveTo(qx, qy - qs); cx.lineTo(qx + qs * 1.4, qy); cx.lineTo(qx, qy + qs);
+        cx.closePath();
+        cx.fill();
+        cx.globalAlpha = 1;
+      }
+      cx.font = f1;
+      let label = full;
+      if (cx.measureText(label).width > avail) {
+        label = full.split("/")[0];                               // 入りきらない時はオンベースを省く
+        if (cx.measureText(label).width > avail && mode === "letter") label = label.match(/^[A-G][#b]?/)[0];   // それでも駄目なら根音だけ
+        if (cx.measureText(label).width > avail) continue;
+      }
+      const cxm = (v.x0 + v.x1) / 2;
+      let alt = "";
+      if (twoLine && v.s.alts && v.s.alts.length) {
+        cx.font = f2;
+        for (let k = 0; k < v.s.alts.length && k < 2; k++) {
+          const cand = alt ? alt + " " + QNChords.label(v.s.alts[k], mode, shift) : QNChords.label(v.s.alts[k], mode, shift);
+          if (cx.measureText(cand).width > avail) break;
+          alt = cand;
+        }
+      }
+      cx.font = f1;
+      cx.fillStyle = on;
+      if (alt) {
+        cx.fillText(label, cxm, by + bh * 0.36);
+        cx.font = f2;
+        cx.globalAlpha = 0.6;
+        cx.fillText(alt, cxm, by + bh * 0.74);
+        cx.globalAlpha = 1;
+      } else {
+        cx.fillText(label, cxm, by + bh / 2 + g.dpr * 0.5);
+      }
+    }
+  }
+
+  // 編集中だけ、区間の境目に小さなつまみ印を描く(ドラッグで長さを変えられる合図。タッチ端末はホバーが無いので常時出す)
+  function paintGrips(cx, segs, lo, t0, t1, xOf, xEnd, by, bh) {
+    cx.fillStyle = ovc(0.55);
+    const w = Math.max(1, g.dpr), h = bh * 0.34;
+    for (let i = Math.max(1, lo); i < segs.length && segs[i].t0 < t1; i++) {
+      const b = segs[i].t0;
+      if (b <= t0 + 1e-6 || b >= t1 - 1e-6) continue;
+      const x = xOf(b);
+      if (x > xEnd) continue;
+      cx.fillRect(x - w * 1.5, by + (bh - h) / 2, w, h);
+      cx.fillRect(x + w * 0.5, by + (bh - h) / 2, w, h);
+    }
+  }
+
+  function chordAlts() { return typeof QNChords !== "undefined" && QNChords.getAlts(); }
 
   function playedBars(r, ct) {
     const t0 = r * sec;
@@ -419,7 +646,7 @@ const QNBars = (function () {
       curRowEl = cr;
     }
 
-    const peaks = (typeof waveformPeaks !== "undefined") ? waveformPeaks : null;
+    const peaks = srcPeaks();
     if (!peaks) return;
     if (peaks !== lastPeaksRef) { lastPeaksRef = peaks; peaksVer++; peakCache.clear(); }
 
@@ -438,7 +665,7 @@ const QNBars = (function () {
       markersList = pins.filter(p => p.enabled).sort((a, b) => a.t - b.t);
     }
 
-    const sig = accent + "|" + ms + "|" + peaksVer + "|" + g.nBars + "|" + g.barW + "|" + g.barH + "|" + g.dpr + "|" + sec + "|" + waveShape + "|" + (window.__qnWaveformDrawCount || 0);
+    const sig = accent + "|" + ms + "|" + peaksVer + "|" + g.nBars + "|" + g.barW + "|" + g.barH + "|" + g.dpr + "|" + sec + "|" + waveShape + "|" + (window.__qnWaveformDrawCount || 0) + "|" + viewMode + "|" + editMode + "|" + keyShift() + "|" + (typeof QNChords !== "undefined" ? QNChords.getGridMode() + QNChords.gridVersion() : "") + "|" + (typeof QNChords !== "undefined" ? QNChords.version() : 0);
     rows.forEach((el, r) => {
       const played = playedBars(r, ct);
       const rs = sig + "|" + played;
@@ -573,6 +800,28 @@ const QNBars = (function () {
   }
   function getFollow() { return followOn; }
 
+  // 表示モード(wave/chord)。chordにした時だけコード解析を始める。選択は端末に保存
+  function getViewMode() { return viewMode; }
+  function getEditMode() { return editMode; }
+  function setEditMode(on) {
+    on = !!on && viewMode !== "wave";
+    if (on === editMode) return;
+    editMode = on;
+    containerEl.classList.toggle("qn-chord-editing", on);
+    if (!on && typeof QNChordEdit !== "undefined") QNChordEdit.close();
+    if (typeof window.qnBarStripSync === "function") window.qnBarStripSync();
+  }
+  function setViewMode(v) {
+    v = v === "chord" || v === "degree" ? v : "wave";
+    if (v === viewMode) return;
+    viewMode = v;
+    if (v === "wave") setEditMode(false);
+    try { localStorage.setItem(VIEW_KEY, v); } catch (e) {}
+    if (v !== "wave" && typeof QNChords !== "undefined") QNChords.ensure();
+    draw(true);
+    if (typeof window.qnBarViewSync === "function") window.qnBarViewSync();
+  }
+
   function setFollow(on) {
     followOn = !!on;
     try { localStorage.setItem(FOLLOW_KEY, followOn ? "1" : "0"); } catch (e) {}
@@ -651,6 +900,165 @@ const QNBars = (function () {
     }
     window.addEventListener("resize", () => { geomDirty = true; });
   }
+  // コード修正モード: 行のタップ/長押し/スワイプ開始を、他のハンドラ(シーク・マーカー追加。player-ui-shared.js)より先に奪う。マーカーの線・A/B旗の操作は奪わない。
+//   タップ=修正ポップアップ / 行左の時刻(数字)=その行の頭へ移動 / ブロックの上下の余白=その位置へ移動(どちらも再生/停止はそのまま) / 境目のドラッグ=区間の長さ調整
+  if (rowsEl) {
+    const editHit = e => editMode && viewMode !== "wave" && !(e.target.closest && e.target.closest(".vbar-line, .vbar-label, .vbar-ab-pt"));
+    const GRIP_MOUSE = 7, GRIP_TOUCH = 14, DRAG_MOVE = 4;
+    let handle = null;
+    let drag = null;
+    let suppressClickUntil = 0;
+
+    const fmtHandle = t => { const m = Math.floor(t / 60), s2 = t - m * 60; return m + ":" + (s2 < 10 ? "0" : "") + s2.toFixed(1); };
+    function moveHandle(bar, t) {
+      if (!handle) { handle = document.createElement("div"); handle.className = "qn-chord-handle"; }
+      if (handle.parentNode !== bar) bar.appendChild(handle);
+      const row = parseInt(bar.dataset.row, 10);
+      handle.style.left = ((t - row * sec) / sec * 100) + "%";
+      handle.dataset.t = fmtHandle(t);
+      handle.classList.toggle("is-drag", !!(drag && drag.moved));
+    }
+    function hideHandle() {
+      if (handle && handle.parentNode) handle.parentNode.removeChild(handle);
+      containerEl.classList.remove("qn-chord-resize");
+    }
+    // この行のbar上でclientX付近にある区間の境目(先頭は除く)。{i:区間の番号,t:境目の秒}
+    function boundaryNear(bar, row, clientX, tolPx) {
+      const segs = chordSegs();
+      if (!segs) return null;
+      const rect = bar.getBoundingClientRect();
+      if (!rect.width) return null;
+      const t0 = row * sec, tolS = tolPx / rect.width * sec;
+      let best = null;
+      for (let i = 1; i < segs.length; i++) {
+        const b = segs[i].t0;
+        if (b < t0 - tolS) continue;
+        if (b > t0 + sec + tolS) break;
+        const d = Math.abs(rect.left + (b - t0) / sec * rect.width - clientX);
+        if (d <= tolPx && (!best || d < best.d)) best = { i: i, t: b, d: d };
+      }
+      return best;
+    }
+    function seekHere(t) {
+      if (typeof beginSeek === "function") beginSeek();
+      audio.currentTime = Math.min(Math.max(0, t), dur);
+      if (typeof prevTime !== "undefined") prevTime = audio.currentTime;
+      resumeFollow();
+    }
+
+    rowsEl.addEventListener("pointerdown", e => {
+      if (!editHit(e)) return;
+      e.stopPropagation();
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const bar = e.target.closest ? e.target.closest(".vbar") : null;
+      if (!bar || e.target.closest(".vbar-time")) return;
+      const row = parseInt(bar.dataset.row, 10);
+      const nb = boundaryNear(bar, row, e.clientX, e.pointerType === "mouse" ? GRIP_MOUSE : GRIP_TOUCH);
+      if (!nb) return;
+      const segs = chordSegs(), a = segs[nb.i - 1], b = segs[nb.i];
+      drag = { id: e.pointerId, bar: bar, row: row, x0: e.clientX, moved: false, t: nb.t, p0: a.t0, n1: b.t1, pc: QNChords.chordOf(a), nc: QNChords.chordOf(b) };
+    }, true);
+
+    // ドラッグ中の位置(clientX/Y)から時刻を決めて境目を動かす。行をまたいでもよい(今見えている行のうち縦に一番近い行を使う)
+    function barAtY(y) {
+      const bars = rowsEl.querySelectorAll(".vbar");
+      let best = null, bd = 1e9;
+      for (let i = 0; i < bars.length; i++) {
+        const r = bars[i].getBoundingClientRect();
+        const d = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+        if (d < bd) { bd = d; best = bars[i]; }
+      }
+      return best;
+    }
+    function dragTo(cx, cy, free) {
+      const bar = barAtY(cy) || drag.bar;
+      if (!bar || !bar.isConnected) return;
+      const rect = bar.getBoundingClientRect();
+      const row = parseInt(bar.dataset.row, 10);
+      const ratio = Math.max(0, Math.min(1, (cx - rect.left) / (rect.width || 1)));
+      let t = snapBeat(row * sec + ratio * sec, free);
+      t = Math.max(drag.p0 + 0.2, Math.min(drag.n1 - 0.2, t));
+      drag.bar = bar; drag.row = row;
+      drag.t = t;
+      QNChords.moveBoundary(drag.p0, drag.n1, t, drag.pc, drag.nc, false);
+      moveHandle(bar, t);
+    }
+    // 指が行エリアの上端/下端に近い間は自動でスクロールして、離れた行まで運べるようにする
+    let edgeRaf = 0;
+    function edgeScroll() {
+      if (edgeRaf || !drag || !drag.moved) return;
+      const step = () => {
+        edgeRaf = 0;
+        if (!drag || !drag.moved) return;
+        const r = scrollEl.getBoundingClientRect(), z = 44;
+        const v = drag.cy < r.top + z ? -(r.top + z - drag.cy) : drag.cy > r.bottom - z ? drag.cy - (r.bottom - z) : 0;
+        if (!v) return;
+        scrollEl.scrollTop += Math.max(-18, Math.min(18, v * 0.4));
+        dragTo(drag.cx, drag.cy, false);
+        edgeRaf = requestAnimationFrame(step);
+      };
+      edgeRaf = requestAnimationFrame(step);
+    }
+    // タッチ: 境目をつかんでいる間は縦スクロールさせない(#vbarRowsはtouch-action:pan-yなので、touchmoveで止める)
+    rowsEl.addEventListener("touchmove", e => { if (drag && e.cancelable) e.preventDefault(); }, { passive: false, capture: true });
+
+    rowsEl.addEventListener("pointermove", e => {
+      if (drag && e.pointerId === drag.id) {
+        if (!drag.moved) {
+          if (Math.abs(e.clientX - drag.x0) < DRAG_MOVE) return;
+          drag.moved = true;
+          try { rowsEl.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+        drag.cx = e.clientX; drag.cy = e.clientY;
+        dragTo(e.clientX, e.clientY, e.altKey);
+        edgeScroll();
+        e.preventDefault();
+        return;
+      }
+      // ホバー(マウスのみ): 境目に近い時だけつまみを出してカーソルを変える
+      if (e.pointerType !== "mouse" || !editMode || viewMode === "wave") return;
+      const bar = e.target.closest ? e.target.closest(".vbar") : null;
+      if (!bar || (e.target.closest && e.target.closest(".vbar-line, .vbar-label, .vbar-ab-pt, .vbar-time"))) { hideHandle(); return; }
+      const nb = boundaryNear(bar, parseInt(bar.dataset.row, 10), e.clientX, GRIP_MOUSE);
+      if (nb) { moveHandle(bar, nb.t); containerEl.classList.add("qn-chord-resize"); } else hideHandle();
+    });
+
+    const endDrag = e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const d = drag;
+      drag = null;
+      try { rowsEl.releasePointerCapture(e.pointerId); } catch (err) {}
+      if (d.moved) {
+        suppressClickUntil = Date.now() + 400;
+        QNChords.moveBoundary(d.p0, d.n1, d.t, d.pc, d.nc, true);   // 離した時に保存
+      }
+      hideHandle();
+    };
+    rowsEl.addEventListener("pointerup", endDrag);
+    rowsEl.addEventListener("pointercancel", endDrag);
+    rowsEl.addEventListener("pointerleave", e => { if (!drag) hideHandle(); });
+
+    rowsEl.addEventListener("click", e => {
+      if (!editHit(e)) return;
+      e.stopPropagation();
+      e.preventDefault();
+      if (Date.now() < suppressClickUntil) return;
+      const bar = e.target.closest ? e.target.closest(".vbar") : null;
+      if (!bar || typeof QNChordEdit === "undefined") return;
+      const row = parseInt(bar.dataset.row, 10);
+      // 行の左の時刻表示(数字)をタップ=その行の頭へ再生位置を移す(再生/停止の状態はそのまま)。編集中でも再生位置を動かせるように
+      if (e.target.closest(".vbar-time") || e.clientX < bar.getBoundingClientRect().left) {
+        seekHere(row * sec);
+        return;
+      }
+      const t = timeInRow(bar, row, e.clientX);
+      if (t === null) return;
+      // ブロックの上下の余白(ブロックは高さの14〜86%)をタップ=その位置へ移動(ポップアップは開かない)
+      const rc = bar.getBoundingClientRect(), fy = (e.clientY - rc.top) / (rc.height || 1);
+      if (fy < 0.14 || fy > 0.86) { seekHere(t); return; }
+      QNChordEdit.open(t, e.clientX, e.clientY);
+    }, true);
+  }
   if (typeof audio !== "undefined" && audio) {
     audio.addEventListener("seeked", resumeFollow);
     audio.addEventListener("play", resumeFollow);
@@ -672,7 +1080,7 @@ const QNBars = (function () {
     onTrackLoaded,
     createGearButton,
     setOpenSettings(fn) { openSettingsFn = fn; },
-    getFollow, setFollow, getPause, setPause, getWaveShape, setWaveShape,
+    getFollow, setFollow, getPause, setPause, getWaveShape, setWaveShape, getViewMode, setViewMode, getEditMode, setEditMode,
     PAUSE_MIN, PAUSE_MAX,
     rowOf,
     pctInRow,
