@@ -179,13 +179,13 @@ function createPinLine(pinObj, i) {
   const numSpan = document.createElement("span");
   numSpan.className = "vbar-label-num";
   numSpan.textContent = `${i + 1}`;
-  label.appendChild(numSpan);
   if (pinObj.locked) {
     const lk = document.createElement("span");
     lk.className = "vbar-label-lock";
     lk.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/></svg>';
-    label.appendChild(lk);
+    label.appendChild(lk); // 数字の左(v4.60.0。PCで下に積むと上段のシークバーと重なるため)
   }
+  label.appendChild(numSpan);
   if (pinObj.memo) {
     const memoSpan = document.createElement("span");
     memoSpan.className = "vbar-label-memo";

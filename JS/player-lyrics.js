@@ -10,7 +10,8 @@
   var lyIdx = [];        // 歌詞の行のlines内位置
   var syncOn = false, ptr = 0, editing = false;
   var elBox = null, elList = null, elTap = null, elBar = null, elSwitch = null, elShow = null;
-  var elDisp = null, dispLines = [];
+  var elDisp = null, dispLines = [], roleOf = [0, 1, 2, 3, 4]; // roleOf[i] = i番目の行要素の役割の番号
+  var ROLES = ["out", "prev", "cur", "next", "in"];
   var lastActive = -2, timer = 0;
 
   function name() { return typeof currentFileName === "string" && currentFileName !== "No file loaded" ? currentFileName : ""; }
@@ -172,9 +173,11 @@
     if (!area || !vb) return null;
     elDisp = document.createElement("div"); elDisp.id = "pcV2Lyrics"; elDisp.hidden = true;
     elDisp.setAttribute("aria-live", "off");
-    dispLines = [0, 1, 2].map(function (k) {
-      var d = document.createElement("div"); d.className = "qn-lyd-line " + (k === 1 ? "is-cur" : "is-side"); elDisp.appendChild(d); return d;
+    // 5本の行を役割(out/prev/cur/next/in)で回す。役割が変わると、CSSのtransitionで上へ送られる(歌詞が下へ流れていく動き)
+    dispLines = [0, 1, 2, 3, 4].map(function (k) {
+      var d = document.createElement("div"); d.className = "qn-lyd-line"; d.setAttribute("data-r", ROLES[k]); elDisp.appendChild(d); return d;
     });
+    roleOf = [0, 1, 2, 3, 4];
     vb.parentNode.insertBefore(elDisp, vb.nextSibling);
     return elDisp;
   }
@@ -192,15 +195,29 @@
     if (!show) { if (!d.hidden) { d.hidden = true; lastActive = -2; } return; }
     var cur = typeof audio !== "undefined" ? audio.currentTime : 0;
     var a = activeLine(cur);
-    if (!force && a === lastActive && !d.hidden) return;
+    var prevA = lastActive;
+    if (a === lastActive && !d.hidden) return;
     lastActive = a;
     d.hidden = false;
     var at = function (k) { return k >= 0 && k < lyIdx.length ? lines[lyIdx[k]].s : ""; };
-    var first = a < 0 ? 0 : a;
-    dispLines[0].textContent = a < 0 ? "" : at(a - 1);
-    dispLines[1].textContent = a < 0 ? "" : at(a);
-    dispLines[2].textContent = at(first + (a < 0 ? 0 : 1));
-    if (a < 0) dispLines[2].textContent = at(0);
+    var step = prevA >= -1 && !force ? a - prevA : 0; // 1行ずつ進んだ/戻った時だけ動かす。シーク・曲の切替・編集は一気に差し替える
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if ((step === 1 || step === -1) && !reduce) {
+      dispLines.forEach(function (e, k) {
+        var r = roleOf[k], nr = (r - step + 5) % 5, wrap = step === 1 ? r === 0 : r === 4;
+        if (wrap) { // 端から反対の端へ移る行は、見えない状態で瞬間移動してから文を入れ替える
+          e.classList.add("is-jump"); e.setAttribute("data-r", ROLES[nr]); e.textContent = at(a + (nr - 2)); void e.offsetWidth; e.classList.remove("is-jump");
+        } else e.setAttribute("data-r", ROLES[nr]);
+        roleOf[k] = nr;
+      });
+    } else {
+      dispLines.forEach(function (e, k) {
+        e.classList.add("is-jump"); e.setAttribute("data-r", ROLES[k]); e.textContent = at(a + (k - 2)); roleOf[k] = k;
+      });
+      void dispLines[0].offsetWidth;
+      dispLines.forEach(function (e) { e.classList.remove("is-jump"); });
+    }
+    prevA = a;
     d.classList.toggle("is-pre", a < 0);
   }
   // 【v4.55.0 省電力】120msタイマーは「再生中・表示中・時刻付きの歌詞がある」時だけ(以前は常時)。シークや曲の読み込みはイベントでtick(true)する

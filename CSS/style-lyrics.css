@@ -1,19 +1,39 @@
 /* style-lyrics.css — 歌詞表示(JSは player-lyrics.js)。Textパネルの行一覧/タップ打ちと、シークバー下の現在行(#pcV2Lyrics)。色はトークンのみ */
 
 /* ---- シークバー下 ---- */
+/* 【v4.60.0】行は絶対配置の5本(out/prev/cur/next/in)。役割(data-r)が変わると、位置・大きさ・濃さがtransitionで動き、歌詞が上へ送られていく。JSは役割を回すだけ(player-lyrics.js) */
 #pcV2Lyrics {
-  flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 2px;
-  min-height: 0; padding: 6px 4px 2px; text-align: center; overflow: hidden; pointer-events: none;
+  --lyd-sm: var(--fs-small); --lyd-cur: clamp(16px, 2.2vw, 22px); --lyd-gap: 2px;
+  --lyd-sm-h: calc(var(--lyd-sm) * 1.35); --lyd-cur-h: calc(var(--lyd-cur) * 1.35); --lyd-prev-h: var(--lyd-sm-h);
+  --lyd-y-prev: 0px;
+  --lyd-y-cur: calc(var(--lyd-prev-h) + var(--lyd-gap));
+  --lyd-y-next: calc(var(--lyd-y-cur) + var(--lyd-cur-h) + var(--lyd-gap));
+  --lyd-ease: cubic-bezier(0.22, 0.9, 0.3, 1);
+  flex: 0 0 auto; position: relative; box-sizing: content-box;
+  height: calc(var(--lyd-prev-h) + var(--lyd-cur-h) + var(--lyd-sm-h) + var(--lyd-gap) * 2);
+  padding: 6px 4px 2px; text-align: center; overflow: hidden; pointer-events: none;
 }
 #pcV2Lyrics[hidden] { display: none; }
-.qn-lyd-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; min-height: 1.35em; }
-.qn-lyd-line.is-cur { font-size: clamp(16px, 2.2vw, 22px); font-weight: 700; color: var(--text-bright); }
-.qn-lyd-line.is-side { font-size: var(--fs-small); color: var(--icon-muted); opacity: 0.75; }
-#pcV2Lyrics.is-pre .qn-lyd-line.is-side { opacity: 0.55; }
-@media (max-width: 900px) {
-  #pcV2Lyrics .qn-lyd-line.is-side:first-child { display: none; } /* 狭い幅は現在行+次の行だけ */
-  .qn-lyd-line.is-cur { font-size: 16px; }
+.qn-lyd-line {
+  position: absolute; left: 4px; right: 4px; top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35;
+  font-size: var(--lyd-sm); font-weight: 400; color: var(--icon-muted); opacity: 0;
+  transform: translateY(var(--lyd-y-prev)); will-change: transform, opacity;
+  transition: transform 0.45s var(--lyd-ease), opacity 0.35s ease, font-size 0.45s var(--lyd-ease), color 0.35s ease;
 }
+.qn-lyd-line.is-jump { transition: none; }
+.qn-lyd-line[data-r="out"] { opacity: 0; transform: translateY(calc(var(--lyd-y-prev) - var(--lyd-sm-h))); }
+.qn-lyd-line[data-r="prev"] { opacity: 0.75; transform: translateY(var(--lyd-y-prev)); }
+.qn-lyd-line[data-r="cur"] { opacity: 1; font-size: var(--lyd-cur); font-weight: 700; color: var(--text-bright); transform: translateY(var(--lyd-y-cur)); }
+.qn-lyd-line[data-r="next"] { opacity: 0.75; transform: translateY(var(--lyd-y-next)); }
+.qn-lyd-line[data-r="in"] { opacity: 0; transform: translateY(calc(var(--lyd-y-next) + var(--lyd-sm-h))); }
+#pcV2Lyrics.is-pre .qn-lyd-line[data-r="next"] { opacity: 0.55; }
+@media (max-width: 900px) {
+  /* 狭い幅は現在行+次の行だけ(前の行は高さを取らず、上へ消える) */
+  #pcV2Lyrics { --lyd-prev-h: 0px; }
+  .qn-lyd-line[data-r="prev"] { opacity: 0; }
+  #pcV2Lyrics { --lyd-cur: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .qn-lyd-line { transition: none; } }
 
 /* ---- Textパネル ---- */
 #qnLyBox { display: none; flex-direction: column; flex: 1; min-height: 0; gap: 8px; }

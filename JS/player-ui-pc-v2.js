@@ -317,8 +317,10 @@
         // 無料版などで拒否された場合は実際の値へ戻す
         barKey.value = currentKeySemitones;
       });
-      bindDoubleReset(barSpeed, () => { if (typeof hapticTap === "function") hapticTap(); setSpeed(1); }); // ダブルクリック/ダブルタップで1.00x・0
-      bindDoubleReset(barKey, () => { if (typeof hapticTap === "function") hapticTap(); setKeySemitones(0); });
+      // 【v4.60.0】ダブルタップ後はスライダーがフォーカス中なので、pcv2SyncBarMixerが位置を更新しない(activeElement判定)。リセット直後に位置を直接戻す
+      const snapBars = () => { barSpeed.value = currentSpeed; barKey.value = currentKeySemitones; paintRange(barSpeed); paintRange(barKey); window.pcv2SyncBarMixer(true); };
+      bindDoubleReset(barSpeed, () => { if (typeof hapticTap === "function") hapticTap(); setSpeed(1); snapBars(); }); // ダブルクリック/ダブルタップで1.00x・0
+      bindDoubleReset(barKey, () => { if (typeof hapticTap === "function") hapticTap(); setKeySemitones(0); snapBars(); });
       mixer.querySelector('[data-mix="key"] .pcv2-mix-label').addEventListener("click", () => setKeySemitones(0));
       mixer.querySelector('[data-mixval="key"]').addEventListener("click", () => setKeySemitones(0));
       // 塗り側トラック用の--p(スライダー位置%)。thumbの左側をアクセント色にする
@@ -1131,10 +1133,7 @@
       { type: "note", label: "Press and hold Prev or Next Marker, or swipe the title above the seek bar up or down, to go to the previous or next track (swipe: mobile)." },
       { type: "note", label: "Double click (mobile: double tap) the Speed or Key bar to reset it." }
     ];
-    const rowsLook = [
-      { label: "Background", hint: "Dark, or a light look (gray / beige). The accent color is set in Color", type: "stepper", values: () => window.QNBg.OPTIONS, get: () => window.QNBg.get(), set: v => window.QNBg.set(v), fmt: v => v === "dark" ? "Dark" : v === "gray" ? "Light gray" : "Light beige" }
-    ];
-    const settingsSections = [{ title: "Appearance", rows: rowsLook }, { title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "Language", rows: rowsLang }, { title: "Tab", rows: window.QNTab && qnFeature("tab") ? window.QNTab.settingsRows() : [] }, { title: "Tips", rows: rowsTips }].filter(sec => sec.rows.length);
+    const settingsSections = [{ title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "Language", rows: rowsLang }, { title: "Tab", rows: window.QNTab && qnFeature("tab") ? window.QNTab.settingsRows() : [] }, { title: "Tips", rows: rowsTips }].filter(sec => sec.rows.length);
     settingsSections.onChange = () => { if (window.qnBarStripSync) window.qnBarStripSync(); };
     // 階層: Settings直下は一覧(General / Backup / Import / Color ...)。General=Seek bar・Playback・Language・Tipsの中身(generalBody)
     settingsUI = QNSettingsUI.build(settingsSections);
@@ -1182,6 +1181,7 @@
     if (tr) tr.style.display = (window.QNLibSync && window.QNLibSync.isActive()) ? "" : "none";
   }
 
+  let lastEnterKey = "";
   function switchPanel(panelId, opts) {
     currentPanel = panelId;
     if (!(opts && opts.fromSettings)) settingsSub = false;
@@ -1218,6 +1218,8 @@
     stashPanelContents(panelBody);
     panelBody.innerHTML = "";
     panelHeader.innerHTML = "";
+    // 【v4.60.0】パネルが切り替わった時だけ中身をふわっと入れる(同じパネルの再描画では動かさない)。CSS側でPC幅のみ有効
+    { const k = panelId + (settingsSub ? ":s" : ""); if (k !== lastEnterKey) { lastEnterKey = k; [panelBody, panelHeader].forEach(n => { n.classList.remove("qn-panel-enter"); void n.offsetWidth; n.classList.add("qn-panel-enter"); }); } }
     // pcv2-panel-*クラスだけ入れ替える(markers-edit-mode等には触れない)
     Array.from(panelBody.classList)
       .filter(c => c.indexOf("pcv2-panel-") === 0)

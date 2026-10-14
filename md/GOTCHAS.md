@@ -257,4 +257,9 @@
 - 動作確認・開発用: コンソールで `localStorage.qn_dev_features = "tab,stem,rec,chords"`(または`"all"`)→再読み込み。戻す: `localStorage.removeItem("qn_dev_features")`。
 - ガイド(`guide/*.html`)は要素に`data-feature="名前 名前…"`を付けると、挙げた機能が全部OFFの間は隠れる(`guide/guide.js`。h2に付けると次のh2の手前まで)。各ガイドは`../JS/qn-features.js`を読む。新しく機能の説明を書く時は、隠す対象ならこの印を付ける。
 - 確認: `md/tools/e2e_features.py`(PC/SP、既定とdev=all、ガイドも)。
+- **公開する手順は `md/RELEASE_FEATURES.md`。**
 - 隠していても残るもの: 規約・プライバシー(`terms.html`/`privacy.html`)のStem等の記述、ガイドのスクリーンショット(`pc-overview`など)、IndexedDB/localStorageに既にある録音・Tab・コードのデータ(消さない。機能を戻せば使える)。
+
+## 歌詞表示とサイドバーのモーション(v4.60.0)
+- 歌詞の表示(`#pcV2Lyrics`)は5本の行要素(`data-r`=out/prev/cur/next/in)を**回して**動かす。±1行の変化だけ滑らせ、シーク・読込・編集は即入れ替え(`.is-jump`でtransitionを切る)。行の中身を書くのは「端に回した1本」だけ。`prefers-reduced-motion`では即切替。
+- PCのサイドバー/パネルのモーションは`style-layout-pc-v2.css`末尾(`@media (min-width:901px)`)。`switchPanel`が**パネルIDが変わった時だけ**`.qn-panel-enter`を付け直す(同じパネルの再描画では動かさない)。transform/opacityのみ、クリック時の1回きり。SP幅には出ない。

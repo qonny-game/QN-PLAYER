@@ -1354,8 +1354,11 @@
 /* Marker lock: lock glyph on the marker label, locked state on the popup nudge row */
 .vbar-label-lock { display: inline-flex; vertical-align: middle; margin-left: 3px; color: var(--icon-muted); }
 .vbar-label-lock svg { width: 11px; height: 11px; fill: currentColor; }
-#pcV2WaveArea .vbar-label-lock { display: block; text-align: center; margin: 0; line-height: 0; }
-#pcV2WaveArea .vbar-label-lock svg { width: 11px; height: 11px; margin: 2px auto 0; }
+/* PC: カギは数字の左に絶対配置(数字は線の真上のまま・ラベルの高さを増やさない=上段のシークバーと重ならない) */
+#pcV2WaveArea .vbar-label-lock { position: absolute; right: 100%; top: 50%; transform: translateY(-50%); margin: 0 3px 0 0; line-height: 0; }
+#pcV2WaveArea .vbar-label-lock svg { width: 11px; height: 11px; margin: 0; }
+#pcV2WaveArea .vbar-label-lock ~ .vbar-label-memo { margin-left: 20px; }
+#pcV2WaveArea .vbar-label.pcv2-label-flip .vbar-label-lock ~ .vbar-label-memo { margin-left: 0; margin-right: 20px; }
 .vbar-line.is-locked { cursor: default; }
 .qn-pp-timerow.is-locked .qn-pp-nudge { opacity: 0.35; }
 .qn-yt-seekpop-btn[data-pop="LK"] svg { width: 18px; height: 18px; fill: currentColor; }

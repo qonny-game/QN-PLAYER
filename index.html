@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>QNPLAYER</title>
 <script>
-// 背景モード(dark / gray / beige)。描画前に適用してちらつきを防ぐ。設定はSettings > General > Background(QNBg)
+// 背景モード(dark / gray / beige)。描画前に適用してちらつきを防ぐ。設定はColor > Background(QNBg。v4.60.0でSettingsから移動)
 window.QNBg = (function () {
   var KEY = "qn_bg", OPTIONS = ["dark", "gray", "beige"];
   function get() { try { var v = localStorage.getItem(KEY); return OPTIONS.indexOf(v) >= 0 ? v : "dark"; } catch (e) { return "dark"; } }
@@ -50,7 +50,7 @@ window.QNBg = (function () {
 <link rel="stylesheet" href="CSS/style-pitch.css">
 <script>
   // アプリバージョン一元管理(QN_APP_VERSION)。<title>はここで即更新、#splashVersion/#appVersionは各要素直後のinline scriptが反映
-  window.QN_APP_VERSION = "4.59.0";
+  window.QN_APP_VERSION = "4.60.0";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -111,6 +111,15 @@ window.QNBg = (function () {
             <button id="qnGlowToggleBtn" class="qn-glow-switch" role="switch" aria-checked="false" title="Fade the current color in and out">
               <span class="qn-glow-switch-knob"></span>
             </button>
+          </div>
+          <!-- 背景(QNBg)。旧Settings > Appearance > Backgroundをここへ移した(v4.60.0) -->
+          <div class="qn-bg-row">
+            <span class="qn-glow-toggle-label">Background</span>
+            <div class="qn-bg-swatches" id="qnBgSwatches">
+              <button type="button" class="qn-bg-swatch" data-qn-bgopt="dark" title="Dark" aria-label="Dark"></button>
+              <button type="button" class="qn-bg-swatch" data-qn-bgopt="gray" title="Light gray" aria-label="Light gray"></button>
+              <button type="button" class="qn-bg-swatch" data-qn-bgopt="beige" title="Light beige" aria-label="Light beige"></button>
+            </div>
           </div>
           <!-- 行はrenderMarkerPresetColorSettings()が組み立てる -->
           <div class="qn-marker-preset-colors">

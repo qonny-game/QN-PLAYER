@@ -743,3 +743,28 @@ body.pc-v2-active #qnMenuMount {
   #pcV2BottomBar #pcV2BarMixer .pcv2-mix-key { width: 92px; }
   #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item[data-mix="vol"] { width: 116px; }
 }
+
+
+/* ---------- PC: サイドバー/パネルのモーション(v4.60.0) ----------
+   アクセントの縦線は出現時に伸びる/アイコンは押下で沈みhoverで少し浮く/パネルの中身は切替時にふわっと入る。
+   transform/opacityのみ(再レイアウトなし)・常時動くものなし(クリック時の1回きり)。SP幅と視差(reduce)では無効 */
+@media (min-width: 901px) {
+  .pcv2-icon-item svg { transition: transform 200ms cubic-bezier(.2, .8, .2, 1); }
+  .pcv2-icon-item:hover svg { transform: translateY(-1px) scale(1.08); }
+  .pcv2-icon-item:active svg { transform: scale(.9); transition-duration: 80ms; }
+  .pcv2-icon-item.active::before {
+    transform-origin: center;
+    animation: qnSideInd 300ms cubic-bezier(.2, .8, .2, 1);
+  }
+  .pcv2-icon-item.active svg { animation: qnSidePop 320ms cubic-bezier(.2, .8, .2, 1); }
+  #pcV2PanelBody.qn-panel-enter { animation: qnPanelIn 240ms cubic-bezier(.2, .8, .2, 1); }
+  #pcV2PanelHeader.qn-panel-enter { animation: qnPanelHdrIn 220ms cubic-bezier(.2, .8, .2, 1); }
+}
+@keyframes qnSideInd { from { transform: scaleY(.2); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
+@keyframes qnSidePop { 0% { transform: scale(.82); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@keyframes qnPanelIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+@keyframes qnPanelHdrIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .pcv2-icon-item svg, .pcv2-icon-item.active svg, .pcv2-icon-item.active::before,
+  #pcV2PanelBody.qn-panel-enter, #pcV2PanelHeader.qn-panel-enter { animation: none !important; transition: none !important; transform: none !important; }
+}

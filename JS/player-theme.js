@@ -229,6 +229,16 @@
   updateActiveSwatch(initialTheme);
   clearInlineAccentProps();
 
+  // 背景(QNBg)のスウォッチ。値の保存と適用はindex.html先頭のQNBgが持つ
+  (function () {
+    const bgs = document.querySelectorAll('.qn-bg-swatch');
+    if (!bgs.length || !window.QNBg) return;
+    const sync = () => bgs.forEach(b => b.classList.toggle('active', b.getAttribute('data-qn-bgopt') === window.QNBg.get()));
+    bgs.forEach(b => b.addEventListener('click', () => { window.QNBg.set(b.getAttribute('data-qn-bgopt')); }));
+    document.addEventListener('qn-bg-change', sync);
+    sync();
+  })();
+
   document.querySelectorAll('.qn-theme-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
       const themeName = swatch.getAttribute('data-qn-theme');
