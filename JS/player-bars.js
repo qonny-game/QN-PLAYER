@@ -359,7 +359,7 @@ const QNBars = (function () {
     const lw = Math.max(1, Math.round(g.dpr));
     for (let pass = 0; pass < 2; pass++) {       // 0: 拍(薄い) 1: 小節頭(少し濃い)
       if (pass === 0 && mode !== "beat") continue;
-      cx.fillStyle = pass ? ovc(0.38) : ovc(0.09); // v4.64.0: 小節頭の線を0.55→0.38へ(ほんのり薄く)
+      cx.fillStyle = pass ? ovc(0.26) : ovc(0.09); // 小節頭の線: 0.55 → 0.38(v4.64.0) → 0.26(v4.66.0)
       for (let i = lo; i < ts.length && ts[i] < t1; i++) {
         if ((bar[i] === 0) !== (pass === 1)) continue;
         const x = Math.round((ts[i] - t0) / sec * W - lw / 2);

@@ -290,3 +290,8 @@
 - 文字サイズは前後の行も現在行と同じ(`--lyd-sm: var(--lyd-cur)`)。現在行は太さと色だけで区別。
 - ON/OFFは `QNLyrics.getShow/setShow`、広さは `getWide/setWide`。変更時に `qn-lyrics-change` を発火し、Bの右の `#pcV2FabLyrics`(PC幅でも出る)が同期する。
 - 行リストの作り直しは `render()` が増やす `ver` で判定(`paintWide`)。
+
+## 吸着/クリック音ボタンの操作(v4.66.0)
+- `#pcV2FabSnap` はタップで「小節+拍→小節→off」(拍だけの状態からは小節+拍へ)。長押し(quickpopの`snap`)で小節/拍を個別にON/OFF。状態は `data-state`(""/Bars/Beats/Bars + beats)で、小節だけ/拍だけの時は右下に小さく表示。
+- `#pcV2FabClick` の長押し(quickpopの`clickoff`)は Click offset(Settingsと同じ `QNClickOffset`)。長押し成立後のタップは quickpop が握りつぶす。
+- 小節頭の線の濃さは `player-bars.js paintGrid` の `ovc(0.26)`(拍は0.09)。

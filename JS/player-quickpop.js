@@ -224,6 +224,22 @@
           get: function () { return loopPreRollSeconds; }, set: function (v) { setLoopPreRollSeconds(v); }, fmt: seconds }
       ] };
     },
+    // SPのクリック音ボタン長押し: クリック音の位置調整(Settingsの Click offset と同じ値)
+    clickoff: function () {
+      var V = [-300, -250, -200, -150, -100, -80, -60, -40, -20, 0, 20, 40, 60, 80, 100, 150, 200, 250, 300];
+      return { title: "Grid click", rows: [
+        { label: "Click offset", hint: "Raise it if the click sounds early, lower it if late", type: "stepper", values: function () { return V; },
+          get: function () { return window.QNClickOffset.get(); }, set: function (v) { window.QNClickOffset.set(v); }, fmt: function (v) { return (v > 0 ? "+" : "") + v + " ms"; } }
+      ] };
+    },
+    // SPの吸着ボタン長押し: 小節吸着と拍吸着を個別にON/OFF
+    snap: function () {
+      var after = function () { if (typeof window.qnBarStripSync === "function") window.qnBarStripSync(); };
+      return { title: "Marker snap", rows: [
+        { label: "Snap to bars", hint: "Markers jump to the nearest bar start", type: "switch", get: function () { return window.QNPinSnap.get("bar"); }, set: function (on) { window.QNPinSnap.set("bar", on); after(); } },
+        { label: "Snap to beats", hint: "Markers jump to the nearest beat", type: "switch", get: function () { return window.QNPinSnap.get("beat"); }, set: function (on) { window.QNPinSnap.set("beat", on); after(); } }
+      ] };
+    },
     skip: function () {
       var S = window.QNSkip;
       return { title: "Skip buttons", rows: [
@@ -242,6 +258,8 @@
     ["#prevTrackBtn, #nextTrackBtn, #pcV2HeadPrevTrack, #pcV2HeadNextTrack", "tracks"],
     ["#playlistBox .playlistItem:not(.is-nowplaying)", "libitem"],
     ["#loopToggleBtn, #pcV2DockLoop", "loop"],
+    ["#pcV2FabClick", "clickoff"],
+    ["#pcV2FabSnap", "snap"],
     ["#pcV2SkipBackBtn, #pcV2SkipFwdBtn", "skip"]
   ];
   // 他アプリ(VIDEO等)の対象: add(selector, defFn(el))。defFnは{title, rows|build}を返す

@@ -639,15 +639,18 @@
     waveFabBtns.appendChild(makeAbMirror("A"));
     waveFabBtns.appendChild(makeAbMirror("B"));
     // SP: B の右にクリック音(拍・小節)と吸着(小節＋拍を同時)のON/OFF。Settingsの同名項目と同じ値(変更は相互に同期)。PC幅はCSSで非表示(.pcv2-fab-abと同じ)
-    const makeToggle = (id, title, icon, get, set) => {
+    const makeToggle = (id, title, icon, get, set, tap, state) => {
       const b = el('<button type="button" class="panel-fab-btn pcv2-fab-ab pcv2-fab-tg" id="' + id + '" title="' + title + '" aria-label="' + title + '"><svg viewBox="0 0 24 24">' + icon + '</svg></button>');
-      const sync = () => { const on = !!get(); b.classList.toggle("has-point", on); b.setAttribute("aria-pressed", on ? "true" : "false"); };
-      b.addEventListener("click", () => { if (typeof hapticTap === "function") { try { hapticTap(); } catch (e) {} } set(!get()); sync(); syncSettingsBody(); });
+      const sync = () => { const on = !!get(); b.classList.toggle("has-point", on); b.setAttribute("aria-pressed", on ? "true" : "false"); if (state) { const st = state(); b.setAttribute("data-state", st); b.title = b.getAttribute("aria-label") + (st ? ": " + st : ": off"); } };
+      b.addEventListener("click", () => { if (typeof hapticTap === "function") { try { hapticTap(); } catch (e) {} } if (tap) tap(); else set(!get()); sync(); syncSettingsBody(); });
       b.__sync = sync; sync();
       return b;
     };
     const togClick = makeToggle("pcV2FabClick", "Grid click on / off", '<path d="M9.5 3h5l3.5 17H6L9.5 3zm1.7 2L8.6 18h6.8L12.8 5h-1.6z"/><path d="M11.6 15.5l3-9 .95.3-3 9z"/>', () => QNChords.getClick(), on => QNChords.setClick(on));
-    const togSnap = makeToggle("pcV2FabSnap", "Marker snap to bars and beats on / off", '<path d="M3 7v6c0 4.97 4.03 9 9 9s9-4.03 9-9V7h-6v6c0 1.66-1.34 3-3 3s-3-1.34-3-3V7H3zm0-2h6v2H3V5zm12 0h6v2h-6V5z"/>', () => QNPinSnap.get("bar") && QNPinSnap.get("beat"), on => { QNPinSnap.set("bar", on); QNPinSnap.set("beat", on); });
+    // 吸着: タップで「小節+拍 → 小節 → off」を回す(長押しで小節/拍を個別にON/OFF: player-quickpop.js)
+    const snapState = () => { const bar = QNPinSnap.get("bar"), beat = QNPinSnap.get("beat"); return bar && beat ? "Bars + beats" : bar ? "Bars" : beat ? "Beats" : ""; };
+    const snapNext = () => { const st = snapState(); if (st === "Bars + beats") { QNPinSnap.set("bar", true); QNPinSnap.set("beat", false); } else if (st === "Bars") { QNPinSnap.set("bar", false); QNPinSnap.set("beat", false); } else { QNPinSnap.set("bar", true); QNPinSnap.set("beat", true); } if (window.QNApps && QNApps.toast) QNApps.toast("Marker snap: " + (snapState() || "Off")); };
+    const togSnap = makeToggle("pcV2FabSnap", "Marker snap", '<path d="M3 7v6c0 4.97 4.03 9 9 9s9-4.03 9-9V7h-6v6c0 1.66-1.34 3-3 3s-3-1.34-3-3V7H3zm0-2h6v2H3V5zm12 0h6v2h-6V5z"/>', () => QNPinSnap.get("bar") || QNPinSnap.get("beat"), null, snapNext, snapState);
     // SP: B の右に歌詞のON/OFF(Textパネルの「Show under bar」と同じ値)
     const togLy = makeToggle("pcV2FabLyrics", "Lyrics under the bar on / off", '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/>', () => window.QNLyrics && QNLyrics.getShow(), on => { if (window.QNLyrics) QNLyrics.setShow(on); });
     waveFabBtns.appendChild(togLy);
