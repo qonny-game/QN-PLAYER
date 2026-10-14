@@ -201,7 +201,7 @@
     d.hidden = false;
     var at = function (k) { return k >= 0 && k < lyIdx.length ? lines[lyIdx[k]].s : ""; };
     var step = prevA >= -1 && !force ? a - prevA : 0; // 1行ずつ進んだ/戻った時だけ動かす。シーク・曲の切替・編集は一気に差し替える
-    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches && document.documentElement.getAttribute("data-qn-motion") !== "on"; // Settings > Animations=On なら、OSが動きを減らす設定でも動かす
     if ((step === 1 || step === -1) && !reduce) {
       dispLines.forEach(function (e, k) {
         var r = roleOf[k], nr = (r - step + 5) % 5, wrap = step === 1 ? r === 0 : r === 4;

@@ -32,6 +32,7 @@
 | `power_check.py` | `python3 -I md/tools/power_check.py [--only paused playing hidden panel-xxx app-xxx] [--json out.json]`。**省電力の計測。** 場面ごとに「毎秒のコールバック数(rAF/setInterval/setTimeout。登録元のファイル:行つき)」とChromeの処理量(CDP)を出す。ループやタイマーを足した・直した時に前後で比べる。ヘッドレスなので実機の電池は測れない(相対比較用) |
 | `e2e_audiosession.py` | `python3 -I md/tools/e2e_audiosession.py`。擬似`navigator.audioSession`でiOSのマイク衝突を再現し、TUNER/PITCHの開始中だけ"play-and-record"になり停止後に"playback"へ戻るかを見る(実機iOSの代わりにはならない) |
 | `e2e_features.py` | `python3 -I md/tools/e2e_features.py`。機能の表示ON/OFF(`JS/qn-features.js`)の確認。既定でTab/Stem/Rec/Chordsが画面・設定・裏処理・ガイドから消えること、`qn_dev_features="all"`で戻ることをPC/SPで見る。機能の出し分けを足した/変えた時に回す |
+| `e2e_motion.py` | Animations設定(`QNMotion`)の確認。OSが「動きを減らす」でも、Onなら サイドバーの動きが出る/Autoなら出ない。 |
 | `ux_audit.py` | `python3 -I md/tools/ux_audit.py [--wav ファイル] [--out フォルダ]`。UX見直しの下ごしらえ: PC(1440)/SP(390)の全パネル撮影+はみ出し・32px未満のタップ領域・名前の無いボタン・下段バーが各幅(1280/1366/1440/1920)で収まるか。手順は`md/UX_REVIEW.md` |
 | `e2e_lyrics.py` / `e2e_sidemotion.py` / `e2e_v460.py` | v4.60.0の動作確認(要guitar_test.wav。実行はプロジェクトのルートから`cp`して使う)。歌詞のスクロール(`data-r`の回り方・途中の位置)、サイドバーのモーション(パネル切替で1回だけ動く・SPでは出ない)、速度/Keyバーのダブルクリックで位置が戻る、背景がColorに有る、マーカーのカギが数字の左 |
 | `e2e_tab_sources.py` | `python3 -I md/tools/e2e_tab_sources.py [bass vocals guitar mix]`。Tabのソース切替の通し確認。合成した分離結果をStemのキャッシュに入れ、未分離メッセージ→解析→ベースのTAB/ヴォーカルの五線紙のノートを出す。スクショは/tmp/qnshots/tabsrc_*.png。合成音なので音程の確認用 |

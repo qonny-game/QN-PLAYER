@@ -33,7 +33,7 @@
   .qn-lyd-line[data-r="prev"] { opacity: 0; }
   #pcV2Lyrics { --lyd-cur: 16px; }
 }
-@media (prefers-reduced-motion: reduce) { .qn-lyd-line { transition: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not([data-qn-motion="on"]) .qn-lyd-line { transition: none; } }
 
 /* ---- Textパネル ---- */
 #qnLyBox { display: none; flex-direction: column; flex: 1; min-height: 0; gap: 8px; }

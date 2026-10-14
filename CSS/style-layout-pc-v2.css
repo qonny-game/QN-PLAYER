@@ -765,8 +765,8 @@ body.pc-v2-active #qnMenuMount {
 @keyframes qnPanelIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
 @keyframes qnPanelHdrIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .pcv2-icon-item svg, .pcv2-icon-item.active svg, .pcv2-icon-item.active::before,
-  #pcV2PanelBody.qn-panel-enter, #pcV2PanelHeader.qn-panel-enter { animation: none !important; transition: none !important; transform: none !important; }
+  :root:not([data-qn-motion="on"]) .pcv2-icon-item svg, :root:not([data-qn-motion="on"]) .pcv2-icon-item.active svg, :root:not([data-qn-motion="on"]) .pcv2-icon-item.active::before,
+  :root:not([data-qn-motion="on"]) #pcV2PanelBody.qn-panel-enter, :root:not([data-qn-motion="on"]) #pcV2PanelHeader.qn-panel-enter { animation: none !important; transition: none !important; transform: none !important; }
 }
 
 

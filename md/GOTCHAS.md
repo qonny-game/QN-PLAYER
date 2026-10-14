@@ -273,3 +273,7 @@
 
 ## キャッシュ対策(v4.61.1)
 - `index.html`のCSS/JSは`?v=<版>`付きで読み込む(`release.py bump`/`ship`が自動で付け替える)。ファイル名が同じだと、ブラウザやCDNの古いキャッシュが残って「更新したのに画面が変わらない」ことがあるため。手で`index.html`にCSS/JSを足す時も、`?v=`は付けなくてよい(次のbumpで付く)。
+
+## 動きの設定(v4.62.0, QNMotion)
+- 歌詞のスクロールとPCサイドバーの動きは、OSの`prefers-reduced-motion: reduce`で止まる(Windowsは「アニメーション効果」オフで有効になる。気づかずオフのことが多い)。**「動きが出ない」と言われたら、まずこれを疑う。**
+- Settings > General > Animations(`window.QNMotion`、保存キー`qn_motion`=auto|on)で`on`にすると、`<html data-qn-motion="on">`が付き、上の2つはOSの設定に関係なく動く。CSSは`:root:not([data-qn-motion="on"])`で止める書き方。新しく動きを足す時も、この書き方にそろえる。確認は`md/tools/e2e_motion.py`。

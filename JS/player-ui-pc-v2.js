@@ -1133,7 +1133,10 @@
       { type: "note", label: "Press and hold Prev or Next Marker, or swipe the title above the seek bar up or down, to go to the previous or next track (swipe: mobile)." },
       { type: "note", label: "Double click (mobile: double tap) the Speed or Key bar to reset it." }
     ];
-    const settingsSections = [{ title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "Language", rows: rowsLang }, { title: "Tab", rows: window.QNTab && qnFeature("tab") ? window.QNTab.settingsRows() : [] }, { title: "Tips", rows: rowsTips }].filter(sec => sec.rows.length);
+    const rowsLook = [
+      { label: "Animations", hint: "Auto follows the system setting. On keeps the lyrics scroll and side bar motion even when the system reduces animations", type: "stepper", values: () => window.QNMotion.OPTIONS, get: () => window.QNMotion.get(), set: v => window.QNMotion.set(v), fmt: v => v === "on" ? "On" : "Auto" }
+    ];
+    const settingsSections = [{ title: "Appearance", rows: rowsLook }, { title: "Seek bar", rows: rowsBar }, { title: "Playback", rows: rowsPlay }, { title: "Language", rows: rowsLang }, { title: "Tab", rows: window.QNTab && qnFeature("tab") ? window.QNTab.settingsRows() : [] }, { title: "Tips", rows: rowsTips }].filter(sec => sec.rows.length);
     settingsSections.onChange = () => { if (window.qnBarStripSync) window.qnBarStripSync(); };
     // 階層: Settings直下は一覧(General / Backup / Import / Color ...)。General=Seek bar・Playback・Language・Tipsの中身(generalBody)
     settingsUI = QNSettingsUI.build(settingsSections);
