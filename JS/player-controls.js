@@ -393,6 +393,7 @@ if (loopToggleBtn) {
     else if (loopMode === "ab") next = "sec";
     else next = "off";
     setLoopModeState(next, true);
+    if (window.QNApps && QNApps.toast) QNApps.toast("Loop: " + (next === "ab" ? "A-B" : next === "sec" ? "Section" : "Off"));
   };
 }
 
@@ -492,6 +493,7 @@ if (allRepeatToggleBtn) {
     repeatMode = repeatMode === "off" ? "one" : repeatMode === "one" ? "folder" : repeatMode === "folder" ? "all" : "off";
     try { localStorage.setItem(REPEAT_MODE_STORAGE_KEY, repeatMode); } catch (e) {}
     applyRepeatModeUI();
+    if (window.QNApps && QNApps.toast) QNApps.toast("Repeat: " + (repeatMode === "one" ? "One" : repeatMode === "folder" ? "Folder" : repeatMode === "all" ? "All" : "Off"));
   };
   applyRepeatModeUI();
 }

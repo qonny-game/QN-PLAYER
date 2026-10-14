@@ -495,7 +495,20 @@
     "In tune": "チューニングOK",
     "Play a note": "音を鳴らしてください",
     "Mic on": "マイク ON",
-    "Sensitivity": "Sensitivity"
+    "Sensitivity": "Sensitivity",
+    // ---- v4.67.0 日本語の追加漏れ ----
+    "Large area": "広い表示",
+    "Fit the whole video on screen": "動画全体を画面に収める",
+    "Larger lyrics area": "歌詞の領域を広げる",
+    "Smaller lyrics area": "歌詞の領域を戻す",
+    "Lyrics under the bar on / off": "歌詞表示のオン・オフ",
+    "Grid click on / off": "クリック音のオン・オフ",
+    "Fit the whole track on screen": "曲全体を画面に収める",
+    "Reset to 1.00x": "1.00xに戻す", "Reset to 0": "0に戻す", "Reset speed": "速度を戻す", "Reset key": "キーを戻す",
+    "Raise it if the click sounds early, lower it if late": "クリックが早く聞こえる時は上げ、遅い時は下げます",
+    "Snap to bars": "小節に吸着", "Snap to beats": "拍に吸着",
+    "Markers jump to the nearest bar start": "マーカーが、いちばん近い小節の頭に吸い付きます",
+    "Markers jump to the nearest beat": "マーカーが、いちばん近い拍に吸い付きます"
   });
 
   QNI18N.addJaRules([
@@ -511,6 +524,13 @@
     [/^Speed ([−+-]\d+)%$/g, "速度 $1%"],
     [/^String (\d+)$/g, "$1弦"],
     [/^Display: (.+)$/g, "表示: $1"],
+    [/^Text limit reached \((\d+) characters\)$/g, "文字数の上限です($1文字)"],
+    [/^Grid lines \(hold: marker snap\)(?:: (.+))?$/g, "小節・拍の線(長押し: マーカー吸着)"],
+    [/^Grid: Bars \+ beats$/g, "線の表示: 小節+拍"], [/^Grid: Bars$/g, "線の表示: 小節"], [/^Grid: Off$/g, "線の表示: オフ"],
+    [/^Grid click: On$/g, "クリック音: オン"], [/^Grid click: Off$/g, "クリック音: オフ"],
+    [/^Loop: A-B$/g, "ループ: A-B"], [/^Loop: Section$/g, "ループ: 区間"], [/^Loop: Off$/g, "ループ: オフ"],
+    [/^Repeat: One$/g, "リピート: 1曲"], [/^Repeat: Folder$/g, "リピート: フォルダ"], [/^Repeat: All$/g, "リピート: 全曲"], [/^Repeat: Off$/g, "リピート: オフ"],
+    [/(\d+) beats\/bar/g, "1小節$1拍"], [/\bKey (?=[A-G])/g, "キー "],
     [/^Speed (\d+(?:\.\d+)?x?)$/g, "速度 $1"],
     [/^Volume (\d+%?)$/g, "音量 $1"],
     [/^Section (.+)$/g, "区間 $1"],

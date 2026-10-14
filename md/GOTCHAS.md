@@ -295,3 +295,8 @@
 - `#pcV2FabSnap`(アイコンは小節・拍の線)はタップで Grid 表示を「小節+拍(beat)→小節(bar)→off」と回す(Settingsの Grid と同じ `QNChords.setGridMode`)。マーカー吸着ではない。長押し(quickpopの`snap`)で小節吸着/拍吸着を個別にON/OFF。小節だけの時は `data-state="Bars"` で右下に小さく「Bar」。idは吸着時代のまま(quickpopの対象セレクタ)。
 - `#pcV2FabClick` の長押し(quickpopの`clickoff`)は Click offset(Settingsと同じ `QNClickOffset`)。長押し成立後のタップは quickpop が握りつぶす。
 - 小節頭の線の濃さは `player-bars.js paintGrid` の `ovc(0.26)`(拍は0.09)。
+
+## 停止中のシークタップ・トースト・日本語表示(v4.67.0)
+- 波形の行(`#vbarRows`)のタップは、押した時に再生中だった時だけ `audio.play()` する(停止中は位置だけ動かす)。マーカー線のタップ・Loop(区間)の開始など「再生する意図の操作」は従来どおり再生。
+- Loop/Repeat/クリック音(FAB)/線の表示(FAB)を押すと `QNApps.toast("Loop: Section")` 等を出す。Settingsからの変更・ダブルな中継(ドックのLoopなど)は元ボタンの1回だけ。日本語は `qn-i18n-ja.js` のRULES(`^Loop: …$`)。
+- 英語の文言(label/hint/title/toast)を足したら `md/tools/i18n_ja_check.py` と `--static` を実行して、日本語の辞書漏れを確認する(v4.64〜4.66で足した文言が未訳だった)。

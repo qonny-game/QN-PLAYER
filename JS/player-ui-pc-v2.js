@@ -646,7 +646,7 @@
       b.__sync = sync; sync();
       return b;
     };
-    const togClick = makeToggle("pcV2FabClick", "Grid click on / off", '<path d="M9.5 3h5l3.5 17H6L9.5 3zm1.7 2L8.6 18h6.8L12.8 5h-1.6z"/><path d="M11.6 15.5l3-9 .95.3-3 9z"/>', () => QNChords.getClick(), on => QNChords.setClick(on));
+    const togClick = makeToggle("pcV2FabClick", "Grid click on / off", '<path d="M9.5 3h5l3.5 17H6L9.5 3zm1.7 2L8.6 18h6.8L12.8 5h-1.6z"/><path d="M11.6 15.5l3-9 .95.3-3 9z"/>', () => QNChords.getClick(), on => { QNChords.setClick(on); if (window.QNApps && QNApps.toast) QNApps.toast("Grid click: " + (on ? "On" : "Off")); });
     // 小節・拍の線の表示ボタン: タップで「小節+拍 → 小節 → off」を回す(Settingsの Grid と同じ値)。マーカー吸着は長押し(player-quickpop.js の snap)
     const snapState = () => { const g = QNChords.getGridMode(); return g === "beat" ? "Bars + beats" : g === "bar" ? "Bars" : ""; };
     const snapNext = () => { const g = QNChords.getGridMode(); QNChords.setGridMode(g === "beat" ? "bar" : g === "bar" ? "off" : "beat"); if (window.QNApps && QNApps.toast) QNApps.toast("Grid: " + (snapState() || "Off")); };

@@ -704,6 +704,7 @@ document.getElementById("vbarRows").addEventListener("click", e => {
 
   const clickedTime = QNBars.timeInRow(bar, parseInt(bar.dataset.row, 10), e.clientX);
   if (clickedTime === null) return;
+  const wasPlaying = !audio.paused; // 停止中のタップは位置だけ動かして再生しない(v4.67.0)
   beginSeek();
   abLeaveIfOutside(clickedTime);
 
@@ -711,7 +712,7 @@ document.getElementById("vbarRows").addEventListener("click", e => {
   prevTime = clickedTime;
 
   renderSegments(getActiveSegment(clickedTime));
-  audio.play();
+  if (wasPlaying) audio.play();
   updatePlayButtonState();
 
   setTimeout(() => {
@@ -722,7 +723,7 @@ document.getElementById("vbarRows").addEventListener("click", e => {
 });
 
 
-// 【v3.45.0】波形のジェスチャー(タップ=従来どおりシーク+再生)
+// 【v3.45.0】波形のジェスチャー(タップ=シーク。再生中だった時だけ再生を続ける=v4.67.0)
 //  長押し(0.5秒): その位置にマーカー追加 / 横スワイプ: 再生位置をスクラブ(行の幅=バー長の秒数) / ダブルタップ(再生中): その位置で停止
 //  マーカーの線・A/B旗の上から始めた操作は対象外(それぞれ独自のドラッグ/タップ)。#vbarRowsはCSSでtouch-action:pan-y(横方向はこちらで処理)
 (function () {
