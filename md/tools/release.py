@@ -231,6 +231,8 @@ def bump(root, new, line):
     p = os.path.join(root, "index.html")
     t = read(root, "index.html")
     t2 = re.sub(r'(window\.QN_APP_VERSION\s*=\s*")[^"]+(")', r"\g<1>%s\g<2>" % new, t, count=1)
+    # 【v4.61.1】CSS/JSの読み込みに ?v=<版> を付ける(同じファイル名のままだと、ブラウザやCDNの古いキャッシュが残り、更新しても画面が変わらないことがある)
+    t2 = re.sub(r'((?:href|src)="(?:CSS|JS)/[^"?#]+\.(?:css|js))(?:\?v=[^"]*)?"', lambda m: '%s?v=%s"' % (m.group(1), new), t2)
     cp = os.path.join(root, "md/CHANGELOG.md")
     cl = read(root, "md/CHANGELOG.md")
     if re.search(r"^- %s\b" % re.escape(new), cl, flags=re.M):

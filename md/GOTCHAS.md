@@ -270,3 +270,6 @@
 - **ダブルタップのリセット後にスライダーが戻らない**: `pcv2SyncBarMixer`は「フォーカス中のスライダーは触らない」ので、リセットの直後に`snapBars()`で位置を直接戻している。
 - キーボード: `,` `.`=設定のスキップ秒(`#pcV2SkipBackBtn/FwdBtn`を押す)、`[` `]`=A点/B点(`#setABtn/#setBBtn`)、Shift+←→=5秒。SP幅では`-10s/+10s`は意図的に廃止(`style-layout-pc-v2-sp.css`の注記)。
 - SPのアイコンバーのラベルは常時表示(`#pcV2IconBarBottom`は`flex:2`で、Control/Settingsの2つぶんの幅)。
+
+## キャッシュ対策(v4.61.1)
+- `index.html`のCSS/JSは`?v=<版>`付きで読み込む(`release.py bump`/`ship`が自動で付け替える)。ファイル名が同じだと、ブラウザやCDNの古いキャッシュが残って「更新したのに画面が変わらない」ことがあるため。手で`index.html`にCSS/JSを足す時も、`?v=`は付けなくてよい(次のbumpで付く)。

@@ -787,3 +787,8 @@ body.pc-v2-active #qnMenuMount {
     #pcV2BottomBar #pcV2BarMixer .pcv2-mix-key { width: 150px; }
   }
 }
+
+/* v4.61.2: ホバー中はアイテムがアクセント色で塗られるので、縦線(同じアクセント色)が背景に溶けて見えなかった。ホバー中の縦線は塗りの上で見える色にする */
+@media (hover: hover) and (min-width: 901px) {
+  #pcV2IconBar .pcv2-icon-item.active:hover::before { background: var(--sidebar-on-accent, #fff); }
+}
