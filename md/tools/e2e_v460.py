@@ -28,4 +28,15 @@ with QNBrowser(".") as qb:
     pg.evaluate("()=>{pins.push({t:5,enabled:true,memo:'memo',color:null,locked:true}); pins.push({t:12,enabled:true,memo:'',color:null,locked:true}); renderPins&&renderPins();}"); pg.wait_for_timeout(600)
     pg.screenshot(path="lock_pc.png", clip={"x":300,"y":60,"width":900,"height":300})
     print("lock rect", pg.evaluate("[...document.querySelectorAll('#pcV2WaveArea .vbar-label')].map(l=>{const a=l.getBoundingClientRect(),n=l.querySelector('.vbar-label-num').getBoundingClientRect(),k=l.querySelector('.vbar-label-lock')?.getBoundingClientRect();return [Math.round(a.height),Math.round(n.left),k&&Math.round(k.right)].join('/')})"))
+    # v4.61.0: 下段バーの折り返し(PC 1280)・SPのA/B・キー
+    for W in (1280, 1366, 1440):
+        p2 = qb.new_page(width=W, height=800); qb.goto(p2)
+        print("bar", W, p2.evaluate("(()=>{const q=document.getElementById('pcV2BarKey').getBoundingClientRect(); const b=document.getElementById('pcV2BottomBar'); return {keyInView:q.right<=innerWidth&&q.width>0, barScrollsX:b.scrollWidth>b.clientWidth+1}})()"))
+    sp = qb.new_page(width=390, height=844); qb.goto(sp); qb.add_track(sp, wp)
+    print("SP A/B visible", sp.evaluate("['pcV2FabSetA','pcV2FabSetB'].map(i=>document.getElementById(i).getBoundingClientRect().width>0)"))
+    print("SP icon labels visible", sp.evaluate("[...document.querySelectorAll('#pcV2IconBar .pcv2-icon-item > span')].map(e=>getComputedStyle(e).visibility)"))
+    pg.evaluate("audio.currentTime=3"); pg.wait_for_timeout(200)
+    for k in ("Shift+ArrowRight", ",", "["):
+        t0 = pg.evaluate("audio.currentTime"); pg.keyboard.press(k); pg.wait_for_timeout(250)
+        print("key", k, round(t0, 2), "->", round(pg.evaluate("audio.currentTime"), 2))
     print("errors", qb.errors(pg))

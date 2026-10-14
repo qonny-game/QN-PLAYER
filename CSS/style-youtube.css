@@ -1115,7 +1115,7 @@
   #pcV2BottomBar .tripleNavBtn-third:not(.tripleNavBtn-center) svg,
   #pcV2BottomBar .loopbtn svg { width: 20px; height: 20px; margin: 6px auto; }
   #pcV2BottomBar .tripleNavBtn-center svg { width: 32px; height: 32px; margin: 0; }
-  #pcV2BottomBar .top-controls-btn-label { font-size: 9px; }
+  #pcV2BottomBar .top-controls-btn-label { font-size: 10px; }
   #pcV2BottomBar .pcv2-ctrl-divider, .qn-yt-bdiv { margin: 0 6px; }
 }
 @media screen and (max-width: 900px) {

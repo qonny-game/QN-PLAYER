@@ -498,7 +498,9 @@ html {
 
 
 /* ---------- 【v4.11.0】SPの再配置: Moreはドックの上に開く(設定帯のみ)/ 前次トラック・リピートは波形ヘッダー右端 / AudioはA・Bと同じ行で小さく ---------- */
-#pcV2MorePanel, #pcV2WaveHeadBtns, #pcV2WaveFabRow .pcv2-fab-ab:not(.pcv2-fab-tg) { display: none; } /* PC幅では出さない(.panel-fab-btnのdisplay:flexに勝つためidを付ける) */
+#pcV2MorePanel, #pcV2WaveHeadBtns { display: none; } /* PC幅では出さない */
+/* A/B(PC幅では出さない)。v4.56.0で:not(.pcv2-fab-tg)を足した時にSP幅の表示(下の@media内の同名ルール)より強くなってSPのA/Bが消えていた(v4.61.0で直した)。PC幅だけに限定する。.panel-fab-btnのdisplay:flexに勝つためidを付ける */
+@media (min-width: 901px) { #pcV2WaveFabRow .pcv2-fab-ab:not(.pcv2-fab-tg) { display: none; } }
 /* 【v4.56.0】PC幅: 設定帯の右にクリック音(Grid click)と吸着(Marker snap)のON/OFF。SP幅は下の@mediaで既存のA/Bと同じ見た目になる */
 #pcV2WaveFabRow .pcv2-fab-tg { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 48px; height: 56px; padding: 0; background: var(--bg-0e0e13); border: 1px solid var(--border-subtle); border-radius: var(--radius-popup); color: var(--icon-muted); box-shadow: none; pointer-events: auto; cursor: pointer; }
 #pcV2WaveFabRow .pcv2-fab-tg svg { width: 22px; height: 22px; fill: currentColor; }

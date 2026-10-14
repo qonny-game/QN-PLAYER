@@ -393,12 +393,12 @@ body.qn-mic-on #qnAppLogoBtn::after {
 #markersNowPlaying .playlistItem.is-nowplaying { padding-left: 20px; }
 
 /* ---------- SPのアイコンバー(v3.47.0) ----------
-   アイコンバーは横スクロールなしの等分(Library/Markers/Text/Control/Settings)。ラベルは選択中のタブだけ表示。 */
+   アイコンバーは横スクロールなしの等分(Library/Markers/Text/Control/Settings)。ラベルは常時表示(v4.61.0〜)。 */
 @media screen and (max-width: 900px) {
   #pcV2IconBar { overflow-x: hidden; gap: 0; padding-left: 4px; padding-right: 4px; }
   #pcV2IconBar > .pcv2-icon-item { flex: 1 1 0; min-width: 0; padding: 12px 2px; justify-content: center; }
-  #pcV2IconBarBottom { flex: 1 1 0; min-width: 0; margin-left: 0; padding-left: 0; border-left: none; gap: 0; }
+  #pcV2IconBarBottom { flex: 2 1 0; min-width: 0; margin-left: 0; padding-left: 0; border-left: none; gap: 0; }
   #pcV2IconBarBottom > .pcv2-icon-item { flex: 1 1 0; min-width: 0; padding: 12px 2px; justify-content: center; }
-  /* v3.48.0: 非選択のラベルはdisplay:noneにせず見えなくするだけ(高さを常に確保。選択でバーの高さが変わるのを防ぐ) */
-  #pcV2IconBar .pcv2-icon-item:not(.active):not(.qn-app-active) > span { visibility: hidden; }
+    /* v4.61.0: 非選択のラベルも常に表示(アイコンだけだとLibrary/Markersが見分けにくい)。幅が足りないラベルは省略記号 */
+  #pcV2IconBar .pcv2-icon-item > span { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }

@@ -96,7 +96,7 @@ window.QNSettingsUI = (function () {
   function newControl(r) {
     if (r.type === "stepper") return r.tap ? tapStepper() : stepper();
     if (r.type === "slider") return make('<div class="qn-set-slider"><input type="range" class="qn-set-range" aria-label=""><span class="qn-set-slider-val"></span></div>');
-    if (r.type === "switch") return make('<button type="button" class="qn-set-switch" role="switch" aria-checked="false"><span></span></button>');
+    if (r.type === "switch") { var sw = make('<button type="button" class="qn-set-switch" role="switch" aria-checked="false"><span></span></button>'); if (r.label) sw.setAttribute("aria-label", r.label); return sw; }
     return null;
   }
 
@@ -115,7 +115,7 @@ window.QNSettingsUI = (function () {
         var ctl = rowEl.querySelector(".qn-set-ctl");
         var info = { def: r, row: rowEl };
         if (r.type === "stepper") { info.ctl = stepper(); ctl.appendChild(info.ctl); }
-        else if (r.type === "switch") { info.ctl = make('<button type="button" class="qn-set-switch" role="switch" aria-checked="false"><span></span></button>'); ctl.appendChild(info.ctl); }
+        else if (r.type === "switch") { info.ctl = make('<button type="button" class="qn-set-switch" role="switch" aria-checked="false"><span></span></button>'); if (r.label) info.ctl.setAttribute("aria-label", r.label); ctl.appendChild(info.ctl); }
         else if (r.type === "range") {
           rowEl.classList.add("is-range");
           info.ctl = make('<div class="qn-set-range-wrap"><div class="qn-set-range-box"><input type="range" class="qn-set-range" aria-label=""></div><span class="qn-set-range-val"></span></div>');

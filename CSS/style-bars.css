@@ -91,7 +91,7 @@
 }
 
 #vbarRows .vbar.is-current .vbar-time {
-  color: var(--text-bright);
+  color: var(--accent-primary); /* v4.61.0: 今の行をアクセント色に(白の太字だけだと分かりにくい) */
 }
 
 #vbarContainer #swLoopCounter {

@@ -403,6 +403,26 @@ document.addEventListener("keydown", e => {
     e.preventDefault();
     addCurrentPin();
   }
+  // 【v4.61.0】練習用の細かい移動。, . = 設定のスキップ秒(-10s/+10s)・Shift+←→ = 5秒・[ ] = A点/B点。マーカー移動(←→)とは別
+  else if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "," || e.key === ".")) {
+    e.preventDefault();
+    const sk = document.getElementById(e.key === "," ? "pcV2SkipBackBtn" : "pcV2SkipFwdBtn");
+    if (sk) sk.click();
+  }
+  else if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "[" || e.key === "]")) {
+    e.preventDefault();
+    const ab = document.getElementById(e.key === "[" ? "setABtn" : "setBBtn");
+    if (ab) ab.click();
+  }
+  else if (e.shiftKey && !e.ctrlKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+    e.preventDefault();
+    if (isFinite(audio.duration) && audio.duration > 0) {
+      beginSeek();
+      const t = Math.max(0, Math.min(audio.duration, audio.currentTime + (e.key === "ArrowRight" ? 5 : -5)));
+      audio.currentTime = t; prevTime = t;
+      setTimeout(() => { isSeeking = false; }, 150);
+    }
+  }
   else if (e.ctrlKey && e.key === "ArrowRight") {
     e.preventDefault();
     setSpeed(currentSpeed + 0.01);

@@ -50,7 +50,7 @@ window.QNBg = (function () {
 <link rel="stylesheet" href="CSS/style-pitch.css">
 <script>
   // アプリバージョン一元管理(QN_APP_VERSION)。<title>はここで即更新、#splashVersion/#appVersionは各要素直後のinline scriptが反映
-  window.QN_APP_VERSION = "4.60.0";
+  window.QN_APP_VERSION = "4.61.0";
   document.title = "QNPLAYER " + window.QN_APP_VERSION;
 
   window.QN_SHORTCUTS = [
@@ -65,6 +65,9 @@ window.QNBg = (function () {
     { key: "←", action: "Prev Marker" },
     { key: "↑", action: "First Marker" },
     { key: "↓", action: "Last Marker" },
+    { key: "Shift + → / ←", action: "Seek +5s / -5s" },
+    { key: ", / .", action: "Skip back / forward (Skip setting)" },
+    { key: "[ / ]", action: "Set A point / B point" },
     { key: "Ctrl + → / ←", action: "Speed +1% / -1%" },
     { key: "Ctrl + ↑ / ↓", action: "Key +1 / -1 semitone" },
     { key: "Ctrl + R", action: "Reset Speed & Key" }
@@ -309,7 +312,7 @@ window.QNBg = (function () {
           <label>
             Speed <span id="controlSpeedDisplay" style="color:var(--text-pure-white);">1.00</span>x
             <button class="mini-reset-btn" id="controlSpeedResetBtn" title="Reset speed to 1.00x">Reset</button>
-            <button type="button" class="glow-switch control-effect-toggle" id="controlSpeedEnableToggle" role="switch" aria-checked="true" title="Speed effect on/off"><span class="glow-switch-knob"></span></button>
+            <span class="control-effect-label">Effect</span><button type="button" class="glow-switch control-effect-toggle" id="controlSpeedEnableToggle" role="switch" aria-checked="true" title="Speed effect on/off"><span class="glow-switch-knob"></span></button>
           </label>
           <div class="control-slider-row">
             <button type="button" class="control-step-btn" id="controlSpeedDownBtn" title="Speed −5%">−</button>
@@ -363,7 +366,7 @@ window.QNBg = (function () {
           <label>
             Key <span id="controlKeyDisplay" style="color:var(--text-pure-white);">0</span> st
             <button class="mini-reset-btn" id="controlKeyResetBtn" title="Reset key to 0">Reset</button>
-            <button type="button" class="glow-switch control-effect-toggle" id="controlKeyEnableToggle" role="switch" aria-checked="true" title="Key effect on/off"><span class="glow-switch-knob"></span></button>
+            <span class="control-effect-label">Effect</span><button type="button" class="glow-switch control-effect-toggle" id="controlKeyEnableToggle" role="switch" aria-checked="true" title="Key effect on/off"><span class="glow-switch-knob"></span></button>
           </label>
           <div class="control-slider-row">
             <button type="button" class="control-step-btn" id="controlKeyDownBtn" title="Key down 1 semitone">−</button>

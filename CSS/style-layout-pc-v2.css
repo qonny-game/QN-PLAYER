@@ -768,3 +768,22 @@ body.pc-v2-active #qnMenuMount {
   .pcv2-icon-item svg, .pcv2-icon-item.active svg, .pcv2-icon-item.active::before,
   #pcV2PanelBody.qn-panel-enter, #pcV2PanelHeader.qn-panel-enter { animation: none !important; transition: none !important; transform: none !important; }
 }
+
+
+/* ---------- PC: 下段バーが狭い時は2段に折り返す(v4.61.0) ----------
+   これまでは横スクロール(スクロールバー非表示)で、Volume/Speed/Keyが画面外に隠れていた。
+   バーの幅(右カラム=画面幅-サイドバー-パネル)で判定するので、パネルを閉じた時・広い画面では1段のまま。
+   スライダーは当たり判定を縦に広げる(見た目の線は4pxのまま) */
+@media screen and (min-width: 901px) {
+  #pcV2BottomBar { container-type: inline-size; container-name: qnbar; }
+  #pcV2BottomBar #pcV2BarMixer .pcv2-mix-range { height: 26px; }
+  @container qnbar (max-width: 1099px) {
+    #pcV2BottomBar { overflow-x: hidden; }
+    #pcV2BottomBar #topControls { flex-wrap: wrap; justify-content: center; row-gap: 6px; margin: 0 auto; width: 100%; }
+    #pcV2BottomBar #topControls > .pcv2-ctrl-divider { display: none; }
+    #pcV2BottomBar #pcV2BarMixer { flex: 1 1 100%; justify-content: center; gap: 28px; padding-top: 2px; border-top: 1px solid var(--border-subtle); padding-top: 8px; }
+    #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item { width: 150px; }
+    #pcV2BottomBar #pcV2BarMixer .pcv2-mix-item[data-mix="vol"] { width: 190px; }
+    #pcV2BottomBar #pcV2BarMixer .pcv2-mix-key { width: 150px; }
+  }
+}

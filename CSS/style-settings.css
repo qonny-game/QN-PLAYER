@@ -5,6 +5,8 @@
 .qn-set-body, #pcV2SettingsBody { display: flex; flex-direction: column; padding-bottom: 24px; }
 .qn-set-sec { padding: 14px 0 6px; border-bottom: 1px solid var(--border-subtle); }
 .qn-set-sec:last-child { border-bottom: none; }
+/* v4.61.0: Settings一覧(タイトル無しの先頭セクション)の上の空きを詰める */
+#pcV2SettingsBody > .qn-set-sec:first-child { padding-top: 0; }
 .qn-set-sec-title {
   padding-bottom: 6px;
   font-family: var(--font-display, 'Instrument Sans'), sans-serif;

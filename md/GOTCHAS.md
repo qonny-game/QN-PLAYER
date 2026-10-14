@@ -263,3 +263,10 @@
 ## 歌詞表示とサイドバーのモーション(v4.60.0)
 - 歌詞の表示(`#pcV2Lyrics`)は5本の行要素(`data-r`=out/prev/cur/next/in)を**回して**動かす。±1行の変化だけ滑らせ、シーク・読込・編集は即入れ替え(`.is-jump`でtransitionを切る)。行の中身を書くのは「端に回した1本」だけ。`prefers-reduced-motion`では即切替。
 - PCのサイドバー/パネルのモーションは`style-layout-pc-v2.css`末尾(`@media (min-width:901px)`)。`switchPanel`が**パネルIDが変わった時だけ**`.qn-panel-enter`を付け直す(同じパネルの再描画では動かさない)。transform/opacityのみ、クリック時の1回きり。SP幅には出ない。
+
+## UI見直しで直した落とし穴(v4.61.0)
+- **CSSの詳細度で片方の幅が消える**: v4.56.0でPC用に`#pcV2WaveFabRow .pcv2-fab-ab:not(.pcv2-fab-tg){display:none}`をメディアクエリの外に書いたら、詳細度が上がってSP用の表示ルール(`@media (max-width:900px)`内)に勝ち、**SPのA/Bが消えた**(v4.56.0〜4.60.0)。PC専用の非表示は必ず`@media (min-width:901px)`の中に書く。表示/非表示を変えたらPC・SP両方で確認(`e2e_v460.py`)。
+- **PCの下段バー**は幅(=画面幅−サイドバー−パネル)が約1100px未満になると、container query(`#pcV2BottomBar`が`qnbar`コンテナ)で2段に折り返す(Volume/Speed/Keyが下の段)。以前は横スクロール(バー非表示)でSpeed/Keyが画面外だった。1段の時の幅は`topControls`の実幅で約950px。
+- **ダブルタップのリセット後にスライダーが戻らない**: `pcv2SyncBarMixer`は「フォーカス中のスライダーは触らない」ので、リセットの直後に`snapBars()`で位置を直接戻している。
+- キーボード: `,` `.`=設定のスキップ秒(`#pcV2SkipBackBtn/FwdBtn`を押す)、`[` `]`=A点/B点(`#setABtn/#setBBtn`)、Shift+←→=5秒。SP幅では`-10s/+10s`は意図的に廃止(`style-layout-pc-v2-sp.css`の注記)。
+- SPのアイコンバーのラベルは常時表示(`#pcV2IconBarBottom`は`flex:2`で、Control/Settingsの2つぶんの幅)。
