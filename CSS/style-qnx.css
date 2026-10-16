@@ -106,3 +106,26 @@
 .qn-ex-segname:focus { border-color: var(--accent-primary); outline: none; }
 .qn-ex-segrange { flex-shrink: 0; font-size: var(--fs-small); color: var(--icon-muted); font-variant-numeric: tabular-nums; }
 .qn-ex-x:disabled { opacity: .3; cursor: default; }
+
+/* ---------- 範囲ごとの設定帯(チップ+アイコン)。All partsは同じ部品で一括指定 ---------- */
+.qn-ex-seg { flex-direction: column; align-items: stretch; gap: 8px; }
+.qn-ex-seg-top { display: flex; align-items: center; gap: 10px; }
+.qn-ex-bulk { padding: 8px 12px 10px; border-bottom: 1px solid var(--border-strong); background: var(--bg-hover-subtle); display: flex; flex-direction: column; gap: 6px; }
+.qn-ex-bulk-l { font-size: var(--fs-small); font-weight: 600; color: var(--text-bright); letter-spacing: .3px; }
+.qn-ex-strip { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; }
+.qn-ex-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.qn-ex-chip { height: 28px; padding: 0 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: none; color: var(--icon-muted); font-family: var(--font-display, 'Instrument Sans'), sans-serif; font-size: var(--fs-small); font-weight: 600; white-space: nowrap; cursor: pointer; transition: background var(--dur-hover, 130ms) ease, color var(--dur-hover, 130ms) ease, transform var(--dur-press, 100ms) ease; }
+.qn-ex-chip:active { transform: scale(.95); }
+.qn-ex-chip.is-on { color: var(--accent-primary); border-color: var(--accent-primary); }
+@media (hover: hover) and (pointer: fine) { .qn-ex-chip:hover { background: var(--bg-hover-subtle); color: var(--text-bright); } }
+.qn-ex-icons { display: flex; gap: 2px; }
+.qn-ex-pico { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 46px; padding: 4px 6px; border: none; border-radius: 8px; background: none; color: var(--icon-muted); cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: background var(--dur-hover, 130ms) ease, color var(--dur-hover, 130ms) ease, transform var(--dur-press, 100ms) ease; }
+.qn-ex-pico svg { width: 22px; height: 22px; fill: currentColor; }
+.qn-ex-pico-l { font-size: 10px; font-weight: 600; letter-spacing: .2px; line-height: 1.2; white-space: nowrap; }
+.qn-ex-pico:active { transform: scale(.94); }
+.qn-ex-pico.is-on { color: var(--accent-primary); }
+.qn-ex-pico[data-pop]:not([data-pop=""])::after { content: ""; position: absolute; right: 3px; bottom: 3px; width: 0; height: 0; border-style: solid; border-width: 0 0 6px 6px; border-color: transparent transparent var(--icon-muted) transparent; opacity: .7; pointer-events: none; }
+@media (hover: hover) and (pointer: fine) { .qn-ex-pico:hover { background: var(--bg-hover-subtle); color: var(--text-bright); } .qn-ex-pico.is-on:hover { color: var(--accent-primary); } }
+.qn-quickpop .qn-ex-eq { padding: 4px 0 8px; min-width: 250px; }
+.qn-quickpop .qn-ex-eq-r { height: 96px; }
+@media screen and (max-width: 900px) { .qn-ex-icons { width: 100%; justify-content: space-between; } .qn-ex-pico { flex: 1; min-width: 0; } }
