@@ -51,6 +51,7 @@
 - ドラッグ並び替えは同じフォルダ内だけ（そのグループの配列スロットへ書き戻す）。お気に入りの上段固定もフォルダ内。
 - Auto Nextの範囲は`findEnabledTrackIndex()`の1箇所（前/次・メディアキー・曲終了が全部通る）。フォルダ定義は`qn_folders_v1`、曲の所属はメタの`folder`（localStorageのみ。IndexedDBの音声は書かない）。
 - Backupのmarkers.jsonにはフォルダ**名**で入れる（idは端末ごと）。キーが無い旧バックアップはフォルダを触らない。
+- 【v4.69.0】Backupのzipの音声は `audio/<フォルダ名>/<曲>`(未分類は`audio/`直下。フォルダ名の `\/:*?"<>|` は `_` に置換)。Importは曲名(パスの末尾)で音声を探すので、旧バックアップ・旧版とも互換。同名の曲が別フォルダにあると末尾が衝突する(Libraryの曲名は一意なので通常は起きない)。
 - **ドラッグ（v3.27.0）**：曲のつまみ=`.playlist-drag-handle`、フォルダのつまみ=`.playlist-folder-grip`（クラスを分けてある。曲側のドラッグが拾わない）。どちらも測定（`findPlaylistScroller`/`measureFolderBlocks`）はドラッグ開始時に1回だけ、ドラッグ中はtransformのみ・DOM順の変更と保存はonEndで1回。座標は「スクロール量を足した内容座標」。端では50ms間引きのタイマーで自動スクロール（rAFループは使わない）。
 - 曲を別フォルダの範囲（見出し〜曲行。折りたたみ中は見出し）へ運んで離すと`moveTracksToFolder`（移動先の末尾）。同じフォルダの範囲なら従来の並び替え。フォルダのドラッグは全フォルダを見出しだけに畳んで行い（`.folder-drag-hidden`）、確定は`setPlaylistFolderOrder(ids)`→`persistPlaylistOrder()`→`renderPlaylist()`。無料版は両方`isUnlocked()`でブロック。
 
@@ -300,3 +301,9 @@
 - 波形の行(`#vbarRows`)のタップは、押した時に再生中だった時だけ `audio.play()` する(停止中は位置だけ動かす)。v4.68.0で、マーカー線(`handleMarkerTapOrDrag`と`stop()`のタップ判定)・Markersの行(`infoSpan`)・区間の帯(`onClickSeek`)・A/B旗のタップも同じ扱いに。前/次マーカーのボタンと、Loop(区間)の開始は従来どおり再生する。
 - Loop/Repeat/クリック音(FAB)/線の表示(FAB)を押すと `QNApps.toast("Loop: Section")` 等を出す。Settingsからの変更・ダブルな中継(ドックのLoopなど)は元ボタンの1回だけ。日本語は `qn-i18n-ja.js` のRULES(`^Loop: …$`)。
 - 英語の文言(label/hint/title/toast)を足したら `md/tools/i18n_ja_check.py` と `--static` を実行して、日本語の辞書漏れを確認する(v4.64〜4.66で足した文言が未訳だった)。
+
+## EXPORTアプリ(v4.70.0〜、詳細はEXPORT_APP.md)
+- `lamejs`は`lame_min.js`末尾の`lamejs()`呼び出しで関数自身に`Mp3Encoder`が付く。`window.lamejs.Mp3Encoder`を使う(`window.lamejs()`ではない)。
+- SoundTouchに`receiveSamples`は無い。`outputBuffer.extract(target,0,n,true)`。
+- QNSettingsUIのrangeは`d.max`を毎回読む。動的な上限はgetterで渡す。
+- CSSは`style-qnx.css`(`style-export.css`は別物)。

@@ -1,0 +1,4 @@
+@soundtouchjs/core 2.1.1 (SoundTouchJS) — Mozilla Public License, v. 2.0
+Copyright (c) Olli Parviainen, Ryan Berdeen, Jakub Fiala, Steve 'Cutter' Blades
+Source: https://github.com/cutterbl/SoundTouchJS  License text: https://www.mozilla.org/en-US/MPL/2.0/
+JS/soundtouch-core.js is an unmodified esbuild bundle of the package (exposes window.QNSoundTouch.SoundTouch). It is used only by the EXPORT app for offline Speed/Key processing.

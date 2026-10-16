@@ -9,7 +9,7 @@ from qnbrowser import QNBrowser
 
 JS = r"""
 () => {
-  const KEEP = ".top-controls-btn-label, .pcv2-icon-item, #pcV2SpDock, .pcv2-panel-header-title, #pcV2PanelFab, .pcv2-fab-addgroup, .pcv2-fab, .qn-set-fit, .qn-set-slider-val, .playlist-act-btn, .pin-act-btn, .playlist-del-tile, .pin-del-tile, .qn-yt-bbtn, .qn-pt-bbtn, .qn-tn-bbtn, .qn-tn-bstep-mid, .qn-yt-seekpop-btn, .pcv2-anchor-tab, .mobile-tab-btn, .qn-flyout-item, .qn-yt-fab-folder, .panel-fab-btn, .qn-mic-pill, #splashLogo, .av-toggle-btn-label, #noteTextFullscreenBtn, .pcv2-bar-page, .qn-yt-panel-header, .qn-tn-panel-header, .qn-pt-panel-header, .pin-memo-preset-chip:not(.qn-qp-act), .pin-memo, .pin-memo-text, .playlist-editable-display, .playlist-editable-field, .qn-yt-item-title, .qn-pt-rec-title, .qn-marker-preset-colors-list, .vbar-label-memo, .pin-info, .qn-set-sec-title, .qn-stepper-val";
+  const KEEP = ".top-controls-btn-label, .pcv2-icon-item, #pcV2SpDock, .pcv2-panel-header-title, #pcV2PanelFab, .pcv2-fab-addgroup, .pcv2-fab, .qn-set-fit, .qn-set-slider-val, .playlist-act-btn, .pin-act-btn, .playlist-del-tile, .pin-del-tile, .qn-yt-bbtn, .qn-pt-bbtn, .qn-tn-bbtn, .qn-tn-bstep-mid, .qn-ex-btn, .qn-ex-panel-header, .qn-ex-name, .qn-ex-suffix input, .qn-yt-seekpop-btn, .pcv2-anchor-tab, .mobile-tab-btn, .qn-flyout-item, .qn-yt-fab-folder, .panel-fab-btn, .qn-mic-pill, #splashLogo, .av-toggle-btn-label, #noteTextFullscreenBtn, .pcv2-bar-page, .qn-yt-panel-header, .qn-tn-panel-header, .qn-pt-panel-header, .pin-memo-preset-chip:not(.qn-qp-act), .pin-memo, .pin-memo-text, .playlist-editable-display, .playlist-editable-field, .qn-yt-item-title, .qn-pt-rec-title, .qn-marker-preset-colors-list, .vbar-label-memo, .pin-info, .qn-set-sec-title, .qn-stepper-val";
   const eng = s => { s = s.trim(); if (!/[A-Za-z]{2}/.test(s) || /[぀-ヿ㐀-鿿]/.test(s)) return false; const words = s.match(/[A-Za-z]{2,}/g) || []; return words.length >= 2 || s.length >= 8; };
   const out = new Set();
   const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -61,9 +61,12 @@ def dom():
                     pg.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2); pg.mouse.down(); pg.wait_for_timeout(700); pg.mouse.up(); pg.wait_for_timeout(200)
                     grab("長押し " + sel.split(",")[0]); pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
                 except Exception: pass
-            for app in ("tuner", "pitch"):
+            for app in ("tuner", "pitch", "export"):
                 try:
                     qb.open_app(pg, app); grab("アプリ " + app)
+                    if app == "export":
+                        for lab in ("Tone", "Output"):
+                            pg.evaluate("(l)=>{const e=[...document.querySelectorAll('.pcv2-icon-item')].find(x=>x.innerText.trim().startsWith(l)&&x.offsetParent);e&&e.click()}", lab); pg.wait_for_timeout(400); grab("EXPORT " + lab)
                 except Exception: pass
             pg.context.close()
     return found

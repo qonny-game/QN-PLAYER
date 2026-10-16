@@ -1,0 +1,31 @@
+# EXPORTアプリ(書き出し専門ツール) — v4.70.0〜
+
+QNPLAYER内のアプリ `id:"export"`(ロゴ表記 QNEXPORT)。音声ファイルを読み込み、Trim/Speed/Key/EQ/Compressor/Normalizeをかけて WAV / MP3 / FLAC / OGG Opus / M4A(AAC)で書き出す。処理はすべて端末内(サーバー送信なし)。
+
+## ファイル
+| ファイル | 役割 |
+|---|---|
+| `JS/qn-export-core.js` | `window.QNExportCore`。DOMなしの処理本体。`decode(blob)` → `process(buf, opts, onProgress)` → `{blob, ext, sampleRate, channels, info, duration}`。`peaks` `toAudioBuffer` `encodeWav` `analyze`も公開 |
+| `JS/qn-export-codecs.js` | `QNExportCodecs`。FLAC(自前: 固定予測+Rice)、OggのOpus(WebCodecs+自前Ogg)、M4A(WebCodecs AAC+自前MP4)。`supports()`で端末対応を調べる |
+| `JS/soundtouch-core.js` + `JS/LICENSE-soundtouchjs.txt` | SoundTouch(MPL-2.0)を同梱。`window.QNSoundTouch`。速度は`tempo=speed/pitch`、キーは`pitchSemitones` |
+| `JS/lame_min.js` | MP3エンコード。MP3書き出し時に初めて読む(遅延読み込み。`window.lamejs`はMp3Encoderを持つ関数) |
+| `JS/qn-app-export.js` | UI・登録。左パネル Edit/Tone/Output、ステージに一覧+波形トリム+Preview、下バーにExport |
+| `CSS/style-qnx.css` | `.qn-ex*`(`style-export.css`は別物なので使わない) |
+| `md/tools/e2e_export.py` | 実処理の確認(長さ・天井・ヘッダ・Library追加・ZIP) |
+
+## 処理の順番
+decode → Trim → SoundTouch(Speed/Key) → OfflineAudioContextでEQ(10バンド peaking Q1.4、PLAYERと同じ周波数)+Compressor → Normalize(peak=-1 dBFS天井 / loud=ゲート付きRMSを目標にそろえ、リミッタ) → WAV(16/24/32f) か MP3。
+Trimは曲ごと、そのほかは全曲共通(`qn_export_settings`)。パネルの折りたたみは`qn_export_panel_collapsed`。
+
+## Libraryとの関係
+- 読み込んだファイルはLibraryに入らない(メモリ上だけ)。
+- `From Library`は`playlist[i].file`を一覧に足す(コピー)。
+- `Add to Library`ON → 書き出し結果を`new File([blob], name)`で`addFilesToPlaylist`へ。`Download`とは独立(両方OFFだとExport不可)。
+- 名前は `<元の名前><Suffix>.<拡張子>`。同名は`_2`…を付ける。複数+Zip ONで`qnplayer_export_<日付>.zip`。
+
+## 制限・今後
+- 形式: WAV・MP3・FLAC・OGG(Opus)・M4A(AAC-LC)。Vorbis(.ogg)は未対応。OGG/M4AはWebCodecsのAudioEncoder対応時だけ形式に出る(素のChromiumはAAC不可)。
+- 分割: 1ファイルは複数の範囲(`segs`: name/start/end/on)を持てる。波形クリックで分割点→Split。範囲ごとに名前とトリムを持ち、全部が別ファイルになる。Trimのスライダー・ハンドルは選択中の範囲に効く。
+- プレビューはTrim開始から最大20秒を同じ処理で作って再生。
+- 長い曲(数十分)はメモリを使う。無料/有料の制限は未適用。
+- ヘッドレスChromiumでの確認のみ。実機の音・長尺・iOS Safariは未確認。

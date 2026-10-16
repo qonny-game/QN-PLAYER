@@ -4,7 +4,7 @@ QN-PLAYER（QNシリーズのブラウザ完結型MP3プレイヤー）の設計
 修正依頼の前に該当節を見て、同じ調査・同じ失敗を繰り返さないようにする。
 
 **関連ファイル（`md/`）：** `QUICK_START.md`（最初に読む）／`GOTCHAS.md`（落とし穴）／`RELEASE_FEATURES.md`（隠した機能を公開する手順）／`UX_REVIEW.md`（UX見直しの手順。コード整理の時は先にやるか聞く）／`PC_V2_FILE_INDEX.md`（大きいファイルの目次）／
-`YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約ルール。最優先）／`TUNER_APP.md`（TUNERアプリの仕様）／`PITCH_APP.md`（PITCHアプリの仕様）／`CHORD_MODE.md`（シークバーのコード表示）／`SYNC.md`（Library同期・Transfer）／`I18N_HANDOFF.md`（和英切替）／`USER_DOCS.md`（ガイド・利用規約・プライバシー・料金ページの更新ルール）／`DOM_ID_REFERENCE.md`／`UI_TERMINOLOGY.md`／`CLEANUP.md`（お掃除ルール）／`TOOLS.md`（確認・納品の道具）／`CHANGELOG.md`
+`YOUTUBE_APP.md`（YouTubeアプリの仕様＋規約ルール。最優先）／`TUNER_APP.md`（TUNERアプリの仕様）／`EXPORT_APP.md`（EXPORTアプリの仕様）／`PITCH_APP.md`（PITCHアプリの仕様）／`CHORD_MODE.md`（シークバーのコード表示）／`SYNC.md`（Library同期・Transfer）／`I18N_HANDOFF.md`（和英切替）／`USER_DOCS.md`（ガイド・利用規約・プライバシー・料金ページの更新ルール）／`DOM_ID_REFERENCE.md`／`UI_TERMINOLOGY.md`／`CLEANUP.md`（お掃除ルール）／`TOOLS.md`（確認・納品の道具）／`CHANGELOG.md`
 
 ---
 
@@ -49,6 +49,9 @@ JS/
   player-swipe.js             PLAYERのLibrary/Markers一覧(SP幅)の横スワイプボタン（実体はqn-apps.jsのQNApps.swipeRows）
   qn-app-youtube.js           YouTubeアプリ本体（IIFE）
   qn-pitch-core.js            TUNER/PITCH共通：マイク入力・ピッチ検出(自己相関)・音名変換（QNPitchCore。DOM操作なし）
+  qn-export-core.js           EXPORT処理本体(QNExportCore。DOMなし。decode/process)。soundtouch-core.js=SoundTouch同梱
+  qn-export-codecs.js         EXPORTの書き出し形式(FLAC自前/Opus・AACはWebCodecs+自前の容れ物)
+  qn-app-export.js            EXPORTアプリ(書き出し専門ツール。詳細はEXPORT_APP.md)
   qn-app-tuner.js             TUNERアプリ本体（IIFE。Mic Tuner/Tone Generator/Sensitivity/Display）
   qn-pitch-filters.js         PITCH用：ノイズ除去/ビブラート/ズレ検出/スコア＋フィルタ設定（QNPitchFilters。DOM操作なし）
   qn-app-pitch.js             PITCHアプリ本体（IIFE。ピッチロール/録音/再生/Filters/Recordings/Backup窓口QNPitchBackup）
@@ -70,6 +73,7 @@ CSS/
   style-apps.css              アプリ枠（ロゴ切替・フライアウト・トースト・#qnAppHost）
   style-youtube.css           YouTubeアプリ専用（.qn-yt*）
   style-tuner.css             TUNERアプリ専用（.qn-tn*）
+  style-qnx.css               EXPORTアプリ専用（.qn-ex*。style-export.cssは別物）
   style-pitch.css             PITCHアプリ専用（.qn-pt*）
   style-chords.css            コード修正ポップアップ(.qn-ce*)と編集中のシークバー(.qn-chord-editing)
 favicon/  guide/  md/  index.html  terms.html  privacy.html  pricing.html  pricing-en.html  QUICK_START.md  CNAME

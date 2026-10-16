@@ -389,7 +389,13 @@ async function runTrackBackup() {
         zip.file("markers.json", markersJsonText);
         if (includeAudio) {
           const audioFolder = zip.folder("audio");
-          targetTracks.forEach(track => audioFolder.file(track.name, track.file));
+          // 【v4.69.0】Libraryのフォルダ構造を保つ: audio/<フォルダ名>/<曲>。未分類はaudio直下。読み込みは曲名(末尾)で探すので、古い版・古いバックアップとも互換
+          const safeDir = n => String(n || "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/^\.+/, "").trim().slice(0, 80) || "Folder";
+          targetTracks.forEach(track => {
+            const fid = typeof trackFolderId === "function" ? trackFolderId(track) : null;
+            const fo = fid && typeof getPlaylistFolder === "function" ? getPlaylistFolder(fid) : null;
+            (fo ? audioFolder.folder(safeDir(fo.name)) : audioFolder).file(track.name, track.file);
+          });
         }
       }
       if (hasYt) zip.file("youtube.json", ytJsonText);

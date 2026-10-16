@@ -35,7 +35,9 @@
 | `e2e_motion.py` | Animations設定(`QNMotion`)の確認。OSが「動きを減らす」でも、Onなら サイドバーの動きが出る/Autoなら出ない。 |
 | `ux_audit.py` | `python3 -I md/tools/ux_audit.py [--wav ファイル] [--out フォルダ]`。UX見直しの下ごしらえ: PC(1440)/SP(390)の全パネル撮影+はみ出し・32px未満のタップ領域・名前の無いボタン・下段バーが各幅(1280/1366/1440/1920)で収まるか。手順は`md/UX_REVIEW.md` |
 | `i18n_ja_check.py` | 日本語表示で英語のまま残っている文言の洗い出し(辞書 `qn-i18n-ja.js` の追加漏れ)。ボタン名・見出し・マーカープリセットは英語のままでよいので除外。DOM(各パネル・設定の各ページ・長押しポップアップ・PC/SP)と `--static`(ソースの英語リテラルが辞書/RULESに在るか)。新しい英語文言を足したら実行 |
+| `e2e_export.py` | v4.70.0〜 EXPORTアプリの実処理(FLAC/OGG/分割も。Speed/Trim/Key/Normalize/WAV・MP3/Libraryから選ぶ・書き出しをLibraryへ/複数ZIP)。詳細は`EXPORT_APP.md` |
 | `e2e_v467.py` | v4.67.0〜 停止中のシーク/マーカーのタップは再生しない/再生中は続く、Loop・Repeat・クリック音・線の表示のトースト(日本語表示) |
+| `e2e_backup_folders.py` | v4.69.0 Backupのzipがフォルダ構造(audio/<フォルダ名>/曲)を保つ。`QN_WAV=../guitar_test.wav python3 -I md/tools/e2e_backup_folders.py` |
 | `e2e_snapclick.py` | v4.66.0 線の表示ボタンのタップ循環(Grid: 小節+拍→小節→off)・長押しポップアップ(吸着=小節/拍の個別、クリック音=Click offset)。`QN_WAV=../guitar_test.wav python3 -I md/tools/e2e_snapclick.py [幅]` |
 | `e2e_lyrics_wide.py` | v4.65.0 歌詞の広い表示(波形と1:1・全行同じ文字サイズ・現在行が中央・SPのON/OFFアイコンがBの右)。`QN_WAV=../guitar_test.wav python3 -I md/tools/e2e_lyrics_wide.py [幅]` |
 | `e2e_lyrics.py` / `e2e_sidemotion.py` / `e2e_v460.py` | v4.60.0の動作確認(要guitar_test.wav。実行はプロジェクトのルートから`cp`して使う)。歌詞のスクロール(`data-r`の回り方・途中の位置)、サイドバーのモーション(パネル切替で1回だけ動く・SPでは出ない)、速度/Keyバーのダブルクリックで位置が戻る、背景がColorに有る、マーカーのカギが数字の左 |

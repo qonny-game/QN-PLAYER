@@ -83,6 +83,8 @@
 - `JS/player-marker-presets.js` — プリセット/自動カラー/カスタムプリセット、`startPinMemoEdit`（メモ編集のプリセットポップアップ）。
 - `CSS/style-apps.css` — アプリ枠（サイドバー・フライアウト・トースト・`#qnAppHost`）。`CSS/style-youtube.css` — `.qn-yt*`（レイアウトPC/SP、シークバー、Library/Markers、Backup/Import、チャプター、コントロールバー、`.qn-yt-seekpop`）。
 
+## JS/qn-app-export.js / JS/qn-export-core.js（EXPORTアプリ。仕様と構成は`EXPORT_APP.md`）
+
 ## JS/qn-app-tuner.js（TUNERアプリ。IIFE、約650行）／JS/qn-pitch-core.js
 `grep -n "// ----------"`で見出しが出る。構造はYouTubeアプリと同じ（`TEMPLATE`→`mount`、`SIDEBAR`/`setPanel`/`onSidebar`、`onShow`/`onHide`）。
 - 表示：`displayStyles`（gauge / guitar-meter。`render/update`）、`tuningState`（±5¢=just/±20¢=close/他=far）、`renderMainDisplay/resetReadout`
