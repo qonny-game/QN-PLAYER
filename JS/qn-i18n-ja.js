@@ -552,6 +552,8 @@
     "Normalize the level. Tap the icon to choose the mode": "音量をそろえます。アイコンを押すと方式を選べます",
     "Compressor. Tap the icon to choose the amount": "コンプレッサー。アイコンを押すと強さを選べます",
     "Include this file in export": "このファイルを書き出しに含める",
+    "Fold or unfold": "たたむ/開く",
+    "Files stay on this device and are not added to the Library unless you turn on Library for a part": "ファイルはこの端末の中だけで処理します。範囲の「Library」をオンにしない限り、ライブラリには入りません",
     // ---- TUNER ----
     "Tone Generator": "Tone Generator",
     "Now Playing": "再生中",

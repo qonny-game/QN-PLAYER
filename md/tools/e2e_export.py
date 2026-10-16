@@ -16,7 +16,7 @@ with QNBrowser(".") as qb:
     n0 = pg.evaluate("playlist.length")
     pg.set_input_files("[data-ex=file]", wp); pg.wait_for_timeout(1500)
     check("file loaded, Library untouched", pg.evaluate("QNExport._items().length") == 1 and pg.evaluate("playlist.length") == n0)
-    check("waveform ready", pg.evaluate("document.querySelector('[data-ex=wave]').dataset.state") == "ready", pg.evaluate("document.querySelector('[data-ex=wave]').dataset.state"))
+    check("waveform ready", pg.evaluate("document.querySelector('.qn-ex-wave').dataset.state") == "ready", pg.evaluate("document.querySelector('.qn-ex-wave').dataset.state"))
     # 直接処理: Speed 2x → 約半分、Trim
     r = pg.evaluate("""async()=>{const f=QNExport._items()[0].file;const b=await QNExportCore.decode(f);const out={};
       const run=async(o)=>{const r=await QNExportCore.process(b,Object.assign({speed:1,key:0,eq:[0,0,0,0,0,0,0,0,0,0],comp:'off',norm:{mode:'off',target:-18},format:'wav',bits:16,sampleRate:0,mono:false},o));const ab=await r.blob.arrayBuffer();const u=new Uint8Array(ab);return {dur:r.duration,size:r.blob.size,hdr:String.fromCharCode(u[0],u[1],u[2],u[3]),ext:r.ext,sr:r.sampleRate,peak:(()=>{const d=new DataView(ab);let m=0;for(let i=44;i+1<ab.byteLength;i+=2){m=Math.max(m,Math.abs(d.getInt16(i,true)))}return m/32768})()}};
@@ -40,16 +40,28 @@ with QNBrowser(".") as qb:
     if fm["sup"]["m4a"]: check("m4a output", fm["m4a"]["ext"] == "m4a" and fm["m4a"]["size"] > 1000, fm["m4a"])
     else: print("(m4a: AudioEncoder aac not supported in this browser, skipped)")
     # 分割: 波形クリックで分割点→Split→範囲ごとに名前と範囲
-    pg.evaluate("QNExport.select(0)"); pg.wait_for_timeout(1200)
-    bx = pg.locator("[data-ex=wave]").bounding_box()
+    pg.evaluate("QNExport.select(QNExport._items()[0])"); pg.wait_for_timeout(300)
+    bx = pg.locator(".qn-ex-wave").first.bounding_box()
     pg.mouse.click(bx["x"] + bx["width"] * 0.4, bx["y"] + bx["height"] / 2); pg.wait_for_timeout(200)
-    pg.evaluate("document.querySelector('[data-ex=splitBtn]').click()"); pg.wait_for_timeout(300)
+    pg.evaluate("document.querySelector('.qn-ex-file [data-act=split]').click()"); pg.wait_for_timeout(300)
     segs = pg.evaluate("QNExport._items()[0].segs.map(g=>[g.name,g.start,g.end])")
     check("split makes 2 parts", len(segs) == 2 and abs(segs[0][2] - 4) < 0.3 and abs(segs[1][1] - segs[0][2]) < 0.01, segs)
     check("parts listed in UI", pg.evaluate("document.querySelectorAll('.qn-ex-seg').length") == 2)
     # 一括指定(All parts)=全ファイル・全範囲、範囲ごとの設定、スイッチ
     pg.set_input_files("[data-ex=file]", wp2); pg.wait_for_timeout(1200)
     check("two files listed below", pg.evaluate("document.querySelectorAll('.qn-ex-file').length") == 2)
+    # その曲だけの一括(All parts in this file)は他の曲に影響しない
+    pg.locator(".qn-ex-file").nth(1).locator(".qn-ex-file-body > .qn-ex-bulk .qn-ex-chip").first.click(); pg.wait_for_timeout(250)
+    pg.locator(".qn-quickpop .qn-stepper-btn[data-d='1']").first.click(); pg.wait_for_timeout(200)
+    ff = pg.evaluate("QNExport._items().map(it=>it.segs.map(g=>g.o.format).join(','))")
+    check("per-file bulk only affects that file", ff[1] != "wav" and ff[0] == "wav,wav", ff)
+    pg.mouse.click(5, 5); pg.wait_for_timeout(150)
+    # たたむ/開く
+    pg.locator(".qn-ex-file").nth(1).locator("[data-act=fold]").click(); pg.wait_for_timeout(150)
+    check("file block folds", pg.evaluate("document.querySelectorAll('.qn-ex-file')[1].classList.contains('is-folded')") and not pg.locator(".qn-ex-file").nth(1).locator(".qn-ex-wave").is_visible())
+    pg.locator(".qn-ex-file").nth(1).locator("[data-act=fold]").click(); pg.wait_for_timeout(250)
+    check("file block unfolds", pg.locator(".qn-ex-file").nth(1).locator(".qn-ex-wave").is_visible())
+    pg.evaluate("QNExport._items()[1].segs.forEach(g=>{g.o.format='wav'}); QNExport._items()[1].def.format='wav'"); pg.locator("body").click(position={"x":5,"y":5})
     pg.locator("[data-ex=bulk] .qn-ex-chip").first.click(); pg.wait_for_timeout(250)
     check("bulk popup opens", pg.evaluate("!!document.querySelector('.qn-quickpop')"))
     pg.locator(".qn-quickpop .qn-stepper-btn[data-d='1']").first.click(); pg.wait_for_timeout(200)

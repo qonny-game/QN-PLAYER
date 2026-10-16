@@ -3,7 +3,7 @@
   --qn-ex-wave: var(--accent-primary);
   --qn-ex-dim: rgba(255, 255, 255, 0.18);
   flex: 1; min-height: 0; position: relative;
-  display: grid; grid-template-columns: 375px 1fr; grid-template-rows: minmax(0, 1fr) auto;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto;
   color: var(--text-bright); font-family: var(--font-body, 'Instrument Sans'), sans-serif; font-size: var(--fs-body);
 }
 .qn-ex.qn-ex-collapsed { grid-template-columns: 0 1fr; }
@@ -16,7 +16,7 @@
 .qn-ex[data-panel="out"] .qn-ex-sec-out, .qn-ex[data-panel="keyboard"] .qn-ex-sec-keyboard { display: block; }
 
 /* ---------- ステージ ---------- */
-.qn-ex-stage { grid-column: 2; grid-row: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; overflow-y: auto; }
+.qn-ex-stage { grid-column: 1; grid-row: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; overflow-y: auto; }
 .qn-ex-stage.is-drop { outline: 2px dashed var(--accent-primary); outline-offset: -8px; }
 .qn-ex-top { display: flex; gap: 8px; flex-wrap: wrap; }
 .qn-ex-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: var(--btn-h); padding: 0 var(--btn-pad-x); border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: none; color: var(--icon-muted); font-family: var(--font-display, 'Instrument Sans'), sans-serif; font-size: var(--fs-btn); font-weight: 600; letter-spacing: .3px; white-space: nowrap; cursor: pointer; transition: background var(--dur-hover, 130ms) ease, color var(--dur-hover, 130ms) ease, transform var(--dur-press, 100ms) ease; }
@@ -55,7 +55,7 @@
 .qn-ex-wave-info { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--icon-muted); font-size: var(--fs-small); }
 
 /* ---------- 下部バー ---------- */
-.qn-ex-bar { grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); }
+.qn-ex-bar { grid-column: 1; grid-row: 2; display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); }
 .qn-ex-barinfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-small); color: var(--icon-muted); }
 .qn-ex-progbox { height: 4px; border-radius: 2px; background: var(--border-subtle); overflow: hidden; }
 .qn-ex-progbox[hidden] { display: none; }
@@ -79,16 +79,11 @@
 .qn-ex-pick-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 16px; border: none; background: none; color: var(--text-bright); text-align: left; cursor: pointer; font-size: var(--fs-body); }
 .qn-ex-pick-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-subtle); }
 
-/* ---------- スマホ(TUNERと同様、ステージかパネルのどちらかを出す) ---------- */
+/* ---------- スマホ ---------- */
 @media screen and (max-width: 900px) {
   .qn-ex { display: flex; flex-direction: column; }
-  .qn-ex-stage { order: 1; flex: 1; padding: 16px; }
-  .qn-ex-panel { order: 2; flex: 1; border-right: none; border-top: 1px solid var(--border-subtle); }
-  .qn-ex-bar { order: 3; flex-shrink: 0; padding: 10px 16px; }
-  .qn-ex[data-panel="none"] .qn-ex-panel { display: none; }
-  .qn-ex:not([data-panel="none"]) .qn-ex-stage, .qn-ex:not([data-panel="none"]) .qn-ex-bar { display: none; }
-  .qn-ex-panel-header { font-size: var(--fs-heading); padding: 12px 16px; }
-  .qn-ex-sec { padding-left: 16px; }
+  .qn-ex-stage { flex: 1; padding: 16px; }
+  .qn-ex-bar { flex-shrink: 0; padding: 10px 16px; }
   .qn-ex-listbox { max-height: 30vh; }
 }
 
@@ -144,3 +139,28 @@
 .qn-ex-pico { min-width: 54px; }
 .qn-ex-pico[data-pop]::after { content: ""; position: absolute; right: 3px; bottom: 3px; width: 0; height: 0; border-style: solid; border-width: 0 0 6px 6px; border-color: transparent transparent var(--icon-muted) transparent; opacity: .7; pointer-events: none; }
 @media screen and (max-width: 900px) { .qn-ex-main { width: 100%; } .qn-ex-main .qn-ex-chip { flex: 1; padding: 0 8px; } .qn-ex-sw { flex: 1; } }
+
+/* ---------- v4.74.0 サイドバー撤去・曲ごとにたためるブロック ---------- */
+.qn-ex-allbox { border: 1px solid var(--border-strong); border-radius: var(--radius-md, 10px); overflow: hidden; flex-shrink: 0; }
+.qn-ex-allbox .qn-ex-bulk { border-bottom: none; }
+.qn-ex-files { display: flex; flex-direction: column; gap: 12px; }
+.qn-ex-file { border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 10px); overflow: hidden; }
+.qn-ex-file.is-active { border-color: var(--border-strong); }
+.qn-ex-file-body { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.qn-ex-file.is-folded .qn-ex-file-body { display: none; }
+.qn-ex-file-body .qn-ex-bulk { border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 10px); }
+.qn-ex-file-body .qn-ex-segs { border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 10px); overflow: hidden; }
+.qn-ex-fold { width: 28px; height: 28px; flex-shrink: 0; border: none; background: none; color: var(--icon-muted); cursor: pointer; border-radius: 50%; padding: 2px; transition: transform var(--dur-hover, 130ms) ease; }
+.qn-ex-fold svg { width: 100%; height: 100%; fill: currentColor; }
+.qn-ex-file.is-folded .qn-ex-fold { transform: rotate(-90deg); }
+.qn-ex-wave { flex: 0 0 120px; }
+.qn-ex-save { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.qn-ex-save-l { font-size: var(--fs-small); color: var(--icon-muted); }
+.qn-ex-suffix-in { width: 120px; height: 32px; padding: 0 10px; border-radius: var(--radius-md, 10px); border: 1px solid var(--border-subtle); background: none; color: var(--text-bright); font-size: var(--fs-small); font-family: inherit; }
+@media screen and (max-width: 900px) {
+  .qn-ex { display: flex; flex-direction: column; }
+  .qn-ex-bar { flex-wrap: wrap; gap: 8px 12px; }
+  .qn-ex-barinfo { flex-basis: 100%; }
+  .qn-ex-suffix-in { width: 90px; }
+  .qn-ex-file-body { padding: 8px; }
+}
