@@ -1,6 +1,6 @@
 // qn-app-export.js — EXPORTアプリ(書き出し専門ツール)。QNApps.register({id:"export"})。処理本体はqn-export-core.js(DOMなし)。
 // 読み込んだファイルはLibraryに追加せずに書き出せる(メモリ上だけ)。Libraryの曲も選べる。書き出した結果をLibraryに追加するスイッチもある。保存キー: qn_export_settings
-// 音声は端末の中だけで処理する(サーバーへ送らない)。1ファイルを複数の範囲(Parts)に分け、範囲ごとに 名前/形式/ビットレート/サンプルレート/Normalize/Comp/Speed/Key/EQ/Mono/Library追加 を持つ。上段の「All parts」で一括指定。複数ならZIPにまとめられる。
+// 音声は端末の中だけで処理する(サーバーへ送らない)。1ファイルを複数の範囲(Parts)に分け、範囲ごとに名前とトリミングを持つ。形式/ビットレート/サンプルレート/Normalize/Comp/Speed/Key/EQ/Mono/Library追加は曲ごと。上段の「All files」で全曲に一括指定。複数ならZIPにまとめられる。
 // スタイルはCSS/style-export-app.cssの.qn-ex*。UI部品はQNSettingsUI(PLAYERの設定行と共通)。
 (function () {
   "use strict";
@@ -22,7 +22,7 @@
   };
 
   // ---------- 設定 ----------
-  // 1つの範囲(Part)が持つ書き出し設定 o。S.def は「All parts」(一括指定)の表示値で、新しい範囲の初期値にもなる
+  // 書き出し設定は曲ごと(it.def)。S.def は「All files」(全曲一括)の表示値で、新しく読み込む曲の初期値にもなる
   var DEFO = { format: "wav", bits: 16, kbps: 192, sr: 0, norm: "peak", normOn: false, normTarget: -18, comp: "medium", compOn: false, speedOn: false, speed: 1, keyOn: false, key: 0, eqOn: false, eq: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], eqPreset: "flat", mono: false, lib: false };
   var S = { def: JSON.parse(JSON.stringify(DEFO)), download: true, suffix: "_export" };
   try {
@@ -40,6 +40,7 @@
 
   // ---------- 状態 ----------
   var items = [], activeIt = null, nextId = 1, root = null, refs = {}, shown = false, busy = false, abortFlag = false;
+  var panelState = null, panelCollapsed = (function () { try { return localStorage.getItem(COLLAPSE_KEY) === "1"; } catch (e) { return false; } })();
   var loadQ = Promise.resolve(), prevBufCache = { id: 0, buf: null };
   var prevCtx = null, prevSrc = null, previewing = false, prevIt = null, strips = [], bulkStrip = null;
   var codecSup = { ogg: false, m4a: false };
@@ -49,6 +50,7 @@
   function fmtList() { var l = ["wav", "mp3", "flac"]; if (codecSup.ogg) l.push("ogg"); if (codecSup.m4a) l.push("m4a"); return l; }
   function fmtName(v) { return v === "ogg" ? "OGG Opus" : v.toUpperCase(); }
 
+  function isSp() { return window.matchMedia("(max-width: 900px)").matches; }
   function toast(t) { if (window.QNApps && QNApps.toast) QNApps.toast(t); }
   function haptic() { if (typeof hapticTap === "function") { try { hapticTap(); } catch (e) {} } }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
@@ -62,21 +64,20 @@
   var X_SVG = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
   var CHEV_SVG = '<svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
 
-  // ---------- 設定の変更。t = "bulk"(全曲) / {fb:曲}(その曲の全範囲) / 範囲g ----------
-  function optsOf(t) { return t === "bulk" ? S.def : t.fb ? t.fb.def : t.o; }
+  // ---------- 設定の変更。t = "bulk"(全曲) / {fb:曲}(その曲。設定は曲ごと、範囲ごとには持たない) ----------
+  function optsOf(t) { return t === "bulk" ? S.def : t.fb.def; }
   function setOpts(t, patch) {
     var keys = Object.keys(patch);
     function put(o) { keys.forEach(function (k) { o[k] = Array.isArray(patch[k]) ? patch[k].slice() : patch[k]; }); }
-    if (t === "bulk") { put(S.def); items.forEach(function (it) { put(it.def); it.segs.forEach(function (g) { put(g.o); }); }); }
-    else if (t.fb) { put(t.fb.def); t.fb.segs.forEach(function (g) { put(g.o); }); }
-    else put(t.o);
+    if (t === "bulk") { put(S.def); items.forEach(function (it) { put(it.def); }); }
+    else put(t.fb.def);
     if (t === "bulk") save();
     updStrips(); refreshBar();
   }
   function fixKbps(o) { if (KB[o.format] && KB[o.format].indexOf(o.kbps) < 0) return KDEF[o.format]; return o.kbps; }
 
   // ---------- 曲(ファイル)の追加・削除 ----------
-  function newSeg(it, name) { return { name: safeName(name), start: 0, end: 0, on: true, o: newOpts(it.def) }; }
+  function newSeg(it, name) { return { name: safeName(name), start: 0, end: 0, on: true }; }
   function addBlob(file, source, label) {
     var it = { id: nextId++, name: label || file.name, file: file, source: source, dur: null, pk: null, state: "loading", segs: [], ss: 0, cursor: null, on: true, folded: false, def: newOpts(S.def) };
     it.segs.push(newSeg(it, baseName(label || file.name)));
@@ -112,10 +113,11 @@
     if (activeIt === it) setActive(items[Math.min(i, items.length - 1)] || null);
     syncEmpty(); refreshBar();
   }
-  function syncEmpty() { refs.empty.hidden = items.length > 0; refs.listbox.hidden = items.length > 0; refs.allbox.hidden = !items.length; }
+  function syncEmpty() { renderFileList(); refs.empty.hidden = items.length > 0; refs.listbox.hidden = items.length > 0; refs.allbox.hidden = !items.length; }
   function setActive(it) {
     activeIt = it || null;
     items.forEach(function (x) { x.ui.blk.classList.toggle("is-active", x === activeIt); });
+    renderFileList();
   }
 
   // ---------- 波形の読み込み(デコード→ピークだけ残して、音声データは捨てる) ----------
@@ -158,7 +160,7 @@
     bt.innerHTML = '<button type="button" data-act="split" class="qn-ex-btn" title="Split the selected part at the white line. Click the waveform to place it"><svg viewBox="0 0 24 24">' + ICON.split + '</svg><span>Split</span></button><button type="button" data-act="preview" class="qn-ex-btn" title="Hear the result of the current settings (up to 20 seconds)"><svg viewBox="0 0 24 24">' + ICON.play + '</svg><span>Preview</span></button>';
     ui.prevBtn = bt.querySelector('[data-act="preview"]'); ui.splitBtn = bt.querySelector('[data-act="split"]');
     info.appendChild(ui.trimInfo); info.appendChild(bt);
-    var bulk = el("div", "qn-ex-bulk"); bulk.appendChild(el("span", "qn-ex-bulk-l", "All parts in this file"));
+    var bulk = el("div", "qn-ex-bulk"); bulk.appendChild(el("span", "qn-ex-bulk-l", "Settings for this file"));
     var fbs = buildStrip({ fb: it }, it); strips.push(fbs); bulk.appendChild(fbs.el);
     ui.segs = el("div", "qn-ex-segs");
     [wave, info, bulk, ui.segs].forEach(function (n) { body.appendChild(n); });
@@ -167,7 +169,7 @@
     renderSegs(it); renderHead(it);
   }
   function renderHead(it) {
-    var ui = it.ui;
+    var ui = it.ui; renderFileList();
     ui.check.classList.toggle("is-on", it.on); ui.blk.classList.toggle("is-off", !it.on);
     ui.blk.classList.toggle("is-folded", !!it.folded); ui.fold.setAttribute("aria-expanded", it.folded ? "false" : "true");
     ui.dur.textContent = it.segs.length > 1 ? it.segs.length + " parts" : (it.dur ? fmtT(it.dur) : "--");
@@ -241,7 +243,7 @@
     c = Math.round(c * 10) / 10;
     if (c <= g.start + 0.2 || c >= e - 0.2) { toast("Pick a point inside the selected part"); return; }
     var base = safeName(baseName(it.label || it.name));
-    var ng = { name: "", start: c, end: e, on: true, o: JSON.parse(JSON.stringify(g.o)) };
+    var ng = { name: "", start: c, end: e, on: true };
     g.end = c;
     var idx = it.segs.indexOf(g);
     it.segs.splice(idx + 1, 0, ng);
@@ -275,7 +277,7 @@
   function popRows(kind, t) {
     var o = function () { return optsOf(t); };
     var stepper = function (label, hint, values, get, set, fmt, extra) { var r = { label: label, hint: hint, type: "stepper", values: function () { return typeof values === "function" ? values() : values; }, get: get, set: set, fmt: fmt || String }; if (extra) Object.keys(extra).forEach(function (k) { r[k] = extra[k]; }); return r; };
-    if (kind === "out") return { title: t === "bulk" ? "Output (all parts)" : "Output", rows: [
+    if (kind === "out") return { title: t === "bulk" ? "Output (all files)" : "Output", rows: [
       stepper("Format", "", fmtList, function () { return o().format; }, function (v) { var p = { format: v }; p.kbps = fixKbps({ format: v, kbps: o().kbps }); setOpts(t, p); }, fmtName),
       stepper("Bit depth", "", function () { return o().format === "flac" ? [16, 24] : [16, 24, 32]; }, function () { return o().format === "flac" && o().bits === 32 ? 24 : o().bits; }, function (v) { setOpts(t, { bits: v }); }, function (v) { return v === 32 ? "32-bit float" : v + "-bit"; }, { hiddenWhen: function () { return o().format !== "wav" && o().format !== "flac"; } }),
       stepper("Bitrate", "", function () { return KB[o().format] || KB.mp3; }, function () { return o().kbps; }, function (v) { setOpts(t, { kbps: v }); }, function (v) { return v + " kbps"; }, { hiddenWhen: function () { return !KB[o().format]; } }),
@@ -344,11 +346,11 @@
     st.upd();
     return st;
   }
-  function updStrips() { strips.forEach(function (s) { s.upd(); }); if (bulkStrip) bulkStrip.upd(); }
+  function updStrips() { strips.forEach(function (s) { s.upd(); }); if (bulkStrip) bulkStrip.upd(); renderFileList(); }
   function renderSegs(it) {
     var ui = it.ui, ae = document.activeElement;
     if (ae && ae.getAttribute && ae.getAttribute("data-act") === "segname" && ui.segs.contains(ae)) { updRanges(it); return; } // 名前の入力中は作り直さない
-    ui.segs.textContent = ""; strips = strips.filter(function (st) { return st.it !== it || (st.t && st.t.fb); });
+    ui.segs.textContent = "";
     it.segs.forEach(function (g, i) {
       var row = el("div", "qn-ex-seg" + (i === it.ss ? " is-sel" : "") + (g.on ? "" : " is-off")); row.setAttribute("data-i", i);
       var top = el("div", "qn-ex-seg-top");
@@ -357,8 +359,7 @@
       var rg = el("span", "qn-ex-segrange", fmtT(g.start) + " – " + fmtT(segEnd(it, g)));
       var x = el("button", "qn-ex-x"); x.type = "button"; x.setAttribute("data-act", "segremove"); x.title = "Remove this part"; x.disabled = it.segs.length < 2; x.innerHTML = X_SVG;
       top.appendChild(sc); top.appendChild(inp); top.appendChild(rg); top.appendChild(x);
-      var st = buildStrip(g, it); strips.push(st);
-      row.appendChild(top); row.appendChild(st.el); ui.segs.appendChild(row);
+      row.appendChild(top); ui.segs.appendChild(row);
     });
     ui.splitBtn.disabled = !it.dur;
   }
@@ -381,7 +382,7 @@
     try {
       var pg = sg(it), from = it.cursor != null && it.cursor >= pg.start && it.cursor < segEnd(it, pg) - 0.3 ? it.cursor : pg.start;
       var buf = await getBuf(it);
-      var r = await core.process(buf, procOpts(pg, { start: from, previewSec: 20, format: "wav", bits: 16 }));
+      var r = await core.process(buf, procOpts(it, pg, { start: from, previewSec: 20, format: "wav", bits: 16 }));
       if (!previewing || prevIt !== it) { setStatus(""); return; }
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!prevCtx) prevCtx = new AC();
@@ -395,8 +396,8 @@
   }
 
   // ---------- 書き出し ----------
-  function procOpts(g, extra) {
-    var c = g.o, o = {
+  function procOpts(it, g, extra) {
+    var c = it.def, o = {
       start: g.start, end: g.end, speed: c.speedOn ? c.speed : 1, key: c.keyOn ? c.key : 0, eq: c.eqOn ? c.eq : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], comp: c.compOn ? c.comp : "off",
       norm: { mode: c.normOn ? c.norm : "off", target: c.normTarget }, format: c.format, bits: c.bits, kbps: c.kbps, sampleRate: c.sr, mono: c.mono
     };
@@ -411,11 +412,11 @@
   }
   function refreshBar() {
     if (!refs.runBtn) return;
-    var jobs = checked(), n = jobs.length, anyLib = jobs.some(function (j) { return j.g.o.lib; });
+    var jobs = checked(), n = jobs.length, anyLib = jobs.some(function (j) { return j.it.def.lib; });
     refs.runBtn.disabled = busy ? false : n === 0 || (!S.download && !anyLib);
     refs.runLabel.textContent = busy ? "Cancel" : (n > 1 ? "Export " + n + " files" : "Export");
     refs.runBtn.classList.toggle("is-busy", busy);
-    refs.hint.textContent = n > 0 && !S.download && !anyLib ? "Turn on Download in Output, or Library on a part" : (n > 1 && S.download ? "Several files are saved as one zip" : "");
+    refs.hint.textContent = n > 0 && !S.download && !anyLib ? "Turn on Download in Output, or Library on a file" : (n > 1 && S.download ? "Several files are saved as one zip" : "");
   }
   function download(blob, name) {
     var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
@@ -437,11 +438,11 @@
           var buf = lastIt === it ? lastBuf : null;
           if (!buf) { lastBuf = null; buf = await core.decode(it.file); }
           lastIt = it; lastBuf = buf;
-          var r = await core.process(buf, procOpts(g), function (p) { setProgress((i + p) / list.length); });
+          var r = await core.process(buf, procOpts(it, g), function (p) { setProgress((i + p) / list.length); });
           var nm = safeName(g.name) + S.suffix, ext = "." + r.ext, nn = nm + ext, k = 2;
           while (used[nn.toLowerCase()]) nn = nm + "_" + (k++) + ext;
           used[nn.toLowerCase()] = 1;
-          results.push({ name: nn, blob: r.blob, type: MIME[r.ext] || "audio/wav", lib: !!g.o.lib });
+          results.push({ name: nn, blob: r.blob, type: MIME[r.ext] || "audio/wav", lib: !!it.def.lib });
         } catch (e) { fails++; console.warn("export failed:", g.name, e); }
       }
       if (abortFlag) { setStatus("Canceled"); toast("Export canceled"); return; }
@@ -483,10 +484,70 @@
     root.querySelector(".qn-ex").appendChild(ov);
   }
 
+  // ---------- 左パネル: 読み込んだ曲の一覧(押すとその曲へ移動して開く) ----------
+  function renderFileList() {
+    if (!refs.flist) return;
+    renderDetail(); refs.flist.textContent = ""; refs.fempty.hidden = items.length > 0; refs.fbtns.hidden = !items.length;
+    items.forEach(function (it, i) {
+      var row = el("div", "qn-ex-row" + (it === activeIt ? " is-sel" : "") + (it.on ? "" : " is-off")); row.setAttribute("data-i", i);
+      var cb = el("button", "qn-ex-check" + (it.on ? " is-on" : "")); cb.type = "button"; cb.setAttribute("data-act", "check"); cb.title = "Include this file in export";
+      var nm = el("span", "qn-ex-name", it.label || it.name);
+      var du = el("span", "qn-ex-dur", it.segs.length > 1 ? it.segs.length + " parts" : (it.dur ? fmtT(it.dur) : "--"));
+      var x = el("button", "qn-ex-x"); x.type = "button"; x.setAttribute("data-act", "remove"); x.title = "Remove from this list"; x.innerHTML = X_SVG;
+      row.appendChild(cb); row.appendChild(nm); row.appendChild(du); row.appendChild(x); refs.flist.appendChild(row);
+    });
+  }
+  function renderDetail() { // 選択中の曲の出力設定の一覧(表示のみ。変更は曲のブロックの設定帯で)
+    var d = refs.detail; if (!d) return;
+    d.textContent = ""; var it = activeIt; d.hidden = !it;
+    if (!it) return;
+    var o = it.def, onoff = function (v) { return v ? "On" : "Off"; };
+    var rows = [
+      ["Format", fmtName(o.format)],
+      [o.format === "wav" || o.format === "flac" ? "Bit depth" : "Bitrate", o.format === "wav" || o.format === "flac" ? (o.format === "wav" && o.bits === 32 ? "32-bit float" : o.bits + "-bit") : o.kbps + " kbps"],
+      ["Sample rate", o.sr === 0 ? "Original" : (o.sr / 1000) + " kHz"],
+      ["Speed", o.speedOn ? o.speed.toFixed(2) + "x" : "Off"],
+      ["Key", o.keyOn ? (o.key > 0 ? "+" : "") + o.key : "Off"],
+      ["EQ", o.eqOn ? (EQ_NAMES[o.eqPreset] || "Custom") : "Off"],
+      ["Mono", onoff(o.mono)],
+      ["Normalize", o.normOn ? (o.norm === "peak" ? "Peak" : "Loudness " + o.normTarget + " dB") : "Off"],
+      ["Comp", o.compOn ? (o.comp === "light" ? "Light" : o.comp === "medium" ? "Medium" : "Heavy") : "Off"],
+      ["Library", onoff(o.lib)]
+    ];
+    d.appendChild(el("div", "qn-ex-detail-h", "Settings"));
+    d.appendChild(el("div", "qn-ex-detail-f", it.label || it.name));
+    rows.forEach(function (r) { var row = el("div", "qn-ex-drow"); row.appendChild(el("span", "qn-ex-dk", r[0])); row.appendChild(el("span", "qn-ex-dv" + (r[1] === "Off" ? " is-off" : ""), r[1])); d.appendChild(row); });
+  }
+  function gotoItem(it) {
+    setActive(it); if (it.folded) { it.folded = false; renderHead(it); }
+    requestAnimationFrame(function () { drawWave(it); try { it.ui.blk.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { it.ui.blk.scrollIntoView(); } });
+    if (isSp()) setPanel("none");
+  }
+  function foldAll(on) { items.forEach(function (it) { it.folded = on; renderHead(it); }); if (!on) requestAnimationFrame(drawAll); }
+  var SIDEBAR = [{ id: "files", label: "Files", icon: ICON.lib }];
+  function setPanel(id) {
+    if (!isSp() && id === "none") id = "files";
+    panelState = id;
+    if (!root) return;
+    root.querySelector(".qn-ex").setAttribute("data-panel", id);
+    syncSideActive();
+    if (id === "none") requestAnimationFrame(drawAll);
+  }
+  function isCollapsed() { return panelCollapsed && !isSp(); }
+  function syncSideActive() { if (window.QNApps) window.QNApps.setSideActive((!panelState || panelState === "none" || isCollapsed()) ? null : panelState); }
+  function applyCollapse() { if (!root) return; root.querySelector(".qn-ex").classList.toggle("qn-ex-collapsed", isCollapsed()); syncSideActive(); requestAnimationFrame(drawAll); }
+  function setCollapsed(on) { panelCollapsed = !!on; try { localStorage.setItem(COLLAPSE_KEY, on ? "1" : "0"); } catch (e) {} applyCollapse(); }
+  function onSidebar(id) {
+    if (isSp()) { setPanel(panelState === id ? "none" : id); return; }
+    if (panelCollapsed) { setCollapsed(false); setPanel(id); return; }
+    setCollapsed(true);
+  }
+
   // ---------- 画面 ----------
   function btn(ref, cls, icon, label, title) { return '<button type="button" data-ex="' + ref + '" class="qn-ex-btn' + (cls ? " " + cls : "") + '"' + (title ? ' title="' + title + '"' : "") + '>' + (icon ? '<svg viewBox="0 0 24 24">' + icon + '</svg>' : "") + '<span>' + label + '</span></button>'; }
   var TEMPLATE =
-    '<div class="qn-ex">' +
+    '<div class="qn-ex" data-panel="files">' +
+      '<aside class="qn-ex-panel"><div class="qn-ex-panel-header"><span class="pcv2-panel-header-title">Files</span></div><div class="qn-ex-panel-scroll"><div class="qn-ex-fbtns" data-ex="fbtns" hidden>' + btn("foldAllBtn", "", "", "Fold all", "Fold every file") + btn("unfoldAllBtn", "", "", "Unfold all", "Unfold every file") + '</div><div class="qn-ex-flist" data-ex="flist"></div><p class="qn-ex-sub qn-ex-fempty" data-ex="fempty">Loaded files are listed here. Tap a file to jump to it</p><div class="qn-ex-detail" data-ex="detail" hidden></div></div></aside>' +
       '<section class="qn-ex-stage" data-ex="stage">' +
         '<div class="qn-ex-top">' +
           btn("addBtn", "", ICON.add, "Add files", "Add audio files. They are not added to the Library") +
@@ -519,6 +580,15 @@
     refs.addBtn.addEventListener("click", function () { haptic(); refs.file.click(); });
     refs.file.addEventListener("change", function () { addFiles(refs.file.files); refs.file.value = ""; });
     refs.libBtn.addEventListener("click", function () { haptic(); openPicker(); });
+    refs.foldAllBtn.addEventListener("click", function () { haptic(); foldAll(true); });
+    refs.unfoldAllBtn.addEventListener("click", function () { haptic(); foldAll(false); });
+    refs.flist.addEventListener("click", function (e) {
+      var row = e.target.closest(".qn-ex-row"); if (!row) return; var it = items[+row.getAttribute("data-i")]; if (!it) return;
+      var act = e.target.closest("[data-act]"), a = act && act.getAttribute("data-act"); haptic();
+      if (a === "remove") { removeItem(it); return; }
+      if (a === "check") { it.on = !it.on; renderHead(it); refreshBar(); return; }
+      gotoItem(it);
+    });
     refs.runBtn.addEventListener("click", function () { haptic(); runExport(); });
     refs.dlSw.addEventListener("click", function () { haptic(); S.download = !S.download; save(); syncSave(); refreshBar(); });
     refs.suffix.addEventListener("input", function () { S.suffix = refs.suffix.value.replace(/[\\/:*?"<>|]/g, "_"); save(); });
@@ -551,7 +621,7 @@
     ["dragenter", "dragover"].forEach(function (n) { st.addEventListener(n, function (e) { if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") >= 0) { e.preventDefault(); st.classList.add("is-drop"); } }); });
     ["dragleave", "drop"].forEach(function (n) { st.addEventListener(n, function () { st.classList.remove("is-drop"); }); });
     st.addEventListener("drop", function (e) { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) { e.preventDefault(); addFiles(e.dataTransfer.files); } });
-    window.addEventListener("resize", function () { if (shown) drawAll(); });
+    window.addEventListener("resize", function () { if (shown) { applyCollapse(); drawAll(); } });
   }
   function syncSave() { refs.dlSw.classList.toggle("is-on", S.download); refs.dlSw.setAttribute("aria-checked", S.download ? "true" : "false"); }
 
@@ -561,14 +631,14 @@
     for (var i = 0; i < nodes.length; i++) refs[nodes[i].getAttribute("data-ex")] = nodes[i];
     refs.suffix.value = S.suffix; syncSave();
     bindEvents(); bulkStrip = buildStrip("bulk"); refs.bulk.appendChild(bulkStrip.el); syncEmpty(); refreshBar();
-    if (window.QNExportCodecs) QNExportCodecs.supports().then(function (r) { codecSup = r; var bad = function (o) { return fmtList().indexOf(o.format) < 0; }; if (bad(S.def)) S.def.format = "wav"; items.forEach(function (it) { if (bad(it.def)) it.def.format = "wav"; it.segs.forEach(function (g) { if (bad(g.o)) g.o.format = "wav"; }); }); updStrips(); });
+    if (window.QNExportCodecs) QNExportCodecs.supports().then(function (r) { codecSup = r; var bad = function (o) { return fmtList().indexOf(o.format) < 0; }; if (bad(S.def)) S.def.format = "wav"; items.forEach(function (it) { if (bad(it.def)) it.def.format = "wav"; }); updStrips(); });
   }
-  function onShow() { shown = true; bindKeys(true); requestAnimationFrame(drawAll); }
+  function onShow() { shown = true; bindKeys(true); setPanel(panelState || (isSp() ? "none" : "files")); applyCollapse(); }
   function onHide() { shown = false; bindKeys(false); stopPreview(); if (busy) abortFlag = true; }
 
   window.QNExport = { _items: function () { return items; }, _state: function () { return S; }, addFiles: addFiles, addFromLibrary: addFromLibrary, run: runExport, select: setActive };
 
   if (window.QNApps) {
-    window.QNApps.register({ id: "export", label: "Export", icon: EXPORT_ICON, order: 40, ready: true, shortcuts: SHORTCUTS, shortcutsNote: "音声はこの端末の中だけで処理します。", mount: mount, onShow: onShow, onHide: onHide });
+    window.QNApps.register({ id: "export", label: "Export", icon: EXPORT_ICON, order: 40, ready: true, sidebar: SIDEBAR, onSidebar: onSidebar, shortcuts: SHORTCUTS, shortcutsNote: "音声はこの端末の中だけで処理します。", mount: mount, onShow: onShow, onHide: onHide });
   } else console.error("qn-app-export.js: qn-apps.js が先に読み込まれていません");
 })();

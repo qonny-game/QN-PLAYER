@@ -196,3 +196,5 @@
 - 4.72.0 EXPORT: 範囲ごとの設定(形式/ビットレート/レート/Normalize/Comp/Speed/Key/EQ/Mono/Library)と上段の一括指定、複数は自動ZIP
 - 4.73.0 EXPORT: 複数ファイルを下に並べて一括指定、形式/ビット/レートと Speed/Key/EQ を各1ボタン1ポップアップに、Mono/Normalize/Comp/Libraryはスイッチ
 - 4.74.0 EXPORT: サイドバー撤去、曲ごとに波形ごとたためるブロック、一括は全曲(All files)と曲内(All parts in this file)の2種類
+- 4.75.0 EXPORT: 設定を曲ごとに一本化(範囲ごとの設定を廃止)。サイドバーに曲の一覧と選択中の曲の出力設定を表示
+- 5.0.0 v5.0.0: 新アプリ QNEXPORT(書き出し専門ツール)を含む大型アップデート。バージョンを5.0.0に更新
