@@ -194,3 +194,4 @@
 - 4.70.0 EXPORTアプリ追加(書き出し専門: トリム/速度/キー/EQ/コンプ/ノーマライズ、WAV/MP3、Library追加)
 - 4.71.0 EXPORT: FLAC/OGG Opus/M4A対応、長い曲を複数範囲に分割して名前と範囲ごとに書き出し
 - 4.72.0 EXPORT: 範囲ごとの設定(形式/ビットレート/レート/Normalize/Comp/Speed/Key/EQ/Mono/Library)と上段の一括指定、複数は自動ZIP
+- 4.73.0 EXPORT: 複数ファイルを下に並べて一括指定、形式/ビット/レートと Speed/Key/EQ を各1ボタン1ポップアップに、Mono/Normalize/Comp/Libraryはスイッチ

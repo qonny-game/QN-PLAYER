@@ -11,6 +11,8 @@
   var ICON = {
     speed: '<path d=\"M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z\"/>',
     key: '<path d=\"M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z\"/>',
+    norm: '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/>',
+    comp: '<path d="M4 14h4v6H4zm6-8h4v14h-4zm6 4h4v10h-4z"/>',
     mono: '<path d=\"M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z\"/>',
     edit: '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>',
     tone: '<path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>',
@@ -21,7 +23,7 @@
 
   // ---------- 設定 ----------
   // 1つの範囲(Part)が持つ書き出し設定 o。S.def は「All parts」(一括指定)の表示値で、新しい範囲の初期値にもなる
-  var DEFO = { format: "wav", bits: 16, kbps: 192, sr: 0, norm: "off", normTarget: -18, comp: "off", speedOn: false, speed: 1, keyOn: false, key: 0, eqOn: false, eq: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], eqPreset: "flat", mono: false, lib: false };
+  var DEFO = { format: "wav", bits: 16, kbps: 192, sr: 0, norm: "peak", normOn: false, normTarget: -18, comp: "medium", compOn: false, speedOn: false, speed: 1, keyOn: false, key: 0, eqOn: false, eq: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], eqPreset: "flat", mono: false, lib: false };
   var S = { def: JSON.parse(JSON.stringify(DEFO)), download: true, suffix: "_export" };
   try {
     var sv = JSON.parse(localStorage.getItem(KEY) || "null");
@@ -29,6 +31,7 @@
       if (typeof sv.download === "boolean") S.download = sv.download;
       if (typeof sv.suffix === "string") S.suffix = sv.suffix;
       if (sv.def && typeof sv.def === "object") Object.keys(DEFO).forEach(function (k) { if (typeof sv.def[k] === typeof DEFO[k]) S.def[k] = sv.def[k]; });
+      if (S.def.norm !== "peak" && S.def.norm !== "loudness") S.def.norm = "peak"; if (["light", "medium", "heavy"].indexOf(S.def.comp) < 0) S.def.comp = "medium";
       if (!Array.isArray(S.def.eq) || S.def.eq.length !== 10) S.def.eq = DEFO.eq.slice(); else S.def.eq = S.def.eq.slice();
     }
   } catch (e) {}
@@ -105,23 +108,7 @@
     else { if (sel > i) sel--; renderList(); }
     refreshBar();
   }
-  function renderList() {
-    if (!refs.list) return;
-    refs.list.textContent = "";
-    refs.empty.hidden = items.length > 0;
-    items.forEach(function (it, i) {
-      var row = el("div", "qn-ex-row" + (i === sel ? " is-sel" : "") + (it.on ? "" : " is-off"));
-      row.setAttribute("data-i", i);
-      var cb = el("button", "qn-ex-check" + (it.on ? " is-on" : "")); cb.type = "button"; cb.setAttribute("data-act", "check"); cb.setAttribute("aria-pressed", it.on ? "true" : "false"); cb.title = "Include in export";
-      var name = el("span", "qn-ex-name"); name.textContent = it.label || it.name;
-      var tag = el("span", "qn-ex-src", it.source === "library" ? "Library" : "File");
-      var tot = 0; it.segs.forEach(function (g) { if (g.on) tot += segEnd(it, g) - g.start; });
-      var du = el("span", "qn-ex-dur", it.segs.length > 1 ? it.segs.length + " parts" : (it.dur ? fmtT(tot) : "--"));
-      var rm = el("button", "qn-ex-x"); rm.type = "button"; rm.setAttribute("data-act", "remove"); rm.title = "Remove from this list"; rm.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-      row.appendChild(cb); row.appendChild(name); row.appendChild(tag); row.appendChild(du); row.appendChild(rm);
-      refs.list.appendChild(row);
-    });
-  }
+  function renderList() { renderSegs(); }
 
   // ---------- 選択・波形 ----------
   async function selectItem(i) {
@@ -204,16 +191,6 @@
     it.ss = idx + 1; haptic();
     drawWave(); syncEdit(); renderList(); renderSegs();
   }
-  function removeSeg(i) {
-    var it = cur(); if (!it || it.segs.length < 2) return;
-    var g = it.segs[i], prev = it.segs[i - 1], next = it.segs[i + 1];
-    if (prev && Math.abs(segEnd(it, prev) - g.start) < 0.15) prev.end = segEnd(it, g);
-    else if (next && Math.abs(next.start - segEnd(it, g)) < 0.15) next.start = g.start;
-    it.segs.splice(i, 1); it.ss = Math.max(0, Math.min(it.ss, it.segs.length - 1));
-    if (it.segs.length === 1 && it.segs[0].name.match(/_1$/)) it.segs[0].name = it.segs[0].name.replace(/_1$/, "");
-    drawWave(); syncEdit(); renderList(); renderSegs(); refreshBar();
-  }
-
   function bindHandles() {
     refs.wave.addEventListener("pointerdown", function (e) {
       if (!curBuf || e.target.closest(".qn-ex-handle")) return;
@@ -236,39 +213,47 @@
     });
   }
 
-  // ---------- 範囲ごとの設定帯(チップ+アイコン)。t="bulk"なら一括 ----------
-  function chipText(o) {
+  function removeSeg(it, i) {
+    if (!it || it.segs.length < 2) return;
+    var g = it.segs[i], prev = it.segs[i - 1], next = it.segs[i + 1];
+    if (prev && Math.abs(segEnd(it, prev) - g.start) < 0.15) prev.end = segEnd(it, g);
+    else if (next && Math.abs(next.start - segEnd(it, g)) < 0.15) next.start = g.start;
+    it.segs.splice(i, 1); it.ss = Math.max(0, Math.min(it.ss, it.segs.length - 1));
+    if (it.segs.length === 1 && it.segs[0].name.match(/_1$/)) it.segs[0].name = it.segs[0].name.replace(/_1$/, "");
+    drawWave(); syncEdit(); renderSegs(); refreshBar();
+  }
+
+  // ---------- 範囲ごとの設定帯。t="bulk"なら全ファイル・全範囲へ一括 ----------
+  function fmtBtnText(o) {
     var lossless = o.format === "wav" || o.format === "flac";
-    return {
-      fmt: fmtName(o.format),
-      rate: lossless ? (o.format === "wav" && o.bits === 32 ? "32f" : o.bits + "-bit") : o.kbps + "k",
-      sr: o.sr === 0 ? "Orig" : (o.sr / 1000) + "k",
-      norm: o.norm === "off" ? "Norm off" : o.norm === "peak" ? "Peak" : "Loud " + o.normTarget,
-      comp: o.comp === "off" ? "Comp off" : o.comp === "light" ? "Comp light" : o.comp === "medium" ? "Comp mid" : "Comp heavy"
-    };
+    return fmtName(o.format) + " · " + (lossless ? (o.format === "wav" && o.bits === 32 ? "32-bit float" : o.bits + "-bit") : o.kbps + " kbps") + " · " + (o.sr === 0 ? "Orig" : (o.sr / 1000) + " kHz");
+  }
+  function toneBtnText(o) {
+    var a = []; if (o.speedOn) a.push(o.speed.toFixed(2).replace(/0$/, "") + "x"); if (o.keyOn) a.push((o.key > 0 ? "+" : "") + o.key); if (o.eqOn) a.push("EQ " + (EQ_NAMES[o.eqPreset] || ""));
+    return a.length ? a.join(" · ") : "Speed · Key · EQ";
   }
   function popRows(kind, t) {
     var o = function () { return optsOf(t); };
     var stepper = function (label, hint, values, get, set, fmt, extra) { var r = { label: label, hint: hint, type: "stepper", values: function () { return typeof values === "function" ? values() : values; }, get: get, set: set, fmt: fmt || String }; if (extra) Object.keys(extra).forEach(function (k) { r[k] = extra[k]; }); return r; };
     if (kind === "out") return { title: t === "bulk" ? "Output (all parts)" : "Output", rows: [
-      stepper("Format", "", fmtList, function () { return o().format; }, function (v) { var p = { format: v }; var tmp = { format: v, kbps: o().kbps }; p.kbps = fixKbps(tmp); setOpts(t, p); }, fmtName),
+      stepper("Format", "", fmtList, function () { return o().format; }, function (v) { var p = { format: v }; p.kbps = fixKbps({ format: v, kbps: o().kbps }); setOpts(t, p); }, fmtName),
       stepper("Bit depth", "", function () { return o().format === "flac" ? [16, 24] : [16, 24, 32]; }, function () { return o().format === "flac" && o().bits === 32 ? 24 : o().bits; }, function (v) { setOpts(t, { bits: v }); }, function (v) { return v === 32 ? "32-bit float" : v + "-bit"; }, { hiddenWhen: function () { return o().format !== "wav" && o().format !== "flac"; } }),
       stepper("Bitrate", "", function () { return KB[o().format] || KB.mp3; }, function () { return o().kbps; }, function (v) { setOpts(t, { kbps: v }); }, function (v) { return v + " kbps"; }, { hiddenWhen: function () { return !KB[o().format]; } }),
-      stepper("Sample rate", "Original keeps the file's rate", [0, 44100, 48000], function () { return o().sr; }, function (v) { setOpts(t, { sr: v }); }, function (v) { return v === 0 ? "Original" : (v / 1000) + " kHz"; }),
-      stepper("Normalize", "Peak: raise to just below full scale. Loudness: match the average level", ["off", "peak", "loudness"], function () { return o().norm; }, function (v) { setOpts(t, { norm: v }); }, function (v) { return v === "off" ? "Off" : v === "peak" ? "Peak" : "Loudness"; }),
-      stepper("Target level", "", core.NORM_TARGETS, function () { return o().normTarget; }, function (v) { setOpts(t, { normTarget: v }); }, function (v) { return v + " dB"; }, { hiddenWhen: function () { return o().norm !== "loudness"; } }),
-      stepper("Compressor", "Evens out loud and quiet parts", ["off", "light", "medium", "heavy"], function () { return o().comp; }, function (v) { setOpts(t, { comp: v }); }, function (v) { return v === "off" ? "Off" : v === "light" ? "Light" : v === "medium" ? "Medium" : "Heavy"; })
+      stepper("Sample rate", "Original keeps the file's rate", [0, 44100, 48000], function () { return o().sr; }, function (v) { setOpts(t, { sr: v }); }, function (v) { return v === 0 ? "Original" : (v / 1000) + " kHz"; })
     ] };
-    if (kind === "speed") return { title: "Speed", rows: [
-      { label: "Speed", hint: "Changes the tempo without changing the pitch", type: "range", min: 0.5, max: 2, step: 0.01, dec: 2, unit: "x", mark: 1, markLabel: "1.00", get: function () { return o().speed; }, set: function (v) { setOpts(t, { speed: Math.round(v * 100) / 100, speedOn: Math.abs(v - 1) > 0.004 }); } }
+    if (kind === "norm") return { title: "Normalize", rows: [
+      stepper("Mode", "Peak: raise to just below full scale. Loudness: match the average level", ["peak", "loudness"], function () { return o().norm; }, function (v) { setOpts(t, { norm: v }); }, function (v) { return v === "peak" ? "Peak" : "Loudness"; }),
+      stepper("Target level", "", core.NORM_TARGETS, function () { return o().normTarget; }, function (v) { setOpts(t, { normTarget: v }); }, function (v) { return v + " dB"; }, { hiddenWhen: function () { return o().norm !== "loudness"; } })
     ] };
-    if (kind === "key") return { title: "Key", rows: [
-      stepper("Key", "Shifts the pitch in semitones without changing the tempo", KEYS, function () { return o().key; }, function (v) { setOpts(t, { key: v, keyOn: v !== 0 }); }, function (v) { return v > 0 ? "+" + v : String(v); })
+    if (kind === "comp") return { title: "Compressor", rows: [
+      stepper("Amount", "Evens out loud and quiet parts", ["light", "medium", "heavy"], function () { return o().comp; }, function (v) { setOpts(t, { comp: v }); }, function (v) { return v === "light" ? "Light" : v === "medium" ? "Medium" : "Heavy"; })
     ] };
-    if (kind === "eq") return { title: "Equalizer", build: function () {
+    if (kind === "tone") return { title: "Speed / Key / EQ", build: function () {
       var box = el("div"), sliders = [];
       var ui = QNSettingsUI.build([{ title: "", rows: [
-        stepper("Preset", "", ["flat", "bass", "vocal", "treble", "vshape", "custom"], function () { return o().eqPreset; }, function (v) { if (v !== "custom") { setOpts(t, { eq: core.EQ_PRESETS[v].slice(), eqPreset: v, eqOn: v !== "flat" }); syncSl(); } }, function (v) { return EQ_NAMES[v] || v; })
+        { label: "Speed", hint: "Changes the tempo without changing the pitch", type: "range", min: 0.5, max: 2, step: 0.01, dec: 2, unit: "x", mark: 1, markLabel: "1.00", get: function () { return o().speed; }, set: function (v) { setOpts(t, { speed: Math.round(v * 100) / 100, speedOn: Math.abs(v - 1) > 0.004 }); } },
+        stepper("Key", "Shifts the pitch in semitones without changing the tempo", KEYS, function () { return o().key; }, function (v) { setOpts(t, { key: v, keyOn: v !== 0 }); }, function (v) { return v > 0 ? "+" + v : String(v); }),
+        stepper("EQ", "", ["flat", "bass", "vocal", "treble", "vshape", "custom"], function () { return o().eqPreset; }, function (v) { if (v !== "custom") { setOpts(t, { eq: core.EQ_PRESETS[v].slice(), eqPreset: v, eqOn: v !== "flat" }); syncSl(); } }, function (v) { return EQ_NAMES[v] || v; })
       ] }]);
       var bands = el("div", "qn-ex-eq");
       core.EQ_FREQS.forEach(function (f, i) {
@@ -287,63 +272,74 @@
   function matchPreset(e) { var k = Object.keys(core.EQ_PRESETS); for (var i = 0; i < k.length; i++) if (core.EQ_PRESETS[k[i]].every(function (v, j) { return v === e[j]; })) return k[i]; return "custom"; }
   function openPop(anchor, kind, t) { var d = popRows(kind, t); if (d && window.QNQuickPop) QNQuickPop.show(anchor, d); }
 
-  var TOGGLES = [
-    { id: "speed", label: "Speed", icon: ICON.speed, on: "speedOn", val: function (o) { return o.speed.toFixed(2).replace(/0$/, "") + "x"; }, pop: "speed", isDef: function (o) { return Math.abs(o.speed - 1) < 0.004; } },
-    { id: "key", label: "Key", icon: ICON.key, on: "keyOn", val: function (o) { return (o.key > 0 ? "+" : "") + o.key; }, pop: "key", isDef: function (o) { return o.key === 0; } },
-    { id: "eq", label: "EQ", icon: ICON.tone, on: "eqOn", val: function (o) { return EQ_NAMES[o.eqPreset] || "EQ"; }, pop: "eq", isDef: function (o) { return o.eq.every(function (x) { return x === 0; }); } },
-    { id: "mono", label: "Mono", icon: ICON.mono, on: "mono" },
+  // アイコンの下のスイッチでON/OFF(ポップアップ不要)。pop付きは、アイコンを押すと詳細(強さ・モードなど)のポップアップ
+  var SWITCHES = [
+    { id: "mono", label: "Mono", icon: ICON.mono, on: "mono", title: "Mix both channels into one" },
+    { id: "norm", label: "Normalize", icon: ICON.norm, on: "normOn", pop: "norm", title: "Normalize the level. Tap the icon to choose the mode" },
+    { id: "comp", label: "Comp", icon: ICON.comp, on: "compOn", pop: "comp", title: "Compressor. Tap the icon to choose the amount" },
     { id: "lib", label: "Library", icon: ICON.lib, on: "lib", title: "Add the result to the Library" }
   ];
   function buildStrip(t) {
-    var wrap = el("div", "qn-ex-strip" + (t === "bulk" ? " is-bulk" : "")), chips = el("div", "qn-ex-chips"), icons = el("div", "qn-ex-icons"), cs = {}, ts = {};
-    ["fmt", "rate", "sr", "norm", "comp"].forEach(function (k) {
-      var b = el("button", "qn-ex-chip"); b.type = "button"; b.title = "Format, bitrate, sample rate, normalize and compressor"; b.addEventListener("click", function () { openPop(b, "out", t); }); cs[k] = b; chips.appendChild(b);
+    var wrap = el("div", "qn-ex-strip" + (t === "bulk" ? " is-bulk" : "")), main = el("div", "qn-ex-main"), icons = el("div", "qn-ex-icons"), sws = {};
+    var fb = el("button", "qn-ex-chip"); fb.type = "button"; fb.title = "Format, bit depth or bitrate, and sample rate"; fb.addEventListener("click", function () { haptic(); openPop(fb, "out", t); });
+    var tb = el("button", "qn-ex-chip"); tb.type = "button"; tb.title = "Speed, key and equalizer"; tb.addEventListener("click", function () { haptic(); openPop(tb, "tone", t); });
+    main.appendChild(fb); main.appendChild(tb);
+    SWITCHES.forEach(function (d) {
+      var col = el("div", "qn-ex-sw"), ib = el("button", "qn-ex-pico"); ib.type = "button"; ib.title = d.title;
+      ib.innerHTML = '<svg viewBox="0 0 24 24">' + d.icon + '</svg><span class="qn-ex-pico-l">' + d.label + '</span>';
+      if (d.pop) ib.setAttribute("data-pop", d.pop);
+      var sw = el("button", "qn-set-switch"); sw.type = "button"; sw.setAttribute("role", "switch"); sw.setAttribute("aria-label", d.label); sw.appendChild(document.createElement("span"));
+      function toggle() { haptic(); var p = {}; p[d.on] = !optsOf(t)[d.on]; setOpts(t, p); }
+      sw.addEventListener("click", toggle);
+      ib.addEventListener("click", function () { if (d.pop) { haptic(); openPop(ib, d.pop, t); } else toggle(); });
+      col.appendChild(ib); col.appendChild(sw); icons.appendChild(col); sws[d.id] = { sw: sw, ib: ib };
     });
-    TOGGLES.forEach(function (d) {
-      var b = el("button", "qn-ex-pico"); b.type = "button"; b.setAttribute("data-pop", d.pop || ""); b.__qx = { t: t, kind: d.pop };
-      b.title = d.title || (d.pop ? d.label + ": tap to turn on or off, press and hold to set" : d.label + ": tap to turn on or off");
-      b.innerHTML = '<svg viewBox="0 0 24 24">' + d.icon + '</svg><span class="qn-ex-pico-l">' + d.label + '</span>';
-      b.addEventListener("click", function () {
-        var o = optsOf(t), nv = !o[d.on]; haptic();
-        var p = {}; p[d.on] = nv; setOpts(t, p);
-        if (nv && d.pop && d.isDef(optsOf(t))) openPop(b, d.pop, t); // 初期値のまま入れた時は、すぐ設定画面を出す
-      });
-      ts[d.id] = b; icons.appendChild(b);
-    });
-    wrap.appendChild(chips); wrap.appendChild(icons);
+    wrap.appendChild(main); wrap.appendChild(icons);
     var st = { el: wrap, t: t, upd: function () {
-      var o = optsOf(t), c = chipText(o);
-      cs.fmt.textContent = c.fmt; cs.rate.textContent = c.rate; cs.sr.textContent = c.sr; cs.norm.textContent = c.norm; cs.comp.textContent = c.comp;
-      cs.norm.classList.toggle("is-on", o.norm !== "off"); cs.comp.classList.toggle("is-on", o.comp !== "off");
-      TOGGLES.forEach(function (d) {
-        var b = ts[d.id], on = !!o[d.on]; b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
-        b.querySelector(".qn-ex-pico-l").textContent = on && d.val ? d.val(o) : d.label;
-      });
+      var o = optsOf(t);
+      fb.textContent = fmtBtnText(o); tb.textContent = toneBtnText(o);
+      tb.classList.toggle("is-on", !!(o.speedOn || o.keyOn || o.eqOn));
+      SWITCHES.forEach(function (d) { var on = !!o[d.on], x = sws[d.id]; x.sw.classList.toggle("is-on", on); x.sw.setAttribute("aria-checked", on ? "true" : "false"); x.ib.classList.toggle("is-on", on); });
     } };
     st.upd();
     return st;
   }
   function updStrips() { if (bulkStrip) bulkStrip.upd(); strips.forEach(function (s) { s.upd(); }); }
 
+  // ---------- 下に並ぶ: ファイルごとのブロック(その中に範囲) ----------
+  var X_SVG = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
   function renderSegs() {
     if (!refs.segs) return;
-    var it = cur(); refs.segs.textContent = ""; strips = [];
-    refs.segsBox.hidden = !it;
-    if (!it) return;
-    it.segs.forEach(function (g, i) {
-      var row = el("div", "qn-ex-seg" + (i === it.ss ? " is-sel" : "") + (g.on ? "" : " is-off")); row.setAttribute("data-i", i);
-      var top = el("div", "qn-ex-seg-top");
-      var cb = el("button", "qn-ex-check" + (g.on ? " is-on" : "")); cb.type = "button"; cb.setAttribute("data-act", "segcheck"); cb.title = "Include in export";
-      var inp = el("input", "qn-ex-segname"); inp.type = "text"; inp.value = g.name; inp.maxLength = 80; inp.setAttribute("aria-label", "File name"); inp.setAttribute("data-act", "segname");
-      var rg = el("span", "qn-ex-segrange", fmtT(g.start) + " – " + fmtT(segEnd(it, g)));
-      var x = el("button", "qn-ex-x"); x.type = "button"; x.setAttribute("data-act", "segremove"); x.title = "Remove this part"; x.disabled = it.segs.length < 2; x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-      top.appendChild(cb); top.appendChild(inp); top.appendChild(rg); top.appendChild(x);
-      var st = buildStrip(g); strips.push(st);
-      row.appendChild(top); row.appendChild(st.el); refs.segs.appendChild(row);
+    var ae = document.activeElement;
+    if (ae && ae.getAttribute && ae.getAttribute("data-act") === "segname" && refs.segs.contains(ae)) { updRanges(); return; } // 名前の入力中は作り直さない
+    refs.segs.textContent = ""; strips = [];
+    refs.empty.hidden = items.length > 0; refs.listbox.hidden = items.length > 0;
+    refs.segsBox.hidden = !items.length;
+    items.forEach(function (it, fi) {
+      var blk = el("div", "qn-ex-file" + (it.on ? "" : " is-off")); blk.setAttribute("data-fi", fi);
+      var hd = el("div", "qn-ex-file-head");
+      var cb = el("button", "qn-ex-check" + (it.on ? " is-on" : "")); cb.type = "button"; cb.setAttribute("data-act", "check"); cb.title = "Include this file in export";
+      hd.appendChild(cb); hd.appendChild(el("span", "qn-ex-name", it.label || it.name)); hd.appendChild(el("span", "qn-ex-src", it.source === "library" ? "Library" : "File"));
+      hd.appendChild(el("span", "qn-ex-dur", it.dur ? fmtT(it.dur) : "--"));
+      var rm = el("button", "qn-ex-x"); rm.type = "button"; rm.setAttribute("data-act", "remove"); rm.title = "Remove from this list"; rm.innerHTML = X_SVG; hd.appendChild(rm);
+      blk.appendChild(hd);
+      it.segs.forEach(function (g, i) {
+        var row = el("div", "qn-ex-seg" + (fi === sel && i === it.ss ? " is-sel" : "") + (g.on ? "" : " is-off")); row.setAttribute("data-i", i);
+        var top = el("div", "qn-ex-seg-top");
+        var sc = el("button", "qn-ex-check" + (g.on ? " is-on" : "")); sc.type = "button"; sc.setAttribute("data-act", "segcheck"); sc.title = "Include in export";
+        var inp = el("input", "qn-ex-segname"); inp.type = "text"; inp.value = g.name; inp.maxLength = 80; inp.setAttribute("aria-label", "File name"); inp.setAttribute("data-act", "segname");
+        var rg = el("span", "qn-ex-segrange", fmtT(g.start) + " – " + fmtT(segEnd(it, g)));
+        var x = el("button", "qn-ex-x"); x.type = "button"; x.setAttribute("data-act", "segremove"); x.title = "Remove this part"; x.disabled = it.segs.length < 2; x.innerHTML = X_SVG;
+        top.appendChild(sc); top.appendChild(inp); top.appendChild(rg); top.appendChild(x);
+        var st = buildStrip(g); strips.push(st);
+        row.appendChild(top); row.appendChild(st.el); blk.appendChild(row);
+      });
+      refs.segs.appendChild(blk);
     });
     refs.splitBtn.disabled = !curBuf;
   }
-  function updRanges() { var it = cur(); if (!it) return; var rs = refs.segs.querySelectorAll(".qn-ex-segrange"); it.segs.forEach(function (g, i) { if (rs[i]) rs[i].textContent = fmtT(g.start) + " – " + fmtT(segEnd(it, g)); }); }
+  function updRanges() { refs.segs.querySelectorAll(".qn-ex-file").forEach(function (blk) { var it = items[+blk.getAttribute("data-fi")]; if (!it) return; var rs = blk.querySelectorAll(".qn-ex-segrange"); it.segs.forEach(function (g, i) { if (rs[i]) rs[i].textContent = fmtT(g.start) + " – " + fmtT(segEnd(it, g)); }); }); }
+  function selectPart(fi, i) { var it = items[fi]; if (!it) return; it.ss = i; it.cursor = null; if (fi !== sel) selectItem(fi); else { drawWave(); syncEdit(); renderSegs(); } }
 
   // ---------- プレビュー(選んでいる範囲を、同じ処理で最大20秒) ----------
   function stopPreview() {
@@ -375,8 +371,8 @@
   // ---------- 書き出し ----------
   function procOpts(g, extra) {
     var c = g.o, o = {
-      start: g.start, end: g.end, speed: c.speedOn ? c.speed : 1, key: c.keyOn ? c.key : 0, eq: c.eqOn ? c.eq : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], comp: c.comp,
-      norm: { mode: c.norm, target: c.normTarget }, format: c.format, bits: c.bits, kbps: c.kbps, sampleRate: c.sr, mono: c.mono
+      start: g.start, end: g.end, speed: c.speedOn ? c.speed : 1, key: c.keyOn ? c.key : 0, eq: c.eqOn ? c.eq : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], comp: c.compOn ? c.comp : "off",
+      norm: { mode: c.normOn ? c.norm : "off", target: c.normTarget }, format: c.format, bits: c.bits, kbps: c.kbps, sampleRate: c.sr, mono: c.mono
     };
     if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
     return o;
@@ -504,11 +500,11 @@
           btn("libBtn", "", ICON.lib, "From Library", "Pick tracks from the Library") +
           '<input type="file" data-ex="file" accept="audio/*,video/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.webm,.opus,.mp4,.m4v,.mov,.aif,.aiff" multiple hidden>' +
         '</div>' +
-        '<div class="qn-ex-listbox"><div class="qn-ex-empty" data-ex="empty"><p>Drop audio files here, or add them with the buttons above</p><p class="qn-ex-sub">Files stay on this device and are not added to the Library unless you turn on Add to Library</p></div><div class="qn-ex-list" data-ex="list"></div></div>' +
+        '<div class="qn-ex-listbox" data-ex="listbox"><div class="qn-ex-empty" data-ex="empty"><p>Drop audio files here, or add them with the buttons above</p><p class="qn-ex-sub">Files stay on this device and are not added to the Library unless you turn on Add to Library</p></div></div>' +
         '<div class="qn-ex-wave" data-ex="wave" data-state="empty"><canvas data-ex="canvas"></canvas><span class="qn-ex-wave-msg" data-ex="waveMsg"></span>' +
           '<div class="qn-ex-handle is-start" data-ex="hStart" hidden><i></i></div><div class="qn-ex-handle is-end" data-ex="hEnd" hidden><i></i></div></div>' +
         '<div class="qn-ex-wave-info"><span data-ex="trimInfo"></span><span class="qn-ex-wave-btns">' + btn("splitBtn", "", ICON.split, "Split", "Split the selected part at the white line. Click the waveform to place it") + btn("prevBtn", "", ICON.play, "Preview", "Hear the result of the current settings (up to 20 seconds)") + '</span></div>' +
-        '<div class="qn-ex-segsbox" data-ex="segsBox" hidden><div class="qn-ex-segs-head">Parts</div><div class="qn-ex-bulk" data-ex="bulk"><span class="qn-ex-bulk-l">All parts</span></div><div class="qn-ex-segs" data-ex="segs"></div></div>' +
+        '<div class="qn-ex-segsbox" data-ex="segsBox" hidden><div class="qn-ex-segs-head">Files and parts</div><div class="qn-ex-bulk" data-ex="bulk"><span class="qn-ex-bulk-l">All parts</span></div><div class="qn-ex-segs" data-ex="segs"></div></div>' +
       '</section>' +
       '<div class="qn-ex-bar">' +
         '<div class="qn-ex-barinfo"><div class="qn-ex-progbox" data-ex="progBox" hidden><div class="qn-ex-prog" data-ex="prog"></div></div><span class="qn-ex-status" data-ex="status"></span><span class="qn-ex-hint" data-ex="hint"></span></div>' +
@@ -554,27 +550,28 @@
     refs.prevBtn.addEventListener("click", function () { haptic(); togglePreview(); });
     refs.splitBtn.addEventListener("click", function () { haptic(); splitAtCursor(); });
     refs.segs.addEventListener("click", function (e) {
-      var row = e.target.closest(".qn-ex-seg"), it = cur(); if (!row || !it || e.target.closest(".qn-ex-strip")) return;
-      var i = +row.getAttribute("data-i"), act = e.target.closest("[data-act]"), a = act && act.getAttribute("data-act");
-      if (a === "segname") return;
+      var blk = e.target.closest(".qn-ex-file"); if (!blk || e.target.closest(".qn-ex-strip")) return;
+      var fi = +blk.getAttribute("data-fi"), it = items[fi], row = e.target.closest(".qn-ex-seg"), act = e.target.closest("[data-act]"), a = act && act.getAttribute("data-act");
+      if (!it || a === "segname") return;
       haptic();
-      if (a === "segremove") { removeSeg(i); return; }
-      if (a === "segcheck") { it.segs[i].on = !it.segs[i].on; renderSegs(); renderList(); refreshBar(); return; }
-      it.ss = i; var g = it.segs[i]; it.cursor = null; drawWave(); syncEdit(); renderSegs();
+      if (a === "remove") { removeItem(fi); return; }
+      if (a === "check") { it.on = !it.on; renderSegs(); refreshBar(); return; }
+      if (!row) { if (fi !== sel) selectPart(fi, it.ss); return; }
+      var i = +row.getAttribute("data-i");
+      if (a === "segremove") { removeSeg(it, i); return; }
+      if (a === "segcheck") { it.segs[i].on = !it.segs[i].on; renderSegs(); refreshBar(); return; }
+      selectPart(fi, i);
     });
     refs.segs.addEventListener("input", function (e) {
-      var row = e.target.closest(".qn-ex-seg"), it = cur(); if (!row || !it || !e.target.matches('[data-act="segname"]')) return;
-      var g = it.segs[+row.getAttribute("data-i")]; g.name = e.target.value.replace(/[\\/:*?"<>|]/g, "_");
+      var row = e.target.closest(".qn-ex-seg"), blk = e.target.closest(".qn-ex-file"); if (!row || !blk || !e.target.matches('[data-act="segname"]')) return;
+      items[+blk.getAttribute("data-fi")].segs[+row.getAttribute("data-i")].name = e.target.value.replace(/[\\/:*?"<>|]/g, "_");
     });
-    refs.segs.addEventListener("focusin", function (e) { var row = e.target.closest(".qn-ex-seg"), it = cur(); if (row && it && e.target.matches('[data-act="segname"]')) { var i = +row.getAttribute("data-i"); if (it.ss !== i) { it.ss = i; drawWave(); syncEdit(); row.parentNode.querySelectorAll(".qn-ex-seg").forEach(function (r) { r.classList.toggle("is-sel", r === row); }); } } });
-    refs.runBtn.addEventListener("click", function () { haptic(); runExport(); });
-    refs.list.addEventListener("click", function (e) {
-      var row = e.target.closest(".qn-ex-row"); if (!row) return;
-      var i = +row.getAttribute("data-i"), act = e.target.closest("[data-act]");
-      haptic();
-      if (act && act.getAttribute("data-act") === "remove") { removeItem(i); return; }
-      if (act && act.getAttribute("data-act") === "check") { items[i].on = !items[i].on; renderList(); refreshBar(); return; }
-      if (i !== sel) selectItem(i);
+    refs.segs.addEventListener("focusin", function (e) {
+      var row = e.target.closest(".qn-ex-seg"), blk = e.target.closest(".qn-ex-file"); if (!row || !blk || !e.target.matches('[data-act="segname"]')) return;
+      var fi = +blk.getAttribute("data-fi"), i = +row.getAttribute("data-i"), it = items[fi];
+      if (fi === sel && it.ss === i) return;
+      it.ss = i; if (fi !== sel) { sel = fi; selectItem(fi); } else { drawWave(); syncEdit(); }
+      refs.segs.querySelectorAll(".qn-ex-seg").forEach(function (r) { r.classList.remove("is-sel"); }); row.classList.add("is-sel");
     });
     var st = refs.stage;
     ["dragenter", "dragover"].forEach(function (n) { st.addEventListener(n, function (e) { if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") >= 0) { e.preventDefault(); st.classList.add("is-drop"); } }); });
@@ -599,7 +596,6 @@
   }
   function onHide() { shown = false; bindKeys(false); stopPreview(); if (busy) abortFlag = true; }
 
-  if (window.QNQuickPop) QNQuickPop.add('.qn-ex-pico[data-pop]:not([data-pop=""])', function (b) { var q = b.__qx; return q && q.kind ? popRows(q.kind, q.t) : null; });
   window.QNExport = { _items: function () { return items; }, _state: function () { return S; }, addFiles: addFiles, addFromLibrary: addFromLibrary, run: runExport, select: selectItem };
 
   if (window.QNApps) {

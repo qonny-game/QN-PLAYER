@@ -129,3 +129,18 @@
 .qn-quickpop .qn-ex-eq { padding: 4px 0 8px; min-width: 250px; }
 .qn-quickpop .qn-ex-eq-r { height: 96px; }
 @media screen and (max-width: 900px) { .qn-ex-icons { width: 100%; justify-content: space-between; } .qn-ex-pico { flex: 1; min-width: 0; } }
+
+/* ---------- v4.73.0 ファイルごとのブロック / 1ボタン+アイコン下のスイッチ ---------- */
+.qn-ex-file { border-bottom: 1px solid var(--border-strong); }
+.qn-ex-file:last-child { border-bottom: none; }
+.qn-ex-file-head { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--bg-hover-subtle); }
+.qn-ex-file.is-off .qn-ex-file-head .qn-ex-name { opacity: .45; }
+.qn-ex-segs { max-height: none; overflow: visible; }
+.qn-ex-main { display: flex; flex-wrap: wrap; gap: 6px; }
+.qn-ex-main .qn-ex-chip { height: 32px; padding: 0 14px; font-size: var(--fs-body); }
+.qn-ex-main .qn-ex-chip.is-on { color: var(--accent-primary); border-color: var(--accent-primary); }
+.qn-ex-sw { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.qn-ex-sw .qn-set-switch { transform: scale(.72); transform-origin: center top; margin-bottom: -6px; }
+.qn-ex-pico { min-width: 54px; }
+.qn-ex-pico[data-pop]::after { content: ""; position: absolute; right: 3px; bottom: 3px; width: 0; height: 0; border-style: solid; border-width: 0 0 6px 6px; border-color: transparent transparent var(--icon-muted) transparent; opacity: .7; pointer-events: none; }
+@media screen and (max-width: 900px) { .qn-ex-main { width: 100%; } .qn-ex-main .qn-ex-chip { flex: 1; padding: 0 8px; } .qn-ex-sw { flex: 1; } }

@@ -547,6 +547,11 @@
     "Original keeps the file's rate": "「Original」は元のファイルのまま",
     "Normalize": "ノーマライズ",
     "Compressor": "コンプレッサー",
+    "Format, bit depth or bitrate, and sample rate": "形式、ビット深度またはビットレート、サンプルレート",
+    "Speed, key and equalizer": "速度、キー、イコライザー",
+    "Normalize the level. Tap the icon to choose the mode": "音量をそろえます。アイコンを押すと方式を選べます",
+    "Compressor. Tap the icon to choose the amount": "コンプレッサー。アイコンを押すと強さを選べます",
+    "Include this file in export": "このファイルを書き出しに含める",
     // ---- TUNER ----
     "Tone Generator": "Tone Generator",
     "Now Playing": "再生中",

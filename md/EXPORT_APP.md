@@ -15,7 +15,7 @@ QNPLAYER内のアプリ `id:"export"`(ロゴ表記 QNEXPORT)。音声ファイ�
 
 ## 処理の順番
 decode → Trim → SoundTouch(Speed/Key) → OfflineAudioContextでEQ(10バンド peaking Q1.4、PLAYERと同じ周波数)+Compressor → Normalize(peak=-1 dBFS天井 / loud=ゲート付きRMSを目標にそろえ、リミッタ) → WAV(16/24/32f) か MP3。
-設定は範囲(Part)ごと(`g.o`)。上段「All parts」(`S.def`)は一括指定で、触った項目を全範囲に反映し新しい範囲の初期値にもなる(`qn_export_settings`の`def`)。チップ(形式/ビットレート/レート/Norm/Comp)はどれを押しても1つのポップアップ(QNQuickPop)、Speed/Key/EQ/Mono/Libraryは押すとON/OFF、Speed/Key/EQは長押しで設定ポップアップ(初期値のままONにした時は自動で開く)。複数ファイルはDownload時に自動でZIP。パネルの折りたたみは`qn_export_panel_collapsed`。
+設定は範囲(Part)ごと(`g.o`)。上段「All parts」(`S.def`)は一括指定で、触った項目を全範囲に反映し新しい範囲の初期値にもなる(`qn_export_settings`の`def`)。範囲ごとの設定帯は、[形式·ビット/ビットレート·サンプルレート]ボタン(popup=out)・[Speed·Key·EQ]ボタン(popup=tone)の2つ+アイコンの下のスイッチ(Mono/Normalize/Comp/Library。Normalize/Compのアイコンは押すとモード・強さのpopup)。データは`normOn/compOn/speedOn/keyOn/eqOn`+値(`norm/comp/speed/key/eq`)。メイン画面の下にはファイルごとのブロックが並び、その中に範囲が並ぶ(波形は選択中の範囲)。All partsは全ファイル全範囲。複数ファイルはDownload時に自動でZIP。パネルの折りたたみは`qn_export_panel_collapsed`。
 
 ## Libraryとの関係
 - 読み込んだファイルはLibraryに入らない(メモリ上だけ)。
