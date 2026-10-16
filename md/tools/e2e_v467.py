@@ -21,6 +21,19 @@ with QNBrowser(".") as qb:
     tap(pos2); pg.wait_for_timeout(500)
     check("playing: tap keeps playing", pg.evaluate("audio.paused") is False)
     pg.evaluate("audio.pause()")
+    # マーカー(波形の線・リスト行)のタップ: 停止中は移動のみ、再生中は続く
+    pg.evaluate("audio.currentTime=0.2; pins.length=0; pins.push({t:3.0,enabled:true,memo:'m',color:null}); pins.sort((a,b)=>a.t-b.t); renderPins(); renderSegments(); renderPinList();"); pg.wait_for_timeout(500)
+    pg.evaluate("if (typeof hidePinPopup === \"function\") hidePinPopup()"); pg.wait_for_timeout(200)
+    ln = pg.locator("#vbarRows .vbar-line").first
+    if ln.count():
+        bx = ln.bounding_box(); pg.mouse.click(bx["x"] + bx["width"] / 2, bx["y"] + 5); pg.wait_for_timeout(500)
+        check("paused: marker tap moves, no play", pg.evaluate("audio.paused") is True and abs(pg.evaluate("audio.currentTime") - 3.0) < 0.3, pg.evaluate("[audio.paused, audio.currentTime]"))
+        pg.evaluate("audio.currentTime=0.2; audio.play().catch(()=>{})"); pg.wait_for_timeout(300)
+        bx = ln.bounding_box(); pg.mouse.click(bx["x"] + bx["width"] / 2, bx["y"] + 5); pg.wait_for_timeout(400)
+        check("playing: marker tap keeps playing", pg.evaluate("audio.paused") is False)
+        pg.evaluate("audio.pause()")
+    else:
+        print("(marker line not found, skipped)")
     tg = {}
     for name, sel in (("loop", "#loopToggleBtn"), ("repeat", "#allRepeatToggleBtn")):
         pg.evaluate("s => document.querySelector(s).click()", sel); pg.wait_for_timeout(250); tg[name] = toast()

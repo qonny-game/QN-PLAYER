@@ -199,10 +199,11 @@ function createPinLine(pinObj, i) {
       swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
       return;
     }
+    const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
     beginSeek();
     audio.currentTime = pinObj.t;
     prevTime = pinObj.t;
-    audio.play();
+    if (wasPlaying) audio.play();
     updatePlayButtonState();
     renderSegments(getActiveSegment(pinObj.t));
     setTimeout(() => { isSeeking = false; }, 150);
@@ -294,10 +295,11 @@ function paintSegmentsOnRow(rowEl, row) {
 
     if (s.onClickSeek !== undefined) {
       seg.onclick = () => {
+        const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
         beginSeek();
         audio.currentTime = s.onClickSeek;
         prevTime = s.onClickSeek;
-        audio.play();
+        if (wasPlaying) audio.play();
         updatePlayButtonState();
         renderSegments({ start: s.start, end: s.end, color: s.colorKey || null });
         setTimeout(() => { isSeeking = false; }, 150);
@@ -459,9 +461,10 @@ function startDragPin(index) {
         if (pinObj) {
           lastPinTapAt = Date.now();
           if (typeof abLeaveIfOutside === "function") abLeaveIfOutside(pinObj.t);
+          const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
           audio.currentTime = pinObj.t;
           prevTime = pinObj.t;
-          audio.play();
+          if (wasPlaying) audio.play();
           updatePlayButtonState();
           renderSegments(getActiveSegment(pinObj.t));
           showPinPopup(pinObj.t, lineEl ? lineEl.parentNode : null, startClientX, pinObj);
@@ -541,10 +544,11 @@ function renderPinList() {
         swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
         return;
       }
+      const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
       beginSeek();
       audio.currentTime = pinObj.t; 
       prevTime = pinObj.t;
-      audio.play(); 
+      if (wasPlaying) audio.play(); 
       updatePlayButtonState();
       renderSegments(getActiveSegment(pinObj.t));
       setTimeout(() => { isSeeking = false; }, 150);
@@ -993,9 +997,10 @@ function attachABDrag(el, kind) {
       prevTime = audio.currentTime;
     } else {
       lastPinTapAt = Date.now();
+      const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
       audio.currentTime = v;
       prevTime = v;
-      audio.play();
+      if (wasPlaying) audio.play();
       updatePlayButtonState();
       renderSegments(getActiveSegment(v));
       showPinPopup(v, el.parentNode, e.clientX, null, kind);
