@@ -747,7 +747,7 @@ body {
   margin-left: auto;
 }
 
-/* Speed/Keyのトグルが何のON/OFFか分かるよう「Effect」を添える(OFFでSpeed/Keyの効果だけ外す) */
+/* Speed/Keyのトグルが何のON/OFFか分かるよう「Apply」を添える(OFFでも設定値は保持し、再生だけ原速・原キーに戻す) */
 .control-card .control-effect-label {
   font-size: var(--fs-small, 11px);
   font-weight: 600;

@@ -199,3 +199,4 @@
 - 4.75.0 EXPORT: 設定を曲ごとに一本化(範囲ごとの設定を廃止)。サイドバーに曲の一覧と選択中の曲の出力設定を表示
 - 5.0.0 v5.0.0: 新アプリ QNEXPORT(書き出し専門ツール)を含む大型アップデート。バージョンを5.0.0に更新
 - 5.0.1 お掃除: 未使用CSS/JS定数/id削除、コメントの版番号タグ除去、orphan_scan/tidy_comments追加、js_unused高速化
+- 5.1.0 UX改善: 下段バーのラベル区別(Prev/Next/‹Marker/Marker›)、Speed/KeyのEffectをApplyに、小さいタップ領域を拡大
