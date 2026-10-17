@@ -18,7 +18,7 @@ const QNBars = (function () {
   const WAVE_KEY = "qn_bar_wave";
   let waveShape = "mirror";
   try { if (localStorage.getItem(WAVE_KEY) === "bottom") waveShape = "bottom"; } catch (e) {}
-  // 【v4.27.0 プロトタイプ】表示モード: wave=波形 / chord=コード名(C Am7) / degree=ディグリー(I vi7)。コードは QNChords(player-chords.js)の区間を波形の代わりに描く
+  // 【プロトタイプ】表示モード: wave=波形 / chord=コード名(C Am7) / degree=ディグリー(I vi7)。コードは QNChords(player-chords.js)の区間を波形の代わりに描く
   const VIEW_KEY = "qn_bar_view";
   let viewMode = "wave";
   try { const v = localStorage.getItem(VIEW_KEY); if ((v === "chord" || v === "degree") && (!window.qnFeature || window.qnFeature("chords"))) viewMode = v; } catch (e) {}
@@ -359,7 +359,7 @@ const QNBars = (function () {
     const lw = Math.max(1, Math.round(g.dpr));
     for (let pass = 0; pass < 2; pass++) {       // 0: 拍(薄い) 1: 小節頭(少し濃い)
       if (pass === 0 && mode !== "beat") continue;
-      cx.fillStyle = pass ? ovc(0.26) : ovc(0.09); // 小節頭の線: 0.55 → 0.38(v4.64.0) → 0.26(v4.66.0)
+      cx.fillStyle = pass ? ovc(0.26) : ovc(0.09); // 小節頭の線: 0.55 → 0.38 → 0.26
       for (let i = lo; i < ts.length && ts[i] < t1; i++) {
         if ((bar[i] === 0) !== (pass === 1)) continue;
         const x = Math.round((ts[i] - t0) / sec * W - lw / 2);
@@ -386,7 +386,7 @@ const QNBars = (function () {
     const step = W / g.nBars;
     const minH = Math.max(1, g.dpr);
     const path = new Path2D();
-    // 【v3.58.0】Mirror=中心線から上下対称(DAWの波形に近い)、Bottom=従来の下揃え。点は0.5CSSpx刻みなので直線でつないでも角は見えない
+    // Mirror=中心線から上下対称(DAWの波形に近い)、Bottom=従来の下揃え。点は0.5CSSpx刻みなので直線でつないでも角は見えない
     if (waveShape === "mirror") {
       const mid = H / 2, amp = H * 0.46;
       const dy = i => Math.max(minH / 2, vals[i] * amp);

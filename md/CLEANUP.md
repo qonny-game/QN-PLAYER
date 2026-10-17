@@ -35,7 +35,7 @@
 - 要素が無いのにCSSだけ残っている、が一番多い（旧下段バーの`.pcv2-ctrl-btn`、旧ヘッダーナビ、`#eqToggleBtn`等）。
 - 消したあとにもう一度洗い出す（消した関数だけが使っていた変数・関数が新たに孤立する。例：`keyStepperFill`を消したら`pct`/`left`が残った）。
 
-- 道具（`md/tools/`。いずれも`python3 -I <script> <プロジェクトのルート>`で実行）：`css_audit.py`＝CSSのクラス/idでHTML・JSに参照が無いもの（`is-`＋種別、`pcv2-panel-*`は動的なので候補から外す）／`js_unused.py`＝宣言のみで参照が無い関数／`md_audit.py`＝mdが挙げる名前の存在確認／`snap.py`＝PC幅・SP幅で全要素の計算済みスタイルを書き出し（前後2回出力してJSONを比較）／`smoke.py`＝曲追加・フォルダ作成・パネル切替のスモークテスト。Playwright(Python)とChromiumが要る。外部ドメインは遮断して動かすので、ネットワーク由来のエラーは出ない前提。ほかの道具（`release.py`・`compare_snap.py`・`i18n_check.py`・`qnbrowser.py`）は`TOOLS.md`。
+- 道具（`md/tools/`。いずれも`python3 -I <script> <プロジェクトのルート>`で実行）：`css_audit.py`＝CSSのクラス/idでHTML・JSに参照が無いもの（`is-`＋種別、`pcv2-panel-*`は動的なので候補から外す）／`js_unused.py`＝宣言のみで参照が無い関数／`md_audit.py`＝mdが挙げる名前の存在確認／`snap.py`＝PC幅・SP幅で全要素の計算済みスタイルを書き出し（前後2回出力してJSONを比較）／`smoke.py`＝曲追加・フォルダ作成・パネル切替のスモークテスト。Playwright(Python)とChromiumが要る。外部ドメインは遮断して動かすので、ネットワーク由来のエラーは出ない前提。`orphan_scan.py`＝id重複・参照のないid・参照が宣言1か所だけのJS関数/変数（`css_audit`/`js_unused`が拾わない`var`定数とidを補う）／`tidy_comments.py`＝コメント内の版番号タグ（`【v3.58.0】`・`(v4.67.0)`・`v3.5.0〜`）だけを外す（`apply`で書き換え。コード・文字列は触らない）。ほかの道具（`release.py`・`compare_snap.py`・`i18n_check.py`・`qnbrowser.py`）は`TOOLS.md`。
 
 ## 3. 消してはいけないもの・触らないもの
 - **動的に組み立てられるクラス名・idは、単純な文字列検索で未使用と決めない。** 例：`"is-" + kind`（`.is-a/.is-b`）、`"pcv2-panel-" + panelId`（`.pcv2-panel-*`）、`eqBand0〜9`。
@@ -85,3 +85,4 @@
 - 4.0.3：旧Transferモーダルの専用CSS(`.qn-p2p-modal`系)を削除(パネル化に伴う)。
 - 4.22.1：旧Export機能の残りCSS(`.export-format-*`/`.export-marker-*`/`.export-checkbox-row`ほか)、旧ミキサーの`.pcv2-mix-btn`/`.pcv2-mix-keyrow`、`.av-toggle-btn`、`.qn-yt-mix-head/-label`、`.skip-off`、Auto Nextスコープボタン一式(JS・CSS)を削除。計算済みスタイルの前後比較は差分0（PC1280/SP390、初期表示＋全パネル）。ガイド・利用規約・プライバシーを実装に合わせて更新し、md全体の食い違いを修正、`USER_DOCS.md`と`md/tools/`を追加。
 - 4.49.0：撤去した＋Audio/＋Markerの残り(CSS・コメント・md・DOM表)、色トークン化後の未使用トークン(0件を確認)、古いmdの食い違い(区切り位置・設定の階層・背景・速度変更方式・同期しない項目)を整理。`css_audit`/`js_unused`/`md_audit`は残置リストの既知分のみ。
+- 5.0.1：QNEXPORT周りの未使用CSS(`.qn-ex-suffix`/`.qn-ex-segsbox`/`.qn-ex-segs-head`/`.qn-ex-chips`)と`.qn-stem-sec`、未使用のJS定数2つ(`CHEVRON_ICON`/`SVG_EYE_OFF`)、参照のない`#qnBgSwatches`を削除。コメント190行の版番号タグを機械的に除去（規約§4）。計算済みスタイルの前後比較は差分0（PC1280/SP390、初期表示＋全パネル。キーの差は削除したidのみ）。`orphan_scan.py`と`tidy_comments.py`を追加。

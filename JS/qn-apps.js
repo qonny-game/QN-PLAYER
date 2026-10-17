@@ -6,7 +6,6 @@
   "use strict";
 
   var MORE_ICON = '<path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>';
-  var CHEVRON_ICON = '<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/>';
   var PLAYER_ICON = '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>';
 
   var SP_QUERY = "(max-width: 900px)";
@@ -99,7 +98,7 @@
     flyout.style.bottom = "auto";
   }
 
-  // 【v3.48.0】PC/SP共通: アプリ一覧の表示中はアプリ表示領域(#qnAppHost)をメニューの高さ分だけ下へずらし、YouTubeプレイヤーを覆わない(規約)。サイズは変えずtransformだけ、はみ出す下側はclip-pathで切る(アイコンバーに被らせない。プレイヤーは上側なので切れない)
+  // PC/SP共通: アプリ一覧の表示中はアプリ表示領域(#qnAppHost)をメニューの高さ分だけ下へずらし、YouTubeプレイヤーを覆わない(規約)。サイズは変えずtransformだけ、はみ出す下側はclip-pathで切る(アイコンバーに被らせない。プレイヤーは上側なので切れない)
   var shiftCover = null, shiftCoverTimer = null;
   function shiftHostForFlyout(on) {
     if (!host) return;
@@ -368,7 +367,7 @@
     window.dispatchEvent(new Event("resize"));
   }
 
-  // 【v3.42.0】アプリ表示中の「Settings」パネル(旧Color用ポップを拡張)。一覧(Backup/Import/Color/Keyboard/Transfer)→下層ビュー(戻るボタンで一覧へ)。
+  // アプリ表示中の「Settings」パネル(旧Color用ポップを拡張)。一覧(Backup/Import/Color/Keyboard/Transfer)→下層ビュー(戻るボタンで一覧へ)。
   // Backup/Importは本体共通画面(qnBackupMountInto)、Keyboardはrender Shortcuts、Colorは本体のテーマセクションを借りる。閉じる/切替時は借りたものを元へ戻す。関数名のcolorPopは互換のため据え置き
   var colorPop = null, colorSec = null, colorHome = null, colorNext = null, setView = "root", setUI = null;
   function findColorSection() {

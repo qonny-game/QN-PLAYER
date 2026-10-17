@@ -259,7 +259,7 @@ function buildPlaylistRow(track, i, editMode, nowPlaying) {
     item.appendChild(favoriteBtn);
   }
 
-  // 【v3.53.0】Markersと同じ行ボタン: SKIP(背景なし・ON中は薄暗く)。通常/編集どちらでも表示。再生中の曲(nowPlaying)には出さない
+  // Markersと同じ行ボタン: SKIP(背景なし・ON中は薄暗く)。通常/編集どちらでも表示。再生中の曲(nowPlaying)には出さない
   if (!nowPlaying) {
     const hasSel = typeof window.playlistHasSelectedItems === "function" && window.playlistHasSelectedItems();
     const actCell = document.createElement("div");
@@ -308,7 +308,7 @@ function buildPlaylistRow(track, i, editMode, nowPlaying) {
       }
     };
     delZone.appendChild(delBtn);
-    // 【v3.53.0】削除選択タイル(ゴミ箱+Delete)。選択状態は直前の.del-btn.pcv2-selectedに連動(CSS)
+    // 削除選択タイル(ゴミ箱+Delete)。選択状態は直前の.del-btn.pcv2-selectedに連動(CSS)
     const delTile = document.createElement("span");
     delTile.className = "playlist-del-tile";
     // Libraryは移動(Move)にも使う選択なので、ゴミ箱でなく「選択」アイコン(未選択=輪、選択=チェック付き)
@@ -635,7 +635,7 @@ function removeTrackAt(index) {
 
 function playTrackAt(index, autoplay = true) {
   if (index < 0 || index >= playlist.length) return;
-  // 【v2.16.8】無料版ロック曲(index>=LIBRARY_MAX_TRACKS)の最終防衛ライン(GOTCHAS.md)。前/次ボタン・mediaSession・audio.onended等がplayTrackAt()を直接呼ぶので、ここで一律ブロックする
+  // 無料版ロック曲(index>=LIBRARY_MAX_TRACKS)の最終防衛ライン(GOTCHAS.md)。前/次ボタン・mediaSession・audio.onended等がplayTrackAt()を直接呼ぶので、ここで一律ブロックする
   const isLockedTrack = typeof isUnlocked === "function" && !isUnlocked() && index >= SW_LIMITS.LIBRARY_MAX_TRACKS;
   if (isLockedTrack) {
     swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
@@ -652,7 +652,7 @@ function playTrackAt(index, autoplay = true) {
 
 function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
   if (playlist.length === 0) return -1;
-  // 【v3.24.0】Auto Next範囲: フォルダがあり設定が"folder"なら、今の曲と同じフォルダ(連続グループ)内だけで進む/戻る/ラップする
+  // Auto Next範囲: フォルダがあり設定が"folder"なら、今の曲と同じフォルダ(連続グループ)内だけで進む/戻る/ラップする
   let lo = 0, hi = playlist.length - 1;
   if (playlistFolders.length > 0 && repeatMode === "folder" && playlist[fromIndex]) {
     const fid = trackFolderId(playlist[fromIndex]);

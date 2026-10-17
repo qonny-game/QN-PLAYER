@@ -6,7 +6,7 @@
   if (!window.QNI18N) return;
 
   QNI18N.addJaDict({
-    // ---- Stem(v4.16.0) ----
+    // ---- Stem ----
     "Track": "曲",
     "Stem is available on PC only for now.": "Stemは今のところPC専用です",
     "Load a track in Library to separate it into parts.": "Libraryで曲を読み込むとパートに分離できます",
@@ -30,7 +30,7 @@
     "Delete all recordings on this track": "このトラックの録音をすべて削除",
     "Show on the seek bar": "シークバーに表示",
     "Export recordings": "録音を書き出し",
-    // Tab(v4.54.0)
+    // Tab
     "Analyze": "解析する",
     "Keep screen on": "画面を点けたままにする",
     "Keep the screen awake while playing. Turn off to save battery; if playback stops when the screen turns off, turn it back on": "再生中は画面を消さずにおきます。オフにすると電池を節約できます。画面が消えると再生が止まる場合は、オンに戻してください",

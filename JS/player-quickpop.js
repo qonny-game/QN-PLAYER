@@ -1,4 +1,4 @@
-// player-quickpop.js — 下部コントロールの長押しクイック設定ポップアップ(v3.54.0)。
+// player-quickpop.js — 下部コントロールの長押しクイック設定ポップアップ。
 // Loop(長押し)=プリロール秒 / ±skip=送り戻し秒 / 前後Track=フォルダ一覧 / 前後Marker=前後のトラックへ(ポップアップ無しの即実行。定義が{action}を返す)。部品は設定パネルと同じQNSettingsUI(「‹ 値 ›」)。
 // 押下はdocument委譲(下部バー/ドックが作り直されても効く)。長押し成立後のclickは握りつぶす。依存: qn-settings-ui.js, player-ui-pc-v2.js(window.QNSkip), player-controls.js, player-bars.js
 (function () {

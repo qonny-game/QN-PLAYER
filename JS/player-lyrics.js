@@ -1,4 +1,4 @@
-// player-lyrics.js — 歌詞表示(v4.51.0)。元データはTextメモ(mp3_text_<曲>)。メモの各行に開始時刻を付け、シークバーの下に現在の行を出す。
+// player-lyrics.js — 歌詞表示。元データはTextメモ(mp3_text_<曲>)。メモの各行に開始時刻を付け、シークバーの下に現在の行を出す。
 // 時刻は別キー mp3_lyt_<曲>(JSON [[行の文字, 秒],...])に端末だけで保存(Firebase同期の対象外。バックアップには含める)。
 // 歌詞の行 = 空行でなく先頭が「#」でない行。「#」の行は見出し/コメント扱いで時刻を付けない。上限: メモ10000字・歌詞300行・1行120字(表示)
 (function () {
@@ -260,7 +260,7 @@
     prevA = a;
     d.classList.toggle("is-pre", a < 0);
   }
-  // 【v4.55.0 省電力】120msタイマーは「再生中・表示中・時刻付きの歌詞がある」時だけ(以前は常時)。シークや曲の読み込みはイベントでtick(true)する
+  // 【省電力】120msタイマーは「再生中・表示中・時刻付きの歌詞がある」時だけ(以前は常時)。シークや曲の読み込みはイベントでtick(true)する
   function syncTimer() {
     var need = typeof audio !== "undefined" && !audio.paused && !document.hidden && showPref() && timedCount() > 0;
     if (need && !timer) timer = setInterval(function () { tick(false); }, 120);

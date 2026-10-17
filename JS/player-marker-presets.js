@@ -12,7 +12,7 @@ const MARKER_PRESET_COLOR_DEFAULTS = {
   "Outro": "indigo"
 };
 
-// 【v3.55.0】デフォルト8項目も名前を編集できる(上書きはid=元の名前をキーに保存)。「Reset to default」で名前・色とも初期値に戻す(カスタム行は消さない)
+// デフォルト8項目も名前を編集できる(上書きはid=元の名前をキーに保存)。「Reset to default」で名前・色とも初期値に戻す(カスタム行は消さない)
 const MARKER_PRESET_LABELS_KEY = "qn_marker_preset_labels_v1";
 function loadMarkerPresetLabelOverrides() {
   try { const o = JSON.parse(localStorage.getItem(MARKER_PRESET_LABELS_KEY) || "{}"); return (o && typeof o === "object") ? o : {}; } catch (e) { return {}; }
@@ -290,7 +290,7 @@ function startPinMemoEdit(itemDiv, infoSpan, pinObj, index) {
   infoSpan.parentNode.insertBefore(input, infoSpan);
   input.focus();
   input.select();
-  // 【v3.53.1】編集中は一覧を再描画しない(再描画で入力欄とプリセットが消えるのを防ぐ)。終了時(commit/cancel/applyPreset)に解除
+  // 編集中は一覧を再描画しない(再描画で入力欄とプリセットが消えるのを防ぐ)。終了時(commit/cancel/applyPreset)に解除
   window.qnPinMemoEditing = true;
   const startedAt = Date.now();
 

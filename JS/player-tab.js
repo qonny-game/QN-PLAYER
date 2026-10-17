@@ -1,5 +1,5 @@
-// player-tab.js — Tabパネル(v4.54.0)。再生中のローカル曲の音をブラウザ内で採譜(Basic Pitch)し、ギターTABとして再生位置に合わせて流す。
-// 【v4.57.0】ソース切替: Mix(曲全体) / Bass(4弦TAB) / Guitar(6弦TAB) / Vocals(五線紙)。Bass/Guitar/VocalsはStemパネルで分けたパート(QNStem.getPart)を採譜する。保存キーは 曲|パート。
+// player-tab.js — Tabパネル。再生中のローカル曲の音をブラウザ内で採譜(Basic Pitch)し、ギターTABとして再生位置に合わせて流す。
+// ソース切替: Mix(曲全体) / Bass(4弦TAB) / Guitar(6弦TAB) / Vocals(五線紙)。Bass/Guitar/VocalsはStemパネルで分けたパート(QNStem.getPart)を採譜する。保存キーは 曲|パート。
 // 流れ: ファイルを22050Hzモノラルにデコード(メインスレッド) → Worker(player-tab-worker.js)でBasic Pitch → qn-tab-core.jsで整理・弦フレット割り当て → IndexedDB(qn_tab_db)に保存。
 // 中身はswitchPanel("tab"系 panelType:"guitartab")がQNTab.mount(host)で呼ぶ。グローバル設定(感度など)はSettings>一般の「Tab」(QNTab.settingsRows())。
 // 注意: 解析結果は曲の長さと別に持つので、Speed(再生速度)を変えても audio.currentTime(=原曲の秒)にそのまま合う。YouTube(ファイルが無い曲)は非対応。

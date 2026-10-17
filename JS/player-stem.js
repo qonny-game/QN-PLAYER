@@ -2,7 +2,7 @@
 // - 分離: JS/player-stem-worker.js(module worker)。WebGPUがあれば優先、無ければWASM単スレッド(遅い)。モデルはCache API、結果(16bit WAV×4)はIndexedDB "qn_stem_db"に曲キー(名前|サイズ)で保存。
 // - 再生: マスターは既存の<audio>(#audio)をそのまま時計に使う(シーク/A-Bループ/マーカー/速度は従来通り)。Stemモード中はマスターをmutedにし、4本の<audio>(各stem WAV)を
 //   マスターのcurrentTime/playbackRate/再生状態へ追従させる(ズレ>60msでcurrentTimeを合わせ直す)。EQ/Key(SoundTouch経路)はStemモード中は効かない。
-// - 録音(v4.17.0): マイクをMediaRecorderで録り、デコードして16bit WAV(mono)にして保持。再生はstemと同じ追従方式で、録音開始時の曲位置(startPos)・録音時のrate・遅延補正offset(ms)から位置を決める(曲ごとにIndexedDBのキー rec|曲キー へ保存、4トラック)。
+// - 録音: マイクをMediaRecorderで録り、デコードして16bit WAV(mono)にして保持。再生はstemと同じ追従方式で、録音開始時の曲位置(startPos)・録音時のrate・遅延補正offset(ms)から位置を決める(曲ごとにIndexedDBのキー rec|曲キー へ保存、4トラック)。
 // - YouTube/iPhone(SP幅)は非対応。window.QNStem.mount(host)をplayer-ui-pc-v2.jsのswitchPanel("stem")が呼ぶ。
 (function () {
   "use strict";
@@ -157,7 +157,7 @@
       });
     });
   }
-  // 【v4.55.0 省電力】80msの追従タイマーは「再生中で、Stemのパートか録音クリップがある」間だけ(以前は起動時から常時)。
+  // 【省電力】80msの追従タイマーは「再生中で、Stemのパートか録音クリップがある」間だけ(以前は起動時から常時)。
   // 開始/停止は armSync() が毎回その場で判定する。パート/クリップを作る・壊す所と、マスターの再生イベントから呼ぶ
   function syncNeeded() {
     var m = A();
@@ -846,7 +846,7 @@
       onTrackChange();
       render();
     },
-    // 【v4.57.0】Tabが使う: 分離済みのパート(WAVのBlob)を返す。無ければnull。key=keyOf(ファイル)。表示中の分離結果→6パート版の保存→4パート版の保存の順に探す
+    // Tabが使う: 分離済みのパート(WAVのBlob)を返す。無ければnull。key=keyOf(ファイル)。表示中の分離結果→6パート版の保存→4パート版の保存の順に探す
     getPart: function (id, key) {
       var pick = function (b) { return b && b[id] ? b[id] : null; };
       if (st.key === key && pick(st.blobs)) return Promise.resolve(pick(st.blobs));

@@ -1,4 +1,4 @@
-// qn-marker-core.js — PLAYERとYouTube共有の判定ルール(v3.11.0)。秒数だけを扱う純粋関数(audio/YouTubeプレイヤーに触らない)。timesは表示ONマーカーの昇順配列
+// qn-marker-core.js — PLAYERとYouTube共有の判定ルール。秒数だけを扱う純粋関数(audio/YouTubeプレイヤーに触らない)。timesは表示ONマーカーの昇順配列
 var QNMarkerCore = (function () {
   var EPS = 0.05;
 

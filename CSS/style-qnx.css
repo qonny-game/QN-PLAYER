@@ -79,8 +79,6 @@
 .qn-ex-eq-r { -webkit-appearance: slider-vertical; appearance: slider-vertical; writing-mode: vertical-lr; direction: rtl; width: 22px; height: 110px; margin: 0; accent-color: var(--accent-primary); }
 
 /* ---------- 出力名・Library選択 ---------- */
-.qn-ex-suffix { padding: 8px 0 12px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-small); color: var(--icon-muted); }
-.qn-ex-suffix input { height: var(--btn-h); padding: 0 12px; border-radius: var(--radius-md, 10px); border: 1px solid var(--border-strong); background: none; color: var(--text-bright); font-size: var(--fs-body); }
 .qn-ex-pick { position: absolute; inset: 0; z-index: 20; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .qn-ex-pick-box { width: min(480px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--bg-surface, var(--bg-primary)); border: 1px solid var(--border-strong); border-radius: 14px; overflow: hidden; }
 .qn-ex-pick-head { padding: 14px 16px; font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
@@ -102,9 +100,6 @@
 
 /* ---------- 分割した範囲(Parts) ---------- */
 .qn-ex-wave-btns { display: inline-flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.qn-ex-segsbox { border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 10px); overflow: hidden; flex-shrink: 0; }
-.qn-ex-segsbox[hidden] { display: none; }
-.qn-ex-segs-head { padding: 8px 12px; font-size: var(--fs-small); color: var(--icon-muted); border-bottom: 1px solid var(--border-subtle); }
 .qn-ex-segs { max-height: 28vh; overflow-y: auto; }
 .qn-ex-seg { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
 .qn-ex-seg:last-child { border-bottom: none; }
@@ -121,7 +116,6 @@
 .qn-ex-bulk { padding: 8px 12px 10px; border-bottom: 1px solid var(--border-strong); background: var(--bg-hover-subtle); display: flex; flex-direction: column; gap: 6px; }
 .qn-ex-bulk-l { font-size: var(--fs-small); font-weight: 600; color: var(--text-bright); letter-spacing: .3px; }
 .qn-ex-strip { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; }
-.qn-ex-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .qn-ex-chip { height: 28px; padding: 0 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: none; color: var(--icon-muted); font-family: var(--font-display, 'Instrument Sans'), sans-serif; font-size: var(--fs-small); font-weight: 600; white-space: nowrap; cursor: pointer; transition: background var(--dur-hover, 130ms) ease, color var(--dur-hover, 130ms) ease, transform var(--dur-press, 100ms) ease; }
 .qn-ex-chip:active { transform: scale(.95); }
 .qn-ex-chip.is-on { color: var(--accent-primary); border-color: var(--accent-primary); }

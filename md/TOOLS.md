@@ -13,6 +13,8 @@
 | `qa.py` | **出荷前チェックの一括実行**（smoke4画面＋i18n＋md_audit＋js_unused＋css_audit＋release checkを並列で）。結果は1項目1行、NGだけ詳細。`--quick`=smokeをPC/SP-Sだけ・約20秒（作業の途中確認用）。`--ship 版 "一言"`=全部OKならそのまま`release.py ship`→パッチZIPの中身をツリーと照合。全チェックは約2分(2コア)なので、ツール呼び出しのtimeoutは300秒にする |
 | `try.py` | **画面の動作確認を1コマンドで**（その場でPlaywrightスクリプトを書かない）。`--app tuner --mic --size pc sp --panel X --click css --mic-set tone=0.001,noise=0.002 --eval "js" --shot 名前`。PC/SP複数サイズを一度に、eval結果・ページエラー・スクショ(/tmp/qnshots/)を出力。`--mic`は擬似マイク(qnbrowser.pyの擬似マイク定義) |
 | `where.py` | **用語・ID・文言がどのmd/guide/コードにあるか**を一覧（mdとguideは該当行、コードは件数）。名前やUIを変えた時の、直すべきドキュメントの拾い漏れ防止 |
+| `orphan_scan.py` | `python3 -I md/tools/orphan_scan.py [ルート]`。id重複・参照のないid・参照が宣言1か所だけのJS関数/変数を出す。`js_unused.py`が拾わないvar定数とidを補う（動的な`eqBand*`/`eqGain*`と残置リストの関数は既知） |
+| `tidy_comments.py` | `python3 -I md/tools/tidy_comments.py <ルート> [apply]`。コメント内の版番号タグだけを外す（引数なしはドライラン）。適用後は`node --check`と`snap.py`の前後比較で確認 |
 | `css_audit.py` / `js_unused.py` / `md_audit.py` | お掃除用。引数なしならカレントがルート。未使用のCSS／未参照の関数／mdが挙げる名前がコードに残っているか（`CLEANUP.md`） |
 
 ## 標準の流れ

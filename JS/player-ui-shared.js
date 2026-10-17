@@ -28,7 +28,7 @@ async function decodeWaveform(file, token) {
   try {
     const arrayBuffer = await file.arrayBuffer();
     if (token !== waveformDecodeToken) return;
-    // 【v2.13.4 負荷対策】共有AudioContext(getAudioCtx)でデコードしない(通常再生でWeb Audioが常駐しiOS Safariで問題)。波形は低解像度で足りるので低サンプルレートのOfflineAudioContextでデコードしメモリを約1/5に
+    // 【負荷対策】共有AudioContext(getAudioCtx)でデコードしない(通常再生でWeb Audioが常駐しiOS Safariで問題)。波形は低解像度で足りるので低サンプルレートのOfflineAudioContextでデコードしメモリを約1/5に
     const audioBuffer = await decodeForWaveform(arrayBuffer);
 
     if (token !== waveformDecodeToken) return;
@@ -40,7 +40,7 @@ async function decodeWaveform(file, token) {
 
     const channelCount = audioBuffer.numberOfChannels;
     const rawLength = audioBuffer.length;
-    // 【v3.58.0】5秒1本でも滑らかに見えるよう毎秒160ピーク(下限4000・上限480000=約50分)。QNBarsが1本あたりの区間で最大値を取って間引く
+    // 5秒1本でも滑らかに見えるよう毎秒160ピーク(下限4000・上限480000=約50分)。QNBarsが1本あたりの区間で最大値を取って間引く
     const samples = Math.max(4000, Math.min(480000, Math.round(audioBuffer.duration * 160)));
     const blockSize = Math.max(1, Math.floor(rawLength / samples));
     const peaks = new Float32Array(samples);
@@ -191,7 +191,7 @@ function loadFile(file) {
   decodeWaveform(file, waveformDecodeToken);
   if (window.QNNorm) QNNorm.onLoad(file.name);
 
-  // 【v2.13.6】マーカー/テキストメモ読込は曲切替の瞬間に同期で行う(loadedmetadata待ちだと失敗時に曲名だけ新しく本文が前の曲のままになり、編集すると新しい曲名キーで保存される。GOTCHAS.md)
+  // マーカー/テキストメモ読込は曲切替の瞬間に同期で行う(loadedmetadata待ちだと失敗時に曲名だけ新しく本文が前の曲のままになり、編集すると新しい曲名キーで保存される。GOTCHAS.md)
   loadTrackUserData(file.name);
 
   audio.onloadedmetadata = () => {
@@ -223,7 +223,7 @@ function updatePlayButtonState() {
 
   if (!audio.paused) {
     playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
-    // v3.54.0: 再生中も停止中と同じ色(緑のグラデにしない)
+    // 再生中も停止中と同じ色(緑のグラデにしない)
     playBtn.style.background = "";
     playBtn.style.boxShadow = "";
   } else {
@@ -339,7 +339,7 @@ audio.onended = () => {
   }
 };
 
-// 【v2.13.5 保険】読込失敗時はIndexedDBから読み直して1回だけ再試行(GOTCHAS.md)
+// 【保険】読込失敗時はIndexedDBから読み直して1回だけ再試行(GOTCHAS.md)
 let lastAudioRecoveryName = null;
 audio.addEventListener("error", async () => {
   if (typeof currentPlaylistIndex === "undefined" || currentPlaylistIndex < 0) return;
@@ -403,7 +403,7 @@ document.addEventListener("keydown", e => {
     e.preventDefault();
     addCurrentPin();
   }
-  // 【v4.61.0】練習用の細かい移動。, . = 設定のスキップ秒(-10s/+10s)・Shift+←→ = 5秒・[ ] = A点/B点。マーカー移動(←→)とは別
+  // 練習用の細かい移動。, . = 設定のスキップ秒(-10s/+10s)・Shift+←→ = 5秒・[ ] = A点/B点。マーカー移動(←→)とは別
   else if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "," || e.key === ".")) {
     e.preventDefault();
     const sk = document.getElementById(e.key === "," ? "pcV2SkipBackBtn" : "pcV2SkipFwdBtn");
@@ -515,7 +515,7 @@ let lastDurationText = null;
 
 // ループの折り返し判定(A-B/マーカー区間)。updateBars(rAF)から毎フレーム呼ぶ。画面が見えない間(別アプリ・ロック中)はrAFが止まるので、下のバックグラウンド用タイマーからも呼ぶ。prevTimeは呼び出し側が更新する
 function loopTick(ct) {
-  // 折り返し判定(間引かない)。loopEnabled判定を先に(OFFなら配列生成しない)。v3.7.0〜: A-Bループはloop WrapAB()
+  // 折り返し判定(間引かない)。loopEnabled判定を先に(OFFなら配列生成しない)。A-Bループはloop WrapAB()
   if (loopEnabled && loopMode === "ab" && !isSeeking && !isJumping && !audio.paused) {
     const abr = getABRange();
     if (abr) loopWrapAB(abr, ct);
@@ -570,13 +570,13 @@ function loopTick(ct) {
   }
 }
 
-// 【v4.10.1】画面が非表示の間はrAFが止まりループが効かなくなるため、タイマーとtimeupdateで折り返し判定だけ続ける(表示中は何もしない=二重処理なし)。バックグラウンドではブラウザがタイマーを間引くので精度は落ちる(最大で約1秒遅れ)
+// 画面が非表示の間はrAFが止まりループが効かなくなるため、タイマーとtimeupdateで折り返し判定だけ続ける(表示中は何もしない=二重処理なし)。バックグラウンドではブラウザがタイマーを間引くので精度は落ちる(最大で約1秒遅れ)
 function backgroundLoopTick() {
   if (!document.hidden || !audio.duration || !loopEnabled || audio.paused) return;
   loopTick(audio.currentTime);
   prevTime = audio.currentTime;
 }
-// 【v4.55.0 省電力】100msタイマーは「非表示かつ再生中」の間だけ回す(以前は常時)。表示中はupdateBarsのrAFが折り返しを見る
+// 【省電力】100msタイマーは「非表示かつ再生中」の間だけ回す(以前は常時)。表示中はupdateBarsのrAFが折り返しを見る
 let bgLoopTimer = 0;
 function syncBgLoopTimer() {
   const need = document.hidden && audio && !audio.paused && loopEnabled;
@@ -587,7 +587,7 @@ function syncBgLoopTimer() {
 document.addEventListener("visibilitychange", syncBgLoopTimer);
 audio.addEventListener("timeupdate", backgroundLoopTick);
 
-// 【v4.55.0 省電力】rAFは再生中(とシーク/ジャンプ中)だけ。停止中はイベント(seeked/timeupdate/pause等)で1回ずつ回す(以前は停止中も毎フレーム)
+// 【省電力】rAFは再生中(とシーク/ジャンプ中)だけ。停止中はイベント(seeked/timeupdate/pause等)で1回ずつ回す(以前は停止中も毎フレーム)
 // textContentは子ノードを作り直す(childList変更)ので、既存のテキストノードの値だけ書き換える(再生中は1秒に10回更新される時刻表示用)
 function setTextFast(el, t) { const n = el.firstChild; if (n && n.nodeType === 3 && !n.nextSibling) n.nodeValue = t; else el.textContent = t; }
 let updateBarsRaf = 0;
@@ -634,7 +634,7 @@ function updateBarsBody() {
 
   loopTick(ct);
 
-  // 【v3.46.0】スキップ区間: 再生が自然にスキップ開始マーカーを跨いだ時だけ、次の(スキップでない)マーカーへ飛ぶ。ループ中・シーク中・ジャンプ中は対象外(ユーザーがタップして入った区間はそのまま再生される)
+  // スキップ区間: 再生が自然にスキップ開始マーカーを跨いだ時だけ、次の(スキップでない)マーカーへ飛ぶ。ループ中・シーク中・ジャンプ中は対象外(ユーザーがタップして入った区間はそのまま再生される)
   if (!loopEnabled && !isSeeking && !isJumping && !audio.paused && typeof getSkipRanges === "function") {
     const cur = audio.currentTime;
     if (cur > prevTime && cur - prevTime < 0.5) {
@@ -704,7 +704,7 @@ document.getElementById("vbarRows").addEventListener("click", e => {
 
   const clickedTime = QNBars.timeInRow(bar, parseInt(bar.dataset.row, 10), e.clientX);
   if (clickedTime === null) return;
-  const wasPlaying = !audio.paused; // 停止中のタップは位置だけ動かして再生しない(v4.67.0)
+  const wasPlaying = !audio.paused; // 停止中のタップは位置だけ動かして再生しない
   beginSeek();
   abLeaveIfOutside(clickedTime);
 
@@ -723,7 +723,7 @@ document.getElementById("vbarRows").addEventListener("click", e => {
 });
 
 
-// 【v3.45.0】波形のジェスチャー(タップ=シーク。再生中だった時だけ再生を続ける=v4.67.0)
+// 波形のジェスチャー(タップ=シーク。再生中だった時だけ再生を続ける)
 //  長押し(0.5秒): その位置にマーカー追加 / 横スワイプ: 再生位置をスクラブ(行の幅=バー長の秒数) / ダブルタップ(再生中): その位置で停止
 //  マーカーの線・A/B旗の上から始めた操作は対象外(それぞれ独自のドラッグ/タップ)。#vbarRowsはCSSでtouch-action:pan-y(横方向はこちらで処理)
 (function () {
@@ -974,7 +974,7 @@ function hapticWarning() {
 
 
 (function syncRangeProgressLoop() {
-  // 【v4.55.0 省電力】毎フレームrAFで全スライダーの値を見るのをやめ、inputイベント+valueの代入フック+低頻度の保険に変更
+  // 【省電力】毎フレームrAFで全スライダーの値を見るのをやめ、inputイベント+valueの代入フック+低頻度の保険に変更
   const targets = Array.from(document.querySelectorAll(".control-card input[type=\"range\"], .eq-vslider"));
   const lastValues = new Map();
   function apply(input) {

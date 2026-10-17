@@ -109,7 +109,7 @@
 }
 
 
-/* 【v3.24.0】編集モードのMOVEボタン(曲をフォルダへ。編集モードのみJSで表示。色は通常FAB=アクセント) */
+/* 編集モードのMOVEボタン(曲をフォルダへ。編集モードのみJSで表示。色は通常FAB=アクセント) */
 .panel-fab-move-btn {
   display: none;
 }
@@ -135,7 +135,7 @@
 }
 
 
-/* 【v2.15.0】Markers版の広い削除タップゾーン: .pinItemのpadding(10px 12px)を負margin+paddingで打ち消し行いっぱいに広げ、●の位置は保つ */
+/* Markers版の広い削除タップゾーン: .pinItemのpadding(10px 12px)を負margin+paddingで打ち消し行いっぱいに広げ、●の位置は保つ */
 :is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .pin-del-zone {
   align-items: center;
   justify-content: center;
@@ -257,7 +257,7 @@
 }
 
 
-/* Backup/Importパネル(v2.13.6〜)。【v3.18.0】YouTube(.qn-yt-sec-*)、【v3.23.0】PITCH(.qn-pt-sec-*)にも:is()で共用(ここを直せば全部に効く) */
+/* Backup/Importパネル。YouTube(.qn-yt-sec-*)、PITCH(.qn-pt-sec-*)にも:is()で共用(ここを直せば全部に効く) */
 :is(#pcV2PanelBody.pcv2-panel-backup, #pcV2PanelBody.pcv2-panel-transfer, .qn-yt-sec-backup, .qn-pt-sec-backup) .export-modal-footer,
 :is(#pcV2PanelBody.pcv2-panel-import, .qn-yt-sec-import, .qn-pt-sec-import) .export-modal-footer {
   display: flex;
@@ -288,7 +288,7 @@
 }
 
 
-/* 【v2.15.1/v2.16.7】Backupパネル: 曲選択リストはflex:1で埋めない(overflow-y:autoの要素内で多段flex:1はiOS Safariでリスト高さ確定前に後続セクションが重なって描画される既知不具合。GOTCHAS.md)。リスト=max-height固定上限(内側のみスクロール)、パネル全体=#pcV2PanelBodyの1箇所だけスクロール。行は線区切り(角丸枠なし) */
+/* Backupパネル: 曲選択リストはflex:1で埋めない(overflow-y:autoの要素内で多段flex:1はiOS Safariでリスト高さ確定前に後続セクションが重なって描画される既知不具合。GOTCHAS.md)。リスト=max-height固定上限(内側のみスクロール)、パネル全体=#pcV2PanelBodyの1箇所だけスクロール。行は線区切り(角丸枠なし) */
 :is(#pcV2PanelBody.pcv2-panel-backup, #pcV2PanelBody.pcv2-panel-transfer, .qn-yt-sec-backup, .qn-pt-sec-backup) .export-section {
   padding: 18px 0;
 }
@@ -323,7 +323,7 @@
 
 
 :is(#pcV2PanelBody.pcv2-panel-backup, #pcV2PanelBody.pcv2-panel-transfer, .qn-yt-sec-backup, .qn-pt-sec-backup) .track-backup-tracklist {
-  /* 【v2.16.9】リスト上限は低めに(58vh/520pxだとSPで内外2つのスクロール領域が競合し、外側へ渡すのが困難だった)。曲数が少なければ内容分(min-heightなし) */
+  /* リスト上限は低めに(58vh/520pxだとSPで内外2つのスクロール領域が競合し、外側へ渡すのが困難だった)。曲数が少なければ内容分(min-heightなし) */
   max-height: min(38vh, 340px);
   gap: 0;
   border-top: 1px solid var(--border-subtle);
@@ -652,7 +652,7 @@
 }
 
 
-/* 【v3.52.0】Markers編集中のCancel(削除ボタンの位置)と、選択ありの時にDeleteへ変わる下のボタン */
+/* Markers編集中のCancel(削除ボタンの位置)と、選択ありの時にDeleteへ変わる下のボタン */
 .panel-fab-cancel-btn {
   display: none;
   background: #2f3a52;

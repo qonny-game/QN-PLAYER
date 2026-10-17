@@ -39,7 +39,7 @@ function addCurrentPin() {
   savePins();
 }
 
-// 【v3.45.0】指定位置にマーカー追加(波形の長押し用)。±0.3秒以内に既存マーカーがあれば何もしない(falseを返す)
+// 指定位置にマーカー追加(波形の長押し用)。±0.3秒以内に既存マーカーがあれば何もしない(falseを返す)
 function addPinAt(t) {
   if (!audio.duration) return false;
   t = Math.max(0, Math.min(audio.duration, Math.round(t * 10) / 10));
@@ -199,7 +199,7 @@ function createPinLine(pinObj, i) {
       swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
       return;
     }
-    const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
+    const wasPlaying = !audio.paused; // 停止中のタップは移動だけ
     beginSeek();
     audio.currentTime = pinObj.t;
     prevTime = pinObj.t;
@@ -295,7 +295,7 @@ function paintSegmentsOnRow(rowEl, row) {
 
     if (s.onClickSeek !== undefined) {
       seg.onclick = () => {
-        const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
+        const wasPlaying = !audio.paused; // 停止中のタップは移動だけ
         beginSeek();
         audio.currentTime = s.onClickSeek;
         prevTime = s.onClickSeek;
@@ -310,7 +310,7 @@ function paintSegmentsOnRow(rowEl, row) {
   });
 }
 
-// 【v3.46.0】スキップ区間: 有効なマーカーのうち skip=true のものから、次の有効マーカーまで(次が無ければ対象外)。再生は自然にその開始点を跨いだ時に次のマーカーへ飛ぶ(updateBars)
+// スキップ区間: 有効なマーカーのうち skip=true のものから、次の有効マーカーまで(次が無ければ対象外)。再生は自然にその開始点を跨いだ時に次のマーカーへ飛ぶ(updateBars)
 function getSkipRanges() {
   const act = pins.filter(p => p.enabled);
   const out = [];
@@ -374,7 +374,7 @@ function startDragPin(index) {
     beginSeek();
     const dur = audio.duration;
 
-    // 【v2.16.2】ドラッグ中はmarker線を作り直さない(left/行だけ更新、renderPinList等は離すまで保留)。iOS Safariは掴んだ要素がDOMから消えるとtouchmove/touchendがdocumentへ届かず1回で止まる(GOTCHAS.md)。touchイベントは開始要素自身に付ける
+    // ドラッグ中はmarker線を作り直さない(left/行だけ更新、renderPinList等は離すまで保留)。iOS Safariは掴んだ要素がDOMから消えるとtouchmove/touchendがdocumentへ届かず1回で止まる(GOTCHAS.md)。touchイベントは開始要素自身に付ける
     const dragTarget = e.currentTarget;
     const lineEl = dragTarget && dragTarget.closest ? dragTarget.closest(".vbar-line") : null;
     const labelEl = lineEl ? lineEl.querySelector(".vbar-label") : null;
@@ -456,12 +456,12 @@ function startDragPin(index) {
       }
 
       if (!hasDragged) {
-        // 実質タップだった場合: touchはtouchstartのpreventDefaultでclick不発。mouseもstop()末尾のrenderPins()でmousedown要素が消えonclick不発のことがある(v3.5.0)。→ここでシーク＆再生＋ポップアップ。lastPinTapAtで二重ポップアップ防止
+        // 実質タップだった場合: touchはtouchstartのpreventDefaultでclick不発。mouseもstop()末尾のrenderPins()でmousedown要素が消えonclick不発のことがある。→ここでシーク＆再生＋ポップアップ。lastPinTapAtで二重ポップアップ防止
         const pinObj = pins[index];
         if (pinObj) {
           lastPinTapAt = Date.now();
           if (typeof abLeaveIfOutside === "function") abLeaveIfOutside(pinObj.t);
-          const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
+          const wasPlaying = !audio.paused; // 停止中のタップは移動だけ
           audio.currentTime = pinObj.t;
           prevTime = pinObj.t;
           if (wasPlaying) audio.play();
@@ -516,7 +516,7 @@ function renderPinList() {
     colorMark.style.background = (pinObj.color && MARKER_COLOR_PALETTE[pinObj.color]) ? MARKER_COLOR_PALETTE[pinObj.color] : "#3a3a48";
     // 色丸のタップは編集(メモ+プリセット)と同じ表示を開く(下のeditActionを共有)
     colorMark.onclick = (e) => { e.stopPropagation(); if (div._qnEdit) div._qnEdit(); };
-    // 【v2.16.8】.pinItemはgrid4列固定(先頭セル/ラベル/操作ボタン群/選択)。子要素は必ず4個。鍵は.pin-leading-cellにcolorMarkと一緒に入れる(別要素で5個になると列がズレる。GOTCHAS.md)
+    // .pinItemはgrid4列固定(先頭セル/ラベル/操作ボタン群/選択)。子要素は必ず4個。鍵は.pin-leading-cellにcolorMarkと一緒に入れる(別要素で5個になると列がズレる。GOTCHAS.md)
     const leadingCell = document.createElement("div");
     leadingCell.className = "pin-leading-cell";
     if (isLockedMarker) {
@@ -544,7 +544,7 @@ function renderPinList() {
         swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
         return;
       }
-      const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
+      const wasPlaying = !audio.paused; // 停止中のタップは移動だけ
       beginSeek();
       audio.currentTime = pinObj.t; 
       prevTime = pinObj.t;
@@ -618,7 +618,7 @@ function renderPinList() {
       refreshAfterPinChange();
     };
     actCell.appendChild(lockBtn);
-    actCell.appendChild(editBtn); // 【v3.52.0】並びはSKIP/HIDE/編集(編集はEDITモードのみ表示)。その右が削除選択タイル(.pin-del-zone)
+    actCell.appendChild(editBtn); // 並びはSKIP/HIDE/編集(編集はEDITモードのみ表示)。その右が削除選択タイル(.pin-del-zone)
     div.appendChild(actCell);
 
     const delBtn = document.createElement("button");
@@ -650,7 +650,7 @@ function renderPinList() {
     const delZone = document.createElement("div");
     delZone.className = "pin-del-zone";
     delZone.appendChild(delBtn);
-    // 【v3.52.0】EDITモードの削除選択タイル(ゴミ箱+DELETE)。選択状態は直前の.del-btn.pcv2-selectedに連動(CSS兄弟結合子)。通常時は非表示
+    // EDITモードの削除選択タイル(ゴミ箱+DELETE)。選択状態は直前の.del-btn.pcv2-selectedに連動(CSS兄弟結合子)。通常時は非表示
     const delTile = document.createElement("span");
     delTile.className = "pin-del-tile";
     delTile.innerHTML = window.QN_ROW_ACT.html("del");
@@ -664,7 +664,7 @@ function renderPinList() {
 }
 
 
-// 【v3.5.0】シークバーポップアップ: 空き位置→+Marker / 既存マーカー→−/Color/Hide。シーク＆再生も従来どおり。見た目は.qn-yt-seekpop(style-youtube.css)と共通。PLAYERにA/Bは出さない
+// シークバーポップアップ: 空き位置→+Marker / 既存マーカー→−/Color/Hide。シーク＆再生も従来どおり。見た目は.qn-yt-seekpop(style-youtube.css)と共通。PLAYERにA/Bは出さない
 let lastPinDragAt = 0;
 let lastPinTapAt = 0; // startDragPin stop()のタップ処理時刻(clickとの二重処理防止)
 let pinPopEl = null, pinPopTimer = null, pinPopTime = 0, pinPopPin = null, pinPopAbKind = null;
@@ -828,7 +828,7 @@ function showPinPopup(t, barEl, clientX, pinObj, abKind) {
   resetPinPopTimer();
 }
 
-// 【v3.45.0】ポップアップのLoop: その位置を含む区間をSectionループにして再生(1タップでループ開始)
+// ポップアップのLoop: その位置を含む区間をSectionループにして再生(1タップでループ開始)
 function pinPopLoop() {
   const t = pinPopTime;
   hidePinPopup();
@@ -873,7 +873,7 @@ function pinPopClearPoint() {
   afterABChange();
 }
 
-// 【v3.8.0】A/Bはマーカーではなく秒の独立点(abA/abB, player-core.js)。旗(.vbar-ab-pt)ドラッグで移動。setABAt: 同種の点が±0.5秒以内なら解除(トグル)
+// A/Bはマーカーではなく秒の独立点(abA/abB, player-core.js)。旗(.vbar-ab-pt)ドラッグで移動。setABAt: 同種の点が±0.5秒以内なら解除(トグル)
 const AB_SNAP_SEC = 0.5;
 function afterABChange() {
   saveAB();
@@ -997,7 +997,7 @@ function attachABDrag(el, kind) {
       prevTime = audio.currentTime;
     } else {
       lastPinTapAt = Date.now();
-      const wasPlaying = !audio.paused; // 停止中のタップは移動だけ(v4.68.0)
+      const wasPlaying = !audio.paused; // 停止中のタップは移動だけ
       audio.currentTime = v;
       prevTime = v;
       if (wasPlaying) audio.play();

@@ -87,7 +87,7 @@ function formatFileSize(bytes) {
 function updateTrackBackupSelectionSummary() {
   if (!Array.isArray(playlist)) return;
   const selectedTracks = playlist.filter(t => trackBackupSelectedNames.has(t.name));
-  // YouTubeは曲単位で選ばず「YouTube各種データ」の1項目で丸ごと(v3.61.0)
+  // YouTubeは曲単位で選ばず「YouTube各種データ」の1項目で丸ごと
   const ytCount = ytIncludeCount();
   const pt = ptBackupApi();
   const ptSel = pt ? pt.list().filter(it => trackBackupSelectedPtIds.has(it.id)) : [];
@@ -124,7 +124,7 @@ function renderTrackBackupTrackList() {
   const yt = ytBackupApi();
   const ptApi = ptBackupApi();
   const ptList = ptApi ? ptApi.list() : [];
-  // 【v3.55.0】Audio / YouTube / Pitch はそれぞれ独立した枠(見出し+一覧)にする
+  // Audio / YouTube / Pitch はそれぞれ独立した枠(見出し+一覧)にする
   let host = trackBackupTrackListEl;
   function startGroup(text) {
     host = document.createElement("div");
@@ -360,7 +360,7 @@ async function runTrackBackup() {
           trackData.abB = storedAB.b;
           trackData.noteText = loadStoredNoteTextFor(track.name);
           if (window.QNLyrics) trackData.lyricTimes = window.QNLyrics.exportFor(track.name);
-          // 【v3.24.0】所属フォルダは名前で持つ(idは端末ごと)。未分類=null。古い版は無視、古いバックアップ(キー無し)は読み込み側で触らない
+          // 所属フォルダは名前で持つ(idは端末ごと)。未分類=null。古い版は無視、古いバックアップ(キー無し)は読み込み側で触らない
           const folderNameForExport = typeof trackFolderId === "function" && typeof getPlaylistFolder === "function" && trackFolderId(track) ? getPlaylistFolder(track.folder).name : null;
           trackData.folder = folderNameForExport;
         }
@@ -389,7 +389,7 @@ async function runTrackBackup() {
         zip.file("markers.json", markersJsonText);
         if (includeAudio) {
           const audioFolder = zip.folder("audio");
-          // 【v4.69.0】Libraryのフォルダ構造を保つ: audio/<フォルダ名>/<曲>。未分類はaudio直下。読み込みは曲名(末尾)で探すので、古い版・古いバックアップとも互換
+          // Libraryのフォルダ構造を保つ: audio/<フォルダ名>/<曲>。未分類はaudio直下。読み込みは曲名(末尾)で探すので、古い版・古いバックアップとも互換
           const safeDir = n => String(n || "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/^\.+/, "").trim().slice(0, 80) || "Folder";
           targetTracks.forEach(track => {
             const fid = typeof trackFolderId === "function" ? trackFolderId(track) : null;
@@ -810,7 +810,7 @@ async function runTrackImport() {
         if (audioBlob) {
           existingTrack.file = new File([audioBlob], name, { type: audioBlob.type || "audio/mpeg" });
         }
-        // 1曲だけ保存(savedAt維持)。【v2.13.5】音声ごと差し替え時のみIndexedDBの音声レコードを書き直す。メタのみ上書きならIndexedDBに触れない(GOTCHAS.md)
+        // 1曲だけ保存(savedAt維持)。音声ごと差し替え時のみIndexedDBの音声レコードを書き直す。メタのみ上書きならIndexedDBに触れない(GOTCHAS.md)
         if (audioBlob && typeof savePlaylistTrackAudioKeepingOrder === "function") {
           await savePlaylistTrackAudioKeepingOrder(existingTrack);
         } else if (typeof savePlaylistMetadataFor === "function") {
@@ -918,7 +918,7 @@ function applyImportedMarkersAndText(name, trackData) {
       localStorage.setItem("mp3_pins_" + name, JSON.stringify(pinsToSave));
     } catch (e) {}
   }
-  // v3.8.0〜: abA/abBがある時だけ反映(古いバックアップは触らない)
+  // abA/abBがある時だけ反映(古いバックアップは触らない)
   if (trackData.abA !== undefined || trackData.abB !== undefined) {
     const a = typeof trackData.abA === "number" ? trackData.abA : null;
     const b = typeof trackData.abB === "number" ? trackData.abB : null;

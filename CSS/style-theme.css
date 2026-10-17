@@ -310,7 +310,7 @@
 }
 .qn-marker-custom-row { gap: 6px; }
 
-/* v3.55.0: Marker Memo Colorsの「Reset to default」(右寄せの小ボタン)。デフォルト項目の名前も入力で編集できる */
+/* Marker Memo Colorsの「Reset to default」(右寄せの小ボタン)。デフォルト項目の名前も入力で編集できる */
 .qn-marker-preset-colors-title.has-reset { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .qn-marker-reset-btn {
   height: var(--btn-h, 28px);

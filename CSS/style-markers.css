@@ -83,7 +83,7 @@
   transition: background var(--dur-hover) var(--ease-snap), color var(--dur-hover) var(--ease-snap);
 }
 
-/* 【v2.13.6】ホバーで鉛筆を出すのはホバー可能環境のみ(iOSでマーカー名の1タップ目がジャンプせずホバーだけになるのを防ぐ)。タッチはEDITモードから編集 */
+/* ホバーで鉛筆を出すのはホバー可能環境のみ(iOSでマーカー名の1タップ目がジャンプせずホバーだけになるのを防ぐ)。タッチはEDITモードから編集 */
 @media (hover: hover) and (pointer: fine) {
   .pin-label-row:hover .pin-edit-btn {
     display: flex;
@@ -107,7 +107,7 @@
   fill: currentColor;
 }
 
-/* 【v2.16.8】.pinItemの4列gridの1列目に収める入れ物(ロック=鍵+色丸、通常=色丸)。GOTCHAS.md */
+/* .pinItemの4列gridの1列目に収める入れ物(ロック=鍵+色丸、通常=色丸)。GOTCHAS.md */
 .pin-leading-cell {
   display: flex;
   align-items: center;
@@ -476,7 +476,7 @@
 :is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .pin-del-tile span { line-height: 1; }
 :is(#pcV2PanelBody.markers-edit-mode #pinList, .qn-yt[data-edit="markers"] .qn-yt-pinbox) .pin-act-cell { margin-right: -8px; } /* 編集とDELETEタイルの間のgrid gapを0に */
 
-/* ---------- PLAYER Libraryの行ボタン(v3.53.0): Markersと同じルール ----------
+/* ---------- PLAYER Libraryの行ボタン: Markersと同じルール ----------
    Skip=背景なし・区切り線・ON中は薄暗く。編集モードのDelete=選択タイル(選択=赤)。正方形(行の高さ=58px−下線1px=57px)で隙間なし */
 :is(#pcV2PanelBody #playlistBox, .qn-yt .qn-yt-libbox, #pcV2HeadRow) .playlist-act-cell {
   display: flex;
@@ -551,7 +551,7 @@
 :is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .playlist-del-tile span { line-height: 1; }
 :is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .del-btn.pcv2-selected + .playlist-del-tile { background: var(--danger, #ef4444); color: #fff; }
 
-/* v3.53.1: Libraryの選択タイル(輪→チェック)。SKIP/HIDEの標準色は下部ボタンと同じ--icon-muted */
+/* Libraryの選択タイル(輪→チェック)。SKIP/HIDEの標準色は下部ボタンと同じ--icon-muted */
 :is(#playlistBox, .qn-yt-libbox) .playlist-del-tile .sel-on { display: none; }
 :is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .del-btn.pcv2-selected + .playlist-del-tile .sel-on { display: block; }
 :is(#pcV2PanelBody.playlist-edit-mode #playlistBox, .qn-yt[data-edit="library"] .qn-yt-libbox) .del-btn.pcv2-selected + .playlist-del-tile .sel-off { display: none; }

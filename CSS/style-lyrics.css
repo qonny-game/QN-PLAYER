@@ -1,7 +1,7 @@
 /* style-lyrics.css — 歌詞表示(JSは player-lyrics.js)。Textパネルの行一覧/タップ打ちと、シークバー下の現在行(#pcV2Lyrics)。色はトークンのみ */
 
 /* ---- シークバー下 ---- */
-/* 【v4.60.0】行は絶対配置の5本(out/prev/cur/next/in)。役割(data-r)が変わると、位置・大きさ・濃さがtransitionで動き、歌詞が上へ送られていく。JSは役割を回すだけ(player-lyrics.js) */
+/* 行は絶対配置の5本(out/prev/cur/next/in)。役割(data-r)が変わると、位置・大きさ・濃さがtransitionで動き、歌詞が上へ送られていく。JSは役割を回すだけ(player-lyrics.js) */
 #pcV2Lyrics {
   --lyd-cur: clamp(16px, 2.2vw, 22px); --lyd-sm: var(--lyd-cur); /* 文字サイズは前後の行も同じ(現在行は太さと色で区別) */ --lyd-gap: 2px;
   --lyd-sm-h: calc(var(--lyd-sm) * 1.35); --lyd-cur-h: calc(var(--lyd-cur) * 1.35); --lyd-prev-h: var(--lyd-sm-h);
@@ -33,7 +33,7 @@
   .qn-lyd-line[data-r="prev"] { opacity: 0; }
   #pcV2Lyrics { --lyd-cur: 16px; }
 }
-/* 広い表示(v4.65.0): 波形と1:1。全行を同じ大きさで並べ、現在行を中央へ */
+/* 広い表示: 波形と1:1。全行を同じ大きさで並べ、現在行を中央へ */
 .qn-lyd-exp { position: absolute; top: 4px; right: 2px; z-index: 2; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--icon-muted); cursor: pointer; pointer-events: auto; }
 @media (hover: hover) { .qn-lyd-exp:hover { background: var(--bg-hover-subtle); color: var(--text-bright); } }
 .qn-lyd-wide { display: none; }

@@ -33,14 +33,14 @@
       icon: '<path d="M5 4v3h5.5v12h3V7H19V4z"/>'
     },
     {
-      // 【v4.44.0】曲ごとに保存されるコード/拍の設定(キー・拍子・小節頭・拍のテンポ・再解析)。全曲共通の設定はSettings側
+      // 曲ごとに保存されるコード/拍の設定(キー・拍子・小節頭・拍のテンポ・再解析)。全曲共通の設定はSettings側
       id: "chords",
       label: (!window.qnFeature || window.qnFeature("chords")) ? "Chords" : "Beats", // コードを隠している間は、拍・小節の設定だけのパネル
       panelType: "chords",
       icon: '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>'
     },
     {
-      // 【v4.21.0】Controlはプレイヤー全体の設定(曲固有ではない)なので下段(Settingsの上)へ。上段は曲固有のLibrary/Markers/Text/Stem
+      // Controlはプレイヤー全体の設定(曲固有ではない)なので下段(Settingsの上)へ。上段は曲固有のLibrary/Markers/Text/Stem
       id: "control",
       label: "Control",
       bottom: true,
@@ -49,21 +49,21 @@
       icon: '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>'
     },
     {
-      // 【v4.16.0】Stem(PC専用)。再生中のローカル曲をブラウザ内で4パートに分離して鳴らす。中身はplayer-stem.js(QNStem.mount)。SP幅はCSSでアイコンごと非表示
+      // Stem(PC専用)。再生中のローカル曲をブラウザ内で4パートに分離して鳴らす。中身はplayer-stem.js(QNStem.mount)。SP幅はCSSでアイコンごと非表示
       id: "stem",
       label: "Stem",
       panelType: "stem",
       icon: '<path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>'
     },
     {
-      // 【v4.53.0】Rec(録音トラック)。Stemとは別パネルで、Stemを実行していなくても使える。SP幅でも使える。中身はplayer-stem.js(QNStem.mountRec)
+      // Rec(録音トラック)。Stemとは別パネルで、Stemを実行していなくても使える。SP幅でも使える。中身はplayer-stem.js(QNStem.mountRec)
       id: "rec",
       label: "Rec",
       panelType: "rec",
       icon: '<path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>'
     },
     {
-      // 【v4.54.0】Tab。再生中のローカル曲をBasic Pitchで採譜してギターTABを流す。SP幅でも使える。中身はplayer-tab.js(QNTab.mount)
+      // Tab。再生中のローカル曲をBasic Pitchで採譜してギターTABを流す。SP幅でも使える。中身はplayer-tab.js(QNTab.mount)
       id: "tab",
       label: "Tab",
       panelType: "guitartab",
@@ -95,7 +95,7 @@
       icon: '<path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>'
     },
     {
-      // 【v3.41.0】設定パネル。波形ヘッダーの歯車とアイコンバー最下段(Colorの下)の両方から開く。Backup/Import/Color/Keyboardはここの下層ビュー(戻るボタンで戻る)。アイコンバーのボタンはbottomGroup構築の末尾で明示的に作る
+      // 設定パネル。波形ヘッダーの歯車とアイコンバー最下段(Colorの下)の両方から開く。Backup/Import/Color/Keyboardはここの下層ビュー(戻るボタンで戻る)。アイコンバーのボタンはbottomGroup構築の末尾で明示的に作る
       id: "settings",
       label: "Settings",
       hidden: true,
@@ -149,7 +149,7 @@
 
     const spacer = el('<div id="pcV2IconBarSpacer"></div>');
     const bottomGroup = el('<div id="pcV2IconBarBottom"></div>');
-    // 【v3.17.0】下段グループ: Backup/Import/Keyboard/Color(YouTubeと同じ並び)。Backup/ImportはICON_ITEMSのbottom:true項目
+    // 下段グループ: Backup/Import/Keyboard/Color(YouTubeと同じ並び)。Backup/ImportはICON_ITEMSのbottom:true項目
     ICON_ITEMS.filter(item => item.bottom && !item.hidden).forEach(item => {
       const btn = el(
         '<button type="button" class="pcv2-icon-item" data-panel-id="' + item.id + '" title="' + item.label + '">' +
@@ -173,7 +173,7 @@
       btn.addEventListener("click", () => openPanelOverlay(entry.id));
       bottomGroup.appendChild(btn);
     });
-    // 【v3.41.0】Settings(Colorの下=最下段)。PLAYER表示中はKeyboard/Colorボタンを隠す(CSS)ので実質ここだけが下段に残る。アプリ表示中はColorだけ残る(qn-apps.jsが使用)ので、Keyboard/ColorのDOMは消さない
+    // Settings(Colorの下=最下段)。PLAYER表示中はKeyboard/Colorボタンを隠す(CSS)ので実質ここだけが下段に残る。アプリ表示中はColorだけ残る(qn-apps.jsが使用)ので、Keyboard/ColorのDOMは消さない
     const settingsItem = ICON_ITEMS.find(i => i.id === "settings");
     const settingsIconBtn = el(
       '<button type="button" class="pcv2-icon-item" data-panel-id="settings" title="Settings">' +
@@ -208,7 +208,7 @@
       const markerNavBtn = topControls.querySelector("#markerNavBtn");
       const loopToggleBtn = topControls.querySelector("#loopToggleBtn");
 
-      // 【v3.16.0】Startボタン撤去。並び: Track(前)/-10s/Play/+10s/Track(次)/Repeat。Trackアイコンはindex.html元のSVG。頭出しはEnterキー(seekToTrackStart)
+      // Startボタン撤去。並び: Track(前)/-10s/Play/+10s/Track(次)/Repeat。Trackアイコンはindex.html元のSVG。頭出しはEnterキー(seekToTrackStart)
       const skipSvg = {
         back: '<path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>',
         fwd: '<path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>'
@@ -235,7 +235,7 @@
       if (playbackTripleBtn && allRepeatToggleBtn) {
         playbackTripleBtn.appendChild(allRepeatToggleBtn);
       }
-      // v3.7.0〜: Set A/Set B。Loopの手前、markerNavBtnの子として入れる
+      // Set A/Set B。Loopの手前、markerNavBtnの子として入れる
       const abGlyph = ch => '<svg viewBox="0 0 24 24"><text x="12" y="18" text-anchor="middle" font-size="17" font-weight="700" font-family="Instrument Sans, sans-serif" fill="currentColor">' + ch + '</text></svg>';
       const setABtn = el('<button type="button" id="setABtn" class="loopbtn ab-set-btn" title="現在位置をA点に（もう一度押すと解除）">' + abGlyph("A") + '<span class="top-controls-btn-label">A --</span></button>');
       const setBBtn = el('<button type="button" id="setBBtn" class="loopbtn ab-set-btn" title="現在位置をB点に（もう一度押すと解除）">' + abGlyph("B") + '<span class="top-controls-btn-label">B --</span></button>');
@@ -248,8 +248,8 @@
       if (markerNavBtn && loopToggleBtn) {
         markerNavBtn.appendChild(loopToggleBtn);
       }
-      // 【v3.37.0】loopPreRollControlは下部バーに置かない(設定パネルへ移設。要素は#topControlsに残し、設定パネルを作る時に移す)
-      // 【v3.38.0】Clear ABボタンは撤去(A/Bのクリアはマーカー操作側)
+      // loopPreRollControlは下部バーに置かない(設定パネルへ移設。要素は#topControlsに残し、設定パネルを作る時に移す)
+      // Clear ABボタンは撤去(A/Bのクリアはマーカー操作側)
 
       function appendShortcutToTitle(btn, actionLabel) {
         if (!btn || typeof window.QN_SHORTCUTS === "undefined") return;
@@ -283,7 +283,7 @@
       topControls.appendChild(divider);
       topControls.appendChild(group2);
 
-      // 【v3.59.0】PC幅のみ: コントロール右に Volume / Speed / Key(スライダー+±)。操作は既存の applyVolumeChange / handleSpeedRangeInput / setKeySemitones に委譲、表示はpcv2WaveLoopから同期。SP幅はCSSで非表示
+      // PC幅のみ: コントロール右に Volume / Speed / Key(スライダー+±)。操作は既存の applyVolumeChange / handleSpeedRangeInput / setKeySemitones に委譲、表示はpcv2WaveLoopから同期。SP幅はCSSで非表示
       const mixer = el('<div class="pcv2-ctrl-group pcv2-mixer" id="pcV2BarMixer">' +
         '<div class="pcv2-mix-item" data-mix="vol"><div class="pcv2-mix-head"><span class="pcv2-mix-label">Volume</span><span class="pcv2-mix-val" data-mixval="vol">80%</span></div><div class="pcv2-mix-volrow"><button type="button" class="pcv2-mix-mute" id="pcV2BarMute" aria-label="Mute" title="Mute"><svg viewBox="0 0 24 24" class="pcv2-mix-ico-on"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg><svg viewBox="0 0 24 24" class="pcv2-mix-ico-off"><path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg></button><input type="range" class="pcv2-mix-range" id="pcV2BarVol" min="0" max="1" step="0.01" aria-label="Volume"></div></div>' +
         '<div class="pcv2-mix-item" data-mix="speed"><div class="pcv2-mix-head"><span class="pcv2-mix-label" title="Click to reset to 1.00x">Speed</span><span class="pcv2-mix-val" data-mixval="speed">1.00x</span></div><div class="pcv2-mix-volrow"><button type="button" class="pcv2-mix-reset" id="pcV2BarSpeedReset" aria-label="Reset speed" title="Reset to 1.00x"><svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg></button><input type="range" class="pcv2-mix-range" id="pcV2BarSpeed" min="0.25" max="1.5" step="0.01" aria-label="Speed"></div></div>' +
@@ -291,7 +291,7 @@
         '</div>');
       topControls.appendChild(el('<div class="pcv2-ctrl-divider pcv2-mixer-divider"></div>'));
       topControls.appendChild(mixer);
-      // 【v4.63.0】PC幅: Volume/Speed/Keyはアイコン(+値)だけを並べ、押すとバーがその上に出る(2段にしない)。SP幅はCSSで従来どおり(アイコン非表示・スロットはdisplay:contents)
+      // PC幅: Volume/Speed/Keyはアイコン(+値)だけを並べ、押すとバーがその上に出る(2段にしない)。SP幅はCSSで従来どおり(アイコン非表示・スロットはdisplay:contents)
       const MIX_ICONS = {
         vol: '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>',
         speed: '<path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/>',
@@ -355,7 +355,7 @@
         // 無料版などで拒否された場合は実際の値へ戻す
         barKey.value = currentKeySemitones;
       });
-      // 【v4.60.0】ダブルタップ後はスライダーがフォーカス中なので、pcv2SyncBarMixerが位置を更新しない(activeElement判定)。リセット直後に位置を直接戻す
+      // ダブルタップ後はスライダーがフォーカス中なので、pcv2SyncBarMixerが位置を更新しない(activeElement判定)。リセット直後に位置を直接戻す
       const snapBars = () => { barSpeed.value = currentSpeed; barKey.value = currentKeySemitones; paintRange(barSpeed); paintRange(barKey); window.pcv2SyncBarMixer(true); };
       bindDoubleReset(barSpeed, () => { if (typeof hapticTap === "function") hapticTap(); setSpeed(1); snapBars(); }); // ダブルクリック/ダブルタップで1.00x・0
       bindDoubleReset(barKey, () => { if (typeof hapticTap === "function") hapticTap(); setKeySemitones(0); snapBars(); });
@@ -390,7 +390,7 @@
       };
       window.pcv2SyncBarMixer();
 
-      // 【v3.55.0】SP: 再生系/マーカー系の2ページ。左右端の矢印でスライド、スクロール位置でis-page-1を切替(PC幅はCSSで矢印非表示・通常配置)
+      // SP: 再生系/マーカー系の2ページ。左右端の矢印でスライド、スクロール位置でis-page-1を切替(PC幅はCSSで矢印非表示・通常配置)
       const chevR = '<svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>';
       const chevL = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
       const pageNext = el('<button type="button" class="pcv2-bar-page is-next" title="Marker controls" aria-label="Marker controls">' + chevR + '</button>');
@@ -407,7 +407,7 @@
 
     const timeRow = el('<div id="pcV2TimeRow"></div>');
 
-    // 【v3.48.0】下部バー右端のVolume/Speed/Key/EQボタンは撤去(操作はControlパネルのみ)
+    // 下部バー右端のVolume/Speed/Key/EQボタンは撤去(操作はControlパネルのみ)
 
     layout.appendChild(timeRow);
 
@@ -443,7 +443,7 @@
 
     root.appendChild(bottomBar);
 
-    // 【v3.45.0】SP専用メインドック(#pcV2SpDock): 前マーカー/Loop/再生/+Marker/次マーカー + Moreトグル。押す先は既存ボタン(idとハンドラは不変。ドックは中継+状態ミラーだけ)。
+    // SP専用メインドック(#pcV2SpDock): 前マーカー/Loop/再生/+Marker/次マーカー + Moreトグル。押す先は既存ボタン(idとハンドラは不変。ドックは中継+状態ミラーだけ)。
     // 既存の下段バー(#pcV2BottomBar)は「More」で開閉(既定は閉。qn_sp_more)。PC幅はCSSで非表示
     const SP_MORE_KEY = "qn_sp_more";
     function buildSpDock() {
@@ -483,7 +483,7 @@
       if (loopSrc && typeof MutationObserver === "function") new MutationObserver(syncLoop).observe(loopSrc, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true, characterData: true });
       syncLoop();
       // More: 既存の下段バーの開閉
-      // 【v4.22.0】Moreは5秒間 操作(パネル内・ドック)がなければ自動で閉じる
+      // Moreは5秒間 操作(パネル内・ドック)がなければ自動で閉じる
       let moreIdle = null;
       const MORE_IDLE_MS = 5000;
       const armMoreIdle = () => {
@@ -523,7 +523,7 @@
 
     appContainer.parentNode.insertBefore(root, appContainer.nextSibling);
     root.appendChild(buildSpDock()); // 既存ボタンがdocumentに接続された後に作る(アイコン複製・ミラー用)
-    // 【v4.11.0】SPのMore: ドックの上に開く。設定帯(Bar length/Rows)は#pcV2MorePanelへ、その下に下段バー(Track/Track/Repeat)。DOM順は#pcV2Layout内で 波形→MorePanel→下段バー→ドック→アイコンバー(syncBottomBarPosition)
+    // SPのMore: ドックの上に開く。設定帯(Bar length/Rows)は#pcV2MorePanelへ、その下に下段バー(Track/Track/Repeat)。DOM順は#pcV2Layout内で 波形→MorePanel→下段バー→ドック→アイコンバー(syncBottomBarPosition)
     root.appendChild(el('<div id="pcV2MorePanel"></div>'));
 
     // 【SP幅】SPは「アイコンバー最下部、その上にコントロールバー」。bottomBarは#pcV2Root直下、iconBarは#pcV2Layout内で階層が違いCSS orderでは不可→JSでDOM移動。PC幅に戻る時は元位置(#pcV2Root直下、layoutの後)へ
@@ -555,7 +555,7 @@
     waveHead.appendChild(headRow);
     if (appTitle) {
       waveHead.appendChild(appTitle);
-      // 【v4.11.2】ファイル名タップでLibraryを開く(既にLibraryが開いていれば何もしない)
+      // ファイル名タップでLibraryを開く(既にLibraryが開いていれば何もしない)
       appTitle.style.cursor = "pointer";
       appTitle.addEventListener("click", () => {
         const layoutEl = document.getElementById("pcV2Layout");
@@ -564,7 +564,7 @@
         openPanelOverlay("playlist");
       });
     }
-    // 【v4.11.0】SP: タイトル+時間の行の右端に 前/次トラック・リピート(本体の#prevTrackBtn/#nextTrackBtn/#allRepeatToggleBtnへ中継+アイコン/点灯のミラー)。PC幅はCSSで非表示
+    // SP: タイトル+時間の行の右端に 前/次トラック・リピート(本体の#prevTrackBtn/#nextTrackBtn/#allRepeatToggleBtnへ中継+アイコン/点灯のミラー)。PC幅はCSSで非表示
     const headBtns = el('<div id="pcV2WaveHeadBtns"></div>');
     [["pcV2HeadPrevTrack", "prevTrackBtn", "Prev Track"], ["pcV2HeadNextTrack", "nextTrackBtn", "Next Track"], ["pcV2HeadRepeat", "allRepeatToggleBtn", "Repeat"]].forEach(([id, srcId, title]) => {
       const src = document.getElementById(srcId);
@@ -590,7 +590,7 @@
     // waveHead確定後に時刻行の置き場所を確定(先のsyncTimeRowPosition()初回はwaveHead未生成で空振り)
     syncTimeRowPosition();
     // シークバー1本の秒数設定(歯車)。位置は常に右端(CSS order)。時刻行がSP⇔PCで出入りしても順序が崩れない
-    // 【v3.56.3】上部の歯車ボタンは廃止(設定は下部ナビのSettings)。createGearButton APIは互換のため残す
+    // 上部の歯車ボタンは廃止(設定は下部ナビのSettings)。createGearButton APIは互換のため残す
     QNBars.setOpenSettings(() => openSettingsPanel());
     // 設定パネルの中身を先に作ってstashへ(プリロード操作要素を下部バーから外すため。let宣言より後に実行するrAF)
     requestAnimationFrame(() => { const sb = ensureSettingsBody(); if (!sb.parentNode) getPanelStash().appendChild(sb); });
@@ -605,7 +605,7 @@
       return nm;
     };
     const waveBarStrip = QNSettingsUI.inline(qnFeatRows([
-      // 【v4.27.0 プロトタイプ】シークバーの表示: 波形 / コード(解析中は進捗%)。Settingsパネルの同名項目と同期
+      // 【プロトタイプ】シークバーの表示: 波形 / コード(解析中は進捗%)。Settingsパネルの同名項目と同期
       { label: "View", feat: "chords", cls: "qn-view-item", type: "stepper", tap: true, values: () => ["wave", "chord", "degree"], get: () => QNBars.getViewMode(), set: v => QNBars.setViewMode(v), fmt: viewLabel },
       { label: "Edit", feat: "chords", cls: "qn-edit-item", type: "switch", get: () => QNBars.getEditMode(), set: on => QNBars.setEditMode(on), hiddenWhen: () => QNBars.getViewMode() === "wave" },
       { label: "Bar length", type: "slider", values: () => QNBars.secValues(), get: () => QNBars.getSec(), set: v => QNBars.setSec(v), fmt: QNBars.fmtSec, action: { label: "Fit", title: "Fit the whole track on screen", run: () => QNBars.fit() } },
@@ -619,7 +619,7 @@
     waveFabRow.appendChild(waveFabBtns);
     // SP幅ではView/Editの項目をここへ移す(syncMoreExtras)。項目は設定帯(root)の外になるので、clickは帯の処理へ渡す
     waveFabBtns.addEventListener("click", e => { if (e.target.closest && e.target.closest(".qn-view-item, .qn-edit-item")) waveBarStrip.onClick(e); });
-    // 【v4.11.0】SP: Audioの右にA/Bボタン(本体の#setABtn/#setBBtnへ中継+ラベル/点灯のミラー。長押しはquickpopの対象)。PC幅はCSSで非表示
+    // SP: Audioの右にA/Bボタン(本体の#setABtn/#setBBtnへ中継+ラベル/点灯のミラー。長押しはquickpopの対象)。PC幅はCSSで非表示
     const makeAbMirror = (kind) => {
       const src = document.getElementById(kind === "A" ? "setABtn" : "setBBtn");
       const b = el('<button type="button" class="panel-fab-btn pcv2-fab-ab" id="pcV2FabSet' + kind + '" title="' + (kind === "A" ? "現在位置をA点に（もう一度押すと解除）" : "現在位置をB点に（もう一度押すと解除）") + '" aria-label="' + kind + ' point"><svg viewBox="0 0 24 24"><text x="12" y="18" text-anchor="middle" font-size="17" font-weight="700" font-family="Instrument Sans, sans-serif" fill="currentColor">' + kind + '</text></svg><span class="pcv2-ab-t">' + kind + ' --</span></button>');
@@ -660,7 +660,7 @@
     const syncTogs = () => { if (hasChords) { togClick.__sync(); togSnap.__sync(); } };
     const stripSync = waveBarStrip.sync;
     window.qnBarStripSync = () => { stripSync(); syncTogs(); };
-    // 【v4.11.1】波形エリア右下の再生/停止ボタン(●)は撤去(再生はドック/下段バーのPlay)
+    // 波形エリア右下の再生/停止ボタン(●)は撤去(再生はドック/下段バーのPlay)
     waveArea.appendChild(waveFabRow);
     requestAnimationFrame(() => syncBottomBarPosition()); // 設定帯(Bar length/Rows)を作った後でSPのMoreへ移す(初回のsyncBottomBarPositionは設定帯の生成より前に走るため)
     // FAB帯の高さに合わせて波形エリア下の空きを決める(固定値だと帯が高い時にシークバーへ重なる)
@@ -740,7 +740,7 @@
     if (fullscreenBtn) holder.appendChild(fullscreenBtn);
   }
 
-  // 【v3.38.0】送り戻しボタンの秒数(設定パネルで5/10/15/30/60。localStorage qn_skip_sec、既定10)。ボタンのラベル/タイトルもここで更新
+  // 送り戻しボタンの秒数(設定パネルで5/10/15/30/60。localStorage qn_skip_sec、既定10)。ボタンのラベル/タイトルもここで更新
   const SKIP_OPTIONS = [5, 10, 15, 30, 60];
   let skipSec = 10;
   try {
@@ -768,7 +768,7 @@
     applySkipLabels();
   }
   requestAnimationFrame(applySkipLabels);
-  // 【v3.54.0】長押しクイックポップアップ(player-quickpop.js)から使う
+  // 長押しクイックポップアップ(player-quickpop.js)から使う
   window.QNSkip = { options: SKIP_OPTIONS, get: () => skipSec, set: setSkipSec };
 
   function pcv2SkipBy(sec) {
@@ -820,7 +820,7 @@
     }
   }
 
-  // Libraryの Audio/Folder ボタンはパネルタイトルの右(ヘッダー)へ(PC/SP共通。v4.11.1〜)。ヘッダーはパネル切替のたびに作り直されるので、Libraryを開いた時に呼ぶ
+  // Libraryの Audio/Folder ボタンはパネルタイトルの右(ヘッダー)へ(PC/SP共通。)。ヘッダーはパネル切替のたびに作り直されるので、Libraryを開いた時に呼ぶ
   function placeLibraryAddGroup() {
     const header = document.getElementById("pcV2PanelHeader");
     const group = document.querySelector("#pcV2PanelHeader .pcv2-fab-addgroup, #pcV2PanelFab .pcv2-fab-addgroup");
@@ -883,7 +883,7 @@
     requestAnimationFrame(updateIconBarScrollHint);
   }
 
-  // 【v3.37.0】時刻行(.time-controls-row)はPC/SPとも波形ヘッダー(#pcV2WaveHead)の歯車の左。#pcV2TimeRowは常に非表示の空コンテナ(互換のため残す)
+  // 時刻行(.time-controls-row)はPC/SPとも波形ヘッダー(#pcV2WaveHead)の歯車の左。#pcV2TimeRowは常に非表示の空コンテナ(互換のため残す)
   function syncTimeRowPosition() {
     // querySelector(".time-controls-row")だけだと別行(adjust-controls-row等)を誤取得する。#timeDisplayからclosestで取る
     const timeDisplay = document.getElementById("timeDisplay");
@@ -954,7 +954,7 @@
     }
   });
 
-  // 【v3.41.0】設定の下層ビュー(Backup/Import/Color/Keyboard)を開いている間true。ヘッダーに戻るボタンを出し、アイコンバーは「Settings」を点灯させる
+  // 設定の下層ビュー(Backup/Import/Color/Keyboard)を開いている間true。ヘッダーに戻るボタンを出し、アイコンバーは「Settings」を点灯させる
   let settingsSub = false, settingsScroll = 0;
   function openSettingsPanel() {
     if (settingsSub) { switchPanel("settings"); return; }
@@ -1023,7 +1023,7 @@
       });
       addGroup.appendChild(addFileBtn);
 
-      // 【v3.24.0】フォルダ作成。作成直後は名前入力状態になる
+      // フォルダ作成。作成直後は名前入力状態になる
       const newFolderBtn = el(
         '<button type="button" class="panel-fab-btn panel-addfile-btn" id="pcV2NewFolderBtn" title="New Folder">' +
           '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg>' +
@@ -1040,11 +1040,11 @@
       addGroup.appendChild(newFolderBtn);
     }
 
-    // 【v3.51.0】Markersパネルの+MARKERボタンは撤去(追加は下部ドック/波形のMARKER/長押し)
+    // Markersパネルの+MARKERボタンは撤去(追加は下部ドック/波形のMARKER/長押し)
 
     fab.appendChild(addGroup);
 
-    // 【v3.52.0】Markers/Library: 削除ボタンの位置はCancel(編集を抜ける)。選択が1件以上ある間は下のOKが「Delete」になり一括削除を実行する(syncEditBtn)
+    // Markers/Library: 削除ボタンの位置はCancel(編集を抜ける)。選択が1件以上ある間は下のOKが「Delete」になり一括削除を実行する(syncEditBtn)
     let cancelBtn = null;
     {
       cancelBtn = el(
@@ -1056,7 +1056,7 @@
       cancelBtn.addEventListener("click", () => { if (editModeState[panelId]) toggleEditMode(panelId); });
     }
     if (panelId === "playlist") {
-      // 【v3.24.0】選択した曲をフォルダへ移動(編集モードのみ表示。Deleteと同じ選択を使う)
+      // 選択した曲をフォルダへ移動(編集モードのみ表示。Deleteと同じ選択を使う)
       const moveBtn = el(
         '<button type="button" class="panel-fab-btn panel-fab-move-btn" id="pcV2MoveSelectedBtn" disabled>' +
           '<svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 11l-4-4h3V9h2v4h3l-4 4z"/></svg>' +
@@ -1244,7 +1244,7 @@
     currentPanel = panelId;
     if (!(opts && opts.fromSettings)) settingsSub = false;
 
-    // 【v3.14.0】格納中に外部(右クリック・Backup完了等)から呼ばれたら必ず展開してから表示。初期表示のみkeepCollapsed:trueで格納維持
+    // 格納中に外部(右クリック・Backup完了等)から呼ばれたら必ず展開してから表示。初期表示のみkeepCollapsed:trueで格納維持
     if (panelCollapsed && !(opts && opts.keepCollapsed)) setCollapsed(false);
 
 
@@ -1272,11 +1272,11 @@
       }
     }
 
-    // 【v2.15.1】前回の中身は#pcV2PanelStash(非表示の退避場所)へ移す。innerHTML=""で切り離すと#pinList/#playlistBox/#noteTextArea等がdocumentから消え、曲切替時の更新が空振りして前の曲が表示される(GOTCHAS.md)
+    // 前回の中身は#pcV2PanelStash(非表示の退避場所)へ移す。innerHTML=""で切り離すと#pinList/#playlistBox/#noteTextArea等がdocumentから消え、曲切替時の更新が空振りして前の曲が表示される(GOTCHAS.md)
     stashPanelContents(panelBody);
     panelBody.innerHTML = "";
     panelHeader.innerHTML = "";
-    // 【v4.60.0】パネルが切り替わった時だけ中身をふわっと入れる(同じパネルの再描画では動かさない)。CSS側でPC幅のみ有効
+    // パネルが切り替わった時だけ中身をふわっと入れる(同じパネルの再描画では動かさない)。CSS側でPC幅のみ有効
     { const k = panelId + (settingsSub ? ":s" : ""); if (k !== lastEnterKey) { lastEnterKey = k; [panelBody, panelHeader].forEach(n => { n.classList.remove("qn-panel-enter"); void n.offsetWidth; n.classList.add("qn-panel-enter"); }); } }
     // pcv2-panel-*クラスだけ入れ替える(markers-edit-mode等には触れない)
     Array.from(panelBody.classList)
@@ -1456,7 +1456,7 @@
     return items.indexOf(row);
   }
 
-  // 【v3.52.0】Markers編集中のFAB下ボタン: 選択0件=「OK」(編集を抜ける) / 1件以上=「Delete」(選択を一括削除)
+  // Markers編集中のFAB下ボタン: 選択0件=「OK」(編集を抜ける) / 1件以上=「Delete」(選択を一括削除)
   const ICON_OK_EDIT = '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>';
   const ICON_TRASH = '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>';
   function syncEditBtn(panelId) {
@@ -1747,7 +1747,7 @@
     activate();
   }
 
-  // 【v4.55.0 省電力】60fpsのrAFで毎フレーム起きて100msに1回だけ描く方式をやめ、タイマーで間隔を直接決める。再生中=100ms / 停止中=300ms(ピン・色・波形の変化を拾う保険) / 非表示=停止(戻った時に再開)
+  // 【省電力】60fpsのrAFで毎フレーム起きて100msに1回だけ描く方式をやめ、タイマーで間隔を直接決める。再生中=100ms / 停止中=300ms(ピン・色・波形の変化を拾う保険) / 非表示=停止(戻った時に再開)
   const PCV2_WAVE_PLAY_MS = 100;
   const PCV2_WAVE_IDLE_MS = 300;
   let pcv2WaveTimer = 0;

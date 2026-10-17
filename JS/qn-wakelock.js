@@ -8,7 +8,7 @@
   var sentinel = null;
   var pending = false;
 
-  // 【v4.55.0】Settings>Playbackの「Keep screen on」。オフならPLAYERの再生中でも画面は自動で消えてよい(電池を節約)。YouTube等の他の理由は影響しない
+  // Settings>Playbackの「Keep screen on」。オフならPLAYERの再生中でも画面は自動で消えてよい(電池を節約)。YouTube等の他の理由は影響しない
   var KEEP_KEY = "qn_keep_screen_on";
   function keepOn() { try { return localStorage.getItem(KEEP_KEY) !== "0"; } catch (e) { return true; } }
 
@@ -88,7 +88,7 @@
     if (ac && ac.addEventListener) ac.addEventListener("statechange", function () { if (ac.state === "running") reapplyRate(); });
   } catch (e) {}
 
-  // 【v4.55.1】マイク使用中だけaudioSessionを"play-and-record"にする(iOSは"playback"のままだとgetUserMediaが"AudioSession category is not compatible with audio capture"で失敗する)。使い終わったら"playback"へ戻す。複数の使用元の数を数え、0になった時だけ戻す
+  // マイク使用中だけaudioSessionを"play-and-record"にする(iOSは"playback"のままだとgetUserMediaが"AudioSession category is not compatible with audio capture"で失敗する)。使い終わったら"playback"へ戻す。複数の使用元の数を数え、0になった時だけ戻す
   var micCount = 0;
   function micOn() {
     micCount++;

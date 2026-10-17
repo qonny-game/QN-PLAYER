@@ -298,7 +298,7 @@
   background: var(--accent-primary, #3b82f6);
 }
 
-/* 【v2.16.3 負荷対策】box-shadowをアニメさせない(毎フレーム再計算)。光は擬似要素に固定しopacityだけ動かす。明滅は2回で止める(無限アニメ禁止。GOTCHAS.md) */
+/* 【負荷対策】box-shadowをアニメさせない(毎フレーム再計算)。光は擬似要素に固定しopacityだけ動かす。明滅は2回で止める(無限アニメ禁止。GOTCHAS.md) */
 .glow-switch[aria-checked="true"]::after {
   content: "";
   position: absolute;

@@ -95,7 +95,7 @@ function openPlaylistDB() {
 }
 
 // 曲をBlobごと保存(同名は上書き)。
-// 【v2.13.5】並び順・ON/OFF・タイトル・アーティスト・お気に入りはlocalStorage(PLAYLIST_META_KEY)に保存。iOS SafariはBlobを含むレコードをget→putするとBlob実体が作り直され、playlist配列内のFileが死ぬ(GOTCHAS.md)。IndexedDBの音声レコードは並び替え等で書かない
+// 並び順・ON/OFF・タイトル・アーティスト・お気に入りはlocalStorage(PLAYLIST_META_KEY)に保存。iOS SafariはBlobを含むレコードをget→putするとBlob実体が作り直され、playlist配列内のFileが死ぬ(GOTCHAS.md)。IndexedDBの音声レコードは並び替え等で書かない
 const PLAYLIST_META_KEY = "qn_playlist_meta_v1";
 
 function readPlaylistMeta() {
@@ -229,7 +229,7 @@ async function loadAllPlaylistTracks() {
   }
 }
 
-// ---------- 【v3.24.0】ライブラリのフォルダ ----------
+// ---------- ライブラリのフォルダ ----------
 // 1曲=1フォルダ(track.folder=フォルダid|null=未分類)。フォルダ定義はqn_folders_v1=[{id,name,parentId,collapsed}](配列順=表示順)。parentIdは将来のネスト用に予約(今は常にnull、1階層のみ)。
 // playlist[]は常に「フォルダ順にグループ化」した状態を保つ(normalizePlaylistGrouping)。→ 行のdata-index=配列indexのまま、選択/削除/ドラッグ/Auto Nextの既存ロジックがindexベースで動く。未分類は末尾グループ。
 // 曲ごとのfolderはqn_playlist_meta_v1(localStorageのみ。IndexedDBの音声レコードは書かない=GOTCHAS)
@@ -567,7 +567,7 @@ async function setupAudioGraph() {
   if (audioGraphSetupDone) return;
   audioGraphSetupDone = true;
 
-  // 【v2.14.2】準備を全部終えてから最後に一瞬で差し替える順序(GOTCHAS.md)。先にcreateMediaElementSourceすると、destination接続までの待ち(CDN/AudioWorklet)で音が途切れる
+  // 準備を全部終えてから最後に一瞬で差し替える順序(GOTCHAS.md)。先にcreateMediaElementSourceすると、destination接続までの待ち(CDN/AudioWorklet)で音が途切れる
   const ctx = getAudioCtx();
 
   const filters = EQ_FREQS.map(freq => {

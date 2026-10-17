@@ -56,7 +56,7 @@ body直下fixed。ヘッダーのロゴ(#qnAppLogoBtn)の真下・左揃え。�
 #qnAppScrim[hidden] { display: none; }
 #qnAppScrim.qn-scrim-in { opacity: 1; }
 
-/* v3.11.1: OS視覚効果低減でもtransition:noneにしない(Windowsでフライアウトが一瞬でパッと出る原因だった) */
+/* OS視覚効果低減でもtransition:noneにしない(Windowsでフライアウトが一瞬でパッと出る原因だった) */
 
 #qnColorPop {
   position: fixed;
@@ -115,7 +115,7 @@ body直下fixed。ヘッダーのロゴ(#qnAppLogoBtn)の真下・左揃え。�
   opacity: 0.7;
 }
 
-/* ---------- ホバー/バッジ色(v2.18.1) ----------
+/* ---------- ホバー/バッジ色 ----------
 ホバー=背景テーマ色+文字白(#fff)。ホバー可能端末のみ(タッチは:hoverが残る) */
 :root {
   --sidebar-on-accent: #fff;
@@ -302,7 +302,7 @@ body.qn-mic-on #qnAppLogoBtn::after {
   #qnAppFlyout .pcv2-icon-item.qn-app-active:hover .qn-brand-qn { background: none; -webkit-text-fill-color: currentColor; color: inherit; }
 }
 
-/* ヘッダーのロゴ兼アプリ切替(v3.50.0)。QN(色)＋アプリ名＋V。広がっても可 */
+/* ヘッダーのロゴ兼アプリ切替。QN(色)＋アプリ名＋V。広がっても可 */
 #qnAppLogoBtn {
   position: relative;
   display: inline-flex;
@@ -392,13 +392,13 @@ body.qn-mic-on #qnAppLogoBtn::after {
 #pinList .pinItem, .qn-yt-pinbox .pinItem { padding-left: 20px; }
 #markersNowPlaying .playlistItem.is-nowplaying { padding-left: 20px; }
 
-/* ---------- SPのアイコンバー(v3.47.0) ----------
+/* ---------- SPのアイコンバー ----------
    アイコンバーは横スクロールなしの等分(Library/Markers/Text/Control/Settings)。ラベルは常時表示(v4.61.0〜)。 */
 @media screen and (max-width: 900px) {
   #pcV2IconBar { overflow-x: hidden; gap: 0; padding-left: 4px; padding-right: 4px; }
   #pcV2IconBar > .pcv2-icon-item { flex: 1 1 0; min-width: 0; padding: 12px 2px; justify-content: center; }
   #pcV2IconBarBottom { flex: 2 1 0; min-width: 0; margin-left: 0; padding-left: 0; border-left: none; gap: 0; }
   #pcV2IconBarBottom > .pcv2-icon-item { flex: 1 1 0; min-width: 0; padding: 12px 2px; justify-content: center; }
-    /* v4.61.0: 非選択のラベルも常に表示(アイコンだけだとLibrary/Markersが見分けにくい)。幅が足りないラベルは省略記号 */
+    /* 非選択のラベルも常に表示(アイコンだけだとLibrary/Markersが見分けにくい)。幅が足りないラベルは省略記号 */
   #pcV2IconBar .pcv2-icon-item > span { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }

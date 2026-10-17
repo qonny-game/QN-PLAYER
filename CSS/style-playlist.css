@@ -118,7 +118,7 @@
   border-radius: var(--radius-field);
   padding: 1px 4px;
   margin: -1px -4px;
-  /* 【v3.53.1】入力欄が既定の13.3pxになって編集モードで文字・行高が変わるのを防ぐ(表示時と同じ値を継承) */
+  /* 入力欄が既定の13.3pxになって編集モードで文字・行高が変わるのを防ぐ(表示時と同じ値を継承) */
   font-size: inherit;
   font-weight: inherit;
   line-height: inherit;
@@ -304,7 +304,7 @@ body.dragover #dropOverlay {
   background: var(--bg-hover-subtle);
 }
 
-/* 【v2.13.6】ホバーで鉛筆を出すのはホバー可能環境のみ。iOS Safariは:hoverで他要素のdisplay/visibilityが変わる場合1タップ目をホバー扱いしclickを発火しない→行タップで再生されない原因。タッチはEDITモードから編集 */
+/* ホバーで鉛筆を出すのはホバー可能環境のみ。iOS Safariは:hoverで他要素のdisplay/visibilityが変わる場合1タップ目をホバー扱いしclickを発火しない→行タップで再生されない原因。タッチはEDITモードから編集 */
 @media (hover: hover) and (pointer: fine) {
   .playlist-title-row:hover .playlist-hover-edit-btn,
   .playlist-artist-row:hover .playlist-hover-edit-btn {
@@ -344,7 +344,7 @@ body.dragover #dropOverlay {
   cursor: not-allowed;
 }
 
-/* ---------- 【v3.24.0】フォルダ見出し(.playlistFolderHeader)・移動ピッカー ---------- */
+/* ---------- フォルダ見出し(.playlistFolderHeader)・移動ピッカー ---------- */
 .playlistFolderHeader {
   display: flex;
   align-items: center;
@@ -399,7 +399,7 @@ body.dragover #dropOverlay {
 .playlist-folder-btn.is-del { color: var(--danger); border-color: var(--danger); }
 .playlist-folder-btn.is-del.confirm { background: var(--danger); color: var(--text-pure-white); }
 
-/* ---------- 【v3.27.0】フォルダのドラッグ並び替え・曲→フォルダへのドロップ ---------- */
+/* ---------- フォルダのドラッグ並び替え・曲→フォルダへのドロップ ---------- */
 .playlist-folder-grip {
   display: flex;
   align-items: center;

@@ -749,7 +749,7 @@
   line-height: 1.6;
 }
 
-/* コントロールバー(v3.2.0〜): PLAYER下段バーと同デザイン。PC=ステージ下端に吸着(左パネル側へ伸ばさない)、SP=アイコンバー直上固定・横スクロール */
+/* コントロールバー: PLAYER下段バーと同デザイン。PC=ステージ下端に吸着(左パネル側へ伸ばさない)、SP=アイコンバー直上固定・横スクロール */
 .qn-yt-bar {
   grid-column: 2;
   grid-row: 2;
@@ -863,7 +863,7 @@
   .qn-yt:not([data-panel="none"]) .qn-yt-bar { display: none; }
 }
 
-/* ---------- シークバー1タップのポップアップ(A/B/+Marker)(v3.3.0〜): body直下fixed、押した位置の真上(収まらなければ真下) ---------- */
+/* ---------- シークバー1タップのポップアップ(A/B/+Marker): body直下fixed、押した位置の真上(収まらなければ真下) ---------- */
 .qn-yt-seekpop {
   position: fixed;
   z-index: 330;
@@ -915,7 +915,7 @@
   .qn-yt-seekpop-btn span { font-size: 11px; }
 }
 
-/* ---------- PC幅パネル格納(v3.4.0〜): パネル(375px)が左へ縮む。プレイヤーは格納前幅(JSが--qn-yt-player-wに入れる)。SP幅では使わない ---------- */
+/* ---------- PC幅パネル格納: パネル(375px)が左へ縮む。プレイヤーは格納前幅(JSが--qn-yt-player-wに入れる)。SP幅では使わない ---------- */
 .qn-yt { transition: grid-template-columns 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .qn-yt.qn-yt-collapsed { grid-template-columns: 0 1fr; }
 .qn-yt-panel { overflow: hidden; }
@@ -934,7 +934,7 @@
   .qn-yt { transition: none; }
 }
 
-/* PC幅: プレイヤーを縦いっぱいに/シークバー3本まで1画面(v3.5.0〜)。ステージ=プレイヤー領域(余り高さ)+タイトル+シークバー3本。container queriesで収まる最大の16:9を計算。最小は規約どおり200px(それ以下の窓はステージがスクロール)。SPは従来(幅いっぱい16:9・縦スクロール) */
+/* PC幅: プレイヤーを縦いっぱいに/シークバー3本まで1画面。ステージ=プレイヤー領域(余り高さ)+タイトル+シークバー3本。container queriesで収まる最大の16:9を計算。最小は規約どおり200px(それ以下の窓はステージがスクロール)。SPは従来(幅いっぱい16:9・縦スクロール) */
 @media screen and (min-width: 901px) {
   .qn-yt-stage { padding: 16px 24px 12px; }
   .qn-yt-player-wrap {
@@ -962,8 +962,8 @@
 
 .qn-yt-fetched-title:empty { display: none; }
 
-/* ---------- A/B点の強調(v3.5.0〜) ---------- */
-/* v3.8.0〜: A/Bはマーカーではない独立点(.qn-yt-abpt)。マーカーより太い線+旗 */
+/* ---------- A/B点の強調 ---------- */
+/* A/Bはマーカーではない独立点(.qn-yt-abpt)。マーカーより太い線+旗 */
 .qn-yt-abpt { z-index: 3; }
 .qn-yt-abpt::before { width: 4px; background: var(--accent-primary); }
 .qn-yt-marker-ab {
@@ -1006,7 +1006,7 @@
   .qn-yt-bdiv { margin: 0 6px; }
 }
 
-/* ---------- PLAYER側 A/B(v3.7.0〜) ---------- */
+/* ---------- PLAYER側 A/B ---------- */
 .vbar-ab-pt {
   position: absolute;
   top: 0; bottom: 0;
@@ -1106,7 +1106,7 @@
   background: rgba(var(--ov), 0.24);
 }
 
-/* v3.12.6: PLAYER下部バー(#pcV2BottomBar)とYouTube下段バー(.qn-yt-bar)の寸法を1仕様に(Speed/Keyトグルのみ例外)。最後に読まれるので個別指定を上書き。PC: バーpadding 10px 12px/ボタン 8px 4px/アイコン20px(中央32px)/ラベル9px/区切り余白6px。SP: ボタンpadding 10px/アイコン26px(中央38px)/ラベル11px */
+/* PLAYER下部バー(#pcV2BottomBar)とYouTube下段バー(.qn-yt-bar)の寸法を1仕様に(Speed/Keyトグルのみ例外)。最後に読まれるので個別指定を上書き。PC: バーpadding 10px 12px/ボタン 8px 4px/アイコン20px(中央32px)/ラベル9px/区切り余白6px。SP: ボタンpadding 10px/アイコン26px(中央38px)/ラベル11px */
 @media screen and (min-width: 901px) {
   #pcV2BottomBar, .qn-yt-bar { box-sizing: border-box; min-height: 80px; padding: 10px 12px; gap: 4px; }
   #pcV2BottomBar .tripleNavBtn-third,
@@ -1129,7 +1129,7 @@
 }
 
 
-/* v3.16.0: PLAYER下部バーのラベル・Speed/Keyステッパーもyoutube下段バーと同表示に(PLは大文字化+行高9pxで幅広・1px低かった) */
+/* PLAYER下部バーのラベル・Speed/Keyステッパーもyoutube下段バーと同表示に(PLは大文字化+行高9pxで幅広・1px低かった) */
 #pcV2BottomBar .top-controls-btn-label {
   text-transform: none;
   line-height: normal;
@@ -1148,7 +1148,7 @@
 }
 .track-backup-group-label:not(:first-child) { margin-top: 6px; border-top: 1px solid var(--border-subtle); }
 
-/* v3.30.2: ステージ右下のMARKERボタン(PLの#pcV2WaveFabRowと同位置。プレイヤーの外・通常フローで重ねない) */
+/* ステージ右下のMARKERボタン(PLの#pcV2WaveFabRowと同位置。プレイヤーの外・通常フローで重ねない) */
 .qn-yt-stage-fab {
   display: flex;
   flex-wrap: wrap;
@@ -1174,7 +1174,7 @@
   .qn-yt:not([data-panel="none"]) .qn-yt-stage-fab { display: none; }
 }
 
-/* Playlists パネル(v3.31.0): 取得した再生リストの一覧。行は.playlistItemを流用(つかみの代わりに選択チェック) */
+/* Playlists パネル: 取得した再生リストの一覧。行は.playlistItemを流用(つかみの代わりに選択チェック) */
 .qn-yt-sec-playlists { padding: 0; }
 .qn-yt-sec-playlists .qn-yt-input-block { padding: 16px 16px 12px 20px; }
 .qn-yt-linkbtn {
@@ -1206,7 +1206,7 @@
 .qn-yt-plicon svg { width: 22px; height: 22px; fill: currentColor; }
 
 
-/* Libraryが0件の間の案内(v3.39.0): 手順1(URL貼り付け)→2(Save)。URL入力欄を脈動させ、入力済みなら手順2とSaveを強調 */
+/* Libraryが0件の間の案内: 手順1(URL貼り付け)→2(Save)。URL入力欄を脈動させ、入力済みなら手順2とSaveを強調 */
 .qn-yt-hint { display: none; margin: 0 0 12px; padding: 0; list-style: none; flex-direction: column; gap: 8px; }
 .qn-yt-sec-library.is-empty .qn-yt-hint { display: flex; }
 .qn-yt-hint li { display: flex; align-items: center; gap: 10px; font-size: var(--fs-body); color: var(--icon-muted); }
@@ -1234,7 +1234,7 @@
 
 .qn-yt-marker.is-skip { opacity: 0.75; }
 
-/* ---------- SPメインドック(v4.3.0): PLAYERの#pcV2SpDockと同寸法。ボタンは共通の.pcv2-dock-btn。PC幅は非表示。Moreで下段バーを開閉(.qn-yt-more-open)。バーとドックは.qn-yt-controlsに入れて1つのstickyにする(PC幅はdisplay:contentsでgridにそのまま参加) ---------- */
+/* ---------- SPメインドック: PLAYERの#pcV2SpDockと同寸法。ボタンは共通の.pcv2-dock-btn。PC幅は非表示。Moreで下段バーを開閉(.qn-yt-more-open)。バーとドックは.qn-yt-controlsに入れて1つのstickyにする(PC幅はdisplay:contentsでgridにそのまま参加) ---------- */
 .qn-yt-controls { display: contents; }
 .qn-yt-dock { display: none; }
 @media screen and (max-width: 900px) {
@@ -1300,7 +1300,7 @@
   .qn-yt .qn-yt-bstep-btn { width: 40px; }
 }
 
-/* ---------- v4.14.0: MOREの中身をPLAYERと同じ配置に ----------
+/* ---------- MOREの中身をPLAYERと同じ配置に ----------
    PC幅: 見た目は従来どおり(タイトル行/ミックスカードは display:contents、A/B・ヘッドボタン・Speedスライダーは非表示)。Auto Nextを廃止しRepeat(Off/One/Folder/All)に置換
    SP幅: 下段バーは出さない(中継元としてDOMにだけ残す。-10s/+10sは廃止)。Track前/次・Repeatはタイトル行の右、A/Bはシークバー直下、Moreは Bar length/Rows帯 + URL+Save/Speedのカード */
 .qn-yt-bbtn .repeat-one-badge {

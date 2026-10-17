@@ -10,7 +10,7 @@
   padding: 24px;
   box-sizing: border-box;
   background: rgba(5, 5, 7, 0);
-  /* 【v2.14.1 負荷対策】閉じている間はbackdrop-filter:none+visibility:hidden(blur(0px)でも全面の合成レイヤーが残り、EQ/Export/解約/Backup/Importの5枚分が毎フレーム走って重くなった。GOTCHAS.md)。閉じアニメ中は背景を見せるためvisibilityだけ0.25s遅延 */
+  /* 【負荷対策】閉じている間はbackdrop-filter:none+visibility:hidden(blur(0px)でも全面の合成レイヤーが残り、EQ/Export/解約/Backup/Importの5枚分が毎フレーム走って重くなった。GOTCHAS.md)。閉じアニメ中は背景を見せるためvisibilityだけ0.25s遅延 */
   backdrop-filter: none;
   visibility: hidden;
   pointer-events: none;
@@ -407,7 +407,7 @@
   flex-direction: column;
   gap: 12px;
 }
-/* v3.55.0: Audio/YouTube/Pitchは別の枠。枠ごとにスクロール */
+/* Audio/YouTube/Pitchは別の枠。枠ごとにスクロール */
 .track-backup-group {
   display: flex;
   flex-direction: column;

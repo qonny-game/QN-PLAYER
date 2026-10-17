@@ -42,7 +42,7 @@ window.QNSettingsUI = (function () {
       var vals = d.values(), cur = d.get();
       i.ctl.querySelector(".qn-stepper-val").textContent = d.fmt ? d.fmt(cur) : String(cur);
       var bp = i.ctl.querySelector('[data-d="-1"]'), bn = i.ctl.querySelector('[data-d="1"]');
-      if (bp) bp.disabled = vals.length < 2; // 端でループするので無効にしない(v3.61.0)
+      if (bp) bp.disabled = vals.length < 2; // 端でループするので無効にしない
       if (bn) bn.disabled = vals.length < 2;
     } else if (d.type === "slider") {
       var sv = d.values(), sc = Math.max(0, sv.indexOf(d.get())), inp = i.ctl.querySelector("input");
@@ -83,7 +83,7 @@ window.QNSettingsUI = (function () {
       if (!i.ctl || !i.ctl.contains(btn)) continue;
       if (d.type === "stepper" && btn.dataset.d) {
         var vals = d.values(), n = vals.indexOf(d.get()) + parseInt(btn.dataset.d, 10);
-        if (vals.length > 1) { n = (n + vals.length) % vals.length; haptic(); d.set(vals[n]); } // 端でループ(v3.61.0)
+        if (vals.length > 1) { n = (n + vals.length) % vals.length; haptic(); d.set(vals[n]); } // 端でループ
       } else if (d.type === "switch") {
         haptic();
         d.set(!d.get());

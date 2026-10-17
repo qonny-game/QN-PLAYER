@@ -14,7 +14,7 @@
   // YouTube由来タイトルの端末ローカル短期キャッシュ {videoId:{title,fetchedAt}}。28日で削除(規約30日に余裕を持たせる)。Backup/同期に含めない
   var TITLE_CACHE_KEY = "qn_yt_title_cache";
   var TITLE_TTL_MS = 28 * 24 * 60 * 60 * 1000;
-  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, -1]; // 0=Off, -1=Auto。旧1/2行は3に読み替え(v4.15.1)
+  var SEGS_KEY = "qn_yt_segs", SEGS_OPTIONS = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, -1]; // 0=Off, -1=Auto。旧1/2行は3に読み替え
   // SEGS_SETTING=0はシークバー非表示(内部の行数SEGSは1のまま。計算の0除算を避ける)。-1=Auto(画面の余りの高さに合わせて行数を決める。autoRows)
   var SEGS_SETTING = (function () { try { var v = parseInt(localStorage.getItem(SEGS_KEY), 10); if (v === 1 || v === 2) return 3; return SEGS_OPTIONS.indexOf(v) >= 0 ? v : 3; } catch (e) { return 3; } })();
   var SEGS = Math.max(1, SEGS_SETTING);
@@ -29,7 +29,7 @@
   var SVG_GRIP = '<svg viewBox="0 0 24 24"><path d="M9 4h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zM9 14h2v2H9zm4 0h2v2h-2zM9 19h2v2H9zm4 0h2v2h-2z"/></svg>';
   var FOLDERS_KEY = "qn_yt_folders", FOLDER_COLLAPSED_KEY = "qn_yt_folder_collapsed";
   var REPEAT_KEY = "qn_yt_repeat", RATE_KEY = "qn_yt_rate";
-  try { localStorage.removeItem("qn_yt_autonext"); } catch (e) {} // v4.14.0: Auto Nextは標準搭載(切替廃止)
+  try { localStorage.removeItem("qn_yt_autonext"); } catch (e) {} // Auto Nextは標準搭載(切替廃止)
   var FALLBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
   var YT_ICON = '<path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.28 5 12 5 12 5s-6.28 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2C2 8.77 2 12 2 12s0 3.23.4 4.8a2.5 2.5 0 0 0 1.76 1.77C5.72 19 12 19 12 19s6.28 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77C22 15.23 22 12 22 12s0-3.23-.4-4.8zM10 15V9l5.2 3L10 15z"/>';
@@ -671,7 +671,7 @@
     setPanel(id);
   }
 
-  // ---------- パネル格納(PC幅のみ・v3.4.0〜): アイコンバー右のパネルだけ格納。プレイヤー幅は格納直前で固定。状態はlocalStorage保存 ----------
+  // ---------- パネル格納(PC幅のみ・): アイコンバー右のパネルだけ格納。プレイヤー幅は格納直前で固定。状態はlocalStorage保存 ----------
   var COLLAPSE_KEY = "qn_yt_panel_collapsed";
   var panelCollapsed = (function () {
     try { return localStorage.getItem(COLLAPSE_KEY) === "1"; } catch (e) { return false; }
@@ -2311,7 +2311,6 @@
   }
 
   var SVG_EYE_ON = '<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
-  var SVG_EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-.59 1.2-1.42 2.25-2.42 3.11l1.42 1.42c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.61 17 4.5 12 4.5c-1.27 0-2.49.2-3.64.57l1.65 1.65c.62-.14 1.28-.22 1.99-.22zM2.71 3.16L1.29 4.57 4 7.27C2.36 8.53 1.07 10.15 0.18 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.01 3.01 1.41-1.41L2.71 3.16zM12 17c-2.76 0-5-2.24-5-5 0-.77.18-1.5.49-2.14l1.57 1.57c-.03.18-.06.37-.06.57 0 1.66 1.34 3 3 3 .2 0 .38-.03.57-.07l1.57 1.57c-.65.32-1.37.5-2.14.5zm2.97-5.33c-.15-1.4-1.25-2.49-2.64-2.64l2.64 2.64z"/></svg>';
 
   function paintMarkerRanges(ms) {
     var old = refs.seekTracks.querySelectorAll(".qn-yt-range, .qn-yt-skipband");
@@ -3025,7 +3024,7 @@
 
   // Backup/Import(形式JSON format:"qn-youtube-library")。含めるのはvideoId/URL/手入力タイトル/マーカー(秒・ラベル)/AB点のみ。YouTube由来データ(自動取得タイトル・サムネ等)は含めない(規約)
   var EXPORT_FORMAT = "qn-youtube-library";
-  // 画面は本体共通。ここはYouTube側データの出し入れのみ(v3.17.0〜 window.QNYouTubeBackupとして公開、player-track-backup.jsが使う)
+  // 画面は本体共通。ここはYouTube側データの出し入れのみ(window.QNYouTubeBackupとして公開、player-track-backup.jsが使う)
   function cleanStr(v, max) {
     return typeof v === "string" ? v.trim().slice(0, max) : "";
   }
@@ -3069,7 +3068,7 @@
     return out;
   }
 
-  // ---------- 共通Backup/Import画面への窓口（v3.17.0〜） ----------
+  // ---------- 共通Backup/Import画面への窓口 ----------
   function buildExportObject(ids, includeSettings) {
     var want = {};
     ids.forEach(function (id) { want[id] = true; });
@@ -3166,7 +3165,7 @@
     openVideo(target.videoId, target.url, target.id, { play: true });
   }
 
-  // YouTube本家と同じキーボードショートカット(v3.1.0〜)。公式メソッド(playVideo/pauseVideo/seekTo/setVolume/mute/setPlaybackRate)を利用者のキー操作起点で呼ぶだけ(規約OK)。アプリ表示中のみ。文字入力中・Ctrl/Cmd/Alt併用・再生系のキーリピートは無視。iframeにフォーカス中はYouTube側が処理
+  // YouTube本家と同じキーボードショートカット。公式メソッド(playVideo/pauseVideo/seekTo/setVolume/mute/setPlaybackRate)を利用者のキー操作起点で呼ぶだけ(規約OK)。アプリ表示中のみ。文字入力中・Ctrl/Cmd/Alt併用・再生系のキーリピートは無視。iframeにフォーカス中はYouTube側が処理
   var SHORTCUTS = [
     { key: "Space / K", action: "Play / Pause" },
     { key: "J / L", action: "Back / Forward (Skip buttons)" },
@@ -3290,7 +3289,7 @@
     bindSpace(true);
     ensureTitles();
     syncIfStale();
-    var want = panelState || "library";   // v3.39.0: 初回はSPでもLibraryパネルを開く(閉じた後はその状態を保つ)
+    var want = panelState || "library";   // 初回はSPでもLibraryパネルを開く(閉じた後はその状態を保つ)
     setPanel(want);
     applyCollapse();
     renderMarkers();

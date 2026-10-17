@@ -24,7 +24,7 @@
   /* 削除/警告の赤はテーマ非依存(--accent-primaryはテーマで変わるため独立) */
   --danger: #ef4444;
 
-  /* 【v2.16.0】UI統一ルール: パネル内/ポップアップ/ボタン/入力欄は下のトークンを使い、個別px直書き禁止。例外=下部コントロールバー/アイコンバーラベル/ロゴ/スプラッシュ/波形上ラベル/料金モーダル大見出し */
+  /* UI統一ルール: パネル内/ポップアップ/ボタン/入力欄は下のトークンを使い、個別px直書き禁止。例外=下部コントロールバー/アイコンバーラベル/ロゴ/スプラッシュ/波形上ラベル/料金モーダル大見出し */
   /* 角丸: ボタン/チップ/トグル/ステッパー=pill、アイコン丸ボタン=round、入力欄=field、ポップアップ/ドロップダウン=popup、モーダル=modal。リスト行/パネル内区切りは角丸枠でなく線(--border-subtle) */
   --radius-pill: 999px;
   --radius-round: 50%;
@@ -249,7 +249,7 @@ body {
   white-space: nowrap;
 }
 
-/* 【v2.16.3】マーキーは3周で止める(無限アニメは毎フレーム再計算。GOTCHAS.md)。hover/タップで再3周(player-core.js replayAppTitleMarquee) */
+/* マーキーは3周で止める(無限アニメは毎フレーム再計算。GOTCHAS.md)。hover/タップで再3周(player-core.js replayAppTitleMarquee) */
 #appTitle.marquee #appTitleInner {
   animation: appTitleMarquee var(--marquee-duration, 12s) linear 3;
 }
@@ -747,7 +747,7 @@ body {
   margin-left: auto;
 }
 
-/* v4.61.0: Speed/Keyのトグルが何のON/OFFか分かるよう「Effect」を添える(OFFでSpeed/Keyの効果だけ外す) */
+/* Speed/Keyのトグルが何のON/OFFか分かるよう「Effect」を添える(OFFでSpeed/Keyの効果だけ外す) */
 .control-card .control-effect-label {
   font-size: var(--fs-small, 11px);
   font-weight: 600;
@@ -874,7 +874,7 @@ body {
 
 
 
-/* 【v2.19.1】テキスト選択: シークバーエリア(波形/マーカー)と操作系(ボタン/下段バー/サイドバー/つまみ/ドラッグのつかみ)のみ選択不可。他は選択・コピー可。YouTubeアプリも同様 */
+/* テキスト選択: シークバーエリア(波形/マーカー)と操作系(ボタン/下段バー/サイドバー/つまみ/ドラッグのつかみ)のみ選択不可。他は選択・コピー可。YouTubeアプリも同様 */
 body {
   user-select: text;
   -webkit-user-select: text;
@@ -995,7 +995,7 @@ input[type="text"], input[type="number"], textarea {
 }
 
 
-/* スキップ区間(v3.46.0): 斜線。クリックは通す。マーカー線は破線で示す */
+/* スキップ区間: 斜線。クリックは通す。マーカー線は破線で示す */
 .segmentSkip {
   position: absolute;
   top: 0;

@@ -29,7 +29,7 @@
     padding-bottom: var(--pcv2-wave-fab-space, 62px);
   }
 
-  /* 【v2.16.1】SPでもシークバーを残り高さに伸ばす: style-layout-sp.cssの#vbarContainer{flex-shrink:0}より詳細度を上げて上書き */
+  /* SPでもシークバーを残り高さに伸ばす: style-layout-sp.cssの#vbarContainer{flex-shrink:0}より詳細度を上げて上書き */
   #pcV2WaveArea #vbarContainer {
     flex: 1 1 0;
     min-height: 0;
@@ -118,12 +118,12 @@
     justify-content: center;
   }
 
-  /* #pcV2TimeRow: v3.37.0〜 時刻表示は波形ヘッダー(歯車の左)へ移動したため常に非表示(空コンテナ) */
+  /* #pcV2TimeRow: 時刻表示は波形ヘッダー(歯車の左)へ移動したため常に非表示(空コンテナ) */
   #pcV2TimeRow {
     display: none;
   }
 
-  /* 【v3.56.2】SP: ファイル名の下に時刻。歯車は右端で2行ぶち抜き。長いファイル名は省略(…) */
+  /* SP: ファイル名の下に時刻。歯車は右端で2行ぶち抜き。長いファイル名は省略(…) */
   #pcV2WaveHead {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -214,7 +214,7 @@
     width: 20px;
     height: 20px;
     fill: var(--icon-muted, var(--fg-8b8b9e));
-    /* 【v2.16.3】無限アニメ禁止(再計算)。数回で止める(GOTCHAS.md) */
+    /* 無限アニメ禁止(再計算)。数回で止める(GOTCHAS.md) */
     animation: pcv2-scroll-hint-nudge 1.6s ease-in-out 3;
   }
 
@@ -374,7 +374,7 @@ html {
 #pcV2BottomBar .tripleNavBtn-third { min-height: 57px; }
 
 
-/* ---------- SPメインドック(v3.45.0) ----------
+/* ---------- SPメインドック ----------
    前マーカー/Loop/再生/+Marker/次マーカー/Moreを1行に。再生は円(円角はそのまま)、他は角ボタン。タップ領域は全て48px以上。
    既存の下段バー(#pcV2BottomBar)は「More」で開閉(#pcV2Root.qn-sp-more-open)。押す先は既存ボタン(JSの中継)。 */
 #pcV2SpDock { display: none; }
@@ -428,7 +428,7 @@ html {
   }
   .pcv2-dock-play svg { width: 34px; height: 34px; }
   .pcv2-dock-play:active { background: var(--accent-primary); transform: scale(0.94); }
-  /* v3.54.0: 再生中も停止中と同じ色(緑にしない) */
+  /* 再生中も停止中と同じ色(緑にしない) */
   .pcv2-dock-play.is-playing { background: var(--accent-primary); }
   .pcv2-dock-more svg { transition: transform 150ms ease; }
   .pcv2-dock-more.is-open svg { transform: rotate(180deg); }
@@ -437,7 +437,7 @@ html {
 }
 
 
-/* ---------- 【v3.55.0】SP: Moreの下段バーは「再生系=1画面」「マーカー系=1画面」の2ページ。各画面はボタンを均等配置(バランス)、横スナップ+右端/左端の矢印で移動 ---------- */
+/* ---------- SP: Moreの下段バーは「再生系=1画面」「マーカー系=1画面」の2ページ。各画面はボタンを均等配置(バランス)、横スナップ+右端/左端の矢印で移動 ---------- */
 @media (max-width: 900px) {
   #pcV2BottomBar {
     padding: 0;
@@ -490,25 +490,25 @@ html {
   #pcV2BottomBar .pcv2-bar-page { display: none; }
 }
 
-/* 【v3.59.0】Volume/Speed/KeyのミキサーはPC幅専用(SPの2ページバーには出さない) */
+/* Volume/Speed/KeyのミキサーはPC幅専用(SPの2ページバーには出さない) */
 @media (max-width: 900px) {
-  /* 下段バー側(非表示)の分は出さない。v4.11.1〜 SPのミキサーはMore(#pcV2MorePanel)内に移して表示する */
+  /* 下段バー側(非表示)の分は出さない。SPのミキサーはMore(#pcV2MorePanel)内に移して表示する */
   #pcV2BottomBar #pcV2BarMixer, .pcv2-mixer-divider { display: none !important; }
 }
 
 
-/* ---------- 【v4.11.0】SPの再配置: Moreはドックの上に開く(設定帯のみ)/ 前次トラック・リピートは波形ヘッダー右端 / AudioはA・Bと同じ行で小さく ---------- */
+/* ---------- SPの再配置: Moreはドックの上に開く(設定帯のみ)/ 前次トラック・リピートは波形ヘッダー右端 / AudioはA・Bと同じ行で小さく ---------- */
 #pcV2MorePanel, #pcV2WaveHeadBtns { display: none; } /* PC幅では出さない */
 /* A/B(PC幅では出さない)。v4.56.0で:not(.pcv2-fab-tg)を足した時にSP幅の表示(下の@media内の同名ルール)より強くなってSPのA/Bが消えていた(v4.61.0で直した)。PC幅だけに限定する。.panel-fab-btnのdisplay:flexに勝つためidを付ける */
 @media (min-width: 901px) { #pcV2WaveFabRow .pcv2-fab-ab:not(.pcv2-fab-tg) { display: none; } }
-/* 【v4.56.0】PC幅: 設定帯の右にクリック音(Grid click)と吸着(Marker snap)のON/OFF。SP幅は下の@mediaで既存のA/Bと同じ見た目になる */
+/* PC幅: 設定帯の右にクリック音(Grid click)と吸着(Marker snap)のON/OFF。SP幅は下の@mediaで既存のA/Bと同じ見た目になる */
 #pcV2WaveFabRow .pcv2-fab-tg { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 48px; height: 56px; padding: 0; background: var(--bg-0e0e13); border: 1px solid var(--border-subtle); border-radius: var(--radius-popup); color: var(--icon-muted); box-shadow: none; pointer-events: auto; cursor: pointer; }
 #pcV2WaveFabRow .pcv2-fab-tg svg { width: 22px; height: 22px; fill: currentColor; }
 #pcV2WaveFabRow .pcv2-fab-tg:hover { color: var(--text-primary, #fff); }
 #pcV2WaveFabRow .pcv2-fab-tg.has-point { color: var(--accent-primary); border-color: var(--accent-primary); }
 @media screen and (max-width: 900px) {
   /* DOM順は波形→MorePanel→下段バー→ドック→アイコンバー(JS: syncBottomBarPosition)。orderも合わせる */
-  /* 【v4.21.1】Moreは波形を縮めず、ドックの上に重ねて開く(外枠は高さ0・中身を上方向へ張り出す) */
+  /* Moreは波形を縮めず、ドックの上に重ねて開く(外枠は高さ0・中身を上方向へ張り出す) */
   #pcV2MorePanel { order: 2; flex-shrink: 0; height: 0; padding: 0; position: relative; z-index: 105; }
   #pcV2Root.qn-sp-more-open #pcV2MorePanel { display: block; }
   #pcV2MorePanel .pcv2-more-inner { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg-0a0a0c); border-top: 1px solid var(--border-subtle); padding: 8px 14px; }
@@ -565,7 +565,7 @@ html {
 #pcV2PanelHeader .pcv2-fab-addgroup .panel-fab-btn { height: 32px; padding: 0 12px; gap: 5px; font-size: 12px; box-shadow: none; }
 #pcV2PanelHeader .pcv2-fab-addgroup .panel-fab-btn svg { width: 15px; height: 15px; }
 
-/* v4.11.2: Moreミキサーの見た目調整(白枠線を消しBar lengthと同じスライダー外観に / Speedを長くKeyを狭く) + ヘッドのリピートバッジ */
+/* Moreミキサーの見た目調整(白枠線を消しBar lengthと同じスライダー外観に / Speedを長くKeyを狭く) + ヘッドのリピートバッジ */
 @media (max-width: 900px) {
   #pcV2MorePanel #pcV2BarMixer { grid-template-columns: 1fr auto; gap: 8px 16px; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-range {
@@ -593,7 +593,7 @@ html {
   #pcV2WaveHead #pcV2HeadRow .playlist-favorite-btn, #pcV2WaveHead #pcV2HeadRow .playlist-act-cell, #pcV2WaveHead #pcV2HeadRow .playlist-head-edit { display: none; }
 }
 
-/* v4.11.2: ミキサーのスライダーをBar length等(.qn-set-range)と同じ外観に統一(PC/SP共通) */
+/* ミキサーのスライダーをBar length等(.qn-set-range)と同じ外観に統一(PC/SP共通) */
 #pcV2BarMixer .pcv2-mix-range {
   -webkit-appearance: none; appearance: none; height: 18px; background: transparent; outline: none; border: none; box-shadow: none; cursor: pointer; touch-action: pan-y; -webkit-tap-highlight-color: transparent;
 }
@@ -604,19 +604,19 @@ html {
 #pcV2BarMixer .pcv2-mix-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--text-bright, var(--bg-ffffff)); border: none; box-shadow: none; }
 #pcV2BarMixer .pcv2-mix-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--text-bright, var(--bg-ffffff)); border: none; }
 
-/* v4.11.3: ミキサーの見出し「ラベル 値」をBar length/Rows(.qn-set-inline)と同じ表示に統一(左寄せで密着・同サイズ・値は太字白。Keyの値も見出し側へ) */
+/* ミキサーの見出し「ラベル 値」をBar length/Rows(.qn-set-inline)と同じ表示に統一(左寄せで密着・同サイズ・値は太字白。Keyの値も見出し側へ) */
 #pcV2Layout #pcV2BarMixer .pcv2-mix-head { display: flex; align-items: baseline; justify-content: flex-start; gap: 6px; }
 #pcV2Layout #pcV2BarMixer .pcv2-mix-label { font-size: var(--fs-small); color: var(--icon-muted); white-space: nowrap; }
 #pcV2Layout #pcV2BarMixer .pcv2-mix-val, #pcV2Layout #pcV2BarMixer .pcv2-mix-keyval { font-size: var(--fs-small); font-weight: 700; color: var(--text-bright); min-width: 0; text-align: left; font-variant-numeric: tabular-nums; }
 
-/* v4.11.3: Keyもスライダー(Volume/Speedと同一外観)。SPはSpeedと半分ずつ */
+/* Keyもスライダー(Volume/Speedと同一外観)。SPはSpeedと半分ずつ */
 #pcV2BarMixer .pcv2-mix-key .pcv2-mix-range { width: 100%; }
 @media (max-width: 900px) {
   #pcV2MorePanel #pcV2BarMixer { grid-template-columns: 1fr 1fr; }
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-item[data-mix="key"] { width: auto; }
 }
 
-/* v4.11.5: SPのMoreでSpeed/Keyにもリセットボタン(Volumeのミュートボタンと同じ位置・サイズ)。PC下部バーでは非表示 */
+/* SPのMoreでSpeed/Keyにもリセットボタン(Volumeのミュートボタンと同じ位置・サイズ)。PC下部バーでは非表示 */
 .pcv2-mix-reset { display: none; }
 @media (max-width: 900px) {
   #pcV2MorePanel #pcV2BarMixer .pcv2-mix-reset { flex: 0 0 auto; width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; border-radius: 8px; background: none; color: var(--icon-muted); -webkit-tap-highlight-color: transparent; }
@@ -626,7 +626,7 @@ html {
   #pcV2MorePanel #pcV2BarMixer { grid-template-columns: 1fr 1fr; gap: 8px 12px; }
 }
 
-/* 【v4.66.0】線の表示ボタン(#pcV2FabSnap): タップで小節+拍→小節→off。小節だけの時は小さく表示 */
+/* 線の表示ボタン(#pcV2FabSnap): タップで小節+拍→小節→off。小節だけの時は小さく表示 */
 #pcV2FabSnap { position: relative; }
 #pcV2FabSnap[data-state="Bars"]::after { position: absolute; right: 2px; bottom: 1px; font-size: 8px; font-weight: 700; line-height: 1; letter-spacing: 0.2px; }
 #pcV2FabSnap[data-state="Bars"]::after { content: "Bar"; }

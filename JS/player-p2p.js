@@ -1,4 +1,4 @@
-// player-p2p.js — 端末間のMP3直接転送(v3.29.0)。WebRTC(RTCDataChannel)。MP3はサーバーを通らない・保存されない。詳細: md/SYNC.md「MP3のP2P転送」
+// player-p2p.js — 端末間のMP3直接転送。WebRTC(RTCDataChannel)。MP3はサーバーを通らない・保存されない。詳細: md/SYNC.md「MP3のP2P転送」
 // 流れ: 送る側がSendで6文字コードを発行して待機→受け取る側がReceiveで曲を選んでコードを入力→接続の合図(offer/answer)だけFirestore(users/{uid}/sync/p2p_<CODE>)経由→以降は端末同士で直接。
 // 合図のドキュメントは接続したらすぐ削除(5分で期限切れ)。同じGoogleアカウントでログインしていないと合図が届かない(=他人には渡らない)。
 // 依存: QN_AUTH.syncTx/syncGetMany(player-auth.js)、QNLibSync.ghosts/fileFor/isActive(player-sync.js)、addFilesToPlaylist(player-playlist.js)
