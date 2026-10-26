@@ -48,7 +48,7 @@
 - **`playlist[]`は常に「フォルダ順にグループ化」した並びを保つ**（`normalizePlaylistGrouping()`。未分類は末尾）。だから行の`data-index`=配列indexのまま、選択/削除/ドラッグ/Auto Nextがindexベースで動く。配列を直接いじってフォルダを変えたら必ずnormalize→`persistPlaylistOrder()`。
 - 行は`#playlistBox`の直下に見出し(`.playlistFolderHeader`)と交互に並ぶ。`container.children`のindexを行番号に使うな（`data-index`か`getRowItems()`を使う）。折りたたみ中は行を描画しない（編集モードは全展開）。
 - フォルダ操作でindexがズレる前に`window.playlistClearSelection()`。indexが変わらない再描画は`playlistReapplySelection()`が選択表示を戻す。
-- ドラッグ並び替えは同じフォルダ内だけ（そのグループの配列スロットへ書き戻す）。お気に入りの上段固定もフォルダ内。
+- ドラッグ並び替えは同じフォルダ内だけ（そのグループの配列スロットへ書き戻す）。お気に入りの上段固定もフォルダ内。ライブラリ最上段の「PIN」は実体のフォルダではなく、お気に入りの行を複製して並べた表示（`.is-pincopy`、data-indexは元の曲と同じ、`data-folder="__pin"`）。編集モードでは出さず、並び替えつまみ・フォルダ移動・フォルダ並べ替え(`measureFolderBlocks`)の対象外。
 - Auto Nextの範囲は`findEnabledTrackIndex()`の1箇所（前/次・メディアキー・曲終了が全部通る）。フォルダ定義は`qn_folders_v1`、曲の所属はメタの`folder`（localStorageのみ。IndexedDBの音声は書かない）。
 - Backupのmarkers.jsonにはフォルダ**名**で入れる（idは端末ごと）。キーが無い旧バックアップはフォルダを触らない。
 - 【v4.69.0】Backupのzipの音声は `audio/<フォルダ名>/<曲>`(未分類は`audio/`直下。フォルダ名の `\/:*?"<>|` は `_` に置換)。Importは曲名(パスの末尾)で音声を探すので、旧バックアップ・旧版とも互換。同名の曲が別フォルダにあると末尾が衝突する(Libraryの曲名は一意なので通常は起きない)。

@@ -761,5 +761,5 @@
   };
   // P2P転送(player-p2p.js)用: 未インポート一覧と、hashからこの端末のFileを引く
   function fileFor(h) { var t = findTrack(h); return t && t.file ? t.file : null; }
-  window.QNLibSync = { decorateLibrary: decorateLibrary, ghosts: ghostList, fileFor: fileFor, isActive: function () { return syncUser; }, syncNow: function () { againCount = 0; syncNow(); }, _meta: meta, _hashOf: hashOf, _capture: capture };
+  window.QNLibSync = { devLabel: devLabel, decorateLibrary: decorateLibrary, ghosts: ghostList, fileFor: fileFor, isActive: function () { return syncUser; }, syncNow: function () { againCount = 0; syncNow(); }, _meta: meta, _hashOf: hashOf, _capture: capture };
 })();

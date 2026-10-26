@@ -158,7 +158,7 @@
     // P2P転送
     "転送には同期対象アカウントでのログインが必要です": "Log in with a sync-enabled account to transfer",
     "同じGoogleアカウントでログインしている端末どうしで、MP3を直接転送します。音声データはサーバーを経由せず、保存もされません。転送中は両方の端末でこの画面を開いたままにしてください。": "Transfers MP3 files directly between devices signed in to the same Google account. Audio does not pass through or get stored on a server. Keep this screen open on both devices during the transfer.",
-    "コードを表示して、受信側の接続を待ちます。先に送信側で開始してください。": "Shows a code and waits for the receiver to connect. Start on the sending device first.",
+    "コードとQRコードを表示して、受信側の接続を待ちます。先に送信側で開始してください。": "Shows a code and a QR code, and waits for the receiver to connect. Start on the sending device first.",
     "受け取れる曲(未インポート)はありません。": "No tracks (not imported) to receive.",
     "曲を選択してください": "Select tracks",
     "6文字のコードを入力してください": "Enter the 6-character code",
@@ -177,7 +177,18 @@
     "接続が切れました。もう一度やり直してください(受信済みの曲は取り込まれています)": "Connection lost. Try again (tracks already received were imported).",
     "接続が切れました": "Connection lost",
     "待機が時間切れになりました(5分)。もう一度やり直してください": "Waiting timed out (5 min). Try again.",
-    "受信側の端末で Receive を開き、曲を選択してからこのコードを入力してください。有効期限は5分です。": "On the receiving device, open Receive, select tracks, then enter this code. It expires in 5 minutes."
+    "受信側の端末で Receive を開き、曲を選択してから、このコードを入力するかQRコードを読み取ってください。以前つないだ端末は、コードなしで接続できます。有効期限は5分です。": "On the receiving device, open Receive, select tracks, then enter this code or scan the QR code. Previously connected devices connect without a code. It expires in 5 minutes.",
+    "接続済みの端末": "Connected devices",
+    "解除": "Remove",
+    "コードなしで接続できる端末です。解除すると、次からはコードの入力が必要になります。": "These devices connect without a code. After removing one, a code is required again.",
+    "以前つないだ端末が送信待機中なら、コードなしで接続できます。": "If a previously connected device is waiting to send, you can connect without a code.",
+    "待機を探しています": "Looking for a waiting device",
+    "送信待機中": "Waiting to send",
+    "QRコード": "QR code",
+    "送信側の画面に表示されているQRコードを、枠の中に映してください。": "Show the QR code on the sending device inside the frame.",
+    "カメラを起動中": "Starting camera",
+    "QRコードを探しています": "Looking for a QR code",
+    "カメラを使えませんでした。コードを入力してください": "Could not use the camera. Enter the code instead."
   };
 
   // ---------- 数字などを含む文の断片(順に適用。適用後に日本語が残る場合は元の日本語を表示) ----------
@@ -190,8 +201,8 @@
     [/この端末にMP3がありません。設定 > 転送 で他の端末から受信するか、「(.*)」を追加してください/g, "No MP3 on this device. Receive it from another device in Settings > Transfer, or add \"$1\"."],
     [/この端末にMP3がない曲です。設定 > 転送 で他の端末から受信できます。/g, "These tracks have no MP3 on this device. Receive them from another device in Settings > Transfer."],
     [/「(.*)」の同期情報を削除します。\n他の端末のMP3は削除されません。/g, "Delete the sync data for \"$1\".\nMP3 files on other devices are not deleted."],
-    [/送信側のコードを入力して、曲を受け取ります。/g, "Enter the sender's code to receive tracks. "],
-    [/送信側の端末に表示されている6文字のコードを入力してください。選択した /g, "Enter the 6-character code shown on the sending device. Of the "],
+    [/送信側のコードを入力するか、QRコードを読み取って、曲を受け取ります。以前つないだ端末なら、コードなしで接続できます。/g, "Enter the sender's code or scan its QR code to receive tracks. Previously connected devices connect without a code. "],
+    [/送信側の端末に表示されている6文字のコードを入力するか、QRコードを読み取ってください。選択した /g, "Enter the 6-character code shown on the sending device, or scan its QR code. Of the "],
     [/曲のうち、送信側の端末にあるMP3だけが受信されます。/g, " tracks selected, only MP3 files present on the sender are received."],
     [/☁ 同期中…/g, "Syncing…"],
     [/☁ 同期できませんでした\(タップで再試行\)/g, "Sync failed (tap to retry)"],

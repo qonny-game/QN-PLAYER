@@ -31,7 +31,8 @@ JS/
   player-playlist.js          ライブラリ：追加/削除/並び替え/お気に入り/フォルダ見出し・Auto Next範囲
   player-track-backup.js      Backup/Import（本体・YouTube・PITCH共通の画面。qnBackupMount/qnBackupMountInto/qnBackupParts）
   player-sync.js              本体Libraryの端末間同期（QNLibSync。SYNC.md）
-  player-p2p.js               MP3の端末間直接転送（Transfer。WebRTC。SYNC.md）
+  player-p2p.js               MP3の端末間直接転送（Transfer。WebRTC。コード/QR/接続済み端末。SYNC.md）
+  qr/                         Transfer用のQRライブラリ(qrcode.min.js=生成 MIT、jsQR.min.js=読み取り Apache-2.0、LICENSE-*.txt同梱)。index.htmlでは読まず、player-p2p.jsが画面を開いた時に読み込む
   player-markers.js           マーカー：追加/削除/ドラッグ/波形上のポップアップ/A-B点/Color
   player-marker-presets.js    マーカーメモのプリセット・自動カラー・カスタムプリセット・メモ編集ポップアップ（player-markers.jsの続き）
   player-control-eq.js        EQ
@@ -130,6 +131,8 @@ guide/                        アプリ内ガイド（静的HTML8枚＋guide.css
 | TUNER | localStorage | `qn_tuner_display` `qn_tuner_sens` `qn_tuner_smooth` `qn_tuner_panel_collapsed`（詳細は`TUNER_APP.md`） |
 | PITCH | localStorage／IndexedDB | `qn_pitch_filters` `qn_pitch_rec_meta`(録音の改名) `qn_pitch_panel_collapsed`／IndexedDB `qn_pitch_db`(録音実体。レコードは再putしない)（詳細は`PITCH_APP.md`） |
 | YouTube | localStorage | `qn_yt_items` `qn_yt_rate` `qn_yt_repeat` `qn_yt_preroll`（詳細は`YOUTUBE_APP.md`§4） |
+| Transfer(端末間転送) | localStorage | `qn_p2p_dev`(この端末のランダムID)・`qn_p2p_peers`(つないだ端末。最大5件)。バックアップ・同期の対象外（`player-p2p.js`。`SYNC.md`） |
+| PINフォルダ | localStorage | `qn_pin_folder_collapsed`(開閉。同期・バックアップの対象外。`player-playlist.js`) |
 | 本体Library同期 | localStorage | `qn_libsync_meta_v1`（`player-sync.js`。詳細は`SYNC.md`） |
 | Tab | localStorage／IndexedDB | `qn_tab_sens`・`qn_tab_minlen`・`qn_tab_overtone`・`qn_tab_zoom`・`qn_tab_follow`／IndexedDB `qn_tab_db`(解析結果と修正。キーは`名前\|サイズ`、最大60曲)。バックアップ・同期の対象外 |
 | Stem／録音 | localStorage／IndexedDB／Cache API | `qn_stem_mode`(4\|6)・`qn_rec_offset_ms`／IndexedDB `qn_stem_db`(分離結果・録音トラック。キーは`名前\|サイズ`、6パートは`\|6`付き)／モデルはCache API `qn-stem-model-v1`。バックアップ・同期の対象外 |

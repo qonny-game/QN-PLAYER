@@ -377,6 +377,18 @@ function renderPlaylist() {
 
   // フォルダが無ければ従来どおり全曲を並べるだけ。有れば「フォルダ見出し→その曲」をフォルダ順に、未分類は末尾。編集モードは全フォルダを展開(移動/削除の対象を隠さない)
   const frag = document.createDocumentFragment();
+  const pinIdxs = [];
+  if (!editMode) playlist.forEach((t, i) => { if (t.favorite) pinIdxs.push(i); });
+  if (pinIdxs.length) {
+    const collapsed = isPinFolderCollapsed();
+    frag.appendChild(buildPinFolderHeader(pinIdxs.length, collapsed));
+    if (!collapsed) pinIdxs.forEach(i => {
+      const row = buildRow(playlist[i], i);
+      row.classList.add("is-pincopy");
+      row.dataset.folder = "__pin";
+      frag.appendChild(row);
+    });
+  }
   if (playlistFolders.length === 0) {
     playlist.forEach((track, i) => frag.appendChild(buildRow(track, i)));
   } else {
@@ -404,6 +416,38 @@ function renderPlaylist() {
   setupPlaylistDragReorder(box);
   setupFolderDragReorder(box);
   if (typeof window.playlistReapplySelection === "function") window.playlistReapplySelection();
+}
+
+// PINフォルダ(お気に入りの複製を並べる固定の見出し。実体のフォルダではなく、並び替え・移動・編集モードの対象外)。開閉はlocalStorageのqn_pin_folder_collapsed
+const PIN_FOLDER_COLLAPSED_KEY = "qn_pin_folder_collapsed";
+function isPinFolderCollapsed() {
+  try { return localStorage.getItem(PIN_FOLDER_COLLAPSED_KEY) === "1"; } catch (e) { return false; }
+}
+function buildPinFolderHeader(count, collapsed) {
+  const head = document.createElement("div");
+  head.className = "playlistFolderHeader is-pin" + (collapsed ? " is-collapsed" : "");
+  head.dataset.folderId = "__pin";
+  const chev = document.createElement("span");
+  chev.className = "playlist-folder-chev";
+  chev.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>';
+  head.appendChild(chev);
+  const nameWrap = document.createElement("div");
+  nameWrap.className = "playlist-folder-name-wrap";
+  const label = document.createElement("span");
+  label.className = "playlist-folder-name";
+  label.textContent = "PIN";
+  nameWrap.appendChild(label);
+  head.appendChild(nameWrap);
+  const cnt = document.createElement("span");
+  cnt.className = "playlist-folder-count";
+  cnt.textContent = String(count);
+  head.appendChild(cnt);
+  head.addEventListener("click", () => {
+    hapticTap();
+    try { localStorage.setItem(PIN_FOLDER_COLLAPSED_KEY, collapsed ? "0" : "1"); } catch (e) {}
+    renderPlaylist();
+  });
+  return head;
 }
 
 // フォルダ見出し行(folder=nullは「未分類」。操作ボタン無し)。通常: クリックで開閉+ホバー鉛筆で改名。編集モード: 名前は常時入力、▲▼で順序、✕で削除(中の曲は未分類へ)
@@ -718,7 +762,9 @@ function measureFolderBlocks(box, scroller) {
   let cur = null;
   Array.from(box.children).forEach(el => {
     const r = el.getBoundingClientRect();
-    if (el.classList.contains("playlistFolderHeader")) {
+    if (el.classList.contains("is-pin")) {
+      cur = null;
+    } else if (el.classList.contains("playlistFolderHeader")) {
       cur = { id: el.dataset.folderId || "", head: el, els: [el], rows: [], top: r.top + sTop, bottom: r.bottom + sTop };
       blocks.push(cur);
     } else if (cur && !el.classList.contains("qn-lib-extra")) {
@@ -734,7 +780,7 @@ const PLAYLIST_AUTOSCROLL_EDGE = 36;   // スクロール領域の端からこ�
 const PLAYLIST_AUTOSCROLL_STEP = 10;   // 1回(50ms)あたりのpx。ドラッグ中、端にいる間だけ動く間引きタイマー(rAFループは使わない)
 
 function setupPlaylistDragReorder(box) {
-  const handles = box.querySelectorAll(".playlist-drag-handle");
+  const handles = box.querySelectorAll(".playlistItem:not(.is-pincopy) .playlist-drag-handle");
 
   handles.forEach(handle => {
     let dragging = false;
@@ -898,7 +944,7 @@ function setupPlaylistDragReorder(box) {
       scroller = findPlaylistScroller(box);
       scrollStart = scroller.scrollTop;
       viewRect = scrollerViewRect(scroller);
-      blocks = box.querySelector(".playlistFolderHeader") ? measureFolderBlocks(box, scroller) : null;
+      blocks = box.querySelector(".playlistFolderHeader:not(.is-pin)") ? measureFolderBlocks(box, scroller) : null;
       hoverBlock = null;
 
       const rect = draggedItem.getBoundingClientRect();

@@ -1,6 +1,8 @@
 // player-p2p.js — 端末間のMP3直接転送。WebRTC(RTCDataChannel)。MP3はサーバーを通らない・保存されない。詳細: md/SYNC.md「MP3のP2P転送」
 // 流れ: 送る側がSendで6文字コードを発行して待機→受け取る側がReceiveで曲を選んでコードを入力→接続の合図(offer/answer)だけFirestore(users/{uid}/sync/p2p_<CODE>)経由→以降は端末同士で直接。
 // 合図のドキュメントは接続したらすぐ削除(5分で期限切れ)。同じGoogleアカウントでログインしていないと合図が届かない(=他人には渡らない)。
+// 接続済みの端末: 接続できた相手の端末ID・種別をlocalStorageに覚え、送信側は待機中、端末ID付きの合図(users/{uid}/sync/p2p_d_<端末ID>)にもコードを書く→受信側は覚えている端末の待機を探して、コード入力なしで接続できる。
+// QR: 送信側がコードをQRで表示(JS/qr/qrcode.min.js)、受信側がカメラで読む(JS/qr/jsQR.min.js)。どちらも使う画面を開いた時に初めて読み込む。
 // 依存: QN_AUTH.syncTx/syncGetMany(player-auth.js)、QNLibSync.ghosts/fileFor/isActive(player-sync.js)、addFilesToPlaylist(player-playlist.js)
 (function () {
   "use strict";
@@ -13,6 +15,9 @@
   var HIGH_WATER = 1024 * 1024, LOW_WATER = 256 * 1024;
   // 回線によってはSTUNだけでは繋がらない(携帯回線どうし等)。その場合はTURNが必要(将来)。テスト用にwindow.QN_P2P_ICEで上書き可
   function iceServers() { return window.QN_P2P_ICE || [{ urls: "stun:stun.l.google.com:19302" }]; }
+
+  var PEERS_KEY = "qn_p2p_peers", DEV_KEY = "qn_p2p_dev", PEERS_MAX = 5, QR_PREFIX = "QNP2P:";
+  var ID_RE = /^[a-z0-9]{8,20}$/;
 
   var S = null;   // 進行中のセッション {role, code, pc, dc, cancelled, ...}
   var ui = null;  // {overlay, body}
@@ -30,6 +35,39 @@
   function sigGet(code) { return auth().syncGetMany([sigId(code)]).then(function (r) { return r[0]; }); }
   function sigSet(code, data) { return auth().syncTx(async function (api) { api.set(sigId(code), data); }); }
   function sigDel(code) { return auth().syncTx(async function (api) { api.del(sigId(code)); }).catch(function () {}); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function myId() {
+    var v = lsGet(DEV_KEY);
+    if (!ID_RE.test(v || "")) { v = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); lsSet(DEV_KEY, v); }
+    return v;
+  }
+  function myName() { return window.QNLibSync && typeof window.QNLibSync.devLabel === "function" ? window.QNLibSync.devLabel() : "Other"; }
+  function presId(id) { return "p2p_d_" + id; }
+  function readPeers() {
+    try {
+      var a = JSON.parse(lsGet(PEERS_KEY) || "[]");
+      return Array.isArray(a) ? a.filter(function (p) { return p && ID_RE.test(p.id || ""); }).slice(0, PEERS_MAX) : [];
+    } catch (e) { return []; }
+  }
+  function rememberPeer(id, name) {
+    if (typeof id !== "string" || !ID_RE.test(id) || id === myId()) return;
+    var a = readPeers().filter(function (p) { return p.id !== id; });
+    a.unshift({ id: id, n: String(name || "").slice(0, 12) || "Other" });
+    lsSet(PEERS_KEY, JSON.stringify(a.slice(0, PEERS_MAX)));
+  }
+  function forgetPeer(id) { lsSet(PEERS_KEY, JSON.stringify(readPeers().filter(function (p) { return p.id !== id; }))); }
+  function delPres() { auth().syncTx(async function (api) { api.del(presId(myId())); }).catch(function () {}); }
+  function parseQr(s) { var m = /^QNP2P:([A-Z0-9]{6})$/.exec(String(s || "").trim()); return m ? normCode(m[1]) : null; }
+  var libs = {};
+  function loadLib(src) {
+    if (!libs[src]) libs[src] = new Promise(function (res, rej) {
+      var s = document.createElement("script");
+      s.src = src + "?v=" + (window.QN_APP_VERSION || ""); s.onload = res; s.onerror = function () { delete libs[src]; rej(new Error("load failed")); };
+      document.head.appendChild(s);
+    });
+    return libs[src];
+  }
   function fmtMB(n) { return (n / 1048576).toFixed(n >= 10485760 ? 0 : 1) + "MB"; }
 
   // ---------- 画面(設定の下層パネル。Backup/Importと同じ器・部品: .export-modal-body/.export-section/.export-modal-footer/.export-run-btn/.export-cancel-btn/.track-backup-*。見た目はstyle-pcv2-panels.cssのBackup用ルールを共用) ----------
@@ -39,7 +77,16 @@
   function busy() { return !!(S && S.transferring); }
   function dismiss() { if (typeof dismissFn === "function") dismissFn(); }
   // 1画面を組み立てる: body=[node] / footer=[node]。statusは左側の状態表示(.export-status)。見出しはパネルのヘッダー(Transfer)が担う
+  var screenTok = 0;     // 画面が替わるたびに増える。待機中の非同期処理(端末の探索・カメラ)が古い画面で動き続けないための目印
+  var scan = null;       // {stream, timer}
+  function stopScan() {
+    var s = scan; scan = null;
+    if (!s) return;
+    clearInterval(s.timer);
+    try { s.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+  }
   function show(o) {
+    screenTok++; stopScan();
     if (!host || !host.isConnected) return el("div", "export-status");
     host.textContent = "";
     var body = el("div", "export-modal-body");
@@ -87,11 +134,26 @@
     show({
       body: [
         text("同じGoogleアカウントでログインしている端末どうしで、MP3を直接転送します。音声データはサーバーを経由せず、保存もされません。転送中は両方の端末でこの画面を開いたままにしてください。"),
-        section("送信", [text("コードを表示して、受信側の接続を待ちます。先に送信側で開始してください。"), sb]),
-        section("受信", [text(ghosts.length ? "送信側のコードを入力して、曲を受け取ります。(未インポート: " + ghosts.length + "曲)" : "受け取れる曲(未インポート)はありません。"), rb])
+        section("送信", [text("コードとQRコードを表示して、受信側の接続を待ちます。先に送信側で開始してください。"), sb]),
+        section("受信", [text(ghosts.length ? "送信側のコードを入力するか、QRコードを読み取って、曲を受け取ります。以前つないだ端末なら、コードなしで接続できます。(未インポート: " + ghosts.length + "曲)" : "受け取れる曲(未インポート)はありません。"), rb]),
+        peersSection()
       ],
       footer: []   // 戻るはパネルのヘッダーの矢印(Backup/Importと同じ)
     });
+  }
+
+  // 接続済みの端末の一覧(解除できる)。無ければ出さない
+  function peersSection() {
+    var peers = readPeers();
+    if (!peers.length) return null;
+    var list = el("div", "qn-p2p-peers");
+    peers.forEach(function (p) {
+      var row = el("div", "qn-p2p-peer");
+      row.appendChild(el("span", "qn-p2p-peer-name", p.n));
+      row.appendChild(miniBtn("解除", function () { forgetPeer(p.id); home(); }));
+      list.appendChild(row);
+    });
+    return section("接続済みの端末", [list, text("コードなしで接続できる端末です。解除すると、次からはコードの入力が必要になります。")]);
   }
 
   // ---------- 受け取る側(コードを入力して接続する側) ----------
@@ -144,11 +206,84 @@
     inp.addEventListener("blur", function () { inp.value = normCode(inp.value); });
     var go = runBtn("Connect", function () { var c = normCode(inp.value); if (c.length !== CODE_LEN) { toast("6文字のコードを入力してください"); return; } startReceive(c, items); });
     inp.addEventListener("keydown", function (e) { if (e.key === "Enter") go.click(); });
+    var canScan = !!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    var scanBtn = canScan ? cancelBtn("Scan QR", function () { scanScreen(items); }) : null;
+    if (scanBtn) scanBtn.classList.add("qn-p2p-scan-btn");
+    var peers = readPeers(), rows = [], peerSec = null;
+    if (peers.length) {
+      var list = el("div", "qn-p2p-peers");
+      peers.forEach(function (p) {
+        var row = el("div", "qn-p2p-peer"), st = el("span", "qn-p2p-peer-st", "待機を探しています"), b = runBtn("Connect", function () {});
+        b.disabled = true;
+        var info = el("span", "qn-p2p-peer-info"); info.appendChild(el("span", "qn-p2p-peer-name", p.n)); info.appendChild(st);
+        row.appendChild(info); row.appendChild(b); list.appendChild(row);
+        rows.push({ id: p.id, set: function (d) {
+          st.textContent = d ? "送信待機中" : "待機を探しています";
+          b.disabled = !d;
+          b.onclick = d ? function () { startReceive(normCode(d.code), items); } : null;
+        } });
+      });
+      peerSec = section("接続済みの端末", [list, text("以前つないだ端末が送信待機中なら、コードなしで接続できます。")]);
+    }
     show({
-      body: [section("コード", [inp, text("送信側の端末に表示されている6文字のコードを入力してください。選択した " + items.length + "曲のうち、送信側の端末にあるMP3だけが受信されます。")])],
+      body: [
+        peerSec,
+        section("コード", [inp, scanBtn, text("送信側の端末に表示されている6文字のコードを入力するか、QRコードを読み取ってください。選択した " + items.length + "曲のうち、送信側の端末にあるMP3だけが受信されます。")])
+      ],
       footer: [cancelBtn("Back", pickReceive), go]
     });
-    setTimeout(function () { try { inp.focus(); } catch (e) {} }, 50);
+    if (rows.length) watchPeers(screenTok, rows);
+    setTimeout(function () { try { if (!peerSec) inp.focus(); } catch (e) {} }, 50);
+  }
+  // 覚えている端末の送信待機を探す(この画面にいる間だけ、3秒ごと。最長5分)
+  async function watchPeers(tok, rows) {
+    var until = Date.now() + SIG_TTL_MS;
+    while (tok === screenTok && host && host.isConnected && Date.now() < until) {
+      try {
+        var docs = await auth().syncGetMany(rows.map(function (r) { return presId(r.id); }));
+        if (tok !== screenTok) return;
+        docs.forEach(function (d, i) { rows[i].set(d && d.st === "wait" && typeof d.code === "string" && d.exp > Date.now() ? d : null); });
+      } catch (e) {}
+      await sleep(3000);
+    }
+  }
+  // QRコードを読み取る画面。読めたらそのコードで接続を始める。カメラはこの画面を離れると止まる(show()が止める)
+  async function scanScreen(items) {
+    var video = document.createElement("video");
+    video.setAttribute("playsinline", ""); video.muted = true; video.className = "qn-p2p-video";
+    var box = el("div", "qn-p2p-scan");
+    box.appendChild(video); box.appendChild(el("div", "qn-p2p-scan-frame"));
+    var st = show({
+      body: [section("QRコード", [box, text("送信側の画面に表示されているQRコードを、枠の中に映してください。")])],
+      status: "カメラを起動中",
+      footer: [cancelBtn("Back", function () { codeEntry(items); })]
+    });
+    var tok = screenTok;
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      if (tok !== screenTok) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+      scan = { stream: stream, timer: 0 };
+      video.srcObject = stream;
+      await video.play();
+      await loadLib("JS/qr/jsQR.min.js");
+      if (tok !== screenTok) return;
+      st.textContent = "QRコードを探しています";
+      var cv = document.createElement("canvas"), cx = cv.getContext("2d", { willReadFrequently: true });
+      scan.timer = setInterval(function () {
+        if (tok !== screenTok || !host || !host.isConnected) { stopScan(); return; }
+        if (!video.videoWidth) return;
+        var k = Math.min(1, 640 / video.videoWidth), w = Math.round(video.videoWidth * k), h = Math.round(video.videoHeight * k);
+        cv.width = w; cv.height = h;
+        cx.drawImage(video, 0, 0, w, h);
+        var r = window.jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "dontInvert" });
+        var c = r && parseQr(r.data);
+        if (c) { stopScan(); startReceive(c, items); }
+      }, 200);
+    } catch (e) {
+      if (tok !== screenTok) return;
+      toast("カメラを使えませんでした。コードを入力してください");
+      codeEntry(items);
+    }
   }
   async function startReceive(code, items) {
     cleanup(false);
@@ -197,6 +332,7 @@
       sigDel(sess.code);
       setWake(true);
       status(sess, "転送中");
+      dc.send(JSON.stringify({ t: "hi", id: myId(), n: myName() }));
       dc.send(JSON.stringify({ t: "want", items: sess.items }));
     };
     dc.onmessage = function (e) {
@@ -209,6 +345,7 @@
           sess.done++; cur = null; paintProgress(sess);
         } else if (m.t === "skip") { sess.skipped = (sess.skipped || 0) + 1; sess.done++; sess.total -= (sess.items.filter(function (i) { return i.h === m.h; })[0] || {}).s || 0; paintProgress(sess); }
         else if (m.t === "done") { finish(sess); }
+        else if (m.t === "hi") { rememberPeer(m.id, m.n); }
         return;
       }
       if (cur) { cur.parts.push(e.data); cur.got += e.data.byteLength; sess.got += e.data.byteLength; paintProgress(sess); }
@@ -233,13 +370,18 @@
     S.screen = function () { screenSendWait(sess); };
     screenSendWait(sess);
     try {
-      await sigSet(code, { st: "wait", exp: Date.now() + SIG_TTL_MS });
+      await auth().syncTx(async function (api) {
+        var exp = Date.now() + SIG_TTL_MS;
+        api.set(sigId(code), { st: "wait", exp: exp });
+        api.set(presId(myId()), { st: "wait", code: code, n: myName(), exp: exp });
+      });
       var deadline = Date.now() + SIG_TTL_MS, offer = null;
       while (!sess.cancelled && Date.now() < deadline) {
         await sleep(POLL_MS);
         var d = await sigGet(code);
         if (d && d.st === "offer" && typeof d.offer === "string") { offer = d.offer; break; }
       }
+      delPres();
       if (sess.cancelled) return;
       if (!offer) throw new Error("待機が時間切れになりました(5分)。もう一度やり直してください");
       status(sess, "接続中");
@@ -256,24 +398,35 @@
   }
   function screenSendWait(sess) {
     var codeEl = el("div", "qn-p2p-code", sess.code.slice(0, 3) + " " + sess.code.slice(3));
+    var qrBox = sess.transferring ? null : el("div", "qn-p2p-qr");
     var st = show({
       body: [
-        section("コード", [codeEl, text("受信側の端末で Receive を開き、曲を選択してからこのコードを入力してください。有効期限は5分です。")]),
+        section("コード", [codeEl, qrBox, text("受信側の端末で Receive を開き、曲を選択してから、このコードを入力するかQRコードを読み取ってください。以前つないだ端末は、コードなしで接続できます。有効期限は5分です。")]),
         sess.transferring ? section("進行状況", [progressNode(sess)]) : null
       ],
       status: sess.statusText || "待機中",
       footer: [cancelBtn(sess.transferring ? "Stop" : "Cancel", stop)]
     });
     sess.statusEl = st;
+    if (qrBox) loadLib("JS/qr/qrcode.min.js").then(function () {
+      var q = window.qrcode(0, "M");
+      q.addData(QR_PREFIX + sess.code); q.make();
+      qrBox.innerHTML = q.createSvgTag({ cellSize: 4, margin: 4, scalable: true });
+    }).catch(function () { qrBox.remove(); });
   }
   function wireSend(sess) {
     var dc = sess.dc;
     dc.binaryType = "arraybuffer";
     dc.bufferedAmountLowThreshold = LOW_WATER;
-    dc.onopen = function () { sess.opened = true; setWake(true); status(sess, "受信側の応答待ち"); };
+    // ondatachannelの時点で既に開いていると'open'が来ないので、開いていれば今すぐ同じ処理をする。hiは受け取った時にも(まだなら)返す
+    function hello() { if (sess.hiSent || dc.readyState !== "open") return; sess.hiSent = true; dc.send(JSON.stringify({ t: "hi", id: myId(), n: myName() })); }
+    function onOpen() { if (sess.opened) return; sess.opened = true; setWake(true); status(sess, "受信側の応答待ち"); hello(); }
+    dc.onopen = onOpen;
+    if (dc.readyState === "open") onOpen();
     dc.onmessage = function (e) {
       if (typeof e.data !== "string") return;
       var m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.t === "hi") { rememberPeer(m.id, m.n); hello(); return; }
       if (m.t === "want" && Array.isArray(m.items) && !sess.started) { sess.started = true; sess.transferring = true; sendAll(sess, m.items.slice(0, 5000)); }
     };
     dc.onclose = function () { if (S === sess && sess.transferring && !sess.finished) fail(sess, "接続が切れました"); };
@@ -380,7 +533,7 @@
     try { if (s.dc) { s.dc.onclose = null; s.dc.close(); } } catch (e) {}
     try { if (s.pc) { s.pc.onconnectionstatechange = null; s.pc.close(); } } catch (e) {}
     if (s.role === "recv" && !s.opened) sigDel(s.code);
-    if (s.role === "send" && !s.opened) sigDel(s.code);
+    if (s.role === "send") { if (!s.opened) sigDel(s.code); delPres(); }
     if (userCancel && s.files && s.role === "recv" && window.QNLibSync) setTimeout(function () { window.QNLibSync.syncNow(); }, 800);
   }
 
