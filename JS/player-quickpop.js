@@ -180,10 +180,10 @@
           var curF = currentPlaylistIndex >= 0 ? trackFolderId(playlist[currentPlaylistIndex]) : undefined;
           playlistFolders.concat([{ id: null, name: "Unsorted" }]).forEach(function (f) {
             var idx = buckets.get(f.id) || []; if (!idx.length) return;
-            items.push({ label: f.name, sub: String(idx.length), on: f.id === curF, run: function () { playTrackAt(idx[0]); } });
+            items.push({ label: f.name, sub: String(idx.length), on: f.id === curF, run: function () { pinContext = false; playTrackAt(idx[0]); } });
           });
         } else {
-          playlist.forEach(function (t, i) { items.push({ label: t.title || t.name, on: i === currentPlaylistIndex, dim: !t.enabled, run: function () { playTrackAt(i); } }); });
+          playlist.forEach(function (t, i) { items.push({ label: t.title || t.name, on: i === currentPlaylistIndex, dim: !t.enabled, run: function () { pinContext = false; playTrackAt(i); } }); });
         }
         return listBody(items, ctx, "Library is empty");
       } };

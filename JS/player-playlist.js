@@ -141,6 +141,7 @@ function buildPlaylistRow(track, i, editMode, nowPlaying) {
         swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
         return;
       }
+      pinContext = item.classList.contains("is-pincopy");
       playTrackAt(parseInt(item.dataset.index, 10));
     });
   }
@@ -182,6 +183,7 @@ function buildPlaylistRow(track, i, editMode, nowPlaying) {
       swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
       return;
     }
+    pinContext = item.classList.contains("is-pincopy");
     playTrackAt(parseInt(item.dataset.index, 10));
   };
 
@@ -694,11 +696,15 @@ function playTrackAt(index, autoplay = true) {
   renderPlaylist();
 }
 
+// PINフォルダの行から再生した間(pinContext)は、お気に入りの曲だけを一覧の並びで進む/戻る。ピンを外した曲・PIN以外の行からの再生では通常の範囲へ戻る。保存しない(再読込でフォルダ順)
+let pinContext = false;
 function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
   if (playlist.length === 0) return -1;
+  if (pinContext && !(playlist[fromIndex] && playlist[fromIndex].favorite)) pinContext = false;
+  const onlyPinned = pinContext;
   // Auto Next範囲: フォルダがあり設定が"folder"なら、今の曲と同じフォルダ(連続グループ)内だけで進む/戻る/ラップする
   let lo = 0, hi = playlist.length - 1;
-  if (playlistFolders.length > 0 && repeatMode === "folder" && playlist[fromIndex]) {
+  if (!onlyPinned && playlistFolders.length > 0 && repeatMode === "folder" && playlist[fromIndex]) {
     const fid = trackFolderId(playlist[fromIndex]);
     lo = hi = fromIndex;
     while (lo > 0 && trackFolderId(playlist[lo - 1]) === fid) lo--;
@@ -711,7 +717,7 @@ function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
       if (!wrapAround) return -1;
       i = i < lo ? hi : lo;
     }
-    if (playlist[i] && playlist[i].enabled !== false) return i;
+    if (playlist[i] && playlist[i].enabled !== false && (!onlyPinned || playlist[i].favorite)) return i;
     i += direction;
   }
   return -1;

@@ -30,13 +30,28 @@ window.QN_ROW_ACT = (function () {
 function addCurrentPin() {
   if (!audio.duration) return;
   hapticSuccess();
-  pins.push({ t: audio.currentTime, enabled: true, memo: "", color: null });
+  const pin = { t: audio.currentTime, enabled: true, memo: "", color: null };
+  pins.push(pin);
   pins.sort((a, b) => a.t - b.t);
   loopActiveMarkerIndex = null;
   renderPins();
   renderSegments();
   renderPinList();
   savePins();
+  showPinPopupFor(pin);
+}
+
+// 追加したマーカーの線にポップアップを出す(線が描画されていなければ次のフレームで1回だけ再試行)
+function showPinPopupFor(pin) {
+  const open = () => {
+    const i = pins.indexOf(pin);
+    const line = i >= 0 ? document.querySelector(`.vbar-line[data-pin-index="${i}"]`) : null;
+    if (!line) return false;
+    const r = line.getBoundingClientRect();
+    showPinPopup(pin.t, line.parentNode, r.left + r.width / 2, pin);
+    return true;
+  };
+  if (!open()) requestAnimationFrame(open);
 }
 
 // 指定位置にマーカー追加(波形の長押し用)。±0.3秒以内に既存マーカーがあれば何もしない(falseを返す)
@@ -45,13 +60,15 @@ function addPinAt(t) {
   t = Math.max(0, Math.min(audio.duration, Math.round(t * 10) / 10));
   if (pins.some(p => Math.abs(p.t - t) <= 0.3)) return false;
   hapticSuccess();
-  pins.push({ t: t, enabled: true, memo: "", color: null });
+  const pin = { t: t, enabled: true, memo: "", color: null };
+  pins.push(pin);
   pins.sort((a, b) => a.t - b.t);
   loopActiveMarkerIndex = null;
   renderPins();
   renderSegments();
   renderPinList();
   savePins();
+  showPinPopupFor(pin);
   return true;
 }
 
@@ -195,6 +212,7 @@ function createPinLine(pinObj, i) {
 
   function handleMarkerTapOrDrag(e) {
     e.stopPropagation();
+    closeMarkerColorPicker();
     if (isLockedMarker) {
       swShowUnlockToast(`無料版はマーカーの先頭${SW_LIMITS.MARKER_MAX_ACTIVE}個までしか使用できません。`);
       return;
@@ -369,6 +387,7 @@ function renderSegments(overrideSegment) {
 function startDragPin(index) {
   return function(e) {
     e.stopPropagation();
+    closeMarkerColorPicker();
     const isTouch = e.type === "touchstart";
     if (isTouch) e.preventDefault();
     beginSeek();
@@ -1037,9 +1056,11 @@ function pinPopAdd() {
   const t = pinPopTime;
   hidePinPopup();
   hapticSuccess();
-  pins.push({ t: t, enabled: true, memo: "", color: null });
+  const pin = { t: t, enabled: true, memo: "", color: null };
+  pins.push(pin);
   pins.sort((a, b) => a.t - b.t);
   refreshAfterPinChange();
+  showPinPopupFor(pin);
 }
 
 const PINPOP_LOCK = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/></svg>';
