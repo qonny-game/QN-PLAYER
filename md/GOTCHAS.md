@@ -310,3 +310,6 @@
 - マーカー線/ラベルのonclickは`stopPropagation()`するので、`document`のclickで閉じるポップアップ(Color/メモの`.qn-style-pop`)はマーカー線を押しても閉じない。線を押す処理の先頭で`closeMarkerColorPicker()`を呼ぶこと。
 - 画面に出す再生位置は`audio.currentTime`でなく`qnShownTime()`(出力遅延ぶん戻した値)。再生制御(ループ判定・スキップ・シーク・マーカー追加)は`audio.currentTime`のまま。補正はWeb Audioに繋いだ後(`__qnAudioRouted`)・再生中だけ。手動の微調整は`qn_av_offset_ms`。
 - PINフォルダの行も`.playlist-drag-handle`でドラッグできる(`data-folder="__pin"`で同グループ扱い)。確定は配列を動かさず`qn_pin_order`だけ更新。フォルダ移動のドロップ対象にはしない。PIN再生中の前/次は`pinOrderedIdxs()`の順。
+- Setlistは曲を曲名(ファイル名)で持つ。再生は`setSetlistContext(names)`→`findEnabledTrackIndex`が`setlistCtx`の順で進む。Library行・PIN行・クイックポップの再生は`setlistCtx = null`で解除(経路を足したら同様に)。パネルは`window.prompt/confirm`で名前入力・削除確認。
+- バックアップ(markers.json)は、設定を含める時だけ 曲ごとのfavorite/enabled と order(曲順)/folders(フォルダ順)/pinOrder/setlists を持つ。インポートは「取り込んだ曲どうしの相対順を、その曲が今いる席へ」並べ替える(スキップした曲・他の曲は動かさない)→normalize→お気に入りを各フォルダ先頭へ。古いバックアップ(キー無し)は並びに触れない。同期のセットリスト/PIN順はlib_extra(曲の同期cycleとは独立。失敗しても曲の同期は成功扱い)。
+- 曲ごとの同期状態(`cleanState`)に新しい項目を足す時は、空/既定の値ではキー自体を持たせない(署名`sigOf`が変わると全曲が「変更あり」で再送信される)。歌詞の時刻`ly`・スキップ`k`がその例。同期でリモートに`ly`が無ければローカルの`mp3_lyt_`も消える(他端末で消したものが伝わる)。

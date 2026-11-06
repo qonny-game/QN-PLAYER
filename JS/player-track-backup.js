@@ -341,6 +341,14 @@ async function runTrackBackup() {
     // ---------- PLAYER側のmarkers.json（従来と同じ形式） ----------
     let markersJsonText = null;
     if (hasPlayer) {
+      // ライブラリ全体の情報(設定を含める時だけ): 曲の並び・フォルダの並び・PIN内の並び・セットリスト。曲は名前で持つ
+      const libraryExtra = {};
+      if (opts.settings) {
+        libraryExtra.order = targetTracks.map(t => t.name);
+        libraryExtra.folders = typeof playlistFolders !== "undefined" ? playlistFolders.map(f => f.name) : [];
+        libraryExtra.pinOrder = typeof readPinOrder === "function" ? readPinOrder() : [];
+        libraryExtra.setlists = window.QNSetlist ? window.QNSetlist.exportData() : [];
+      }
       const tracksForExport = targetTracks.map(track => {
         const trackData = { name: track.name };
 
@@ -363,16 +371,18 @@ async function runTrackBackup() {
           // 所属フォルダは名前で持つ(idは端末ごと)。未分類=null。古い版は無視、古いバックアップ(キー無し)は読み込み側で触らない
           const folderNameForExport = typeof trackFolderId === "function" && typeof getPlaylistFolder === "function" && trackFolderId(track) ? getPlaylistFolder(track.folder).name : null;
           trackData.folder = folderNameForExport;
+          trackData.favorite = !!track.favorite;      // PIN(お気に入り)
+          trackData.enabled = track.enabled !== false; // ON/OFF
         }
 
         return trackData;
       });
 
-      markersJsonText = JSON.stringify({
+      markersJsonText = JSON.stringify(Object.assign({
         version: "1.0",
         exportDate: new Date().toISOString(),
         tracks: tracksForExport
-      }, null, 2);
+      }, libraryExtra), null, 2);
     }
 
     // ---------- YouTube側のJSON（YouTubeアプリの形式。設定データ=タイトル・マーカー・AB点） ----------
@@ -776,6 +786,7 @@ async function runTrackImport() {
   let skippedCount = 0;
   let noAudioSkippedCount = 0;
   let folderTouched = false;
+  const importedNames = new Set(); // 取り込んだ(新規/上書き)曲。スキップした曲の並び・PINには触れない
 
   // バックアップのフォルダ名→このライブラリのフォルダid(無ければ作る)。null/空=未分類
   function importFolderIdFor(name) {
@@ -807,6 +818,9 @@ async function runTrackImport() {
         if (trackData.title !== undefined) existingTrack.title = trackData.title;
         if (trackData.artist !== undefined) existingTrack.artist = trackData.artist;
         if (trackData.folder !== undefined) { existingTrack.folder = importFolderIdFor(trackData.folder); folderTouched = true; }
+        if (typeof trackData.favorite === "boolean") { existingTrack.favorite = trackData.favorite; folderTouched = true; }
+        if (typeof trackData.enabled === "boolean") existingTrack.enabled = trackData.enabled;
+        importedNames.add(name);
         if (audioBlob) {
           existingTrack.file = new File([audioBlob], name, { type: audioBlob.type || "audio/mpeg" });
         }
@@ -831,24 +845,30 @@ async function runTrackImport() {
           title: trackData.title || null,
           artist: trackData.artist || null,
           duration: null,
-          enabled: true,
-          favorite: false,
+          enabled: typeof trackData.enabled === "boolean" ? trackData.enabled : true,
+          favorite: typeof trackData.favorite === "boolean" ? trackData.favorite : false,
           folder: trackData.folder !== undefined ? importFolderIdFor(trackData.folder) : null
         };
-        if (newTrack.folder) folderTouched = true;
+        if (newTrack.folder || newTrack.favorite) folderTouched = true;
+        importedNames.add(name);
         playlist.push(newTrack);
         if (typeof savePlaylistTrack === "function") {
           await savePlaylistTrack(newTrack.file, undefined, newTrack.enabled, newTrack.title, newTrack.artist, newTrack.favorite);
         }
-        if (newTrack.folder && typeof savePlaylistMetadataFor === "function") await savePlaylistMetadataFor(newTrack);
+        if ((newTrack.folder || newTrack.favorite || !newTrack.enabled) && typeof savePlaylistMetadataFor === "function") await savePlaylistMetadataFor(newTrack);
         applyImportedMarkersAndText(name, trackData);
         addedCount++;
       }
     }
 
     // フォルダが変わった曲があればグループ順へ並べ直してメタ保存(フォルダ指定の無い旧バックアップでは何もしない)
+    // 並び順・フォルダ順・PIN(お気に入り)の位置・PIN内の並び(新しいバックアップだけが持つ。無ければ何もしない)
+    const pd = trackImportParsedData;
+    const hasOrder = Array.isArray(pd.order) || Array.isArray(pd.folders) || Array.isArray(pd.pinOrder);
+    if (hasOrder) { applyImportedLibraryOrder(pd, importedNames); folderTouched = true; }
     if (folderTouched && typeof normalizePlaylistGrouping === "function") {
       normalizePlaylistGrouping();
+      favoritesFirstInGroups(); // お気に入りは各フォルダの先頭(player-playlist.jsの不変条件)
       if (typeof persistPlaylistOrder === "function") await persistPlaylistOrder(); // localStorageのメタのみ(Blobに触れない)。folderも一緒に保存される
     }
     if (typeof renderPlaylist === "function") renderPlaylist();
@@ -877,11 +897,16 @@ async function runTrackImport() {
       ptResult = await ptApi.applyImport(trackImportPtList, trackImportPtAudio, ptChoices);
     }
 
+    // ---------- セットリスト(markers.jsonのsetlists。同名は曲を追加、無ければ新規) ----------
+    let slCount = 0;
+    if (window.QNSetlist && Array.isArray(trackImportParsedData.setlists)) slCount = window.QNSetlist.importData(trackImportParsedData.setlists);
+
     const hasPlayerPart = trackImportParsedData.tracks.length > 0 || !(ytResult || ptResult);
     const sections = [];
     if (hasPlayerPart) {
       let t = `新規追加: ${addedCount}件\n上書き: ${overwrittenCount}件\nスキップ: ${skippedCount}件`;
       if (noAudioSkippedCount > 0) t += `\n音声なしのためスキップ: ${noAudioSkippedCount}件`;
+      if (slCount > 0) t += `\nSetlist: ${slCount}`;
       sections.push(["PLAYER", t]);
     }
     if (ytResult) sections.push(["YouTube", `新規追加: ${ytResult.added}件\n上書き: ${ytResult.over}件\nスキップ: ${ytResult.skipped}件`]);
@@ -905,6 +930,48 @@ async function runTrackImport() {
 }
 
 // マーカー/メモをlocalStorageへ反映。trackData.markers無し=マーカーに触れない(消さない)、noteTextがundefined=メモに触れない
+// お気に入りを各フォルダ(連続グループ)の先頭へ(安定ソート。再生中の曲は参照で追従)
+function favoritesFirstInGroups() {
+  const cur = currentPlaylistIndex >= 0 ? playlist[currentPlaylistIndex] : null;
+  const out = [];
+  let i = 0;
+  while (i < playlist.length) {
+    const fid = trackFolderId(playlist[i]);
+    let j = i;
+    while (j < playlist.length && trackFolderId(playlist[j]) === fid) j++;
+    const g = playlist.slice(i, j);
+    out.push(...g.filter(t => t.favorite), ...g.filter(t => !t.favorite));
+    i = j;
+  }
+  const changed = out.some((t, k) => t !== playlist[k]);
+  if (changed) {
+    playlist.length = 0;
+    out.forEach(t => playlist.push(t));
+    if (cur) currentPlaylistIndex = playlist.indexOf(cur);
+  }
+}
+// バックアップの並びを反映: 曲=取り込んだ曲どうしの相対順を、その曲が今いる席へ(他の曲は動かさない)/フォルダ=名前順/PIN内=バックアップの並びを先頭に、無い曲は後ろ
+function applyImportedLibraryOrder(pd, importedNames) {
+  if (Array.isArray(pd.folders) && typeof setPlaylistFolderOrder === "function") {
+    const ids = pd.folders.map(n => { const f = playlistFolders.find(x => x.name === n); return f ? f.id : null; }).filter(Boolean);
+    if (ids.length) setPlaylistFolderOrder(ids);
+  }
+  if (Array.isArray(pd.order)) {
+    const pos = new Map();
+    pd.order.forEach((n, i) => { if (typeof n === "string" && !pos.has(n)) pos.set(n, i); });
+    const cur = currentPlaylistIndex >= 0 ? playlist[currentPlaylistIndex] : null;
+    const slots = [], list = [];
+    playlist.forEach((t, i) => { if (pos.has(t.name) && importedNames.has(t.name)) { slots.push(i); list.push(t); } });
+    list.sort((a, b) => pos.get(a.name) - pos.get(b.name));
+    slots.forEach((s, k) => { playlist[s] = list[k]; });
+    if (cur) currentPlaylistIndex = playlist.indexOf(cur);
+  }
+  if (Array.isArray(pd.pinOrder) && typeof savePinOrder === "function" && typeof readPinOrder === "function") {
+    const mine = pd.pinOrder.filter(n => typeof n === "string" && importedNames.has(n));
+    if (mine.length) savePinOrder(mine.concat(readPinOrder().filter(n => mine.indexOf(n) < 0)));
+  }
+}
+
 function applyImportedMarkersAndText(name, trackData) {
   if (Array.isArray(trackData.markers)) {
     const pinsToSave = trackData.markers.map(m => ({

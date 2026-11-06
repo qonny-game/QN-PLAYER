@@ -1,5 +1,6 @@
 // player-sync.js — 本体Library(曲ごとの情報)の端末間同期。詳細・合体ルール: md/SYNC.md「Library同期」
-// 同期するもの: 曲ごとの 曲名/アーティスト/ON-OFF/お気に入り/フォルダ/マーカー/A-Bループ/テキストメモ + フォルダ定義 + 並び順。
+// 同期するもの: 曲ごとの 曲名/アーティスト/ON-OFF/お気に入り/フォルダ/マーカー(スキップ区間含む)/A-Bループ/テキストメモ/歌詞の行ごとの時刻 + フォルダ定義 + 並び順。
+// 追加で同期: セットリスト(qn_setlists_v1)・PIN内の並び(qn_pin_order)= lib_extra(曲とは別。cycleの後のextraStep)。
 // 同期しないもの: MP3本体(音声)、アプリ設定(音量/テーマ/EQ等)、フォルダの開閉、YouTube由来のタイトル。
 // 曲の同一判定 = ファイル名+サイズ(hash)。他端末にMP3が無い曲は「未インポート」(ghost)として並び、後でMP3を入れると設定が自動で付く。
 // Firestore(users/{uid}/sync/): lib_index(曲hash→更新時刻) / lib_folders / lib_order / t_<hash>(1曲1ドキュメント)。通信はplayer-auth.jsのQN_AUTH.syncTx/syncGetMany。
@@ -8,11 +9,11 @@
   "use strict";
 
   var META_KEY = "qn_libsync_meta_v1";
-  var DOC_INDEX = "lib_index", DOC_FOLDERS = "lib_folders", DOC_ORDER = "lib_order", DOC_DEVICES = "lib_devices";
+  var DOC_INDEX = "lib_index", DOC_FOLDERS = "lib_folders", DOC_ORDER = "lib_order", DOC_DEVICES = "lib_devices", DOC_EXTRA = "lib_extra";
   var DEV_FRESH_MS = 30 * 24 * 60 * 60 * 1000, DEV_REFRESH_MS = 3 * 24 * 60 * 60 * 1000, DEV_MISS_MAX = 2000;
   var TOMB_TTL_MS = 180 * 24 * 60 * 60 * 1000;
   var CHUNK = 150;                                   // 1トランザクションで書く曲数(Firestoreは500書き込みまで)
-  var PIN_MAX = 500, TEXT_MAX = 50000, MEMO_MAX = 500, TITLE_MAX = 300;
+  var PIN_MAX = 500, TEXT_MAX = 50000, MEMO_MAX = 500, TITLE_MAX = 300, LY_MAX = 300, LY_TEXT_MAX = 1000;
 
   var origSetItem = Storage.prototype.setItem;
 
@@ -62,7 +63,7 @@
   function saveMeta() { try { origSetItem.call(localStorage, META_KEY, JSON.stringify(meta)); } catch (e) {} }
 
   // ---------- 1曲分の状態(同期する項目だけ。ローカルもリモートも必ずこの形に通す=比較できる) ----------
-  // ti:曲名 ar:アーティスト en:ON/OFF fv:お気に入り fo:フォルダid|null pn:[{t,e,m,c}] ab:{a,b}|null tx:テキストメモ
+  // ti:曲名 ar:アーティスト en:ON/OFF fv:お気に入り fo:フォルダid|null pn:[{t,e,m,c,k?}] ab:{a,b}|null tx:テキストメモ ly?:歌詞の行ごとの時刻[{x:行の文字,t:秒}](無い時はキー自体を持たない=従来の署名を変えない。Firestoreは配列の入れ子不可なのでオブジェクト)
   function cleanState(d) {
     var st = { ti: "", ar: "", en: true, fv: false, fo: null, pn: [], ab: null, tx: "" };
     if (!d || typeof d !== "object") return st;
@@ -77,7 +78,9 @@
         var t = Number(p.t);
         if (!isFinite(t) || t < 0 || t > 1e6) return;
         var c = typeof p.c === "string" && /^[#a-zA-Z0-9(),.%\s-]{0,40}$/.test(p.c) ? p.c : "";
-        st.pn.push({ t: t, e: (p.e === 0 || p.e === false) ? 0 : 1, m: str(p.m, MEMO_MAX), c: c });
+        var pe = { t: t, e: (p.e === 0 || p.e === false) ? 0 : 1, m: str(p.m, MEMO_MAX), c: c };
+        if (p.k === 1 || p.k === true) pe.k = 1; // スキップ区間(立っている時だけ持つ=従来の署名を変えない)
+        st.pn.push(pe);
       });
     }
     if (d.ab && typeof d.ab === "object") {
@@ -85,11 +88,16 @@
       if (a !== null || b !== null) st.ab = { a: a, b: b };
     }
     st.tx = str(d.tx, TEXT_MAX);
+    if (Array.isArray(d.ly)) {
+      var ly = [];
+      d.ly.slice(0, LY_MAX).forEach(function (l) { if (l && typeof l === "object" && typeof l.x === "string" && isNum(l.t) && l.t >= 0 && l.t <= 1e6) ly.push({ x: l.x.slice(0, LY_TEXT_MAX), t: l.t }); });
+      if (ly.length) st.ly = ly;
+    }
     return st;
   }
   function readJson(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
   function mkLocalState(name, t) {
-    var pins = readJson("mp3_pins_" + name), ab = readJson("mp3_ab_" + name), tx = "";
+    var pins = readJson("mp3_pins_" + name), ab = readJson("mp3_ab_" + name), tx = "", lyt = readJson("mp3_lyt_" + name);
     try { tx = localStorage.getItem("mp3_text_" + name) || ""; } catch (e) {}
     return cleanState({
       ti: t.title || "", ar: t.artist || "", en: t.enabled !== false, fv: !!t.favorite,
@@ -98,11 +106,14 @@
         return typeof p === "number" ? { t: p, e: 1, m: "", c: "" } : (p && typeof p === "object" ? { t: p.t, e: p.enabled === false ? 0 : 1, m: p.memo || "", c: p.color || "", k: p.skip ? 1 : 0 } : null);
       }).filter(Boolean) : [],
       ab: ab && typeof ab === "object" ? { a: ab.a, b: ab.b } : null,
-      tx: tx
+      tx: tx,
+      ly: Array.isArray(lyt) ? lyt.map(function (e) { return Array.isArray(e) ? { x: e[0], t: e[1] } : null; }).filter(Boolean) : undefined
     });
   }
   function docOf(name, size, st, u) {
-    return { n: str(name, 300), s: size, ti: st.ti, ar: st.ar, en: st.en, fv: st.fv, fo: st.fo, pn: st.pn, ab: st.ab, tx: st.tx, u: u };
+    var o = { n: str(name, 300), s: size, ti: st.ti, ar: st.ar, en: st.en, fv: st.fv, fo: st.fo, pn: st.pn, ab: st.ab, tx: st.tx, u: u };
+    if (st.ly) o.ly = st.ly;
+    return o;
   }
   // 初めて見る曲(他端末に既にある曲をこの端末へ入れた時): 基本はリモート優先。ただしリモートが空でローカルにある項目(マーカー/メモ/ABなど)は消さずに残す
   function firstSeenMerge(rs, ls) {
@@ -110,6 +121,7 @@
     if (!m.pn.length && ls.pn.length) m.pn = ls.pn;
     if (!m.ab && ls.ab) m.ab = ls.ab;
     if (!m.tx && ls.tx) m.tx = ls.tx;
+    if (!m.ly && ls.ly) m.ly = ls.ly;
     if (!m.ti && ls.ti) m.ti = ls.ti;
     if (!m.ar && ls.ar) m.ar = ls.ar;
     return m;
@@ -238,6 +250,59 @@
   }
   function serializeFolders(m) { return { f: m.live, d: m.tomb, ord: m.ord, ou: m.ou }; }
 
+  // ---------- セットリスト・PINの並び(lib_extra。曲の同期とは別に、cycleの後で1ドキュメントだけ読み書きする) ----------
+  // lib_extra = { s:{id:{n,s:[曲名],u}}, d:{id:削除時刻}, po:[PIN内の曲名], pu:更新時刻 }。セットリストはidごとにu最大が勝つ(同時刻はリモート)・削除はtombstone。PINの並びは全体でpuが新しい方。曲は曲名で持つ
+  var SL_MAX = 100, SL_SONGS_MAX = 500, SL_NAME_MAX = 60, SONG_NAME_MAX = 300, PO_MAX = 2000;
+  function parseExtra(raw) {
+    var o = { s: {}, d: {}, po: [], pu: 0 };
+    if (!raw || typeof raw !== "object") return o;
+    if (raw.s && typeof raw.s === "object") Object.keys(raw.s).slice(0, SL_MAX).forEach(function (id) {
+      var x = raw.s[id];
+      if (!validId(id) || !x || !isNum(x.u) || !Array.isArray(x.s)) return;
+      o.s[id] = { n: str(x.n, SL_NAME_MAX) || "Setlist", u: x.u, s: x.s.filter(function (n) { return typeof n === "string" && n.length <= SONG_NAME_MAX; }).slice(0, SL_SONGS_MAX) };
+    });
+    if (raw.d && typeof raw.d === "object") Object.keys(raw.d).forEach(function (id) { if (validId(id) && isNum(raw.d[id])) o.d[id] = raw.d[id]; });
+    if (Array.isArray(raw.po)) o.po = raw.po.filter(function (n) { return typeof n === "string" && n.length <= SONG_NAME_MAX; }).slice(0, PO_MAX);
+    if (isNum(raw.pu)) o.pu = raw.pu;
+    return o;
+  }
+  function mergeExtra(r, local, po, pu) {
+    var live = {}, tomb = {}, now = Date.now();
+    var ids = setOf(Object.keys(r.s).concat(Object.keys(r.d), Object.keys(local.live), Object.keys(local.tomb)));
+    Object.keys(ids).forEach(function (id) {
+      var best = null;
+      function consider(u, isLive, v) { if (isNum(u) && (!best || u > best.u)) best = { u: u, live: isLive, v: v }; }   // 先に見たものが同時刻で勝つ=リモート優先
+      if (r.s[id]) consider(r.s[id].u, true, r.s[id]);
+      consider(r.d[id], false);
+      if (local.live[id]) consider(local.live[id].u, true, local.live[id]);
+      consider(local.tomb[id], false);
+      if (!best) return;
+      if (best.live) live[id] = { n: str(best.v.n, SL_NAME_MAX) || "Setlist", s: (best.v.s || []).slice(0, SL_SONGS_MAX), u: best.u };
+      else if (now - best.u < TOMB_TTL_MS) tomb[id] = best.u;
+    });
+    var useLocal = pu > r.pu, mpo = useLocal ? po : r.po, mpu = useLocal ? pu : r.pu;
+    var out = { live: live, tomb: tomb, po: mpo, pu: mpu };
+    out.write = stable({ s: r.s, d: r.d, po: r.po, pu: r.pu }) !== stable({ s: live, d: tomb, po: mpo, pu: mpu });
+    return out;
+  }
+  async function extraStep(A) {
+    if (!window.QNSetlist || typeof window.QNSetlist.syncState !== "function" || typeof window.readPinOrderU !== "function") return false;
+    var ver = localVersion, loc = window.QNSetlist.syncState(), po = window.readPinOrder(), pu = window.readPinOrderU();
+    var m = await A.syncTx(async function (api) {
+      var r = parseExtra(await api.get(DOC_EXTRA)), mm = mergeExtra(r, loc, po, pu);
+      if (mm.write) api.set(DOC_EXTRA, { s: mm.live, d: mm.tomb, po: mm.po, pu: mm.pu });
+      return mm;
+    });
+    if (localVersion !== ver || isBusy()) return false;   // 通信中にこちらが変わった/入力中 → 反映せず次の同期で(書き込みは済んでいる)
+    var changed = false;
+    applying = true;
+    try {
+      if (stable({ l: loc.live, t: loc.tomb }) !== stable({ l: m.live, t: m.tomb })) { window.QNSetlist.syncApply(m.live, m.tomb); changed = true; }
+      if (m.pu !== pu || m.po.join("\n") !== po.join("\n")) { window.applyPinOrderSynced(m.po, m.pu); changed = true; }
+    } finally { applying = false; }
+    return changed;
+  }
+
   // ---------- UI状態 ----------
   var prog = { done: 0, total: 0, at: 0 };
   function setProg(done, total) {   // 件数表示(画面更新は0.15秒に1回まで)
@@ -293,6 +358,8 @@
       origSetItem.call(localStorage, "mp3_ab_" + name, JSON.stringify({ a: st.ab ? st.ab.a : null, b: st.ab ? st.ab.b : null }));
     }
     if (st.tx || localStorage.getItem("mp3_text_" + name) !== null) origSetItem.call(localStorage, "mp3_text_" + name, st.tx);
+    if (st.ly) origSetItem.call(localStorage, "mp3_lyt_" + name, JSON.stringify(st.ly.map(function (l) { return [l.x, l.t]; })));
+    else if (localStorage.getItem("mp3_lyt_" + name) !== null) localStorage.removeItem("mp3_lyt_" + name);
     return name;
   }
   function applyFolders(fo) {
@@ -487,6 +554,7 @@
       if (reloadCur) {
         try {
           loadTrackUserData(curName);
+          if (window.QNLyrics) window.QNLyrics.load();
           if (typeof renderPins === "function") renderPins();
           if (typeof renderSegments === "function") renderSegments();
         } catch (e) {}
@@ -579,6 +647,7 @@
       mergeDuplicateFolders();
       res = await cycle(A);
       if (mergeDuplicateFolders()) res = { again: true }; // 取り込んだ結果に同名があった → 統合分をもう一度同期
+      try { await extraStep(A); } catch (e) { console.warn("[QN_LIB_SYNC] extra", e); } // セットリスト/PINの並び。失敗しても曲の同期は成功扱い
       try { if (await devicesStep(A)) { if (typeof renderPlaylist === "function") renderPlaylist(); } } catch (e) { console.warn("[QN_LIB_SYNC] devices", e); } // 補助情報。失敗しても同期自体は成功扱い
       lastErr = "";
       setStatus("ok");
@@ -612,7 +681,7 @@
 
   // ---------- 変更の検知(localStorageへの書き込みを横から見るだけ。既存の保存処理は触らない) ----------
   function watched(k) {
-    return k === "qn_playlist_meta_v1" || k === "qn_folders_v1" || (typeof k === "string" && (k.indexOf("mp3_pins_") === 0 || k.indexOf("mp3_ab_") === 0 || k.indexOf("mp3_text_") === 0));
+    return k === "qn_playlist_meta_v1" || k === "qn_folders_v1" || k === "qn_setlists_v1" || k === "qn_setlists_del_v1" || k === "qn_pin_order" || (typeof k === "string" && (k.indexOf("mp3_pins_") === 0 || k.indexOf("mp3_ab_") === 0 || k.indexOf("mp3_text_") === 0 || k.indexOf("mp3_lyt_") === 0));
   }
   Storage.prototype.setItem = function (k) {
     var r = origSetItem.apply(this, arguments);

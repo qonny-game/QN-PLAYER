@@ -141,7 +141,7 @@ function buildPlaylistRow(track, i, editMode, nowPlaying) {
         swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
         return;
       }
-      pinContext = item.classList.contains("is-pincopy");
+      pinContext = item.classList.contains("is-pincopy"); setlistCtx = null;
       playTrackAt(parseInt(item.dataset.index, 10));
     });
   }
@@ -183,7 +183,7 @@ function buildPlaylistRow(track, i, editMode, nowPlaying) {
       swShowUnlockToast(`無料版はライブラリの${SW_LIMITS.LIBRARY_MAX_TRACKS}曲目までしか再生できません。`);
       return;
     }
-    pinContext = item.classList.contains("is-pincopy");
+    pinContext = item.classList.contains("is-pincopy"); setlistCtx = null;
     playTrackAt(parseInt(item.dataset.index, 10));
   };
 
@@ -431,7 +431,11 @@ function pinOrderedIdxs() {
   playlist.forEach((t, i) => { if (t.favorite) idxs.push(i); });
   return idxs.map((i, k) => [i, pos.has(playlist[i].name) ? pos.get(playlist[i].name) : order.length + k]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
 }
-function savePinOrder(names) { try { localStorage.setItem(PIN_ORDER_KEY, JSON.stringify(names)); } catch (e) {} }
+const PIN_ORDER_U_KEY = "qn_pin_order_u"; // 同期用の更新時刻(新しい方が勝つ)
+function savePinOrder(names, u) { try { localStorage.setItem(PIN_ORDER_KEY, JSON.stringify(names)); localStorage.setItem(PIN_ORDER_U_KEY, String(u || Date.now())); } catch (e) {} }
+function readPinOrderU() { try { return parseFloat(localStorage.getItem(PIN_ORDER_U_KEY)) || 0; } catch (e) { return 0; } }
+// 同期で受け取った並びを反映(画面も更新)
+function applyPinOrderSynced(names, u) { savePinOrder(names, u); if (typeof renderPlaylist === "function") renderPlaylist(); }
 function isPinFolderCollapsed() {
   try { return localStorage.getItem(PIN_FOLDER_COLLAPSED_KEY) === "1"; } catch (e) { return false; }
 }
@@ -721,9 +725,28 @@ function playTrackAt(index, autoplay = true) {
 
 // PINフォルダの行から再生した間(pinContext)は、お気に入りの曲だけを一覧の並びで進む/戻る。ピンを外した曲・PIN以外の行からの再生では通常の範囲へ戻る。保存しない(再読込でフォルダ順)
 let pinContext = false;
+// Setlistから再生した間(setlistCtx=曲名の配列)は、前/次・Auto Nextがセットリストの順で進む。Libraryの行・PIN行・クイックポップからの再生で解除。曲がセットリストに無くなっても解除(保存しない)
+let setlistCtx = null;
+function setSetlistContext(names) { setlistCtx = Array.isArray(names) ? names : null; if (setlistCtx) pinContext = false; }
 function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
   if (playlist.length === 0) return -1;
   if (pinContext && !(playlist[fromIndex] && playlist[fromIndex].favorite)) pinContext = false;
+  if (setlistCtx) {
+    const cur = playlist[fromIndex] ? playlist[fromIndex].name : null;
+    if (cur === null || setlistCtx.indexOf(cur) < 0) setlistCtx = null;
+    else {
+      const seq = [];
+      setlistCtx.forEach(nm => { const ix = playlist.findIndex(t => t.name === nm); if (ix >= 0 && playlist[ix].enabled !== false) seq.push(ix); });
+      const at = seq.indexOf(fromIndex);
+      if (at < 0) return -1;
+      for (let s = 1; s <= seq.length; s++) {
+        let k = at + direction * s;
+        if (k < 0 || k >= seq.length) { if (!wrapAround) return -1; k = ((k % seq.length) + seq.length) % seq.length; }
+        if (seq[k] !== fromIndex || seq.length === 1) return seq[k];
+      }
+      return -1;
+    }
+  }
   const onlyPinned = pinContext;
   if (onlyPinned) {
     // PINの並び順で進む/戻る

@@ -73,7 +73,8 @@ service cloud.firestore {
 ## Firestore（`users/{uid}/sync/`）
 - `lib_index`: `{t:{hash:更新時刻}, d:{hash:削除時刻}}`（どの曲が変わったかを1回の読み取りで知る）
 - `lib_folders`: `{f:{id:{n,u}}, d:{id:u}, ord:[id], ou}`／`lib_order`: `{ord:[hash], ou}`
-- `t_<hash>`: 1曲=1ドキュメント `{n,s,ti,ar,en,fv,fo,pn:[{t,e,m,c}],ab:{a,b},tx,u}`（Firestoreは配列の入れ子不可なのでpn/abはオブジェクト）
+- `lib_extra`（v5.8.0〜。曲とは別に`cycle`の後の`extraStep`で読み書き）: `{s:{id:{n,s:[曲名],u}}, d:{id:削除時刻}, po:[PIN内の曲名], pu}`。セットリスト(`qn_setlists_v1`)はidごとにu最大が勝ち(同時刻はリモート)・削除はtombstone(`qn_setlists_del_v1`)。PIN内の並び(`qn_pin_order`,`qn_pin_order_u`)は全体でpuが新しい方。曲は曲名で持つ(ハッシュではない)。別々の端末で同名のセットリストを作ると、idが違うので2つ残る。
+- `t_<hash>`: 1曲=1ドキュメント `{n,s,ti,ar,en,fv,fo,pn:[{t,e,m,c,k?}],ab:{a,b},tx,ly?:[{x,t}],u}`（`ly`=歌詞の行ごとの時刻。空の曲はキー自体を持たない／`k`=スキップ区間。どちらも「有る時だけ」持つので、足す前の版の署名が変わらず全曲再送信にならない）（Firestoreは配列の入れ子不可なのでpn/abはオブジェクト）
 - ルールは既存の`match /sync/{docId}`でそのまま通る（ルール変更なし）。
 
 ## 合体ルール

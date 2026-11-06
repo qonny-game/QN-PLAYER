@@ -1,0 +1,46 @@
+/* style-setlist.css — Setlistパネル(JS/player-setlist.js)。行の見た目はLibrary(.playlistItem)に合わせる */
+.qn-sl { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.qn-sl-head { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+.qn-sl-title { flex: 1; min-width: 0; font-size: var(--fs-body); font-weight: 600; color: var(--text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qn-sl-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+.qn-sl-bar small, .qn-sl-info small { font-size: var(--fs-micro); color: var(--icon-muted); }
+.qn-sl-acts { display: flex; gap: 8px; }
+.qn-sl-scroll { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px; }
+.qn-sl-note { margin: 0; padding: 16px 12px; font-size: var(--fs-micro); line-height: 1.5; color: var(--icon-muted); }
+.qn-sl-btn {
+  min-height: 34px; padding: 0 14px; border-radius: var(--radius-popup, 8px); cursor: pointer; white-space: nowrap;
+  background: var(--bg-1b1b23); border: 1px solid var(--border-subtle); color: var(--text-bright); font-size: var(--fs-body);
+}
+.qn-sl-btn.is-primary { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+.qn-sl-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 32px; height: 32px; padding: 0;
+  background: none; border: none; border-radius: 50%; color: var(--icon-muted); cursor: pointer;
+}
+.qn-sl-icon svg { width: 20px; height: 20px; fill: currentColor; }
+.qn-sl-icon:hover, .qn-sl-icon.is-play { color: var(--text-bright); }
+.qn-sl-icon.is-play { color: var(--accent-primary); }
+.qn-sl-search {
+  margin: 8px 12px; padding: 0 12px; min-height: 36px; box-sizing: border-box; width: calc(100% - 24px);
+  background: var(--bg-1b1b23); border: 1px solid var(--border-subtle); border-radius: var(--radius-popup, 8px);
+  color: var(--text-bright); font-size: var(--fs-body);
+}
+.qn-sl-row {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px; min-height: 52px; box-sizing: border-box;
+  border-bottom: 1px solid var(--border-subtle); position: relative; cursor: pointer;
+  transition: background 0.2s, transform 0.15s ease-out;
+}
+@media (hover: hover) and (pointer: fine) { .qn-sl-row:hover { background: rgba(var(--ov), 0.03); } }
+.qn-sl-row:last-child { border-bottom: none; }
+.qn-sl-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.qn-sl-name { font-size: var(--fs-body); color: var(--text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qn-sl-num { flex: 0 0 auto; min-width: 18px; text-align: right; font-size: var(--fs-micro); color: var(--icon-muted); font-variant-numeric: tabular-nums; }
+.qn-sl-dur { flex: 0 0 auto; font-size: var(--fs-micro); color: var(--icon-muted); font-variant-numeric: tabular-nums; }
+.qn-sl-handle { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 22px; height: 22px; color: var(--icon-muted); cursor: grab; touch-action: none; }
+.qn-sl-handle svg { width: 18px; height: 18px; fill: currentColor; }
+.qn-sl-row.is-playing .qn-sl-name { color: var(--accent-primary); }
+.qn-sl-row.is-missing, .qn-sl-row.is-off { opacity: 0.4; }
+.qn-sl-row.is-dragging { z-index: 10; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); background: var(--bg-1b1b23); cursor: grabbing; transition: none; }
+.qn-sl-check { flex: 0 0 auto; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--icon-muted); display: flex; align-items: center; justify-content: center; }
+.qn-sl-check svg { width: 14px; height: 14px; fill: #fff; opacity: 0; }
+.qn-sl-row.is-on .qn-sl-check { background: var(--accent-primary); border-color: var(--accent-primary); }
+.qn-sl-row.is-on .qn-sl-check svg { opacity: 1; }

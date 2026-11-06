@@ -39,6 +39,7 @@ JS/
   player-controls.js          Speed/AutoSpeed/Key/Loop/プリロールのつまみ
   qn-settings-ui.js           設定パネルの共通部品（QNSettingsUI。PLAYERとアプリが共用）
   player-text.js              Textタブ
+  player-setlist.js           Setlistパネル(曲順リスト。qn_setlists_v1。QNSetlist.mount/exportData/importData。再生はsetSetlistContext)
   player-lyrics.js            歌詞表示(Textメモの行に時刻→シークバー下に現在行。CSS/style-lyrics.css)
   qn-features.js             機能の表示ON/OFF(`QN_FEATURES`/`qnFeature`)。公開版はtab/stem/rec/chordsをOFF。開発で出す時は`localStorage.qn_dev_features="all"`。詳細GOTCHAS「機能の表示ON/OFF」
   player-tab.js               Tabパネル(`QNTab.mount`/`settingsRows`)。再生中のローカル曲をBasic Pitchで採譜しギターTABを描画。qn-tab-core.js=計算(DOMなし)、player-tab-worker.js=解析ワーカー、JS/basic-pitch/=Basic Pitch(Apache-2.0)。詳細`md/TAB_MODE.md`
@@ -132,8 +133,9 @@ guide/                        アプリ内ガイド（静的HTML8枚＋guide.css
 | PITCH | localStorage／IndexedDB | `qn_pitch_filters` `qn_pitch_rec_meta`(録音の改名) `qn_pitch_panel_collapsed`／IndexedDB `qn_pitch_db`(録音実体。レコードは再putしない)（詳細は`PITCH_APP.md`） |
 | YouTube | localStorage | `qn_yt_items` `qn_yt_rate` `qn_yt_repeat` `qn_yt_preroll`（詳細は`YOUTUBE_APP.md`§4） |
 | Transfer(端末間転送) | localStorage | `qn_p2p_dev`(この端末のランダムID)・`qn_p2p_peers`(つないだ端末。最大5件)。バックアップ・同期の対象外（`player-p2p.js`。`SYNC.md`） |
+| Setlist | localStorage | `qn_setlists_v1`(`[{id,name,songs:[曲名],u}]`)・`qn_setlists_del_v1`(削除の記録`{id:時刻}`)。同期はlib_extra、バックアップはmarkers.jsonのsetlists。`player-setlist.js` |
 | PINフォルダ | localStorage | `qn_pin_folder_collapsed`(開閉。同期・バックアップの対象外。`player-playlist.js`) |
-| PINフォルダの並び順 | localStorage | `qn_pin_order`(曲名の配列。載っていないお気に入りは末尾に一覧順。同期・バックアップの対象外。`player-playlist.js`) |
+| PINフォルダの並び順 | localStorage | `qn_pin_order`(曲名の配列。載っていないお気に入りは末尾に一覧順)・`qn_pin_order_u`(更新時刻)。同期はlib_extra、バックアップはmarkers.jsonのpinOrder。`player-playlist.js` |
 | 表示の音ズレ補正 | localStorage | `qn_av_offset_ms`(ms。自動補正への加算。既定は無し。`player-core.js`) |
 | 最後に再生した曲 | localStorage | `qn_last_track`(`{n:曲名,s:サイズ}`。起動時の選択曲。同期・バックアップの対象外。`player-playlist.js`) |
 | 本体Library同期 | localStorage | `qn_libsync_meta_v1`（`player-sync.js`。詳細は`SYNC.md`） |

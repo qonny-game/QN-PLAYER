@@ -19,6 +19,13 @@
       icon: '<path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>'
     },
     {
+      // バンド/ライブごとのセットリスト。曲を並べて、その順で再生する。中身はplayer-setlist.js(QNSetlist.mount)
+      id: "setlist",
+      label: "Setlist",
+      panelType: "setlist",
+      icon: '<path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zM3 16h7v-2H3v2zm11.5-1.5v-1.5H13v6.5c-.4-.2-.9-.3-1.5-.3-1.4 0-2.5 1-2.5 2.2s1.1 2.2 2.5 2.2 2.5-1 2.5-2.2V17h4v-2.5h-3.5z" transform="translate(1 -1)"/>'
+    },
+    {
       id: "markers",
       label: "Markers",
       panelType: "tab",
@@ -1342,6 +1349,8 @@
       if (typeof setMobileTab === "function") setMobileTab(panelId);
     } else if (item.panelType === "stem") {
       if (window.QNStem) window.QNStem.mount(panelBody);
+    } else if (item.panelType === "setlist") {
+      if (window.QNSetlist) window.QNSetlist.mount(panelBody);
     } else if (item.panelType === "rec") {
       if (window.QNStem) window.QNStem.mountRec(panelBody);
     } else if (item.panelType === "guitartab") {
