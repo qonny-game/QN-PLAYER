@@ -952,8 +952,11 @@ async function restorePlaylistFromStorage() {
     }
   });
 
-  // 1曲目を選曲済みにする(autoplay:false)
-  playTrackAt(0, false);
+  // 最後に選んでいた曲(無ければ1曲目。無料版のロック曲は避ける)を選曲済みにする(autoplay:false)
+  let startIdx = findLastTrackIndex();
+  if (startIdx < 0 || (typeof isUnlocked === "function" && !isUnlocked() && startIdx >= SW_LIMITS.LIBRARY_MAX_TRACKS)) startIdx = 0;
+  playTrackAt(startIdx, false);
+  if (startIdx > 0) requestAnimationFrame(() => { const r = document.querySelector("#playlistBox .playlistItem.playing:not(.is-pincopy)"); if (r) r.scrollIntoView({ block: "center" }); });
   if (typeof window.qnLibSyncReady === "function") window.qnLibSyncReady();
 }
 

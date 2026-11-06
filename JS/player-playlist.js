@@ -679,6 +679,18 @@ function removeTrackAt(index) {
   renderPlaylist();
 }
 
+// 最後に選んだ曲(名前+サイズ)をlocalStorageへ。再読み込み時に、1曲目ではなくこの曲を選曲済みにする(restorePlaylistFromStorage)
+const LAST_TRACK_KEY = "qn_last_track";
+function saveLastTrack(t) {
+  try { localStorage.setItem(LAST_TRACK_KEY, JSON.stringify({ n: t.name, s: t.file ? t.file.size : 0 })); } catch (e) {}
+}
+function findLastTrackIndex() {
+  try {
+    const o = JSON.parse(localStorage.getItem(LAST_TRACK_KEY) || "null");
+    if (!o) return -1;
+    return playlist.findIndex(t => t.name === o.n && (t.file ? t.file.size : 0) === o.s);
+  } catch (e) { return -1; }
+}
 function playTrackAt(index, autoplay = true) {
   if (index < 0 || index >= playlist.length) return;
   // 無料版ロック曲(index>=LIBRARY_MAX_TRACKS)の最終防衛ライン(GOTCHAS.md)。前/次ボタン・mediaSession・audio.onended等がplayTrackAt()を直接呼ぶので、ここで一律ブロックする
@@ -688,6 +700,7 @@ function playTrackAt(index, autoplay = true) {
     return;
   }
   currentPlaylistIndex = index;
+  saveLastTrack(playlist[index]);
   loadFile(playlist[index].file);
   if (autoplay) {
     // audio.play()はタップのコールスタック内で同期的に呼ぶ(loadedmetadata待ちだと自動再生ポリシーでブロック＝SPで1タップ目が再生されない)。renderPlaylist()より必ず先に呼ぶ(後だと曲数多い時に間隔が開き再発)

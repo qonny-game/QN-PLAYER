@@ -37,7 +37,9 @@
 .qn-lyd-exp { position: absolute; top: 4px; right: 2px; z-index: 2; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--icon-muted); cursor: pointer; pointer-events: auto; }
 @media (hover: hover) { .qn-lyd-exp:hover { background: var(--bg-hover-subtle); color: var(--text-bright); } }
 .qn-lyd-wide { display: none; }
-#pcV2Lyrics.is-wide { flex: 1 1 0; min-height: 0; height: auto; display: flex; flex-direction: column; margin-top: 8px; border-top: 1px solid var(--border-subtle, rgba(var(--ov), 0.08)); }
+/* 広い表示は、大きめの文字で5行ぶんの高さ(行の高さ=文字×1.5+上下4px、領域の上下6px)。画面が低い時は高さの45%まで */
+#pcV2Lyrics.is-wide { --lyd-wide-fs: clamp(22px, 2.8vw, 30px); flex: 0 0 auto; min-height: 0; height: min(calc(var(--lyd-wide-fs) * 7.5 + 52px), 45vh); box-sizing: border-box; display: flex; flex-direction: column; margin-top: 8px; border-top: 1px solid var(--border-subtle, rgba(var(--ov), 0.08)); }
+#pcV2Lyrics.is-wide .qn-lyd-row { font-size: var(--lyd-wide-fs); }
 #pcV2Lyrics.is-wide[hidden] { display: none; }
 #pcV2Lyrics.is-wide .qn-lyd-line { display: none; }
 #pcV2Lyrics.is-wide .qn-lyd-wide {

@@ -651,8 +651,10 @@
     const snapState = () => { const g = QNChords.getGridMode(); return g === "beat" ? "Bars + beats" : g === "bar" ? "Bars" : ""; };
     const snapNext = () => { const g = QNChords.getGridMode(); QNChords.setGridMode(g === "beat" ? "bar" : g === "bar" ? "off" : "beat"); if (window.QNApps && QNApps.toast) QNApps.toast("Grid: " + (snapState() || "Off")); };
     const togSnap = makeToggle("pcV2FabSnap", "Grid lines (hold: marker snap)", '<path d="M4 4h2v16H4zM11 4h2v16h-2zM18 4h2v16h-2z"/><path d="M7.5 8h1v8h-1zM14.5 8h1v8h-1z"/>', () => QNChords.getGridMode() !== "off", null, snapNext, snapState);
-    // SP: B の右に歌詞のON/OFF(Textパネルの「Show under bar」と同じ値)
-    const togLy = makeToggle("pcV2FabLyrics", "Lyrics under the bar on / off", '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/>', () => window.QNLyrics && QNLyrics.getShow(), on => { if (window.QNLyrics) QNLyrics.setShow(on); });
+    // 歌詞ボタン: タップで「表示 → 広く → OFF」を回す(Textパネルの「Show under bar」「Large area」と同じ値)
+    const lyState = () => { const m = window.QNLyrics ? QNLyrics.getMode() : "off"; return m === "wide" ? "Large" : m === "show" ? "Show" : ""; };
+    const lyNext = () => { if (!window.QNLyrics) return; QNLyrics.cycleMode(); if (window.QNApps && QNApps.toast) QNApps.toast("Lyrics: " + (lyState() || "Off")); };
+    const togLy = makeToggle("pcV2FabLyrics", "Lyrics under the bar", '<path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/>', () => window.QNLyrics && QNLyrics.getShow(), null, lyNext, lyState);
     waveFabBtns.appendChild(togLy);
     document.addEventListener("qn-lyrics-change", () => togLy.__sync());
     const hasChords = qnFeature("beats"); // 拍・小節の機能を隠す時は、クリック音/吸着のボタンも出さない

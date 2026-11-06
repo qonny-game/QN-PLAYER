@@ -287,7 +287,7 @@
 
 
 ## 歌詞の広い表示(v4.65.0)
-- `#pcV2Lyrics.is-wide`(`qn_lyrics_wide`=1)は `flex:1 1 0` で `#vbarContainer` と高さを分け合う(≒1:1)。中身は `.qn-lyd-wide`(全行の縦リスト、現在行を `scrollTo` で中央へ)。通常表示の5本(`.qn-lyd-line`)は広い時は非表示。
+- `#pcV2Lyrics.is-wide`(`qn_lyrics_wide`=1)は大きめの文字(`--lyd-wide-fs`)で5行ぶんの固定の高さ(画面の高さの45%まで。以前は`#vbarContainer`と1:1)。歌詞ボタン(`#pcV2FabLyrics`)は表示→広く→OFFの順に回す(`QNLyrics.cycleMode`。OFFで広くも戻す)。中身は `.qn-lyd-wide`(全行の縦リスト、現在行を `scrollTo` で中央へ)。通常表示の5本(`.qn-lyd-line`)は広い時は非表示。
 - 文字サイズは前後の行も現在行と同じ(`--lyd-sm: var(--lyd-cur)`)。現在行は太さと色だけで区別。
 - ON/OFFは `QNLyrics.getShow/setShow`、広さは `getWide/setWide`。変更時に `qn-lyrics-change` を発火し、Bの右の `#pcV2FabLyrics`(PC幅でも出る)が同期する。
 - 行リストの作り直しは `render()` が増やす `ver` で判定(`paintWide`)。

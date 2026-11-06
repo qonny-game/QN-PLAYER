@@ -24,6 +24,14 @@
   function setShow(on) { try { localStorage.setItem(SHOW_KEY, on ? "1" : "0"); } catch (e) {} if (elShow) elShow.firstChild.checked = !!on; lastActive = -2; tick(true); syncTimer(); changed(); }
   function setWide(on) { try { localStorage.setItem(WIDE_KEY, on ? "1" : "0"); } catch (e) {} if (elWideSw) elWideSw.firstChild.checked = !!on; lastActive = -2; tick(true); changed(); }
   var elWideSw = null;
+  // シークバー下のボタン用: 表示(通常) → 広く → OFF の順に回す。OFFにする時は広くも戻す(次は通常の表示から)
+  function modeNow() { return !showPref() ? "off" : widePref() ? "wide" : "show"; }
+  function cycleMode() {
+    var m = modeNow();
+    if (m === "off") { setWide(false); setShow(true); }
+    else if (m === "show") setWide(true);
+    else { setShow(false); setWide(false); }
+  }
   function fmt(t) {
     if (t == null) return "--";
     var m = Math.floor(t / 60), s = t - m * 60;
@@ -277,7 +285,7 @@
     try { if (ok.length) localStorage.setItem("mp3_lyt_" + n, JSON.stringify(ok)); else localStorage.removeItem("mp3_lyt_" + n); } catch (e) {}
   }
 
-  window.QNLyrics = { getShow: showPref, setShow: setShow, getWide: widePref, setWide: setWide, load: load, setEditing: setEditing, exportFor: exportFor, importFor: importFor, NOTE_MAX: NOTE_MAX };
+  window.QNLyrics = { getShow: showPref, setShow: setShow, getMode: modeNow, cycleMode: cycleMode, getWide: widePref, setWide: setWide, load: load, setEditing: setEditing, exportFor: exportFor, importFor: importFor, NOTE_MAX: NOTE_MAX };
 
   function init() {
     build(); ensureDisp(); load(); syncTimer();
