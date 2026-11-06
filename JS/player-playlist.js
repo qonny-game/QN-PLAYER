@@ -380,7 +380,7 @@ function renderPlaylist() {
   // フォルダが無ければ従来どおり全曲を並べるだけ。有れば「フォルダ見出し→その曲」をフォルダ順に、未分類は末尾。編集モードは全フォルダを展開(移動/削除の対象を隠さない)
   const frag = document.createDocumentFragment();
   const pinIdxs = [];
-  if (!editMode) playlist.forEach((t, i) => { if (t.favorite) pinIdxs.push(i); });
+  if (!editMode) pinIdxs.push(...pinOrderedIdxs());
   if (pinIdxs.length) {
     const collapsed = isPinFolderCollapsed();
     frag.appendChild(buildPinFolderHeader(pinIdxs.length, collapsed));
@@ -422,6 +422,16 @@ function renderPlaylist() {
 
 // PINフォルダ(お気に入りの複製を並べる固定の見出し。実体のフォルダではなく、並び替え・移動・編集モードの対象外)。開閉はlocalStorageのqn_pin_folder_collapsed
 const PIN_FOLDER_COLLAPSED_KEY = "qn_pin_folder_collapsed";
+// PINフォルダ内の並び順(曲名の配列。端末ローカル・同期/バックアップ対象外)。一覧本体の並びとは独立。載っていないお気に入りは末尾に一覧順で付く
+const PIN_ORDER_KEY = "qn_pin_order";
+function readPinOrder() { try { const a = JSON.parse(localStorage.getItem(PIN_ORDER_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function pinOrderedIdxs() {
+  const order = readPinOrder(), pos = new Map(order.map((n, k) => [n, k]));
+  const idxs = [];
+  playlist.forEach((t, i) => { if (t.favorite) idxs.push(i); });
+  return idxs.map((i, k) => [i, pos.has(playlist[i].name) ? pos.get(playlist[i].name) : order.length + k]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
+}
+function savePinOrder(names) { try { localStorage.setItem(PIN_ORDER_KEY, JSON.stringify(names)); } catch (e) {} }
 function isPinFolderCollapsed() {
   try { return localStorage.getItem(PIN_FOLDER_COLLAPSED_KEY) === "1"; } catch (e) { return false; }
 }
@@ -715,6 +725,18 @@ function findEnabledTrackIndex(fromIndex, direction, wrapAround) {
   if (playlist.length === 0) return -1;
   if (pinContext && !(playlist[fromIndex] && playlist[fromIndex].favorite)) pinContext = false;
   const onlyPinned = pinContext;
+  if (onlyPinned) {
+    // PINの並び順で進む/戻る
+    const seq = pinOrderedIdxs(), at = seq.indexOf(fromIndex);
+    if (at < 0) return -1;
+    for (let s = 1; s <= seq.length; s++) {
+      let k = at + direction * s;
+      if (k < 0 || k >= seq.length) { if (!wrapAround) return -1; k = ((k % seq.length) + seq.length) % seq.length; }
+      const t = playlist[seq[k]];
+      if (t && t.enabled !== false) return seq[k];
+    }
+    return -1;
+  }
   // Auto Next範囲: フォルダがあり設定が"folder"なら、今の曲と同じフォルダ(連続グループ)内だけで進む/戻る/ラップする
   let lo = 0, hi = playlist.length - 1;
   if (!onlyPinned && playlistFolders.length > 0 && repeatMode === "folder" && playlist[fromIndex]) {
@@ -799,7 +821,7 @@ const PLAYLIST_AUTOSCROLL_EDGE = 36;   // スクロール領域の端からこ�
 const PLAYLIST_AUTOSCROLL_STEP = 10;   // 1回(50ms)あたりのpx。ドラッグ中、端にいる間だけ動く間引きタイマー(rAFループは使わない)
 
 function setupPlaylistDragReorder(box) {
-  const handles = box.querySelectorAll(".playlistItem:not(.is-pincopy) .playlist-drag-handle");
+  const handles = box.querySelectorAll(".playlistItem .playlist-drag-handle");
 
   handles.forEach(handle => {
     let dragging = false;
@@ -908,7 +930,13 @@ function setupPlaylistDragReorder(box) {
         return;
       }
 
-      if (targetIndex !== startIndex) {
+      if (targetIndex !== startIndex && draggedItem && draggedItem.classList.contains("is-pincopy")) {
+        // PINフォルダ内: PINの並び順だけ変える(一覧本体の並びは動かさない)
+        const names = getItems().slice().sort((a, b) => parseInt(a.dataset.dragOriginalIndex, 10) - parseInt(b.dataset.dragOriginalIndex, 10)).map(el => playlist[parseInt(el.dataset.index, 10)].name);
+        const mv = names.splice(startIndex, 1)[0];
+        names.splice(targetIndex, 0, mv);
+        savePinOrder(names);
+      } else if (targetIndex !== startIndex) {
         const itemsInOrder = getItems()
           .slice()
           .sort((a, b) => parseInt(a.dataset.dragOriginalIndex, 10) - parseInt(b.dataset.dragOriginalIndex, 10));
@@ -963,7 +991,7 @@ function setupPlaylistDragReorder(box) {
       scroller = findPlaylistScroller(box);
       scrollStart = scroller.scrollTop;
       viewRect = scrollerViewRect(scroller);
-      blocks = box.querySelector(".playlistFolderHeader:not(.is-pin)") ? measureFolderBlocks(box, scroller) : null;
+      blocks = !draggedItem.classList.contains("is-pincopy") && box.querySelector(".playlistFolderHeader:not(.is-pin)") ? measureFolderBlocks(box, scroller) : null;
       hoverBlock = null;
 
       const rect = draggedItem.getBoundingClientRect();

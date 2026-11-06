@@ -309,3 +309,4 @@
 - CSSは`style-qnx.css`(`style-export.css`は別物)。
 - マーカー線/ラベルのonclickは`stopPropagation()`するので、`document`のclickで閉じるポップアップ(Color/メモの`.qn-style-pop`)はマーカー線を押しても閉じない。線を押す処理の先頭で`closeMarkerColorPicker()`を呼ぶこと。
 - 画面に出す再生位置は`audio.currentTime`でなく`qnShownTime()`(出力遅延ぶん戻した値)。再生制御(ループ判定・スキップ・シーク・マーカー追加)は`audio.currentTime`のまま。補正はWeb Audioに繋いだ後(`__qnAudioRouted`)・再生中だけ。手動の微調整は`qn_av_offset_ms`。
+- PINフォルダの行も`.playlist-drag-handle`でドラッグできる(`data-folder="__pin"`で同グループ扱い)。確定は配列を動かさず`qn_pin_order`だけ更新。フォルダ移動のドロップ対象にはしない。PIN再生中の前/次は`pinOrderedIdxs()`の順。

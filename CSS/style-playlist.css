@@ -48,7 +48,6 @@
 .playlistItem.is-pincopy {
   background: color-mix(in srgb, var(--accent-primary) 7%, transparent);
 }
-.playlistItem.is-pincopy .playlist-drag-handle { visibility: hidden; pointer-events: none; }
 
 .playlistItem.dragging {
   z-index: 10;
