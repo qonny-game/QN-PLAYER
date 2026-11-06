@@ -613,13 +613,14 @@ function updateBarsBody() {
 
   const dur = audio.duration;
   const ct = audio.currentTime;
+  const shown = window.qnShownTime ? qnShownTime() : ct;
   const now = performance.now();
 
   if (now - lastVisualUpdateTime >= UPDATE_BARS_VISUAL_INTERVAL_MS) {
     lastVisualUpdateTime = now;
 
     if (updateBarsCurrentValEl && updateBarsDurationValEl) {
-      const ctText = formatTime(ct);
+      const ctText = formatTime(shown);
       const durText = formatTime(dur);
       if (ctText !== lastCurrentTimeText) {
         setTextFast(updateBarsCurrentValEl, ctText);

@@ -581,7 +581,7 @@
     var panelOk = st.rec && cw && !els.viewWrap.hidden, big = score && score.lanes.length && score.on;
     if (!panelOk && !big) return;
     if (!colors) readColors();
-    var a = A(), cur = a ? a.currentTime : 0, pps = ZOOMS[st.zi];
+    var a = A(), cur = a ? (window.qnShownTime ? qnShownTime() : a.currentTime) : 0, pps = ZOOMS[st.zi];
     if (view.free && view.until && Date.now() > view.until) view.free = false;
     if (st.follow && !view.free) view.t = cur; // 追従OFFの間は位置を動かさない(ドラッグかタップで動く)
     var vt = view.t;

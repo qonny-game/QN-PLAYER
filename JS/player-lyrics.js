@@ -235,7 +235,7 @@
     var d = ensureDisp(); if (!d) return;
     var show = showPref() && timedCount() > 0;
     if (!show) { if (!d.hidden) { d.hidden = true; lastActive = -2; } return; }
-    var cur = typeof audio !== "undefined" ? audio.currentTime : 0;
+    var cur = typeof audio !== "undefined" ? (window.qnShownTime ? qnShownTime() : audio.currentTime) : 0;
     var a = activeLine(cur);
     var wide = widePref();
     if (d.classList.contains("is-wide") !== wide || wideVer !== ver) force = true;

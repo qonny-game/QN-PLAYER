@@ -133,6 +133,7 @@ guide/                        アプリ内ガイド（静的HTML8枚＋guide.css
 | YouTube | localStorage | `qn_yt_items` `qn_yt_rate` `qn_yt_repeat` `qn_yt_preroll`（詳細は`YOUTUBE_APP.md`§4） |
 | Transfer(端末間転送) | localStorage | `qn_p2p_dev`(この端末のランダムID)・`qn_p2p_peers`(つないだ端末。最大5件)。バックアップ・同期の対象外（`player-p2p.js`。`SYNC.md`） |
 | PINフォルダ | localStorage | `qn_pin_folder_collapsed`(開閉。同期・バックアップの対象外。`player-playlist.js`) |
+| 表示の音ズレ補正 | localStorage | `qn_av_offset_ms`(ms。自動補正への加算。既定は無し。`player-core.js`) |
 | 最後に再生した曲 | localStorage | `qn_last_track`(`{n:曲名,s:サイズ}`。起動時の選択曲。同期・バックアップの対象外。`player-playlist.js`) |
 | 本体Library同期 | localStorage | `qn_libsync_meta_v1`（`player-sync.js`。詳細は`SYNC.md`） |
 | Tab | localStorage／IndexedDB | `qn_tab_sens`・`qn_tab_minlen`・`qn_tab_overtone`・`qn_tab_zoom`・`qn_tab_follow`／IndexedDB `qn_tab_db`(解析結果と修正。キーは`名前\|サイズ`、最大60曲)。バックアップ・同期の対象外 |

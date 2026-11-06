@@ -635,7 +635,7 @@ const QNBars = (function () {
     if (keptRow) ensureRows(true);
 
     const now = performance.now();
-    const ct = audio.currentTime || 0;
+    const ct = (window.qnShownTime ? qnShownTime() : audio.currentTime) || 0;
     followTick(now, ct);
 
     // 現在行の時刻ラベルを明るく

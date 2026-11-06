@@ -497,6 +497,23 @@ function replayAppTitleMarquee() {
   appTitle.addEventListener("click", replayAppTitleMarquee);
 })();
 
+// 表示用の再生位置。audio.currentTimeは「デコードして送り出した位置」で、実際に耳に届くのは出力デバイスの遅延ぶん後。
+// 画面(シークバー/時刻/歌詞/Tab)だけ遅延ぶん戻す。再生制御(ループ・スキップ・シーク)は実時刻のまま使う。Safariはoutputlatency未対応でbaseLatencyのみ
+function qnOutLag() {
+  const c = window.__qnAudioCtx;
+  if (!c || !window.__qnAudioRouted || c.state !== "running") return 0;
+  let l = (c.outputLatency > 0 ? c.outputLatency : 0) + (c.baseLatency > 0 ? c.baseLatency : 0);
+  let adj = 0; try { adj = (parseFloat(localStorage.getItem("qn_av_offset_ms")) || 0) / 1000; } catch (e) {}
+  l = Math.min(0.5, Math.max(0, l + adj));
+  const r = audio.playbackRate > 0 ? audio.playbackRate : 1;
+  return l * r;
+}
+function qnShownTime() {
+  const t = audio.currentTime || 0;
+  return audio.paused ? t : Math.max(0, t - qnOutLag());
+}
+window.qnShownTime = qnShownTime;
+
 function getAudioCtx() {
   if (!window.__qnAudioCtx) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -604,6 +621,7 @@ async function setupAudioGraph() {
     return;
   }
 
+  window.__qnAudioRouted = true;
   eqFilters = filters;
   soundTouchNode = stNode;
   pitchShiftAvailable = !!stNode;
